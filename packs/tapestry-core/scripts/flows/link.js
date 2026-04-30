@@ -118,7 +118,7 @@ tapestry.flows.register({
             type: "choice",
             prompt: function(entity) {
                 var targetRoom = entity.getProperty("link_room") || "destination";
-                return "Choose the return exit from " + targetRoom + ":";
+                return "From " + targetRoom + ", which exit leads back to this room?";
             },
             options: function(entity) {
                 var targetRoomId = entity.getProperty("link_room");
@@ -184,7 +184,8 @@ tapestry.flows.register({
             id: "choose_source_exit",
             type: "choice",
             prompt: function(entity) {
-                return "Choose exit from this room to the destination:";
+                var targetRoom = entity.getProperty("link_room") || "destination";
+                return "From this room, which exit leads to " + targetRoom + "?";
             },
             options: function(entity) {
                 var exits = tapestry.rooms.getExits(entity.roomId);
