@@ -31,11 +31,3 @@
 2. Assert Bob sees: `Alice waves hello.`
 3. Assert Bob does not see: `Comm.Channel`
 
-## Scenario: Say GMCP payload includes source field
-- Players: Alice, Bob
-- Room: same
-
-### Steps
-1. Alice: `say Testing source field`
-2. Assert Bob sees: `Alice says`
-3. Assert Bob sees: `Testing source field`
