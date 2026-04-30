@@ -71,6 +71,7 @@ public class GameBootstrapper
     private readonly WeatherService _weatherService;
     private readonly AreaTickService _areaTick;
     private readonly GmcpService _gmcpService;
+    private readonly TickTimer _tickTimer;
     private readonly ILogger<GameBootstrapper> _logger;
 
     public GameBootstrapper(
@@ -111,6 +112,7 @@ public class GameBootstrapper
         WeatherService weatherService,
         AreaTickService areaTick,
         GmcpService gmcpService,
+        TickTimer tickTimer,
         ILogger<GameBootstrapper> logger)
     {
         _gameLoop = gameLoop;
@@ -150,6 +152,7 @@ public class GameBootstrapper
         _weatherService = weatherService;
         _areaTick = areaTick;
         _gmcpService = gmcpService;
+        _tickTimer = tickTimer;
         _logger = logger;
     }
 
@@ -418,6 +421,7 @@ public class GameBootstrapper
     {
         _gameLoop.RegisterTickHandler("area-tick", 1, () => _areaTick.Tick());
         _gameLoop.RegisterTickHandler("game-clock", 1, () => _gameClock.Tick());
+        _gameLoop.RegisterTickHandler("tick-timer", 1, () => _tickTimer.Advance());
         RegisterMobAI();
         RegisterHeartbeat();
         RegisterCorpseDecay();

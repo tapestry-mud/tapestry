@@ -46,6 +46,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
         services.AddSingleton<GameLoop>();
+        services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new TickTimer(1000 / config.Server.TickRateMs);
+        });
 
         // Stats
         services.AddSingleton<StatDisplayNames>();
