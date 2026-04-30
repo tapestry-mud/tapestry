@@ -86,6 +86,16 @@ public static class ServiceCollectionExtensions
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<ConnectionsModule>());
 
+        services.AddSingleton<RoomsModule>();
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<RoomsModule>());
+
+        services.AddSingleton<FsModule>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new FsModule(config.ConfigDirectory);
+        });
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FsModule>());
+
         return services;
     }
 }
