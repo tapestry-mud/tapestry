@@ -19,4 +19,5 @@ tests/scenarios/results/
 
 # Internal docs and deployment config
 docs/
+**/docs/superpowers/
 fly.toml
