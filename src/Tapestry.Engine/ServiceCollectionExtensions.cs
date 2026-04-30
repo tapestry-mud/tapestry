@@ -49,7 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             var config = sp.GetRequiredService<ServerConfig>();
-            return new TickTimer(1000 / config.Server.TickRateMs);
+            return new TickTimer((int)Math.Round(1000.0 / config.Server.TickRateMs));
         });
 
         // Stats

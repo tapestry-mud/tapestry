@@ -6,6 +6,10 @@ public class TickTimer
 
     public TickTimer(int ticksPerSecond)
     {
+        if (ticksPerSecond <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ticksPerSecond), "Must be greater than zero.");
+        }
         TicksPerSecond = ticksPerSecond;
     }
 
@@ -14,5 +18,8 @@ public class TickTimer
 
     public long SecondsToTicks(double seconds) => (long)(seconds * TicksPerSecond);
     public double TicksToSeconds(long ticks) => (double)ticks / TicksPerSecond;
-    public void Advance() => _currentTick++;
+    public void Advance()
+    {
+        _currentTick++;
+    }
 }

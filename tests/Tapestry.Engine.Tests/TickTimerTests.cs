@@ -45,4 +45,10 @@ public class TickTimerTests
         Assert.Equal(20, timer.TicksPerSecond);
         Assert.Equal(40L, timer.SecondsToTicks(2.0));
     }
+
+    [Fact]
+    public void Constructor_ThrowsOnZeroTicksPerSecond()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new TickTimer(0));
+    }
 }
