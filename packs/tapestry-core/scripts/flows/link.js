@@ -1,5 +1,5 @@
 // packs/tapestry-core/scripts/flows/link.js
-// Admin flow: guided 7-step wizard for creating a room connection.
+// Admin flow: guided 8-step wizard for creating a room connection.
 
 tapestry.flows.register({
     id: "link_rooms",
@@ -46,27 +46,18 @@ tapestry.flows.register({
             }
         },
         {
-            // Step 2: Choose target room (entry points first, with "show all" option)
-            id: "choose_room",
+            // Step 2a: Choose target room from entry points (skipped if pack has none or show-all already set)
+            id: "choose_room_entry",
             type: "choice",
             prompt: "Choose the destination room:",
+            skip_if: function(entity) {
+                var pack = entity.getProperty("link_pack");
+                var eps = tapestry.rooms.getEntryPoints(pack);
+                var showAll = entity.getProperty("link_show_all");
+                return (eps.length === 0) || (showAll === "true");
+            },
             options: function(entity) {
                 var pack = entity.getProperty("link_pack");
-                var showAll = entity.getProperty("link_show_all");
-
-                var rooms;
-                if (showAll === "true") {
-                    rooms = tapestry.rooms.getByPack(pack);
-                    return rooms.map(function(r) {
-                        return {
-                            label: r.name || r.id,
-                            value: r.id,
-                            tag_line: r.id
-                        };
-                    });
-                }
-
-                // Default: entry points only, plus "Show all rooms"
                 var eps = tapestry.rooms.getEntryPoints(pack);
                 var options = eps.map(function(r) {
                     return {
@@ -83,15 +74,34 @@ tapestry.flows.register({
             on_select: function(entity, option) {
                 if (String(option.value) === "__all__") {
                     entity.setProperty("link_show_all", "true");
-                    // Trigger re-display by not setting link_room --
-                    // the flow engine re-evaluates options on next render.
-                    // We need to stay on this step; clear link_room so confirm
-                    // knows we are not done yet.
                     entity.setProperty("link_room", "");
                 } else {
-                    entity.setProperty("link_show_all", "false");
                     entity.setProperty("link_room", String(option.value));
+                    entity.setProperty("link_show_all", "false");
                 }
+            }
+        },
+        {
+            // Step 2b: Choose target room from all rooms (skipped if a real room was already picked in 2a)
+            id: "choose_room_all",
+            type: "choice",
+            prompt: "Choose the destination room:",
+            skip_if: function(entity) {
+                var room = entity.getProperty("link_room");
+                return (room !== null && room !== undefined && room !== "");
+            },
+            options: function(entity) {
+                var pack = entity.getProperty("link_pack");
+                var rooms = tapestry.rooms.getByPack(pack);
+                return rooms.map(function(r) {
+                    return {
+                        label: r.name + " (" + r.id + ")",
+                        value: r.id
+                    };
+                });
+            },
+            on_select: function(entity, option) {
+                entity.setProperty("link_room", String(option.value));
             }
         },
         {

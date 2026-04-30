@@ -62,7 +62,8 @@ public class PlayerSession
                  input.Equals("cancel", StringComparison.OrdinalIgnoreCase)))
             {
                 CurrentFlow = null;
-                Send("Link cancelled.");
+                Send("Cancelled.\r\n");
+                EnqueueInput("look");
                 return;
             }
             CurrentFlow.HandleInput(input);

@@ -105,6 +105,7 @@ public class FlowEngine
         else
         {
             session.CurrentFlow = null;
+            session.EnqueueInput("look");
         }
     }
 
