@@ -44,15 +44,15 @@ public class ConnectionsModule : IJintApiModule
                         return "";
                     }
 
-                    var id = DeriveId(fromRoomId, toRoomId);
+                    var fromSide = BuildSide(fromRoomId, fromType, fromOpts);
+                    var toSide = BuildSide(toRoomId, toType, toOpts);
+
+                    var id = DeriveId(fromRoomId, toRoomId, fromSide);
 
                     if (_loader.Loaded.Any(r => r.Id == id))
                     {
                         return "";
                     }
-
-                    var fromSide = BuildSide(fromRoomId, fromType, fromOpts);
-                    var toSide = BuildSide(toRoomId, toType, toOpts);
 
                     var record = new ConnectionRecord
                     {
@@ -181,9 +181,15 @@ public class ConnectionsModule : IJintApiModule
         }
     }
 
-    private static string DeriveId(string fromRoomId, string toRoomId)
+    private static string DeriveId(string fromRoomId, string toRoomId, ConnectionSide fromSide)
     {
-        var raw = $"{fromRoomId}--{toRoomId}";
+        var exitKey = fromSide.Type switch
+        {
+            "direction" => fromSide.Direction?.ToLower() ?? "dir",
+            "keyword" => fromSide.Keyword ?? "kw",
+            _ => "link"
+        };
+        var raw = $"{fromRoomId}--{exitKey}--{toRoomId}";
         return raw.Replace(':', '_');
     }
 
