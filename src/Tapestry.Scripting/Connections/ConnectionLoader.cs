@@ -146,7 +146,7 @@ public class ConnectionLoader
             var keyword = side.Keyword ?? "";
             if (room.HasKeywordExit(keyword))
             {
-                _logger.LogWarning("Direction {Dir} on {Room} already occupied, skipping side",
+                _logger.LogWarning("Keyword {Keyword} on {Room} already occupied, skipping side",
                     keyword, room.Id);
                 warnings++;
                 return;
