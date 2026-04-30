@@ -2,7 +2,7 @@
 // Admin flow: guided 7-step wizard for creating a room connection.
 
 tapestry.flows.register({
-    id: "admin_link",
+    id: "link_rooms",
     display_name: "linking rooms",
     trigger: "admin_link",
     cancellable: true,
@@ -275,6 +275,7 @@ tapestry.flows.register({
 
         tapestry.connections.create(fromRoomId, srcType, fromOpts, toRoomId, tgtType, toOpts);
 
+        entity.send("Connection created.\r\n");
         return { success: true };
     }
 });
