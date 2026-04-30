@@ -37,10 +37,22 @@ public class ConnectionsModule : IJintApiModule
             create = new Func<string, string, JsValue, string, string, JsValue, string>(
                 (fromRoomId, fromType, fromOpts, toRoomId, toType, toOpts) =>
                 {
-                    var fromSide = BuildSide(fromRoomId, fromType, fromOpts);
-                    var toSide = BuildSide(toRoomId, toType, toOpts);
+                    var fromRoom = _world.GetRoom(fromRoomId);
+                    var toRoom = _world.GetRoom(toRoomId);
+                    if (fromRoom == null || toRoom == null)
+                    {
+                        throw new JavaScriptException($"connections.create: room not found ({fromRoomId} or {toRoomId})");
+                    }
 
                     var id = DeriveId(fromRoomId, toRoomId);
+
+                    if (_loader.Loaded.Any(r => r.Id == id))
+                    {
+                        throw new JavaScriptException($"connections.create: connection '{id}' already exists");
+                    }
+
+                    var fromSide = BuildSide(fromRoomId, fromType, fromOpts);
+                    var toSide = BuildSide(toRoomId, toType, toOpts);
 
                     var record = new ConnectionRecord
                     {
@@ -74,10 +86,10 @@ public class ConnectionsModule : IJintApiModule
                 RemoveSideFromRoom(record.From);
                 RemoveSideFromRoom(record.To);
 
+                _loader.RemoveLoaded(record);
+
                 var filePath = Path.Combine(_serverRootPath, "connections", $"{connectionId}.yaml");
                 if (File.Exists(filePath)) { File.Delete(filePath); }
-
-                _loader.RemoveLoaded(record);
             }),
 
             getForRoom = new Func<string, object[]>(roomId =>
@@ -139,11 +151,13 @@ public class ConnectionsModule : IJintApiModule
         if (string.Equals(side.Type, "direction", StringComparison.OrdinalIgnoreCase))
         {
             if (!DirectionExtensions.TryParse(side.Direction ?? "", out var dir)) { return; }
+            if (room.GetExit(dir) != null) { return; }
             room.SetExit(dir, new Exit(targetRoomId));
         }
         else if (string.Equals(side.Type, "keyword", StringComparison.OrdinalIgnoreCase))
         {
             var keyword = side.Keyword ?? "";
+            if (room.HasKeywordExit(keyword)) { return; }
             room.SetKeywordExit(keyword, new Exit(targetRoomId) { DisplayName = side.DisplayName });
         }
     }
