@@ -21,3 +21,6 @@ tests/scenarios/results/
 docs/
 **/docs/superpowers/
 fly.toml
+
+# Git worktrees
+.worktrees/
