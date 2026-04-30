@@ -219,6 +219,12 @@ tapestry.flows.register({
             // Step 7: Confirm summary
             id: "confirm",
             type: "confirm",
+            on_yes: function(entity) {
+                entity.setProperty("link_confirmed", "yes");
+            },
+            on_no: function(entity) {
+                entity.setProperty("link_confirmed", "no");
+            },
             prompt: function(entity) {
                 var srcType = entity.getProperty("link_src_type") || "?";
                 var tgtType = entity.getProperty("link_tgt_type") || "?";
@@ -258,6 +264,11 @@ tapestry.flows.register({
         }
     ],
     on_complete: function(entity) {
+        if (entity.getProperty("link_confirmed") !== "yes") {
+            entity.send("Connection cancelled.\r\n");
+            return { success: false };
+        }
+
         var fromRoomId = entity.roomId;
         var toRoomId = entity.getProperty("link_room");
 

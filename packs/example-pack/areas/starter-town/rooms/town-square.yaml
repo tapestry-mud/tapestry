@@ -12,9 +12,7 @@ exits:
   east: "example-pack:general-store"
   west: "example-pack:west-road"
   down: "example-pack:mine-entrance"
-tags: [safe, recall-point, no-combat, entry-point]
-entry_point_description: "The main arrival point for Starter Town - a busy town square."
-entry_point_direction: north
+tags: [safe, recall-point, no-combat]
 properties:
   terrain: city
 spawns:
