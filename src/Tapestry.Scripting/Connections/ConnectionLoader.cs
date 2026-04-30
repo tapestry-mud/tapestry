@@ -101,11 +101,7 @@ public class ConnectionLoader
         }
 
         ApplySide(record.From, record.To.Room, fromRoom, file, ref warnings);
-
-        if (!string.Equals(record.From.Type, "one-way", StringComparison.OrdinalIgnoreCase))
-        {
-            ApplySide(record.To, record.From.Room, toRoom, file, ref warnings);
-        }
+        ApplySide(record.To, record.From.Room, toRoom, file, ref warnings);
 
         return true;
     }
@@ -115,7 +111,6 @@ public class ConnectionLoader
     {
         if (string.Equals(side.Type, "one-way", StringComparison.OrdinalIgnoreCase))
         {
-            ApplyDirectionOrKeyword(side, targetRoomId, room, file, ref warnings);
             return;
         }
 
