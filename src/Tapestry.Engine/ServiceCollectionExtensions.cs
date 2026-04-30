@@ -77,6 +77,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<RaceRegistry>()));
         services.AddSingleton<DispositionEvaluator>();
         services.AddSingleton<MobAIManager>();
+        services.AddSingleton<MobCommandRegistry>();
+        services.AddSingleton<MobCommandQueue>();
 
         // Combat
         services.AddSingleton<CombatManager>();

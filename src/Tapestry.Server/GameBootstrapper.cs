@@ -39,6 +39,7 @@ public class GameBootstrapper
     private readonly CombatManager _combat;
     private readonly SpawnManager _spawns;
     private readonly MobAIManager _mobAI;
+    private readonly MobCommandQueue _mobCommandQueue;
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly PackLoader _packLoader;
@@ -80,6 +81,7 @@ public class GameBootstrapper
         CombatManager combat,
         SpawnManager spawns,
         MobAIManager mobAI,
+        MobCommandQueue mobCommandQueue,
         SessionManager sessions,
         World world,
         PackLoader packLoader,
@@ -120,6 +122,7 @@ public class GameBootstrapper
         _combat = combat;
         _spawns = spawns;
         _mobAI = mobAI;
+        _mobCommandQueue = mobCommandQueue;
         _sessions = sessions;
         _world = world;
         _packLoader = packLoader;
@@ -455,6 +458,7 @@ public class GameBootstrapper
     private void RegisterMobAI()
     {
         _gameLoop.RegisterTickHandler("mob-ai", 10, () => _mobAI.Tick());
+        _gameLoop.RegisterTickHandler("mob-command-queue", 1, () => _mobCommandQueue.ProcessTick());
     }
 
     private void RegisterCorpseDecay()
