@@ -338,7 +338,12 @@ tapestry.flows.register({
             };
         }
 
-        tapestry.connections.create(fromRoomId, srcType, fromOpts, toRoomId, tgtType, toOpts);
+        var result = tapestry.connections.create(fromRoomId, srcType, fromOpts, toRoomId, tgtType, toOpts);
+
+        if (!result) {
+            entity.send("Failed to create connection. A link between these rooms may already exist.\r\n");
+            return { success: false };
+        }
 
         entity.send("Connection created.\r\n");
         return { success: true };

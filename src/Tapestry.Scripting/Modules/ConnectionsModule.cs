@@ -41,14 +41,14 @@ public class ConnectionsModule : IJintApiModule
                     var toRoom = _world.GetRoom(toRoomId);
                     if (fromRoom == null || toRoom == null)
                     {
-                        throw new JavaScriptException($"connections.create: room not found ({fromRoomId} or {toRoomId})");
+                        return "";
                     }
 
                     var id = DeriveId(fromRoomId, toRoomId);
 
                     if (_loader.Loaded.Any(r => r.Id == id))
                     {
-                        throw new JavaScriptException($"connections.create: connection '{id}' already exists");
+                        return "";
                     }
 
                     var fromSide = BuildSide(fromRoomId, fromType, fromOpts);
