@@ -8,6 +8,7 @@ using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Inventory;
+using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Classes;
@@ -148,6 +149,11 @@ public class ConnectionHandlerLoginPhaseTests
             NullLogger<GameLoop>.Instance,
             new TapestryMetrics());
 
+        var mobAI = new MobAIManager(world, eventBus,
+            new CombatManager(world, eventBus),
+            new DispositionEvaluator(world, eventBus, new AlignmentManager(world, eventBus, alignmentConfig)),
+            NullLogger<MobAIManager>.Instance);
+
         var handler = new ConnectionHandler(
             sessions,
             world,
@@ -160,7 +166,8 @@ public class ConnectionHandlerLoginPhaseTests
             new ColorRenderer(new ThemeRegistry()),
             new LoginGateRegistry(),
             gmcpService,
-            gameLoop);
+            gameLoop,
+            mobAI);
 
         var conn = new FakeConnection();
         var gmcpHandler = new FakeGmcpHandler();
