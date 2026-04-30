@@ -8,6 +8,9 @@ description: >
 exits:
   east: "example-pack:town-square"
   west: "example-pack:hilltop"
+tags: [entry-point]
+entry_point_description: "The western road out of Starter Town, open in many directions."
+entry_point_direction: east
 properties:
   terrain: road
 spawns:

@@ -57,6 +57,15 @@ public class PlayerSession
         }
         if (CurrentFlow != null)
         {
+            if (CurrentFlow.Definition.Cancellable &&
+                (input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
+                 input.Equals("cancel", StringComparison.OrdinalIgnoreCase)))
+            {
+                CurrentFlow = null;
+                Send("Cancelled.\r\n");
+                EnqueueInput("look");
+                return;
+            }
             CurrentFlow.HandleInput(input);
             return;
         }
@@ -209,6 +218,7 @@ public class SessionManager
         {
             if (session.Phase == SessionPhase.Creating) { continue; }
             if (session.InputMode == InputMode.Prompt) { continue; }
+            if (session.CurrentFlow != null) { continue; }
             if (session.NeedsPromptRefresh)
             {
                 var template = session.PlayerEntity.GetProperty<string>(PromptProperties.PromptTemplate)

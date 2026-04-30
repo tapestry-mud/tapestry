@@ -16,9 +16,11 @@ public class PacksModule : IJintApiModule
 
     public object Build(JintEngine engine)
     {
+        var listFunc = new Func<object[]>(ListPacks);
         return new
         {
-            list = new Func<object[]>(ListPacks)
+            list = listFunc,
+            getAll = listFunc
         };
     }
 

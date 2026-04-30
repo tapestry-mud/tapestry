@@ -9,4 +9,5 @@ public class FlowDefinition
     public required Func<Entity, FlowCompletionResult> OnComplete { get; init; }
     public string PackName { get; init; } = "";
     public IReadOnlyList<WizardStep>? WizardSteps { get; init; }
+    public bool Cancellable { get; init; } = false;
 }

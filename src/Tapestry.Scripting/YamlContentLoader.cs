@@ -270,6 +270,15 @@ public static class YamlContentLoader
             }
         }
 
+        if (def.EntryPointDescription != null)
+        {
+            room.SetProperty("entry_point_description", def.EntryPointDescription);
+        }
+        if (def.EntryPointDirection != null)
+        {
+            room.SetProperty("entry_point_direction", def.EntryPointDirection);
+        }
+
         if (def.AlignmentRange != null)
         {
             int? min = null, max = null;
@@ -370,6 +379,8 @@ public static class YamlContentLoader
         public List<RoomSpawnModel>? Spawns { get; set; }
         public int? ResetInterval { get; set; }
         public List<string>? Fixtures { get; set; }
+        public string? EntryPointDescription { get; set; }
+        public string? EntryPointDirection { get; set; }
     }
 
     private class AreaFileModel

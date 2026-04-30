@@ -94,7 +94,15 @@ public class FlowEngine
         if (!result.Success)
         {
             if (result.Message != null) { session.SendLine(result.Message); }
-            Restart(session, "validation_failed");
+            if (session.Phase == SessionPhase.Creating)
+            {
+                Restart(session, "validation_failed");
+            }
+            else
+            {
+                session.CurrentFlow = null;
+                session.EnqueueInput("look");
+            }
             return;
         }
 
@@ -105,6 +113,7 @@ public class FlowEngine
         else
         {
             session.CurrentFlow = null;
+            session.EnqueueInput("look");
         }
     }
 

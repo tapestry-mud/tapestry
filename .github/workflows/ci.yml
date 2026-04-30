@@ -21,4 +21,4 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Test
-        run: dotnet test tests/Tapestry.Engine.Tests --configuration Release --no-build
+        run: dotnet test --configuration Release --no-build

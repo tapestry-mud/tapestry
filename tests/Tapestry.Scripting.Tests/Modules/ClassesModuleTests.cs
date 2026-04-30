@@ -95,8 +95,8 @@ public class ClassesModuleTests
             });
             tapestry.classes.register({
                 id: 'test-mob',
-                name: 'Human Warrior',
-                allowed_categories: ['human'],
+                name: 'Elf Ranger',
+                allowed_categories: ['elf'],
                 allowed_genders: ['male', 'female', 'other'],
                 stat_growth: {}
             });

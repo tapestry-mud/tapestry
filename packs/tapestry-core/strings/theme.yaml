@@ -11,6 +11,7 @@ theme:
   exits: { fg: cyan }
   frame: { fg: cyan }
   heading: { fg: white }
+  item: { fg: cyan }
   npc: { fg: yellow }
   player: { fg: green }
   whisper: { fg: magenta }

@@ -1,6 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Tapestry.Data;
+using Tapestry.Engine;
 using Tapestry.Engine.Flow;
+using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
 
@@ -66,6 +70,31 @@ public static class ServiceCollectionExtensions
         // Runtime and loader
         services.AddSingleton<JintRuntime>();
         services.AddSingleton<PackLoader>();
+        services.AddSingleton<ConnectionLoader>(sp =>
+        {
+            var world = sp.GetRequiredService<World>();
+            var logger = sp.GetRequiredService<ILogger<ConnectionLoader>>();
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new ConnectionLoader(world, logger, config.ConfigDirectory);
+        });
+        services.AddSingleton<ConnectionsModule>(sp =>
+        {
+            var world = sp.GetRequiredService<World>();
+            var loader = sp.GetRequiredService<ConnectionLoader>();
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new ConnectionsModule(world, loader, config.ConfigDirectory);
+        });
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<ConnectionsModule>());
+
+        services.AddSingleton<RoomsModule>();
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<RoomsModule>());
+
+        services.AddSingleton<FsModule>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new FsModule(config.ConfigDirectory);
+        });
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FsModule>());
 
         return services;
     }
