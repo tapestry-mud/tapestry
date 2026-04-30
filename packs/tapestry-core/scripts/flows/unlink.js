@@ -53,14 +53,21 @@ tapestry.flows.register({
             // Step 2: Confirm removal
             id: "confirm_unlink",
             type: "confirm",
-            prompt: "Remove connection [y/n]?"
+            prompt: "Remove connection [y/n]?",
+            on_yes: function(entity) {
+                entity.setProperty("unlink_confirmed", "yes");
+            },
+            on_no: function(entity) {
+                entity.setProperty("unlink_confirmed", "no");
+            }
         }
     ],
     on_complete: function(entity) {
         var unlinkId = entity.getProperty("unlink_id");
 
-        if (unlinkId === "__none__") {
-            return { success: true };
+        if (unlinkId === "__none__" || entity.getProperty("unlink_confirmed") !== "yes") {
+            entity.send("Unlink cancelled.\r\n");
+            return { success: false };
         }
 
         tapestry.connections.remove(unlinkId);
