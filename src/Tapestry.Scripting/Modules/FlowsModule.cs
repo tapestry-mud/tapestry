@@ -41,6 +41,9 @@ public class FlowsModule : IJintApiModule
                 var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
                     ? packNameVal.ToString() : "";
 
+                var cancellableVal = obj.Get("cancellable");
+                var cancellable = cancellableVal.Type == Types.Boolean && (bool)cancellableVal.ToObject()!;
+
                 var stepsVal = obj.Get("steps");
                 var steps = ParseSteps(jint, stepsVal);
 
@@ -87,6 +90,7 @@ public class FlowsModule : IJintApiModule
                     Id = id,
                     DisplayName = displayName,
                     Trigger = trigger,
+                    Cancellable = cancellable,
                     Steps = steps,
                     OnComplete = onComplete,
                     PackName = packName,
@@ -370,6 +374,7 @@ public class FlowsModule : IJintApiModule
         {
             id = entity.Id.ToString(),
             name = entity.Name,
+            roomId = entity.LocationRoomId,
             getProperty = new Func<string, object?>(key => entity.GetProperty<object>(key)),
             setProperty = new Action<string, object?>((key, value) =>
             {
