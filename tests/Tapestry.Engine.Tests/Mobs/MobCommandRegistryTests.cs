@@ -77,7 +77,7 @@ public class MobCommandRegistryTests
         });
 
         GameEvent? publishedEvent = null;
-        eventBus.Subscribe("communication.message", evt => publishedEvent = evt);
+        eventBus.Subscribe("communication.message", evt => { publishedEvent = evt; });
 
         registry.Dispatch(entity.Id, "say Hello!");
 
@@ -102,7 +102,7 @@ public class MobCommandRegistryTests
         });
 
         GameEvent? publishedEvent = null;
-        eventBus.Subscribe("communication.message", evt => publishedEvent = evt);
+        eventBus.Subscribe("communication.message", evt => { publishedEvent = evt; });
 
         registry.Dispatch(entity.Id, "emote waves.");
 
@@ -122,7 +122,7 @@ public class MobCommandRegistryTests
         });
 
         var eventFired = false;
-        eventBus.Subscribe("communication.message", _ => eventFired = true);
+        eventBus.Subscribe("communication.message", _ => { eventFired = true; });
 
         registry.Dispatch(entity.Id, "open door");
 
