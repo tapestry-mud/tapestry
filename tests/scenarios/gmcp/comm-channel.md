@@ -21,3 +21,13 @@
 1. Alice: `gossip Testing gossip`
 2. Assert Bob sees: `gossip`
 3. Assert Bob sees: `Testing gossip`
+
+## Scenario: Emote sends Comm.Channel GMCP (issue #26 fix)
+- Players: Alice, Bob
+- Room: same
+
+### Steps
+1. Alice: `emote waves hello.`
+2. Assert Bob sees: `Alice waves hello.`
+3. Assert Bob does not see: `Comm.Channel`
+

@@ -143,4 +143,39 @@ public class MobAIManagerTests
 
         Assert.Equal(3, manager.GetTicksSinceLastAction(entityId));
     }
+
+    [Fact]
+    public void Tick_PublishesMobAiTickEvent_ForEachActiveMob()
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var alignmentConfig = new AlignmentConfig();
+        var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
+        var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
+        var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
+            NullLogger<MobAIManager>.Instance);
+
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+
+        var mob = new Entity("npc", "Guard");
+        mob.LocationRoomId = "core:town-square";
+        mob.SetProperty("behavior", "stationary");
+        mob.AddTag("npc");
+        room.AddEntity(mob);
+        world.TrackEntity(mob);
+
+        manager.RegisterBehavior("stationary", _ => { });
+        manager.PlayerEnteredRoom("core:town-square");
+
+        var received = new List<Tapestry.Shared.GameEvent>();
+        eventBus.Subscribe("mob.ai.tick", evt => { received.Add(evt); });
+
+        manager.Tick();
+
+        Assert.Single(received);
+        Assert.Equal(mob.Id.ToString(), received[0].Data["entityId"]);
+        Assert.Equal("core:town-square", received[0].Data["roomId"]);
+    }
 }

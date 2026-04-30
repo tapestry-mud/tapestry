@@ -15,5 +15,14 @@
             player.entityId,
             player.name + ' ' + action + '\r\n'
         );
+
+        tapestry.events.publish("communication.message", {
+            channel: "emote",
+            sender: player.name,
+            senderId: player.entityId,
+            source: "player",
+            text: player.name + ' ' + action,
+            roomId: player.roomId
+        });
     }
 });

@@ -1,0 +1,27 @@
+id: "example-pack:guide"
+name: "the town guide"
+type: "npc"
+tags: [npc, friendly, no-kill]
+behavior: stationary
+script: mobs/guide.js
+idle_chance: 0.6
+idle_interval: 20
+idle_commands:
+  - 'say Welcome, traveler! Ask me about the town.'
+  - 'emote gestures broadly at the town square.'
+  - 'say Speak to the blacksmith if you need equipment.'
+  - 'emote smiles at the passersby.'
+stats:
+  strength: 8
+  dexterity: 10
+  constitution: 10
+  intelligence: 14
+  wisdom: 14
+  luck: 10
+  max_hp: 60
+  max_resource: 0
+  max_movement: 40
+properties:
+  level: 5
+  description: "A friendly-looking person with a welcoming smile."
+equipment: []

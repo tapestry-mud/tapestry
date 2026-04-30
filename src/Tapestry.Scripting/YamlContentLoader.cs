@@ -65,7 +65,11 @@ public static class YamlContentLoader
             Class = def.Class,
             Race = def.Race,
             Level = def.Level,
-            Disposition = def.Disposition
+            Disposition = def.Disposition,
+            IdleCommands = def.IdleCommands,
+            IdleChance = def.IdleChance,
+            IdleInterval = def.IdleInterval,
+            Script = def.Script
         };
 
         LootTable? lootTable = null;
@@ -436,6 +440,10 @@ public static class YamlContentLoader
         public int Level { get; set; }
         public DispositionModel? Disposition { get; set; }
         public LootInlineModel? Loot { get; set; }
+        public List<string> IdleCommands { get; set; } = new();
+        public double IdleChance { get; set; } = 0.3;
+        public int IdleInterval { get; set; } = 30;
+        public string? Script { get; set; }
     }
 
     private class LootInlineModel

@@ -46,6 +46,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
         services.AddSingleton<GameLoop>();
+        services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new TickTimer((int)Math.Round(1000.0 / config.Server.TickRateMs));
+        });
 
         // Stats
         services.AddSingleton<StatDisplayNames>();
@@ -72,6 +77,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<RaceRegistry>()));
         services.AddSingleton<DispositionEvaluator>();
         services.AddSingleton<MobAIManager>();
+        services.AddSingleton<MobCommandRegistry>();
+        services.AddSingleton<MobCommandQueue>();
 
         // Combat
         services.AddSingleton<CombatManager>();
