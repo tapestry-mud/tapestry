@@ -17,6 +17,6 @@ tests/scenarios/results/
 # AI assistant context
 .claude/
 
-# Private plans and specs
-**/docs/superpowers/
-docs/superpowers/
+# Internal docs and deployment config
+docs/
+fly.toml
