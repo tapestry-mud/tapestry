@@ -20,6 +20,16 @@ public class ConnectionLoader
 
     public IReadOnlyList<ConnectionRecord> Loaded => _loaded;
 
+    public void AddLoaded(ConnectionRecord record)
+    {
+        _loaded.Add(record);
+    }
+
+    public void RemoveLoaded(ConnectionRecord record)
+    {
+        _loaded.Remove(record);
+    }
+
     public ConnectionLoader(World world, ILogger<ConnectionLoader> logger, string serverRootPath)
     {
         _world = world;

@@ -77,6 +77,14 @@ public static class ServiceCollectionExtensions
             var config = sp.GetRequiredService<ServerConfig>();
             return new ConnectionLoader(world, logger, config.ConfigDirectory);
         });
+        services.AddSingleton<ConnectionsModule>(sp =>
+        {
+            var world = sp.GetRequiredService<World>();
+            var loader = sp.GetRequiredService<ConnectionLoader>();
+            var config = sp.GetRequiredService<ServerConfig>();
+            return new ConnectionsModule(world, loader, config.ConfigDirectory);
+        });
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<ConnectionsModule>());
 
         return services;
     }
