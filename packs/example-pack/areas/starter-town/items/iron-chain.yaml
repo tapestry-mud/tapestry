@@ -1,0 +1,15 @@
+id: "example-pack:iron-chain"
+name: "an iron chain"
+type: "item:armor"
+tags: [item, armor, chain, iron, neck]
+properties:
+  slot: neck
+  weight: 3
+  rarity: common
+  ac_slash: 2
+  ac_pierce: 1
+  ac_bash: 0
+  ac_exotic: 0
+modifiers:
+  - stat: constitution
+    value: 2

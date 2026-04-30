@@ -1,0 +1,7 @@
+id: "example-pack:town-sign"
+name: "a weathered wooden sign"
+type: "item"
+tags: [item, readable, no_get, sign]
+properties:
+  text: "Welcome to the training grounds. The sparring yard lies to the east."
+modifiers: []

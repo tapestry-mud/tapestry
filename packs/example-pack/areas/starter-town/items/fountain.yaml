@@ -1,0 +1,9 @@
+id: "example-pack:fountain"
+name: "a stone fountain"
+type: "item:fixture"
+tags: [item, fixture, fill_source, fountain, stone]
+properties:
+  fixed: true
+  fill_source: water
+  weight: 999
+modifiers: []

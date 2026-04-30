@@ -1,0 +1,3 @@
+> connect admin password
+> weather
+< weather

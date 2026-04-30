@@ -1,0 +1,24 @@
+id: "example-pack:test-dummy"
+name: "a training dummy"
+type: "npc"
+tags: [npc, mob, killable]
+behavior: stationary
+stats:
+  strength: 1
+  dexterity: 1
+  constitution: 1
+  intelligence: 1
+  wisdom: 1
+  luck: 1
+  max_hp: 99999
+  max_resource: 0
+  max_movement: 0
+properties:
+  level: 1
+  corpse_decay: 60
+  description: "A sturdy wooden dummy wrapped in leather. It exists only to be hit."
+  ac_slash: 0
+  ac_pierce: 0
+  ac_bash: 0
+  ac_exotic: 0
+equipment: []

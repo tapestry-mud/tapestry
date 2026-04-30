@@ -1,0 +1,50 @@
+id: "example-pack:goblin"
+name: "a goblin"
+type: "npc"
+tags: [npc, mob, hostile, killable, regen]
+behavior: wander
+stats:
+  strength: 8
+  dexterity: 12
+  constitution: 8
+  intelligence: 4
+  wisdom: 4
+  luck: 6
+  max_hp: 40
+  max_resource: 0
+  max_movement: 80
+properties:
+  level: 3
+  gold: 30
+  regen_hp: 1
+  regen_movement: 5
+  wander_interval: 90
+  wander_boundary: "area"
+  flee_threshold: 0.2
+  corpse_decay: 300
+  description: "A small, green-skinned creature with beady eyes and a rusty blade."
+  ac_slash: 2
+  ac_pierce: 1
+  ac_bash: 3
+  ac_exotic: 1
+equipment:
+  - "example-pack:rusty-dagger"
+loot:
+  guaranteed:
+    - item: "example-pack:goblin-ear"
+      count: 1
+  pool:
+    - item: "example-pack:rusty-dagger"
+      weight: 50
+    - item: "example-pack:leather-scrap"
+      weight: 35
+    - item: "example-pack:small-coin-pouch"
+      weight: 15
+  pool_rolls: 1
+  rare_bonus:
+    chance: 0.05
+    pool:
+      - item: "example-pack:goblin-charm"
+        weight: 70
+      - item: "example-pack:emerald-shard"
+        weight: 30

@@ -1,0 +1,9 @@
+> connect admin password
+> spawn example-pack:test-dummy
+< Spawned: a training dummy
+> inspect dummy
+< [a training dummy]
+< Level: 1
+< Stats:
+< Vitals:
+< Flags:

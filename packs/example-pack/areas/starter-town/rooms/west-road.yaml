@@ -1,0 +1,15 @@
+id: "example-pack:west-road"
+area: starter-town
+name: "West Road"
+description: >
+  A dirt road stretches <direction>westward</direction>, disappearing into rolling hills dotted
+  with wildflowers. The town square lies to the <direction>east</direction>, its fountain just
+  visible. A few travelers pass by, nodding in greeting.
+exits:
+  east: "example-pack:town-square"
+  west: "example-pack:hilltop"
+properties:
+  terrain: road
+spawns:
+  - mob: "example-pack:goblin"
+    count: 1

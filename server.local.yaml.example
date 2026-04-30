@@ -1,0 +1,8 @@
+# Local server overrides -- copy this file to server.local.yaml (gitignored).
+# Any setting here overrides the corresponding value in server.yaml.
+# Useful for enabling packs during local development without committing the change.
+
+# Example: enable the example pack locally
+packs:
+  - tapestry-core
+  - example-pack

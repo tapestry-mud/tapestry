@@ -1,0 +1,17 @@
+id: "example-pack:rusty-dagger"
+name: "a rusty dagger"
+type: "item:weapon"
+tags: [item, weapon, dagger, rusty]
+properties:
+  slot: wield
+  weight: 2
+  rarity: uncommon
+  essence: shadow
+  damage_dice: "3d10+12"
+  hit_bonus: 0
+  attack_speed: 2
+  combat_name: "stab"
+  damage_type: "pierce"
+modifiers:
+  - stat: dexterity
+    value: 1

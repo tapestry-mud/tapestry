@@ -1,0 +1,68 @@
+# packs/tapestry-core/strings/theme.yaml
+# Uses basic ANSI colors (30-37) for maximum terminal compatibility.
+# Avoid bright-* variants (90-97) — not supported by all telnet clients.
+theme:
+  highlight: { fg: yellow }
+  danger: { fg: red }
+  system: { fg: yellow }
+  subtle: { fg: white }
+  title: { fg: white }
+  direction: { fg: cyan }
+  exits: { fg: cyan }
+  frame: { fg: cyan }
+  heading: { fg: white }
+  npc: { fg: yellow }
+  player: { fg: green }
+  whisper: { fg: magenta }
+  tell: { fg: cyan }
+  group: { fg: cyan }
+  gossip: { fg: green }
+  imm: { fg: magenta }
+  clan: { fg: yellow }
+  yell: { fg: red }
+  item.common: { fg: cyan }
+  item.uncommon: { fg: green }
+  item.rare: { fg: blue }
+  item.artifact: { fg: yellow }
+  item.ooak: { fg: magenta }
+  hp: { fg: red }
+  mana: { fg: blue }
+  mv: { fg: green }
+  combat_hit:
+    fg: green
+  combat_miss:
+    fg: gray
+  combat_incoming:
+    fg: red
+  combat_evade:
+    fg: cyan
+  combat_engage:
+    fg: white
+  combat_status:
+    fg: yellow
+  buff:
+    fg: green
+  debuff:
+    fg: red
+  death:
+    fg: red
+  experience:
+    fg: cyan
+  combat_kill:
+    fg: bright_yellow
+  dmg_low:
+    fg: white
+  dmg_low_verb:
+    fg: white
+  dmg_mid:
+    fg: yellow
+  dmg_mid_verb:
+    fg: bright-yellow
+  dmg_high:
+    fg: red
+  dmg_high_verb:
+    fg: bright-red
+  dmg_extreme:
+    fg: magenta
+  dmg_extreme_verb:
+    fg: bright-magenta

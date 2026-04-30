@@ -1,0 +1,20 @@
+id: "example-pack:wilderness-path"
+area: starter-town
+name: "Wilderness Path"
+description: >
+  The path narrows as it leaves the training grounds behind, winding
+  between thick oak trees. Birdsong fills the canopy above. Something
+  rustles in the underbrush nearby. A <item.uncommon>weathered walking stick</item.uncommon>
+  leans against a tree.
+exits:
+  north: "example-pack:training-grounds"
+  south: "example-pack:deep-woods"
+properties:
+  terrain: forest
+spawns:
+  - mob: "example-pack:goblin"
+    count: 2
+  - mob: "example-pack:goblin-chief"
+    count: 1
+fixtures:
+  - "example-pack:gnarled-staff"

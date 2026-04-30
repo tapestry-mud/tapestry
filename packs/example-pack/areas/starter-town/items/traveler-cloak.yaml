@@ -1,0 +1,11 @@
+id: "example-pack:traveler-cloak"
+name: "a traveler's cloak"
+type: "item:armor"
+tags: [item, armor, cloak, traveler]
+properties:
+  slot: cloak
+  weight: 1
+  rarity: common
+modifiers:
+  - stat: maxMovement
+    value: 20

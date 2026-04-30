@@ -1,0 +1,16 @@
+# affects
+
+## Scenario: Affects with no active effects
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `affects`
+2. Assert Wanderer sees: `Active Effects`
+3. Assert Wanderer sees: `not affected by anything`
+
+## Scenario: Affects alias aff works
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `aff`
+2. Assert Wanderer sees: `Active Effects`

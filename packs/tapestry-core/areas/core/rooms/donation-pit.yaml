@@ -1,0 +1,12 @@
+id: "core:donation-pit"
+area: core
+name: "The Donation Pit"
+description: >
+  A deep stone alcove lined with worn shelves. Travelers leave what they no longer need
+  here, and others take what they can use. The generosity of strangers keeps the shelves
+  from ever staying empty long.
+exits:
+  up: "core:recall"
+tags: [safe, no-combat, no_wander]
+properties:
+  terrain: indoors

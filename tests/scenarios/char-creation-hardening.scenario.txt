@@ -1,0 +1,49 @@
+# Phase 11.5 — Character Creation Hardening
+# Tests: autosave phase filter (A) and reserved name gate (B)
+
+# ---------------------------------------------------------------------------
+# Scenario A — Autosave skips Creating-phase sessions
+# ---------------------------------------------------------------------------
+# Start a new connection and begin character creation (enters Creating phase).
+# Then trigger a manual autosave (server-side hook or short autosave interval).
+# Assert: no player file is written for the new name.
+# Assert: server log shows "Autosaved 0 players" (or omits the log line entirely
+#         because count == 0), NOT a save attempt for the new name.
+#
+# Manual reproduction steps:
+#   1. Set autosave interval to 1s in server.yaml for this test.
+#   2. Connect and type a new name (do not complete creation).
+#   3. Wait 2s for autosave to fire.
+#   4. Check save/players/ — no file for the new name should exist.
+#   5. Check server log — no "Saving player <name>" line.
+#
+> connect newplayer_ghost secretpass
+< What is your name, adventurer?
+# (do NOT complete — session stays in Creating phase)
+# (wait for autosave tick)
+# Expected: no ghost.yaml in save/players/
+
+# ---------------------------------------------------------------------------
+# Scenario B — Reserved name rejection (case-insensitive)
+# ---------------------------------------------------------------------------
+
+# B1: lowercase reserved name is rejected with reprompt
+> connect self anypass
+< What is your name, adventurer?
+> self
+< That name is reserved. Try another.
+< What is your name, adventurer?
+
+# B2: another reserved name
+> me
+< That name is reserved. Try another.
+< What is your name, adventurer?
+
+# B3: mixed-case reserved name — case-insensitive match
+> Admin
+< That name is reserved. Try another.
+< What is your name, adventurer?
+
+# B4: valid name clears the gate and proceeds to password prompt
+> Krakus
+< Password:

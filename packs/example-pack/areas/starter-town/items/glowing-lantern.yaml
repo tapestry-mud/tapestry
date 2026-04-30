@@ -1,0 +1,11 @@
+id: "example-pack:glowing-lantern"
+name: "a glowing lantern"
+type: "item:light"
+tags: [item, light, lantern]
+properties:
+  slot: light
+  weight: 1
+  rarity: uncommon
+modifiers:
+  - stat: luck
+    value: 1

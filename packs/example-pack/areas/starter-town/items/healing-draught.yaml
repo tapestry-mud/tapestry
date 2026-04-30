@@ -1,0 +1,8 @@
+id: "example-pack:healing-draught"
+name: "a healing draught"
+type: "item:consumable"
+tags: [item, consumable, draught, healing]
+properties:
+  weight: 1
+  rarity: common
+modifiers: []

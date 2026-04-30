@@ -1,0 +1,15 @@
+id: "example-pack:wooden-shield"
+name: "a wooden shield"
+type: "item:armor"
+tags: [item, armor, shield, wooden]
+properties:
+  slot: shield
+  weight: 6
+  rarity: common
+  ac_slash: 3
+  ac_pierce: 3
+  ac_bash: 2
+  ac_exotic: 1
+modifiers:
+  - stat: constitution
+    value: 2

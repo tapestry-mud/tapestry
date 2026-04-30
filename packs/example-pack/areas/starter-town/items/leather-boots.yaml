@@ -1,0 +1,11 @@
+id: "example-pack:leather-boots"
+name: "a pair of leather boots"
+type: "item:armor"
+tags: [item, armor, boots, leather]
+properties:
+  slot: feet
+  weight: 2
+  rarity: common
+modifiers:
+  - stat: dexterity
+    value: 1

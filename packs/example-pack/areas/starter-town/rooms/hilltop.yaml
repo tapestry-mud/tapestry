@@ -1,0 +1,14 @@
+id: "example-pack:hilltop"
+area: starter-town
+name: "Hilltop Overlook"
+description: >
+  You stand atop a grassy hill overlooking the town below. The view
+  stretches for miles -- forests to the north, mountains to the west,
+  and the glint of a distant river to the south. A cool breeze carries
+  the scent of pine. Something <item.rare>glints in the grass</item.rare>.
+exits:
+  east: "example-pack:west-road"
+properties:
+  terrain: outdoors
+fixtures:
+  - "example-pack:windswept-amulet"

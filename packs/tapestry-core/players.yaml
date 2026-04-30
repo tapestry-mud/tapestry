@@ -1,0 +1,14 @@
+players:
+  - name: Admin
+    password: password
+    tags: [player, admin, regen]
+    stats:
+      strength: 18
+      intelligence: 18
+      wisdom: 18
+      dexterity: 18
+      constitution: 18
+      luck: 18
+      max_hp: 500
+      max_resource: 200
+      max_movement: 200

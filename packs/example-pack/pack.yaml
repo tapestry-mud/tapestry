@@ -1,0 +1,18 @@
+name: example-pack
+version: "1.0.0"
+display_name: "Example Pack"
+description: "A starter demo pack: warrior and mage classes, human and elf races, starter town, and character creation. Copy-paste starting point for pack authors."
+author: "Tapestry"
+copyright: "Copyright (c) 2026 Tapestry"
+website: "https://github.com/tapestry-mud/tapestry"
+license: "AGPL-3.0"
+engine_version: ">=3.0.0"
+active: true
+load_order: 10
+
+content:
+  area_definitions: "areas/**/area.yaml"
+  rooms: "areas/**/rooms/*.yaml"
+  items: "areas/**/items/*.yaml"
+  scripts: "scripts/**/*.js"
+  mobs: "areas/**/mobs/*.yaml"

@@ -1,0 +1,20 @@
+# health-tier
+
+## Scenario: Examine shows health tier for perfect health mob
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster: `spawn core:goblin`
+2. Assert Gamemaster sees: `Spawned:`
+3. Gamemaster: `look goblin`
+4. Assert Gamemaster sees: `is in perfect health`
+
+## Scenario: Look at room shows combat status with health tier
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster: `teleport core:test-arena`
+2. Gamemaster: `spawn core:goblin`
+3. Assert Gamemaster sees: `Spawned:`
+4. Gamemaster: `look`
+5. Assert Gamemaster sees: `is in perfect health`

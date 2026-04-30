@@ -1,0 +1,10 @@
+id: "example-pack:bedroll"
+name: "a bedroll"
+type: "item:furniture"
+tags: [item, furniture, bedroll]
+properties:
+  rest_bonus: 1
+  weight: 5
+  rarity: common
+  value: 15
+modifiers: []

@@ -1,0 +1,15 @@
+id: "example-pack:waterskin"
+name: "a leather waterskin"
+type: "item:drink"
+tags: [item, drink, fillable, waterskin, skin, leather]
+properties:
+  item_type: drink
+  sustenance_value: 15
+  charges: 8
+  max_charges: 8
+  fill_type: water
+  destroy_on_empty: false
+  weight: 2
+  rarity: common
+  value: 8
+modifiers: []

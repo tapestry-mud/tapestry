@@ -1,0 +1,16 @@
+id: "example-pack:iron-sword"
+name: "an iron sword"
+type: "item:weapon"
+tags: [item, weapon, sword, iron]
+properties:
+  slot: wield
+  weight: 5
+  rarity: rare
+  damage_dice: "2d20+8"
+  hit_bonus: 10
+  attack_speed: 1
+  combat_name: "slash"
+  damage_type: "slash"
+modifiers:
+  - stat: strength
+    value: 2

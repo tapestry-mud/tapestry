@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme {
+  /* ANSI 16-color palette - fixed across all themes per VT100 spec */
+  --color-ansi-black: #000000;
+  --color-ansi-red: #aa0000;
+  --color-ansi-green: #00aa00;
+  --color-ansi-yellow: #aa5500;
+  --color-ansi-blue: #0000aa;
+  --color-ansi-magenta: #aa00aa;
+  --color-ansi-cyan: #00aaaa;
+  --color-ansi-white: #aaaaaa;
+  --color-ansi-bright-black: #555555;
+  --color-ansi-bright-red: #ff5555;
+  --color-ansi-bright-green: #55ff55;
+  --color-ansi-bright-yellow: #ffff55;
+  --color-ansi-bright-blue: #5555ff;
+  --color-ansi-bright-magenta: #ff55ff;
+  --color-ansi-bright-cyan: #55ffff;
+  --color-ansi-bright-white: #ffffff;
+
+  /* UI colors - Dark theme defaults */
+  --color-surface-deep: #0d0d1a;
+  --color-surface: #1a1a2e;
+  --color-surface-raised: #232340;
+  --color-surface-overlay: #2a2a4a;
+  --color-border: #3a3a5c;
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #8888aa;
+  --color-accent: #5b8a9a;
+
+  /* Vital bar colors - fixed across all themes */
+  --color-vital-hp: #cc3333;
+  --color-vital-mana: #3366cc;
+  --color-vital-mv: #33aa55;
+
+  /* Fonts */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  --font-ui: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.theme-light {
+  --color-surface-deep: #e8e8f0;
+  --color-surface: #f4f4fb;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #ececf8;
+  --color-border: #c0c0d8;
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #6666aa;
+  --color-accent: #3a6a7a;
+}
+
+.theme-midnight {
+  --color-surface-deep: #000000;
+  --color-surface: #080810;
+  --color-surface-raised: #0f0f1e;
+  --color-surface-overlay: #151525;
+  --color-border: #252540;
+  --color-text-primary: #c8c8e0;
+  --color-text-secondary: #6060a0;
+  --color-accent: #4a7a8a;
+}
+
+.theme-amber {
+  --color-surface-deep: #0a0700;
+  --color-surface: #1a1400;
+  --color-surface-raised: #221c00;
+  --color-surface-overlay: #2a2200;
+  --color-border: #4a3800;
+  --color-text-primary: #ffcc66;
+  --color-text-secondary: #997700;
+  --color-accent: #cc8800;
+}
+
+body {
+  @apply bg-surface text-text-primary font-ui m-0 p-0 overflow-hidden;
+  font-size: 14px;
+}
+
+#root {
+  @apply w-screen h-screen;
+}

@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tapestry.Shared\Tapestry.Shared.csproj" />
+    <ProjectReference Include="..\Tapestry.Engine\Tapestry.Engine.csproj" />
+    <ProjectReference Include="..\Tapestry.Networking\Tapestry.Networking.csproj" />
+    <ProjectReference Include="..\Tapestry.Scripting\Tapestry.Scripting.csproj" />
+    <ProjectReference Include="..\Tapestry.Data\Tapestry.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+
+    <PackageReference Include="OpenTelemetry" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\packs\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="packs" />
+    <Content Include="..\..\server.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\data\**\*" Exclude="..\..\data\saves\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

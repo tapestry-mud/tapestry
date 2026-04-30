@@ -1,0 +1,14 @@
+id: "example-pack:windswept-amulet"
+name: "a windswept amulet"
+type: "item:armor"
+tags: [item, armor, amulet, windswept]
+properties:
+  slot: neck
+  weight: 0
+  rarity: epic
+  essence: storm
+modifiers:
+  - stat: luck
+    value: 5
+  - stat: maxMovement
+    value: 30

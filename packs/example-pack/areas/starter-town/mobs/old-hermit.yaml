@@ -1,0 +1,20 @@
+id: "example-pack:old-hermit"
+name: "an old hermit"
+type: "npc"
+tags: [npc, quest, no-kill]
+behavior: stationary
+stats:
+  strength: 6
+  dexterity: 6
+  constitution: 8
+  intelligence: 18
+  wisdom: 20
+  luck: 12
+  max_hp: 80
+  max_resource: 200
+  max_movement: 30
+properties:
+  level: 20
+  description: "A weathered old man leaning on a gnarled staff. His eyes hold ancient knowledge."
+  dialogue: "example-pack:hermit-intro"
+equipment: []

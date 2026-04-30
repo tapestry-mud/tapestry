@@ -1,0 +1,49 @@
+equipment_slots:
+  - name: light
+    display: "Light"
+    max: 1
+  - name: head
+    display: "Head"
+    max: 1
+  - name: neck
+    display: "Neck"
+    max: 1
+  - name: torso
+    display: "Torso"
+    max: 1
+  - name: cloak
+    display: "Cloak"
+    max: 1
+  - name: waist
+    display: "Waist"
+    max: 1
+  - name: arms
+    display: "Arms"
+    max: 1
+  - name: hands
+    display: "Hands"
+    max: 1
+  - name: wrist
+    display: "Wrist"
+    max: 2
+  - name: finger
+    display: "Finger"
+    max: 2
+  - name: shield
+    display: "Shield"
+    max: 1
+  - name: legs
+    display: "Legs"
+    max: 1
+  - name: feet
+    display: "Feet"
+    max: 1
+  - name: held
+    display: "Held"
+    max: 1
+  - name: floating
+    display: "Floating"
+    max: 1
+  - name: wield
+    display: "Wield"
+    max: 1

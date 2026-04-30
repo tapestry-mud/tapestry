@@ -1,0 +1,26 @@
+id: "example-pack:town-guard"
+name: "a town guard"
+type: "npc"
+tags: [npc, no-kill]
+behavior: patrol
+stats:
+  strength: 14
+  dexterity: 10
+  constitution: 14
+  intelligence: 8
+  wisdom: 8
+  luck: 6
+  max_hp: 150
+  max_resource: 0
+  max_movement: 100
+properties:
+  level: 10
+  description: "A stern-faced guard in chain mail, patrolling the town."
+  patrol_route:
+    - "example-pack:town-square"
+    - "example-pack:west-road"
+    - "example-pack:town-square"
+    - "example-pack:training-grounds"
+  patrol_interval: 60
+equipment:
+  - "example-pack:iron-sword"

@@ -1,0 +1,19 @@
+id: "example-pack:gnarled-staff"
+name: "a gnarled staff"
+type: "item:weapon"
+tags: [item, weapon, staff, gnarled]
+properties:
+  slot: wield
+  weight: 4
+  rarity: rare
+  essence: earth
+  damage_dice: "1d6+2"
+  hit_bonus: 0
+  attack_speed: 1
+  combat_name: "whack"
+  damage_type: "bash"
+modifiers:
+  - stat: wisdom
+    value: 3
+  - stat: intelligence
+    value: 1

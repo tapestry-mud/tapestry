@@ -1,0 +1,10 @@
+id: "core:fountain"
+name: "a stone fountain"
+keywords: [fountain, stone, stone fountain]
+description: "A weathered stone fountain, its basin worn smooth by years of use. Clear water wells up endlessly from somewhere deep below."
+type: drink_container
+takeable: false
+drink_type: water
+capacity: 9999
+current: 9999
+replenish: true

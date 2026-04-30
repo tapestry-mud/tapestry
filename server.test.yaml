@@ -1,0 +1,48 @@
+# server.test.yaml — test configuration; extends production packs with test overrides
+server:
+  name: "Tapestry Dev Server"
+  motd: "\r\n<highlight>===================================================</highlight>\r\n\r\n  <danger>T</danger><item.artifact>A</item.artifact><player>P</player><item.rare>E</item.rare><npc>S</npc><danger>T</danger><item.artifact>R</item.artifact><player>Y</player>   <subtle>v2.0 - Phase 2</subtle>\r\n\r\n  <npc>New in this build:</npc>\r\n    <direction>*</direction> <highlight>Stats & Score</highlight> - check your abilities with <direction>score</direction>\r\n    <direction>*</direction> <highlight>Equipment</highlight> - <direction>get</direction>, <direction>wear</direction>, <direction>wield</direction>, <direction>remove</direction> items\r\n    <direction>*</direction> <highlight>Inventory</highlight> - manage your gear with <direction>inventory</direction>\r\n    <direction>*</direction> <highlight>Color Themes</highlight> - the world is alive with color\r\n\r\n  <subtle>Type</subtle> <direction>help</direction> <subtle>for commands,</subtle> <direction>look</direction> <subtle>to see the world.</subtle>\r\n\r\n<highlight>===================================================</highlight>\r\n"
+  telnet_port: 4000
+  websocket_port: 4001
+  max_connections: 200
+  tick_rate_ms: 100
+
+packs:
+  - tapestry-core
+  - example-pack
+
+llm:
+  provider: none
+
+logging:
+  level: Information
+
+telemetry:
+  enabled: true
+  endpoint: "http://localhost:4317"
+  protocol: grpc
+  service_name: tapestry
+  console:
+    enabled: true
+    format: text
+  admin_channel:
+    slow_tick_threshold_ms: 50
+    tag: admin
+
+persistence:
+  save_path: "./data/saves"
+  autosave_interval: 3000
+  password_min_length: 6
+  max_login_attempts: 5
+
+networking:
+  negotiation_timeout_ms: 500
+
+training:
+  require_safe_room_for_stats: false
+  trainable_stats: [strength, intelligence, wisdom, dexterity, constitution, luck]
+  catch_up_boost: 5
+
+economy:
+  shop_buy_markup: 1.2
+  shop_sell_discount: 0.5

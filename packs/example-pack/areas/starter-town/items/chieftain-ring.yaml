@@ -1,0 +1,15 @@
+id: "example-pack:chieftain-ring"
+name: "a chieftain's ring"
+type: "item:accessory"
+tags: [item, accessory, rare, ring]
+properties:
+  slot: finger
+  weight: 0
+  rarity: artifact
+  essence: fire
+  value: 200
+modifiers:
+  - stat: strength
+    value: 3
+  - stat: constitution
+    value: 2

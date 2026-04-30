@@ -1,0 +1,53 @@
+id: "example-pack:goblin-chief"
+name: "the goblin chief"
+type: "npc"
+tags: [npc, mob, hostile, killable, rare, regen]
+behavior: stationary
+stats:
+  strength: 14
+  dexterity: 10
+  constitution: 14
+  intelligence: 8
+  wisdom: 6
+  luck: 10
+  max_hp: 120
+  max_resource: 20
+  max_movement: 60
+properties:
+  level: 7
+  regen_hp: 3
+  regen_movement: 3
+  corpse_decay: 600
+  description: "A hulking goblin wearing a crude iron crown. Scars cover his arms."
+  ac_slash: 5
+  ac_pierce: 6
+  ac_bash: 3
+  ac_exotic: 2
+  wimpy_threshold: 15
+  xp_value: 200
+equipment:
+  - "example-pack:iron-sword"
+  - "example-pack:leather-cap"
+loot:
+  guaranteed:
+    - item: "example-pack:goblin-ear"
+      count: 2
+    - item: "example-pack:iron-key"
+      count: 1
+  pool:
+    - item: "example-pack:iron-sword"
+      weight: 30
+    - item: "example-pack:leather-cap"
+      weight: 30
+    - item: "example-pack:coin-pouch"
+      weight: 40
+  pool_rolls: 2
+  rare_bonus:
+    chance: 0.15
+    pool:
+      - item: "example-pack:chieftain-ring"
+        weight: 50
+      - item: "example-pack:crude-iron-crown"
+        weight: 30
+      - item: "example-pack:rare-gem"
+        weight: 20

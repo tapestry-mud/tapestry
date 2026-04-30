@@ -1,0 +1,10 @@
+id: "example-pack:small-sack"
+name: "a small sack"
+type: "item:container"
+tags: [item, container, sack]
+properties:
+  container_capacity: 10
+  weight: 1
+  rarity: common
+  value: 5
+modifiers: []

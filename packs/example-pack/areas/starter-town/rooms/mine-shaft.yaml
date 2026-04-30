@@ -1,0 +1,15 @@
+id: "example-pack:mine-shaft"
+area: starter-town
+name: "Mine Shaft"
+description: >
+  The shaft descends into darkness. Your footsteps echo off rough stone
+  walls veined with something that <item.rare>glints faintly</item.rare> in the dim light.
+  Water drips steadily from somewhere above. The way back <direction>up</direction> is the
+  only exit you can see.
+exits:
+  up: "example-pack:mine-entrance"
+properties:
+  terrain: underground
+fixtures:
+  - "example-pack:rusty-dagger"
+  - "example-pack:iron-chain"

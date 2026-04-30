@@ -1,0 +1,8 @@
+area:
+  id: example-area
+  name: "Example Area"
+  level_range: [1, 5]
+  reset_interval: 1800
+  occupied_modifier: 3.0
+  weather_zone: temperate
+  flags: [safe-recall]

@@ -1,0 +1,15 @@
+# Verify wizard panel visual structure during character creation.
+> connect newplayer2 password123
+< Welcome, traveler. Your story is about to begin.
+
+# Verify top border of the wizard panel (47 chars).
+< |=============================================|
+
+# Verify progress indicator showing current step (Race marked [>]).
+< Race [>]
+
+# Verify minor separator between progress and content sections.
+< |---------------------------------------------|
+
+# Verify the race selection prompt.
+< Choose your race:

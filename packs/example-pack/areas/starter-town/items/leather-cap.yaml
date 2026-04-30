@@ -1,0 +1,16 @@
+id: "example-pack:leather-cap"
+name: "a leather cap"
+type: "item:armor"
+tags: [item, armor, cap, leather]
+properties:
+  slot: head
+  weight: 1
+  rarity: common
+  value: 8
+  ac_slash: 1
+  ac_pierce: 0
+  ac_bash: 2
+  ac_exotic: 0
+modifiers:
+  - stat: maxHp
+    value: 10

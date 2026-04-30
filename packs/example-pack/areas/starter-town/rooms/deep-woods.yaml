@@ -1,0 +1,13 @@
+id: "example-pack:deep-woods"
+area: starter-town
+name: "Deep Woods"
+description: >
+  The forest grows dense here. Shafts of light pierce the canopy in
+  narrow beams, illuminating patches of moss and fern. The path is barely
+  visible, more a suggestion than a trail. <danger>You feel watched.</danger>
+exits:
+  north: "example-pack:wilderness-path"
+properties:
+  terrain: forest
+fixtures:
+  - "example-pack:wolfskin-gloves"

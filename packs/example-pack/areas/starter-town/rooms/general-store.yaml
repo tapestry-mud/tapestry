@@ -1,0 +1,21 @@
+id: "example-pack:general-store"
+area: starter-town
+name: "General Store"
+description: >
+  Shelves line every wall, crammed with goods of every description -- rope,
+  lanterns, dried rations, healing salves, and a few rusty weapons that have
+  seen better days. <npc>A merchant</npc> eyes you from behind the counter, ready to
+  haggle.
+exits:
+  west: "example-pack:town-square"
+tags: [safe, no-combat, no_wander]
+properties:
+  terrain: indoors
+spawns:
+  - mob: "example-pack:merchant"
+    count: 1
+    tags: [persistent]
+fixtures:
+  - "example-pack:silver-ring"
+  - "example-pack:traveler-cloak"
+  - "example-pack:leather-boots"

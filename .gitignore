@@ -1,0 +1,22 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.DotSettings.user
+
+# Local server config overrides
+server.local.yaml
+
+# Player saves are server-side data, not committed
+data/saves/
+
+# Test run output
+tests/scenarios/results/
+
+# AI assistant context
+.claude/
+
+# Private plans and specs
+**/docs/superpowers/
+docs/superpowers/

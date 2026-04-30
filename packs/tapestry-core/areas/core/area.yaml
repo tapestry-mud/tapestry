@@ -1,0 +1,7 @@
+area:
+  id: core
+  name: "Core"
+  level_range: [1, 99]
+  reset_interval: 999999
+  occupied_modifier: 1.0
+  flags: []

@@ -1,0 +1,7 @@
+id: "example-pack:sealed-letter"
+name: "a sealed letter"
+type: "item"
+tags: [item, readable, letter]
+properties:
+  text: "To the wanderer who finds this: the old vault key opens the door to the south. Use it wisely."
+modifiers: []

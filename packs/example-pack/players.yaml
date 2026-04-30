@@ -1,0 +1,53 @@
+players:
+  - name: Gamemaster
+    password: testpass123
+    tags:
+      - player
+      - admin
+      - regen
+    stats:
+      strength: 10
+      intelligence: 10
+      wisdom: 10
+      dexterity: 10
+      constitution: 10
+      luck: 10
+      max_hp: 100
+      max_resource: 50
+      max_movement: 100
+
+  # Test players — used by telnet scenario tests
+  - name: Alice
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Bob
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Wanderer
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Attacker
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Bystander
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Trapped
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }
+
+  - name: Distant
+    password: testpass123
+    tags: [player, regen]
+    stats: { strength: 10, intelligence: 10, wisdom: 10, dexterity: 10, constitution: 10, luck: 10, max_hp: 100, max_resource: 50, max_movement: 100 }

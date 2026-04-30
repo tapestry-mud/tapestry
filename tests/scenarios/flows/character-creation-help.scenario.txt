@@ -1,0 +1,29 @@
+# Verify ? and help commands show descriptions during character creation.
+> connect newplayer1 password123
+< Welcome, traveler. Your story is about to begin.
+
+# At race selection, list all options with descriptions.
+> ?
+< Human: Adaptable and ambitious
+
+# Ask for specific race help via ? prefix.
+> ? Human
+< Adaptable and ambitious
+
+# help command also works.
+> help Human
+< Adaptable and ambitious
+
+# Normal selection still works after help queries.
+> Human
+< Choose your gender:
+> Male
+< Choose your class:
+
+# Help during class selection.
+> ?
+< Warrior: Master of arms and armor
+< Mage: Wielder of arcane power
+
+# Select class.
+> Warrior

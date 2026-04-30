@@ -1,0 +1,13 @@
+id: "example-pack:wolfskin-gloves"
+name: "a pair of wolfskin gloves"
+type: "item:armor"
+tags: [item, armor, gloves, wolfskin]
+properties:
+  slot: hands
+  weight: 1
+  rarity: uncommon
+modifiers:
+  - stat: strength
+    value: 2
+  - stat: dexterity
+    value: 1

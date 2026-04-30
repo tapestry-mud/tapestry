@@ -1,0 +1,23 @@
+# Shop test fixtures
+# Defined in packs/example-pack/tests/fixtures/ (loaded by server.test.yaml)
+#
+# Mobs:
+#   test:shopkeeper          — sells example-pack:leather-cap (value 8), example-pack:goblin-charm (value 50), default markup 1.2x / discount 0.5x
+#   test:shopkeeper-highmarkup — same stock, buy_markup 1.4x, sell_discount 0.4x
+#
+# Rooms:
+#   test:shop-room            — contains test:shopkeeper (1 spawn)
+#   test:shop-room-highmarkup — contains test:shopkeeper-highmarkup (1 spawn)
+#   test:no-shop-room         — empty room, no shop NPC
+#
+# Expected buy prices (default markup 1.2x):
+#   leather-cap:  8  * 1.2 = 9.6 → 10 gold
+#   goblin-charm: 50 * 1.2 = 60 gold
+#
+# Expected sell prices (default discount 0.5x):
+#   leather-cap:  8  * 0.5 = 4 gold
+#   goblin-charm: 50 * 0.5 = 25 gold
+#
+# Expected buy prices (high-markup 1.4x):
+#   leather-cap:  8  * 1.4 = 11.2 → 11 gold
+#   goblin-charm: 50 * 1.4 = 70 gold

@@ -1,0 +1,31 @@
+id: "example-pack:training-grounds"
+area: starter-town
+name: "Training Grounds"
+description: >
+  A dusty yard surrounded by a low wooden fence. Straw training dummies
+  stand in a row, bearing the scars of a thousand practice swings.
+  <npc>A grizzled instructor</npc> watches from the shade, occasionally barking
+  corrections at the air.
+exits:
+  north: "example-pack:town-square"
+  south: "example-pack:wilderness-path"
+properties:
+  terrain: outdoors
+spawns:
+  - mob: "example-pack:goblin"
+    count: 2
+    rare:
+      mob: "example-pack:goblin-chief"
+      chance: 0.05
+  - mob: "example-pack:test-dummy"
+    count: 1
+  - mob: "example-pack:warrior-trainer"
+    count: 1
+    tags: [persistent]
+  - mob: "example-pack:mage-trainer"
+    count: 1
+    tags: [persistent]
+fixtures:
+  - "example-pack:iron-sword"
+  - "example-pack:leather-helm"
+  - "example-pack:wooden-shield"

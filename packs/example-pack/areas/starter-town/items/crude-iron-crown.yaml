@@ -1,0 +1,16 @@
+id: "example-pack:crude-iron-crown"
+name: "a crude iron crown"
+type: "item:armor"
+tags: [item, armor, rare, crown]
+properties:
+  slot: head
+  weight: 3
+  rarity: epic
+  value: 150
+  ac_slash: 4
+  ac_pierce: 3
+  ac_bash: 2
+  ac_exotic: 1
+modifiers:
+  - stat: maxHp
+    value: 25

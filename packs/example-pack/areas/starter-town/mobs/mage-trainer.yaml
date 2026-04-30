@@ -1,0 +1,23 @@
+id: "example-pack:mage-trainer"
+name: "a robed scholar"
+type: "npc"
+tags: [npc, mob, friendly, skill_trainer]
+behavior: stationary
+stats:
+  strength: 8
+  dexterity: 12
+  constitution: 10
+  intelligence: 18
+  wisdom: 16
+  luck: 10
+  max_hp: 60
+  max_resource: 120
+  max_movement: 60
+disposition:
+  default: neutral
+properties:
+  description: "An elderly scholar whose eyes carry the quiet focus of someone who has spent decades in study."
+  trains:
+    tier: apprentice
+    abilities: [cure_light, fireball, shield, blindness, poison, second_cast]
+equipment: []

@@ -1,0 +1,14 @@
+# Scenario: lock and unlock a door
+# Assumes a room with a closed door to the north, and player has the key in inventory
+
+> connect admin password
+> unlock north
+< You unlock the
+> lock north
+< You lock the
+> open north
+< That is locked.
+> unlock north
+< You unlock the
+> open north
+< You open the

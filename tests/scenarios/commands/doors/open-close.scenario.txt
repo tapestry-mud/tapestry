@@ -1,0 +1,16 @@
+# Scenario: open and close a door
+# Assumes a room with a closed (unlocked) door to the north
+
+> connect admin password
+> open north
+< You open the
+> close north
+< You close the
+> open north
+< You open the
+> open north
+< That is already open.
+> close north
+< You close the
+> close north
+< That is already closed.

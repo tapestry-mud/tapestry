@@ -1,0 +1,70 @@
+weather_zones:
+  temperate:
+    states: [clear, cloudy, rain, storm]
+    transitions:
+      clear:   { clear: 70, cloudy: 25, rain: 5 }
+      cloudy:  { cloudy: 50, clear: 25, rain: 20, storm: 5 }
+      rain:    { rain: 50, cloudy: 30, storm: 15, clear: 5 }
+      storm:   { storm: 40, rain: 40, cloudy: 20 }
+    terrain_messages:
+      forest:
+        clear:
+          start: "The clouds part. Shafts of sunlight break through the canopy."
+          end: "Clouds roll in, dimming the light through the trees."
+        cloudy:
+          start: "The sky above the canopy turns grey and overcast."
+          end: "The overcast begins to break, letting in patches of light."
+        rain:
+          start: "Rain begins to drip through the canopy above."
+          ongoing: "A steady rain filters through the leaves."
+          end: "The rain tapers off, leaving the forest dripping."
+        storm:
+          start: "Wind tears through the treetops. Thunder rumbles overhead."
+          ongoing: "The storm batters the canopy. Branches creak and sway."
+          end: "The storm passes. The forest drips in the sudden quiet."
+      city:
+        clear:
+          start: "The clouds break. Sunlight washes over the streets."
+          end: "Clouds gather, dimming the sunlight."
+        cloudy:
+          start: "Grey clouds settle over the city, muting the light."
+          end: "The overcast begins to thin. A little more light reaches the streets."
+        rain:
+          start: "Rain begins to fall, darkening the cobblestones."
+          ongoing: "Rain drums steadily on rooftops and awnings."
+          end: "The rain lets up. Puddles dot the streets."
+        storm:
+          start: "A crack of thunder shakes the city. Rain hammers the cobblestones."
+          ongoing: "The storm rages over the city. Lightning flickers between the buildings."
+          end: "The storm breaks. The streets shine wet in the returning light."
+      road:
+        clear:
+          start: "The clouds part. The road ahead is bright and open."
+          end: "Clouds drift in, casting moving shadows across the road."
+        cloudy:
+          start: "The sky turns grey. The road stretches ahead under a heavy ceiling of cloud."
+          end: "The cloud cover starts to thin."
+        rain:
+          start: "Rain begins to fall, darkening the road underfoot."
+          ongoing: "A steady rain falls across the open road."
+          end: "The rain stops. The road steams faintly in the returning warmth."
+        storm:
+          start: "Lightning splits the sky. The storm breaks over the open road."
+          ongoing: "Wind-driven rain lashes the road. Thunder rolls continuously."
+          end: "The storm moves on, leaving the road battered and wet."
+    terrain_transitions:
+      forest:
+        dawn: "Pale light filters through the trees as the forest stirs to life."
+        day: "Sunlight streams through the canopy, dappling the forest floor."
+        dusk: "The light fades between the trees. Shadows stretch long across the path."
+        night: "Darkness settles over the forest. Crickets and distant rustling fill the silence."
+      city:
+        dawn: "The first light of morning touches the rooftops. Shutters begin to open."
+        day: "The sun climbs high. The streets bustle with activity."
+        dusk: "Lanterns flicker to life along the streets as daylight fades."
+        night: "The city quiets under a dark sky. Lamplight pools on empty cobblestones."
+      road:
+        dawn: "The horizon brightens ahead of you. A new day begins."
+        day: "The sun beats down on the open road."
+        dusk: "The sun sinks low, painting the sky in orange and red."
+        night: "Stars emerge overhead. The road stretches pale in the moonlight."

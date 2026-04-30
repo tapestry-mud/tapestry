@@ -1,0 +1,11 @@
+id: "example-pack:brass-ring"
+name: "a tarnished brass ring"
+type: "item:armor"
+tags: [item, armor, ring, brass]
+properties:
+  slot: finger
+  weight: 0
+  rarity: common
+modifiers:
+  - stat: luck
+    value: 1

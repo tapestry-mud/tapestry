@@ -1,0 +1,9 @@
+id: "example-pack:shiny-coin"
+name: "a shiny coin"
+type: "item:treasure"
+tags: [item, treasure]
+properties:
+  weight: 0
+  rarity: uncommon
+  value: 1
+modifiers: []

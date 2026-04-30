@@ -1,0 +1,10 @@
+# Scenario: walking into a closed door blocks movement
+# Assumes a room with a closed door to the north
+
+> connect admin password
+> n
+< You cannot go that way.
+> open north
+< You open the
+> n
+< (room description of target room)

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tapestry.Data/Tapestry.Data.csproj" />
+    <Project Path="src/Tapestry.Engine/Tapestry.Engine.csproj" />
+    <Project Path="src/Tapestry.Networking/Tapestry.Networking.csproj" />
+    <Project Path="src/Tapestry.Scripting/Tapestry.Scripting.csproj" />
+    <Project Path="src/Tapestry.Server/Tapestry.Server.csproj" />
+    <Project Path="src/Tapestry.Shared/Tapestry.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Tapestry.Engine.Tests/Tapestry.Engine.Tests.csproj" />
+    <Project Path="tests/Tapestry.Networking.Tests/Tapestry.Networking.Tests.csproj" />
+    <Project Path="tests/Tapestry.Scripting.Tests/Tapestry.Scripting.Tests.csproj" />
+  </Folder>
+</Solution>

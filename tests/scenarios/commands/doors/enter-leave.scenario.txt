@@ -1,0 +1,13 @@
+# Scenario: enter a keyword exit and leave via return address
+# Assumes a room with keyword exit "mirror" leading to a special area
+# Pack stamps return address on entry (via player.moved event subscription)
+
+> connect admin password
+> enter mirror
+< passes through
+> leave
+< (room description of origin room)
+
+# No return address after leaving
+> leave
+< You have nowhere to return to.

@@ -1,0 +1,818 @@
+- name: ack
+  no_target: "You go 'ack!'"
+  no_target_room: "$n goes 'ack!'"
+  self: "You go 'ack!' at yourself."
+  self_room: "$n goes 'ack!' at $mself."
+  targeted: "You go 'ack!' at $N."
+  targeted_room: "$n goes 'ack!' at $N."
+  targeted_victim: "$n goes 'ack!' at you."
+
+- name: applaud
+  no_target: "You applaud enthusiastically."
+  no_target_room: "$n applauds enthusiastically."
+  self: "You applaud yourself."
+  self_room: "$n applauds $mself."
+  targeted: "You applaud $N's performance."
+  targeted_room: "$n applauds $N's performance."
+  targeted_victim: "$n applauds your performance."
+
+- name: bark
+  no_target: "You bark loudly."
+  no_target_room: "$n barks loudly."
+  self: "You bark at yourself."
+  self_room: "$n barks at $mself."
+  targeted: "You bark at $N."
+  targeted_room: "$n barks at $N."
+  targeted_victim: "$n barks at you."
+
+- name: beam
+  no_target: "You beam with pride."
+  no_target_room: "$n beams with pride."
+  self: "You beam at yourself in the reflection."
+  self_room: "$n beams at $mself in the reflection."
+  targeted: "You beam a smile at $N."
+  targeted_room: "$n beams a smile at $N."
+  targeted_victim: "$n beams a smile at you."
+
+- name: blush
+  no_target: "Your cheeks flush red."
+  no_target_room: "$n's cheeks flush red."
+  self: "You blush deeply at your own thoughts."
+  self_room: "$n blushes deeply at their own thoughts."
+  targeted: "You blush when you look at $N."
+  targeted_room: "$n blushes when looking at $N."
+  targeted_victim: "$n blushes when looking at you."
+
+- name: boggle
+  no_target: "You boggle at the concept."
+  no_target_room: "$n boggles at the concept."
+  self: "You boggle at yourself."
+  self_room: "$n boggles at $mself."
+  targeted: "You boggle at $N."
+  targeted_room: "$n boggles at $N."
+  targeted_victim: "$n boggles at you."
+
+- name: bonk
+  no_target: "You bonk yourself on the head."
+  no_target_room: "$n bonks $mself on the head."
+  self: "You bonk yourself on the head."
+  self_room: "$n bonks $mself on the head."
+  targeted: "You bonk $N on the head."
+  targeted_room: "$n bonks $N on the head."
+  targeted_victim: "$n bonks you on the head."
+
+- name: bounce
+  no_target: "You bounce around excitedly."
+  no_target_room: "$n bounces around excitedly."
+  self: "You bounce excitedly."
+  self_room: "$n bounces excitedly."
+  targeted: "You bounce excitedly at $N."
+  targeted_room: "$n bounces excitedly at $N."
+  targeted_victim: "$n bounces excitedly at you."
+
+- name: bow
+  no_target: "You bow gracefully."
+  no_target_room: "$n bows gracefully."
+  self: "You bow to yourself."
+  self_room: "$n bows to $mself."
+  targeted: "You bow before $N."
+  targeted_room: "$n bows before $N."
+  targeted_victim: "$n bows before you."
+
+- name: burp
+  no_target: "You burp loudly. How charming."
+  no_target_room: "$n burps loudly."
+  self: "You burp at yourself."
+  self_room: "$n burps at $mself."
+  targeted: "You burp rudely in $N's direction."
+  targeted_room: "$n burps rudely in $N's direction."
+  targeted_victim: "$n burps rudely in your direction."
+
+- name: cackle
+  no_target: "You cackle maniacally."
+  no_target_room: "$n cackles maniacally."
+  self: "You cackle at yourself."
+  self_room: "$n cackles at $mself."
+  targeted: "You cackle at $N."
+  targeted_room: "$n cackles at $N."
+  targeted_victim: "$n cackles at you."
+
+- name: cheer
+  no_target: "You cheer loudly!"
+  no_target_room: "$n cheers loudly!"
+  self: "You cheer yourself on."
+  self_room: "$n cheers $mself on."
+  targeted: "You cheer for $N!"
+  targeted_room: "$n cheers for $N!"
+  targeted_victim: "$n cheers for you!"
+
+- name: chuckle
+  no_target: "You chuckle softly."
+  no_target_room: "$n chuckles softly."
+  self: "You chuckle to yourself."
+  self_room: "$n chuckles to $mself."
+  targeted: "You chuckle at $N."
+  targeted_room: "$n chuckles at $N."
+  targeted_victim: "$n chuckles at you."
+
+- name: clap
+  no_target: "You clap your hands together."
+  no_target_room: "$n claps their hands together."
+  self: "You clap for yourself."
+  self_room: "$n claps for $mself."
+  targeted: "You clap for $N."
+  targeted_room: "$n claps for $N."
+  targeted_victim: "$n claps for you."
+
+- name: comb
+  no_target: "You comb your hair."
+  no_target_room: "$n combs their hair."
+  self: "You run your fingers through your own hair."
+  self_room: "$n runs their fingers through their own hair."
+  targeted: "You try to comb $N's hair."
+  targeted_room: "$n tries to comb $N's hair."
+  targeted_victim: "$n tries to comb your hair."
+
+- name: comfort
+  no_target: "You look around for someone who needs comforting."
+  no_target_room: "$n looks around for someone who needs comforting."
+  self: "You comfort yourself."
+  self_room: "$n comforts $mself."
+  targeted: "You comfort $N with a gentle touch."
+  targeted_room: "$n comforts $N with a gentle touch."
+  targeted_victim: "$n comforts you with a gentle touch."
+
+- name: cough
+  no_target: "You cough politely."
+  no_target_room: "$n coughs politely."
+  self: "You cough at yourself."
+  self_room: "$n coughs at $mself."
+  targeted: "You cough pointedly at $N."
+  targeted_room: "$n coughs pointedly at $N."
+  targeted_victim: "$n coughs pointedly at you."
+
+- name: cringe
+  no_target: "You cringe in horror."
+  no_target_room: "$n cringes in horror."
+  self: "You cringe at your own words."
+  self_room: "$n cringes at their own words."
+  targeted: "You cringe away from $N."
+  targeted_room: "$n cringes away from $N."
+  targeted_victim: "$n cringes away from you."
+
+- name: cry
+  no_target: "You burst into tears."
+  no_target_room: "$n bursts into tears."
+  self: "You cry at your own reflection."
+  self_room: "$n cries at their own reflection."
+  targeted: "You cry on $N's shoulder."
+  targeted_room: "$n cries on $N's shoulder."
+  targeted_victim: "$n cries on your shoulder."
+
+- name: cuddle
+  no_target: "You look around for someone to cuddle."
+  no_target_room: "$n looks around for someone to cuddle."
+  self: "You cuddle up to yourself."
+  self_room: "$n cuddles up to $mself."
+  targeted: "You cuddle up to $N."
+  targeted_room: "$n cuddles up to $N."
+  targeted_victim: "$n cuddles up to you."
+
+- name: curse
+  no_target: "You curse under your breath."
+  no_target_room: "$n curses under their breath."
+  self: "You curse at yourself."
+  self_room: "$n curses at $mself."
+  targeted: "You curse at $N vehemently."
+  targeted_room: "$n curses at $N vehemently."
+  targeted_victim: "$n curses at you vehemently."
+
+- name: dance
+  no_target: "You dance around joyfully."
+  no_target_room: "$n dances around joyfully."
+  self: "You dance with yourself."
+  self_room: "$n dances with $mself."
+  targeted: "You dance with $N."
+  targeted_room: "$n dances with $N."
+  targeted_victim: "$n dances with you."
+
+- name: drool
+  no_target: "You drool all over yourself."
+  no_target_room: "$n drools all over $mself."
+  self: "You drool on yourself."
+  self_room: "$n drools on $mself."
+  targeted: "You drool at the sight of $N."
+  targeted_room: "$n drools at the sight of $N."
+  targeted_victim: "$n drools at the sight of you."
+
+- name: eye
+  no_target: "Your eyes narrow suspiciously."
+  no_target_room: "$n's eyes narrow suspiciously."
+  self: "You eye yourself in the reflection."
+  self_room: "$n eyes $mself in the reflection."
+  targeted: "You eye $N suspiciously."
+  targeted_room: "$n eyes $N suspiciously."
+  targeted_victim: "$n eyes you suspiciously."
+
+- name: faint
+  no_target: "You faint dead away."
+  no_target_room: "$n faints dead away."
+  self: "You faint at the thought."
+  self_room: "$n faints at the thought."
+  targeted: "You faint at the sight of $N."
+  targeted_room: "$n faints at the sight of $N."
+  targeted_victim: "$n faints at the sight of you."
+
+- name: flex
+  no_target: "You flex your muscles impressively."
+  no_target_room: "$n flexes their muscles impressively."
+  self: "You admire your own muscles."
+  self_room: "$n admires their own muscles."
+  targeted: "You flex impressively at $N."
+  targeted_room: "$n flexes impressively at $N."
+  targeted_victim: "$n flexes impressively at you."
+
+- name: flip
+  no_target: "You flip cheerfully."
+  no_target_room: "$n flips cheerfully."
+  self: "You flip off yourself."
+  self_room: "$n flips off $mself."
+  targeted: "You flip off $N."
+  targeted_room: "$n flips off $N."
+  targeted_victim: "$n flips off you."
+
+- name: flirt
+  no_target: "You flirt shamelessly."
+  no_target_room: "$n flirts shamelessly."
+  self: "You flirt with yourself in the reflection."
+  self_room: "$n flirts with $mself in the reflection."
+  targeted: "You flirt shamelessly with $N."
+  targeted_room: "$n flirts shamelessly with $N."
+  targeted_victim: "$n flirts shamelessly with you."
+
+- name: flutter
+  no_target: "You flutter your eyelashes."
+  no_target_room: "$n flutters their eyelashes."
+  self: "You flutter your eyelashes at yourself."
+  self_room: "$n flutters their eyelashes at $mself."
+  targeted: "You flutter your eyelashes at $N."
+  targeted_room: "$n flutters your eyelashes at $N."
+  targeted_victim: "$n flutters their eyelashes at you."
+
+- name: frown
+  no_target: "You frown deeply."
+  no_target_room: "$n frowns deeply."
+  self: "You frown at yourself."
+  self_room: "$n frowns at $mself."
+  targeted: "You frown at $N."
+  targeted_room: "$n frowns at $N."
+  targeted_victim: "$n frowns at you."
+
+- name: fume
+  no_target: "You fume silently."
+  no_target_room: "$n fumes silently."
+  self: "You fume at yourself."
+  self_room: "$n fumes at $mself."
+  targeted: "You fume at $N."
+  targeted_room: "$n fumes at $N."
+  targeted_victim: "$n fumes at you."
+
+- name: gag
+  no_target: "You gag at the thought."
+  no_target_room: "$n gags at the thought."
+  self: "You gag at yourself."
+  self_room: "$n gags at $mself."
+  targeted: "You gag at $N."
+  targeted_room: "$n gags at $N."
+  targeted_victim: "$n gags at you."
+
+- name: gasp
+  no_target: "You gasp in shock."
+  no_target_room: "$n gasps in shock."
+  self: "You gasp at your own reflection."
+  self_room: "$n gasps at their own reflection."
+  targeted: "You gasp at $N."
+  targeted_room: "$n gasps at $N."
+  targeted_victim: "$n gasps at you."
+
+- name: giggle
+  no_target: "You giggle uncontrollably."
+  no_target_room: "$n giggles uncontrollably."
+  self: "You giggle to yourself."
+  self_room: "$n giggles to $mself."
+  targeted: "You giggle at $N."
+  targeted_room: "$n giggles at $N."
+  targeted_victim: "$n giggles at you."
+
+- name: glare
+  no_target: "You glare into space."
+  no_target_room: "$n glares into space."
+  self: "You glare at yourself."
+  self_room: "$n glares at $mself."
+  targeted: "You glare icily at $N."
+  targeted_room: "$n glares icily at $N."
+  targeted_victim: "$n glares icily at you."
+
+- name: grin
+  no_target: "You grin broadly."
+  no_target_room: "$n grins broadly."
+  self: "You grin at yourself."
+  self_room: "$n grins at $mself."
+  targeted: "You grin at $N."
+  targeted_room: "$n grins at $N."
+  targeted_victim: "$n grins at you."
+
+- name: groan
+  no_target: "You groan pitifully."
+  no_target_room: "$n groans pitifully."
+  self: "You groan to yourself."
+  self_room: "$n groans to $mself."
+  targeted: "You groan at $N."
+  targeted_room: "$n groans at $N."
+  targeted_victim: "$n groans at you."
+
+- name: grumble
+  no_target: "You grumble under your breath."
+  no_target_room: "$n grumbles under their breath."
+  self: "You grumble at yourself."
+  self_room: "$n grumbles at $mself."
+  targeted: "You grumble at $N."
+  targeted_room: "$n grumbles at $N."
+  targeted_victim: "$n grumbles at you."
+
+- name: grunt
+  no_target: "You grunt noncommittally."
+  no_target_room: "$n grunts noncommittally."
+  self: "You grunt at yourself."
+  self_room: "$n grunts at $mself."
+  targeted: "You grunt at $N."
+  targeted_room: "$n grunts at $N."
+  targeted_victim: "$n grunts at you."
+
+- name: hiccup
+  no_target: "You hiccup suddenly."
+  no_target_room: "$n hiccups suddenly."
+  self: "You hiccup at yourself."
+  self_room: "$n hiccups at $mself."
+  targeted: "You hiccup at $N."
+  targeted_room: "$n hiccups at $N."
+  targeted_victim: "$n hiccups at you."
+
+- name: howl
+  no_target: "You howl at the sky."
+  no_target_room: "$n howls at the sky."
+  self: "You howl at yourself."
+  self_room: "$n howls at $mself."
+  targeted: "You howl at $N."
+  targeted_room: "$n howls at $N."
+  targeted_victim: "$n howls at you."
+
+- name: hug
+  no_target: "You look around for someone to hug."
+  no_target_room: "$n looks around for someone to hug."
+  self: "You hug yourself."
+  self_room: "$n hugs $mself."
+  targeted: "You hug $N warmly."
+  targeted_room: "$n hugs $N warmly."
+  targeted_victim: "$n hugs you warmly."
+
+- name: jump
+  no_target: "You jump up and down excitedly."
+  no_target_room: "$n jumps up and down excitedly."
+  self: "You jump with yourself, somehow."
+  self_room: "$n jumps with $mself, somehow."
+  targeted: "You jump up and down in front of $N."
+  targeted_room: "$n jumps up and down in front of $N."
+  targeted_victim: "$n jumps up and down in front of you."
+
+- name: kiss
+  no_target: "You blow a kiss to nobody in particular."
+  no_target_room: "$n blows a kiss to nobody in particular."
+  self: "You kiss your own hand."
+  self_room: "$n kisses their own hand."
+  targeted: "You kiss $N on the cheek."
+  targeted_room: "$n kisses $N on the cheek."
+  targeted_victim: "$n kisses you on the cheek."
+
+- name: laugh
+  no_target: "You burst out laughing."
+  no_target_room: "$n bursts out laughing."
+  self: "You laugh at yourself."
+  self_room: "$n laughs at $mself."
+  targeted: "You laugh at $N."
+  targeted_room: "$n laughs at $N."
+  targeted_victim: "$n laughs at you."
+
+- name: lick
+  no_target: "You lick your lips."
+  no_target_room: "$n licks their lips."
+  self: "You lick yourself. Weird."
+  self_room: "$n licks $mself. Weird."
+  targeted: "You lick $N."
+  targeted_room: "$n licks $N."
+  targeted_victim: "$n licks you."
+
+- name: moan
+  no_target: "You moan in despair."
+  no_target_room: "$n moans in despair."
+  self: "You moan to yourself."
+  self_room: "$n moans to $mself."
+  targeted: "You moan at $N."
+  targeted_room: "$n moans at $N."
+  targeted_victim: "$n moans at you."
+
+- name: nod
+  no_target: "You nod solemnly."
+  no_target_room: "$n nods solemnly."
+  self: "You nod to yourself."
+  self_room: "$n nods to $mself."
+  targeted: "You nod at $N."
+  targeted_room: "$n nods at $N."
+  targeted_victim: "$n nods at you."
+
+- name: nudge
+  no_target: "You nudge the air hopefully."
+  no_target_room: "$n nudges the air hopefully."
+  self: "You nudge yourself."
+  self_room: "$n nudges $mself."
+  targeted: "You nudge $N."
+  targeted_room: "$n nudges $N."
+  targeted_victim: "$n nudges you."
+
+- name: pace
+  no_target: "You pace back and forth nervously."
+  no_target_room: "$n paces back and forth nervously."
+  self: "You pace next to yourself."
+  self_room: "$n paces next to $mself."
+  targeted: "You pace nervously next to $N."
+  targeted_room: "$n paces nervously next to $N."
+  targeted_victim: "$n paces nervously next to you."
+
+- name: pat
+  no_target: "You pat yourself on the back."
+  no_target_room: "$n pats $mself on the back."
+  self: "You pat yourself on the back."
+  self_room: "$n pats $mself on the back."
+  targeted: "You pat $N on the head."
+  targeted_room: "$n pats $N on the head."
+  targeted_victim: "$n pats you on the head."
+
+- name: peer
+  no_target: "You peer around suspiciously."
+  no_target_room: "$n peers around suspiciously."
+  self: "You peer at yourself."
+  self_room: "$n peers at $mself."
+  targeted: "You peer closely at $N."
+  targeted_room: "$n peers closely at $N."
+  targeted_victim: "$n peers closely at you."
+
+- name: pinch
+  no_target: "You pinch yourself to make sure you're awake."
+  no_target_room: "$n pinches $mself to make sure they're awake."
+  self: "You pinch yourself."
+  self_room: "$n pinches $mself."
+  targeted: "You pinch $N."
+  targeted_room: "$n pinches $N."
+  targeted_victim: "$n pinches you."
+
+- name: plead
+  no_target: "You drop to your knees and plead."
+  no_target_room: "$n drops to their knees and pleads."
+  self: "You plead with yourself."
+  self_room: "$n pleads with $mself."
+  targeted: "You plead desperately with $N."
+  targeted_room: "$n pleads desperately with $N."
+  targeted_victim: "$n pleads desperately with you."
+
+- name: point
+  no_target: "You point at nothing in particular."
+  no_target_room: "$n points at nothing in particular."
+  self: "You point at yourself."
+  self_room: "$n points at $mself."
+  targeted: "You point at $N."
+  targeted_room: "$n points at $N."
+  targeted_victim: "$n points at you."
+
+- name: poke
+  no_target: "You poke at the air."
+  no_target_room: "$n pokes at the air."
+  self: "You poke yourself."
+  self_room: "$n pokes $mself."
+  targeted: "You poke $N."
+  targeted_room: "$n pokes $N."
+  targeted_victim: "$n pokes you."
+
+- name: pout
+  no_target: "You pout dramatically."
+  no_target_room: "$n pouts dramatically."
+  self: "You pout at yourself."
+  self_room: "$n pouts at $mself."
+  targeted: "You pout at $N."
+  targeted_room: "$n pouts at $N."
+  targeted_victim: "$n pouts at you."
+
+- name: purr
+  no_target: "You purr contentedly."
+  no_target_room: "$n purrs contentedly."
+  self: "You purr to yourself."
+  self_room: "$n purrs to $mself."
+  targeted: "You purr at $N."
+  targeted_room: "$n purrs at $N."
+  targeted_victim: "$n purrs at you."
+
+- name: raise
+  no_target: "You raise your hand."
+  no_target_room: "$n raises their hand."
+  self: "You raise your fist at yourself."
+  self_room: "$n raises their fist at $mself."
+  targeted: "You raise your hand at $N."
+  targeted_room: "$n raises their hand at $N."
+  targeted_victim: "$n raises their hand at you."
+
+- name: roll
+  no_target: "You roll your eyes."
+  no_target_room: "$n rolls their eyes."
+  self: "You roll your eyes at yourself."
+  self_room: "$n rolls their eyes at $mself."
+  targeted: "You roll your eyes at $N."
+  targeted_room: "$n rolls their eyes at $N."
+  targeted_victim: "$n rolls their eyes at you."
+
+- name: salute
+  no_target: "You salute crisply."
+  no_target_room: "$n salutes crisply."
+  self: "You salute yourself."
+  self_room: "$n salutes $mself."
+  targeted: "You salute $N."
+  targeted_room: "$n salutes $N."
+  targeted_victim: "$n salutes you."
+
+- name: scoff
+  no_target: "You scoff dismissively."
+  no_target_room: "$n scoffs dismissively."
+  self: "You scoff at yourself."
+  self_room: "$n scoffs at $mself."
+  targeted: "You scoff at $N."
+  targeted_room: "$n scoffs at $N."
+  targeted_victim: "$n scoffs at you."
+
+- name: scream
+  no_target: "You scream at the top of your lungs."
+  no_target_room: "$n screams at the top of their lungs."
+  self: "You scream at yourself."
+  self_room: "$n screams at $mself."
+  targeted: "You scream at $N."
+  targeted_room: "$n screams at $N."
+  targeted_victim: "$n screams at you."
+
+- name: shake
+  no_target: "You shake your head slowly."
+  no_target_room: "$n shakes their head slowly."
+  self: "You shake yourself."
+  self_room: "$n shakes $mself."
+  targeted: "You shake your head at $N."
+  targeted_room: "$n shakes their head at $N."
+  targeted_victim: "$n shakes their head at you."
+
+- name: shiver
+  no_target: "You shiver with a sudden chill."
+  no_target_room: "$n shivers with a sudden chill."
+  self: "You shiver at your own reflection."
+  self_room: "$n shivers at their own reflection."
+  targeted: "You shiver at the sight of $N."
+  targeted_room: "$n shivers at the sight of $N."
+  targeted_victim: "$n shivers at the sight of you."
+
+- name: shrug
+  no_target: "You shrug nonchalantly."
+  no_target_room: "$n shrugs nonchalantly."
+  self: "You shrug at yourself."
+  self_room: "$n shrugs at $mself."
+  targeted: "You shrug at $N."
+  targeted_room: "$n shrugs at $N."
+  targeted_victim: "$n shrugs at you."
+
+- name: sigh
+  no_target: "You sigh deeply."
+  no_target_room: "$n sighs deeply."
+  self: "You sigh at yourself."
+  self_room: "$n sighs at $mself."
+  targeted: "You sigh at $N."
+  targeted_room: "$n sighs at $N."
+  targeted_victim: "$n sighs at you."
+
+- name: slap
+  no_target: "You slap yourself on the forehead."
+  no_target_room: "$n slaps $mself on the forehead."
+  self: "You slap yourself."
+  self_room: "$n slaps $mself."
+  targeted: "You slap $N across the face."
+  targeted_room: "$n slaps $N across the face."
+  targeted_victim: "$n slaps you across the face."
+
+- name: smile
+  no_target: "You smile happily."
+  no_target_room: "$n smiles happily."
+  self: "You smile at yourself."
+  self_room: "$n smiles at $mself."
+  targeted: "You smile at $N."
+  targeted_room: "$n smiles at $N."
+  targeted_victim: "$n smiles at you."
+
+- name: smirk
+  no_target: "You smirk knowingly."
+  no_target_room: "$n smirks knowingly."
+  self: "You smirk at yourself."
+  self_room: "$n smirks at $mself."
+  targeted: "You smirk at $N."
+  targeted_room: "$n smirks at $N."
+  targeted_victim: "$n smirks at you."
+
+- name: snap
+  no_target: "You snap your fingers."
+  no_target_room: "$n snaps their fingers."
+  self: "You snap your fingers at yourself."
+  self_room: "$n snaps their fingers at $mself."
+  targeted: "You snap your fingers at $N."
+  targeted_room: "$n snaps their fingers at $N."
+  targeted_victim: "$n snaps their fingers at you."
+
+- name: snicker
+  no_target: "You snicker to yourself."
+  no_target_room: "$n snickers to $mself."
+  self: "You snicker at yourself."
+  self_room: "$n snickers at $mself."
+  targeted: "You snicker at $N."
+  targeted_room: "$n snickers at $N."
+  targeted_victim: "$n snickers at you."
+
+- name: sniff
+  no_target: "You sniff dismissively."
+  no_target_room: "$n sniffs dismissively."
+  self: "You sniff yourself."
+  self_room: "$n sniffs $mself."
+  targeted: "You sniff dismissively at $N."
+  targeted_room: "$n sniffs dismissively at $N."
+  targeted_victim: "$n sniffs dismissively at you."
+
+- name: snore
+  no_target: "You snore loudly. ZZZzzz..."
+  no_target_room: "$n snores loudly."
+  self: "You snore at yourself."
+  self_room: "$n snores at $mself."
+  targeted: "You snore loudly at $N."
+  targeted_room: "$n snores loudly at $N."
+  targeted_victim: "$n snores loudly at you."
+
+- name: sob
+  no_target: "You sob uncontrollably."
+  no_target_room: "$n sobs uncontrollably."
+  self: "You sob to yourself."
+  self_room: "$n sobs to $mself."
+  targeted: "You sob on $N's shoulder."
+  targeted_room: "$n sobs on $N's shoulder."
+  targeted_victim: "$n sobs on your shoulder."
+
+- name: spin
+  no_target: "You spin around dizzyingly."
+  no_target_room: "$n spins around dizzyingly."
+  self: "You spin around yourself."
+  self_room: "$n spins around $mself."
+  targeted: "You spin around $N."
+  targeted_room: "$n spins around $N."
+  targeted_victim: "$n spins around you."
+
+- name: spit
+  no_target: "You spit on the ground."
+  no_target_room: "$n spits on the ground."
+  self: "You spit at yourself. Gross."
+  self_room: "$n spits at $mself. Gross."
+  targeted: "You spit at $N's feet."
+  targeted_room: "$n spits at $N's feet."
+  targeted_victim: "$n spits at your feet."
+
+- name: squeeze
+  no_target: "You squeeze the air."
+  no_target_room: "$n squeezes the air."
+  self: "You squeeze yourself."
+  self_room: "$n squeezes $mself."
+  targeted: "You squeeze $N in a tight hug."
+  targeted_room: "$n squeezes $N in a tight hug."
+  targeted_victim: "$n squeezes you in a tight hug."
+
+- name: stare
+  no_target: "You stare blankly into space."
+  no_target_room: "$n stares blankly into space."
+  self: "You stare at yourself."
+  self_room: "$n stares at $mself."
+  targeted: "You stare at $N."
+  targeted_room: "$n stares at $N."
+  targeted_victim: "$n stares at you."
+
+- name: strut
+  no_target: "You strut around impressively."
+  no_target_room: "$n struts around impressively."
+  self: "You strut past yourself."
+  self_room: "$n struts past $mself."
+  targeted: "You strut past $N impressively."
+  targeted_room: "$n struts past $N impressively."
+  targeted_victim: "$n struts past you impressively."
+
+- name: sulk
+  no_target: "You sulk in the corner."
+  no_target_room: "$n sulks in the corner."
+  self: "You sulk at yourself."
+  self_room: "$n sulks at $mself."
+  targeted: "You sulk at $N."
+  targeted_room: "$n sulks at $N."
+  targeted_victim: "$n sulks at you."
+
+- name: tackle
+  no_target: "You tackle-hug the air."
+  no_target_room: "$n tackle-hugs the air."
+  self: "You tackle yourself somehow."
+  self_room: "$n tackles $mself somehow."
+  targeted: "You tackle $N in a big hug!"
+  targeted_room: "$n tackles $N in a big hug!"
+  targeted_victim: "$n tackles you in a big hug!"
+
+- name: thank
+  no_target: "You express your gratitude to the world."
+  no_target_room: "$n expresses gratitude to the world."
+  self: "You thank yourself."
+  self_room: "$n thanks $mself."
+  targeted: "You thank $N sincerely."
+  targeted_room: "$n thanks $N sincerely."
+  targeted_victim: "$n thanks you sincerely."
+
+- name: tickle
+  no_target: "You wiggle your fingers menacingly."
+  no_target_room: "$n wiggles their fingers menacingly."
+  self: "You tickle yourself."
+  self_room: "$n tickles $mself."
+  targeted: "You tickle $N mercilessly."
+  targeted_room: "$n tickles $N mercilessly."
+  targeted_victim: "$n tickles you mercilessly."
+
+- name: twiddle
+  no_target: "You twiddle your thumbs."
+  no_target_room: "$n twiddles their thumbs."
+  self: "You twiddle your own fingers."
+  self_room: "$n twiddles their own fingers."
+  targeted: "You twiddle your thumbs at $N."
+  targeted_room: "$n twiddles their thumbs at $N."
+  targeted_victim: "$n twiddles their thumbs at you."
+
+- name: wave
+  no_target: "You wave cheerfully."
+  no_target_room: "$n waves cheerfully."
+  self: "You wave at your own reflection."
+  self_room: "$n waves at their own reflection."
+  targeted: "You wave to $N."
+  targeted_room: "$n waves to $N."
+  targeted_victim: "$n waves to you."
+
+- name: whine
+  no_target: "You whine pitifully."
+  no_target_room: "$n whines pitifully."
+  self: "You whine at yourself."
+  self_room: "$n whines at $mself."
+  targeted: "You whine at $N."
+  targeted_room: "$n whines at $N."
+  targeted_victim: "$n whines at you."
+
+- name: whistle
+  no_target: "You whistle a jaunty tune."
+  no_target_room: "$n whistles a jaunty tune."
+  self: "You whistle to yourself."
+  self_room: "$n whistles to $mself."
+  targeted: "You whistle at $N."
+  targeted_room: "$n whistles at $N."
+  targeted_victim: "$n whistles at you."
+
+- name: wink
+  no_target: "You wink mischievously."
+  no_target_room: "$n winks mischievously."
+  self: "You wink at yourself."
+  self_room: "$n winks at $mself."
+  targeted: "You wink at $N."
+  targeted_room: "$n winks at $N."
+  targeted_victim: "$n winks at you."
+
+- name: worship
+  no_target: "You fall to your knees and worship."
+  no_target_room: "$n falls to their knees and worships."
+  self: "You worship yourself. Bold move."
+  self_room: "$n worships $mself. Bold move."
+  targeted: "You fall to your knees and worship $N."
+  targeted_room: "$n falls to their knees and worships $N."
+  targeted_victim: "$n falls to their knees and worships you."
+
+- name: yawn
+  no_target: "You yawn sleepily."
+  no_target_room: "$n yawns sleepily."
+  self: "You yawn at yourself."
+  self_room: "$n yawns at $mself."
+  targeted: "You yawn in $N's direction."
+  targeted_room: "$n yawns in $N's direction."
+  targeted_victim: "$n yawns in your direction."

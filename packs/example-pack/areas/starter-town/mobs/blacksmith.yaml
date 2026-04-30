@@ -1,0 +1,20 @@
+id: "example-pack:blacksmith"
+name: "the village blacksmith"
+type: "npc"
+tags: [npc, vendor, quest, no-kill]
+behavior: stationary
+stats:
+  strength: 16
+  dexterity: 8
+  constitution: 14
+  intelligence: 10
+  wisdom: 8
+  luck: 6
+  max_hp: 200
+  max_resource: 0
+  max_movement: 40
+properties:
+  level: 15
+  description: "A broad-shouldered man hammering at an anvil. His arms are thick with muscle."
+  dialogue: "example-pack:blacksmith-intro"
+equipment: []

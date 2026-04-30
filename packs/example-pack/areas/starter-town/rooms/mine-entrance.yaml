@@ -1,0 +1,15 @@
+id: "example-pack:mine-entrance"
+area: starter-town
+name: "Mine Entrance"
+description: >
+  A dark opening yawns in the earth, reinforced with old timber beams.
+  A cool draft rises from below, carrying the smell of damp stone and
+  iron. A rusted sign reads <danger>"KEEP OUT"</danger> but someone has crossed out
+  "OUT" and written <highlight>"GOING."</highlight>
+exits:
+  up: "example-pack:town-square"
+  down: "example-pack:mine-shaft"
+properties:
+  terrain: underground
+fixtures:
+  - "example-pack:glowing-lantern"

@@ -1,0 +1,20 @@
+name: tapestry-core
+version: "1.0.0"
+display_name: "Tapestry Core"
+description: "Engine foundation: recall room, combat, abilities, commands, progression, mob behaviors, socials, and all gameplay systems. Content packs layer areas, races, and classes on top."
+author: "Tapestry"
+copyright: "Copyright (c) 2026 Tapestry"
+website: "https://github.com/tapestry-mud/tapestry"
+license: "AGPL-3.0"
+engine_version: ">=3.0.0"
+active: true
+load_order: 0
+
+content:
+  weather_zones: "areas/weather_zones.yaml"
+  area_definitions: "areas/**/area.yaml"
+  rooms: "areas/**/rooms/*.yaml"
+  items: "areas/**/items/*.yaml"
+  equipment_slots: "equipment_slots.yaml"
+  scripts: "scripts/**/*.js"
+  strings: "strings/**/*.yaml"

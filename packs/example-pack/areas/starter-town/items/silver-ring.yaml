@@ -1,0 +1,11 @@
+id: "example-pack:silver-ring"
+name: "a silver ring"
+type: "item:armor"
+tags: [item, armor, ring, silver]
+properties:
+  slot: finger
+  weight: 0
+  rarity: uncommon
+modifiers:
+  - stat: intelligence
+    value: 3

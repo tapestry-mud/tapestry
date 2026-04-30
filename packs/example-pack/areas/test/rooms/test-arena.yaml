@@ -1,0 +1,11 @@
+id: "example-pack:test-arena"
+area: "example-pack:test"
+name: "The Void"
+description: >
+  Nothing. No walls, no floor, no sky -- just an endless expanse of
+  featureless grey stretching in every direction. Sound dies the moment
+  it leaves your lips. There is no way out.
+exits: {}
+tags: []
+properties:
+  terrain: indoors

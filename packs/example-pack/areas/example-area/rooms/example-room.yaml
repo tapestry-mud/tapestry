@@ -1,0 +1,18 @@
+id: "example-pack:example-room"
+area: example-area
+name: "Example Town Square"
+description: >
+  A simple cobblestone square at the heart of the example area. <npc>A friendly
+  guide</npc> stands here, ready to help new arrivals. A <item.uncommon>shiny
+  coin</item.uncommon> glints on the ground.
+exits:
+  north: "example-pack:town-square"
+properties:
+  terrain: city
+tags: [safe, safe-recall]
+spawns:
+  - mob: "example-pack:guide"
+    count: 1
+    tags: [persistent]
+fixtures:
+  - "example-pack:shiny-coin"

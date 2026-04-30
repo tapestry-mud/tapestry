@@ -1,0 +1,28 @@
+id: "example-pack:town-square"
+area: starter-town
+name: "Town Square"
+description: >
+  You stand in the center of a small town square. Cobblestones stretch
+  beneath your feet, worn smooth by countless travelers. A weathered
+  <npc>fountain</npc> gurgles quietly in the center. Roads lead in every direction,
+  and the sound of commerce drifts from the <direction>east</direction>.
+exits:
+  north: "example-pack:inn"
+  south: "example-pack:training-grounds"
+  east: "example-pack:general-store"
+  west: "example-pack:west-road"
+  down: "example-pack:mine-entrance"
+tags: [safe, recall-point, no-combat]
+properties:
+  terrain: city
+spawns:
+  - mob: "example-pack:town-guard"
+    count: 1
+    tags: [persistent]
+  - mob: "example-pack:blacksmith"
+    count: 1
+    tags: [persistent]
+fixtures:
+  - "example-pack:fountain"
+  - "example-pack:town-sign"
+  - "example-pack:brass-ring"

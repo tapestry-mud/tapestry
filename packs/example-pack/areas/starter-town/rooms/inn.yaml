@@ -1,0 +1,19 @@
+id: "example-pack:inn"
+area: starter-town
+name: "The Wanderer's Rest"
+description: >
+  A warm fire crackles in the stone hearth, casting dancing shadows across
+  rough-hewn wooden tables. The smell of fresh bread and roasting meat fills
+  the air. A sturdy bar lines the far wall, behind which <npc>an innkeeper</npc>
+  polishes mugs with a practiced hand.
+exits:
+  south: "example-pack:town-square"
+tags: [safe, no-combat, no_wander]
+properties:
+  terrain: indoors
+spawns:
+  - mob: "example-pack:old-hermit"
+    count: 1
+    tags: [persistent]
+fixtures:
+  - "example-pack:healing-draught"
