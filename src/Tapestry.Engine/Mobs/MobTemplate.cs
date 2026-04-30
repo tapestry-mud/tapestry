@@ -48,6 +48,10 @@ public class MobTemplate
     public string? Race { get; set; }
     public int Level { get; set; }
     public DispositionModel? Disposition { get; set; }
+    public List<string> IdleCommands { get; set; } = new();
+    public double IdleChance { get; set; } = 0.3;
+    public int IdleInterval { get; set; } = 30;
+    public string? Script { get; set; }
 
     public Entity CreateEntity()
     {
@@ -97,6 +101,18 @@ public class MobTemplate
                 }).ToList()
             };
             entity.SetProperty("disposition", disposition);
+        }
+
+        if (IdleCommands.Count > 0)
+        {
+            entity.SetProperty("idle_commands", IdleCommands);
+            entity.SetProperty("idle_chance", IdleChance);
+            entity.SetProperty("idle_interval", IdleInterval);
+        }
+
+        if (!string.IsNullOrEmpty(Script))
+        {
+            entity.SetProperty("script", Script);
         }
 
         return entity;

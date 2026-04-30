@@ -145,4 +145,69 @@ public class MobDispositionParseTests
         disposition!.Rules.Should().HaveCount(1);
         disposition.Rules[0].When.Buckets.Should().BeEquivalentTo(new[] { "good", "neutral" });
     }
+
+    [Fact]
+    public void MobWithIdleCommands_SetsPropertiesOnEntity()
+    {
+        var yaml = """
+            mobs:
+              - id: test:herald
+                name: the herald
+                type: npc
+                idle_chance: 0.5
+                idle_interval: 20
+                idle_commands:
+                  - 'say Hear ye!'
+                  - 'emote rings a bell.'
+            """;
+
+        var doc = DeserializeYaml(yaml);
+        var template = doc["mobs"][0];
+
+        Assert.Equal(0.5, template.IdleChance);
+        Assert.Equal(20, template.IdleInterval);
+        Assert.Equal(2, template.IdleCommands.Count);
+        Assert.Contains("say Hear ye!", template.IdleCommands);
+
+        var entity = template.CreateEntity();
+        var storedCommands = entity.GetProperty<List<string>>("idle_commands");
+        Assert.NotNull(storedCommands);
+        Assert.Equal(2, storedCommands!.Count);
+    }
+
+    [Fact]
+    public void MobWithScript_SetsScriptPropertyOnEntity()
+    {
+        var yaml = """
+            mobs:
+              - id: test:guide
+                name: the guide
+                type: npc
+                script: mobs/guide.js
+            """;
+
+        var doc = DeserializeYaml(yaml);
+        var template = doc["mobs"][0];
+
+        Assert.Equal("mobs/guide.js", template.Script);
+
+        var entity = template.CreateEntity();
+        Assert.Equal("mobs/guide.js", entity.GetProperty<string>("script"));
+    }
+
+    [Fact]
+    public void MobWithoutIdleCommands_HasEmptyList_AndNoEntityProperty()
+    {
+        var yaml = """
+            mobs:
+              - id: test:simple
+                name: a mob
+                type: npc
+            """;
+
+        var doc = DeserializeYaml(yaml);
+        var entity = doc["mobs"][0].CreateEntity();
+
+        Assert.Null(entity.GetProperty<List<string>>("idle_commands"));
+    }
 }
