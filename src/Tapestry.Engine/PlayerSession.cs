@@ -57,6 +57,14 @@ public class PlayerSession
         }
         if (CurrentFlow != null)
         {
+            if (CurrentFlow.Definition.Cancellable &&
+                (input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
+                 input.Equals("cancel", StringComparison.OrdinalIgnoreCase)))
+            {
+                CurrentFlow = null;
+                Send("Link cancelled.");
+                return;
+            }
             CurrentFlow.HandleInput(input);
             return;
         }
