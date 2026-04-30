@@ -165,4 +165,44 @@ public class YamlContentLoaderTests
         lootTable.RareBonus.Should().NotBeNull();
         lootTable.RareBonus!.Chance.Should().Be(0.05);
     }
+
+    [Fact]
+    public void LoadMob_ParsesIdleCommandFields()
+    {
+        var yaml = """
+            id: "example-pack:guide"
+            name: "the town guide"
+            type: "npc"
+            tags: [npc, friendly]
+            behavior: stationary
+            script: mobs/guide.js
+            idle_chance: 0.6
+            idle_interval: 20
+            idle_commands:
+              - 'say Welcome, traveler!'
+              - 'emote smiles warmly.'
+            stats:
+              strength: 8
+              dexterity: 10
+              constitution: 10
+              intelligence: 14
+              wisdom: 14
+              luck: 10
+              max_hp: 60
+              max_resource: 0
+              max_movement: 40
+            properties:
+              level: 5
+            equipment: []
+            """;
+
+        var (template, _) = YamlContentLoader.LoadMob(yaml);
+
+        template.Script.Should().Be("mobs/guide.js");
+        template.IdleChance.Should().Be(0.6);
+        template.IdleInterval.Should().Be(20);
+        template.IdleCommands.Should().HaveCount(2);
+        template.IdleCommands[0].Should().Be("say Welcome, traveler!");
+        template.IdleCommands[1].Should().Be("emote smiles warmly.");
+    }
 }

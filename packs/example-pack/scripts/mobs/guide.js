@@ -2,7 +2,7 @@ tapestry.mobs.registerScript("example-pack:guide", {
     onSay: function(mob, player, text) {
         var lower = text.toLowerCase();
 
-        if (lower.indexOf('help') >= 0 || lower.indexOf('hello') >= 0 || lower.indexOf('hi') >= 0) {
+        if (/\b(help|hello|hi)\b/.test(lower)) {
             tapestry.mobs.command(mob.entityId,
                 "say Hello, " + player.name + "! How can I help you today?");
             return;
