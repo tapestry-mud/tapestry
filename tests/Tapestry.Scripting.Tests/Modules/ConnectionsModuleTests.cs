@@ -44,6 +44,8 @@ public class ConnectionsModuleTests : IDisposable
     private Room AddRoom(string id)
     {
         var room = new Room(id, id, "");
+        var packName = id.Contains(':') ? id[..id.IndexOf(':')] : id;
+        room.SetProperty("source_pack", packName);
         _world.AddRoom(room);
         return room;
     }

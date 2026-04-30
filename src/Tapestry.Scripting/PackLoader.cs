@@ -82,7 +82,7 @@ public class PackLoader
 
         if (!string.IsNullOrEmpty(manifest.Content.Rooms))
         {
-            LoadRooms(packDirectory, manifest.Content.Rooms);
+            LoadRooms(packDirectory, manifest.Content.Rooms, manifest.Name);
         }
 
         foreach (var room in _world.AllRooms.Where(r => r.Area != null))
@@ -124,7 +124,7 @@ public class PackLoader
         return manifest;
     }
 
-    private void LoadRooms(string packDir, string glob)
+    private void LoadRooms(string packDir, string glob, string packName = "")
     {
         var allRooms = new List<Room>();
         var areaResetIntervals = new Dictionary<string, int>();
@@ -141,6 +141,7 @@ public class PackLoader
             var room = result.Room;
 
             ValidateEntityId(room.Id, file);
+            if (!string.IsNullOrEmpty(packName)) { room.SetProperty("source_pack", packName); }
             _world.AddRoom(room);
             allRooms.Add(room);
             _logger.LogDebug("  Room: {RoomId}", room.Id);

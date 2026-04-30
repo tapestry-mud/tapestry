@@ -28,18 +28,16 @@ public class RoomsModule : IJintApiModule
 
             getByPack = new Func<string, object[]>(packName =>
             {
-                var prefix = packName + ":";
                 return _world.AllRooms
-                    .Where(r => r.Id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .Where(r => string.Equals(r.GetProperty<string>("source_pack"), packName, StringComparison.OrdinalIgnoreCase))
                     .Select(room => (object)new { id = room.Id, name = room.Name })
                     .ToArray();
             }),
 
             getEntryPoints = new Func<string, object[]>(packName =>
             {
-                var prefix = packName + ":";
                 return _world.AllRooms
-                    .Where(r => r.Id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .Where(r => string.Equals(r.GetProperty<string>("source_pack"), packName, StringComparison.OrdinalIgnoreCase))
                     .Where(r => r.HasTag("entry-point"))
                     .Select(room => (object)new
                     {
