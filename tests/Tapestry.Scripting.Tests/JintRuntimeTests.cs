@@ -306,6 +306,41 @@ public class JintRuntimeTests
         string.Join("", connection.SentText).Should().Contain("handled:Hello!");
     }
 
+    [Fact]
+    public void MobCommand_WithNoDelayArg_DoesNotThrow_AndQueuesImmediate()
+    {
+        var (runtime, ctx) = CreateRuntime();
+
+        runtime.Execute("""
+            tapestry.mobs.registerCommand("say", {
+                gmcp: { channel: "say" },
+                handler: function(mob, text) {
+                    tapestry.world.sendToRoom(mob.roomId, "handled:" + text);
+                }
+            });
+            """, "test-pack");
+
+        var room = new Room("test:room", "Town", "A room.");
+        ctx.World.AddRoom(room);
+        var mob = new Entity("npc", "Guard");
+        mob.LocationRoomId = "test:room";
+        ctx.World.TrackEntity(mob);
+
+        var connection = new FakeConnection();
+        var player = new Entity("player", "Alice");
+        player.LocationRoomId = "test:room";
+        var session = new PlayerSession(connection, player);
+        ctx.Sessions.Add(session);
+        ctx.World.TrackEntity(player);
+
+        // Call with only 2 args — no delay argument — must not throw
+        runtime.Execute($"tapestry.mobs.command('{mob.Id}', 'say Hello!');", "test-pack");
+
+        ctx.MobCommandQueue.ProcessTick();
+
+        string.Join("", connection.SentText).Should().Contain("handled:Hello!");
+    }
+
     private class TestContext
     {
         public required CommandRegistry CommandRegistry { get; init; }

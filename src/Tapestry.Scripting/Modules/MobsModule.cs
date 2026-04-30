@@ -91,7 +91,7 @@ public class MobsModule : IJintApiModule
                 {
                     return;
                 }
-                var delay = (delayJs.Type != Types.Undefined && delayJs.Type != Types.Null)
+                var delay = (delayJs != null && delayJs.Type != Types.Undefined && delayJs.Type != Types.Null)
                     ? (double)delayJs.ToObject()!
                     : 0.0;
                 _mobCommandQueue.Enqueue(entityId, commandStr, delay);
