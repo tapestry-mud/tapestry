@@ -21,13 +21,14 @@ tapestry.flows.register({
             options: function(entity) {
                 var packs = tapestry.packs.getAll();
                 var currentRoomId = entity.roomId || "";
-                var currentPackPrefix = currentRoomId.split(":")[0];
 
                 var withEntryPoints = [];
                 var withoutEntryPoints = [];
 
                 packs.forEach(function(p) {
-                    if (p.name === currentPackPrefix) { return; }
+                    var packRooms = tapestry.rooms.getByPack(p.name);
+                    var isCurrentPack = packRooms.some(function(r) { return r.id === currentRoomId; });
+                    if (isCurrentPack) { return; }
                     var eps = tapestry.rooms.getEntryPoints(p.name);
                     if (eps.length > 0) {
                         withEntryPoints.push(p);
