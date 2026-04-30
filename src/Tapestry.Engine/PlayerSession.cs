@@ -218,6 +218,7 @@ public class SessionManager
         {
             if (session.Phase == SessionPhase.Creating) { continue; }
             if (session.InputMode == InputMode.Prompt) { continue; }
+            if (session.CurrentFlow != null) { continue; }
             if (session.NeedsPromptRefresh)
             {
                 var template = session.PlayerEntity.GetProperty<string>(PromptProperties.PromptTemplate)

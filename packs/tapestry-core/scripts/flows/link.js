@@ -1,5 +1,11 @@
 // packs/tapestry-core/scripts/flows/link.js
-// Admin flow: guided 8-step wizard for creating a room connection.
+// Admin flow: guided wizard for creating a room connection.
+
+var OPPOSITES = {
+    north: "South", south: "North",
+    east: "West", west: "East",
+    up: "Down", down: "Up"
+};
 
 tapestry.flows.register({
     id: "link_rooms",
@@ -8,18 +14,20 @@ tapestry.flows.register({
     cancellable: true,
     steps: [
         {
-            // Step 1: Choose target pack
+            // Step 1: Choose target pack (exclude packs the admin's room belongs to)
             id: "choose_pack",
             type: "choice",
             prompt: "Choose the pack to link to:",
-            options: function() {
+            options: function(entity) {
                 var packs = tapestry.packs.getAll();
+                var currentRoomId = entity.roomId || "";
+                var currentPackPrefix = currentRoomId.split(":")[0];
 
-                // Sort: packs with entry-points first, then alphabetical within each group
                 var withEntryPoints = [];
                 var withoutEntryPoints = [];
 
                 packs.forEach(function(p) {
+                    if (p.name === currentPackPrefix) { return; }
                     var eps = tapestry.rooms.getEntryPoints(p.name);
                     if (eps.length > 0) {
                         withEntryPoints.push(p);
@@ -41,12 +49,11 @@ tapestry.flows.register({
             },
             on_select: function(entity, option) {
                 entity.setProperty("link_pack", String(option.value));
-                // Clear show-all flag when pack changes
                 entity.setProperty("link_show_all", "false");
             }
         },
         {
-            // Step 2a: Choose target room from entry points (skipped if pack has none or show-all already set)
+            // Step 2a: Choose target room from entry points
             id: "choose_room_entry",
             type: "choice",
             prompt: "Choose the destination room:",
@@ -82,7 +89,7 @@ tapestry.flows.register({
             }
         },
         {
-            // Step 2b: Choose target room from all rooms (skipped if a real room was already picked in 2a)
+            // Step 2b: Choose target room from all rooms
             id: "choose_room_all",
             type: "choice",
             prompt: "Choose the destination room:",
@@ -105,61 +112,17 @@ tapestry.flows.register({
             }
         },
         {
-            // Step 3: Choose source exit (how admin leaves their current room)
-            id: "choose_source_exit",
-            type: "choice",
-            prompt: "Choose how players will leave this room to reach the destination:",
-            options: function(entity) {
-                var exits = tapestry.rooms.getExits(entity.roomId);
-                var options = [];
-
-                exits.forEach(function(e) {
-                    if (e.type === "direction" && !e.occupied) {
-                        options.push({
-                            label: e.direction,
-                            value: "direction:" + e.direction
-                        });
-                    }
-                });
-
-                options.push({ label: "Keyword (custom exit word)", value: "keyword" });
-
-                return options;
-            },
-            on_select: function(entity, option) {
-                var val = String(option.value);
-                if (val.indexOf("direction:") === 0) {
-                    entity.setProperty("link_src_type", "direction");
-                    entity.setProperty("link_src_direction", val.slice("direction:".length));
-                } else {
-                    entity.setProperty("link_src_type", "keyword");
-                }
-            }
-        },
-        {
-            // Step 4: Source keyword (skipped unless source type is keyword)
-            id: "source_keyword",
-            type: "text",
-            prompt: "Enter the keyword players will type to leave (e.g. 'portal'). Optionally add a display name after a space (e.g. 'portal The Shimmering Portal'):",
-            skip_if: function(entity) {
-                return entity.getProperty("link_src_type") !== "keyword";
-            },
-            on_input: function(entity, value) {
-                var parts = value.trim().split(/\s+(.*)/);
-                entity.setProperty("link_src_keyword", parts[0] || "");
-                entity.setProperty("link_src_display", parts[1] || "");
-            }
-        },
-        {
-            // Step 5: Choose target exit (how players leave the destination room back)
+            // Step 3: Choose target return exit (how players leave the destination back)
             id: "choose_target_exit",
             type: "choice",
-            prompt: "Choose how players will return from the destination room:",
+            prompt: function(entity) {
+                var targetRoom = entity.getProperty("link_room") || "destination";
+                return "Choose the return exit from " + targetRoom + ":";
+            },
             options: function(entity) {
                 var targetRoomId = entity.getProperty("link_room");
                 var exits = tapestry.rooms.getExits(targetRoomId);
 
-                // Find the entry-point suggested direction for this room
                 var pack = entity.getProperty("link_pack");
                 var eps = tapestry.rooms.getEntryPoints(pack);
                 var suggestedDir = null;
@@ -202,7 +165,7 @@ tapestry.flows.register({
             }
         },
         {
-            // Step 6: Target keyword (skipped unless target type is keyword)
+            // Step 4: Target keyword (skipped unless target type is keyword)
             id: "target_keyword",
             type: "text",
             prompt: "Enter the keyword players will type to return (e.g. 'exit'). Optionally add a display name after a space:",
@@ -213,6 +176,61 @@ tapestry.flows.register({
                 var parts = value.trim().split(/\s+(.*)/);
                 entity.setProperty("link_tgt_keyword", parts[0] || "");
                 entity.setProperty("link_tgt_display", parts[1] || "");
+            }
+        },
+        {
+            // Step 5: Choose source exit (auto-suggest opposite of target direction)
+            id: "choose_source_exit",
+            type: "choice",
+            prompt: function(entity) {
+                return "Choose exit from this room to the destination:";
+            },
+            options: function(entity) {
+                var exits = tapestry.rooms.getExits(entity.roomId);
+                var tgtDir = (entity.getProperty("link_tgt_direction") || "").toLowerCase();
+                var suggestedSrc = OPPOSITES[tgtDir] || null;
+
+                var options = [];
+
+                exits.forEach(function(e) {
+                    if (e.type === "direction" && !e.occupied) {
+                        var label = e.direction;
+                        if (suggestedSrc && e.direction === suggestedSrc) {
+                            label = label + " (opposite of return exit)";
+                        }
+                        options.push({
+                            label: label,
+                            value: "direction:" + e.direction
+                        });
+                    }
+                });
+
+                options.push({ label: "Keyword (custom exit word)", value: "keyword" });
+
+                return options;
+            },
+            on_select: function(entity, option) {
+                var val = String(option.value);
+                if (val.indexOf("direction:") === 0) {
+                    entity.setProperty("link_src_type", "direction");
+                    entity.setProperty("link_src_direction", val.slice("direction:".length));
+                } else {
+                    entity.setProperty("link_src_type", "keyword");
+                }
+            }
+        },
+        {
+            // Step 6: Source keyword (skipped unless source type is keyword)
+            id: "source_keyword",
+            type: "text",
+            prompt: "Enter the keyword players will type to leave (e.g. 'portal'). Optionally add a display name after a space:",
+            skip_if: function(entity) {
+                return entity.getProperty("link_src_type") !== "keyword";
+            },
+            on_input: function(entity, value) {
+                var parts = value.trim().split(/\s+(.*)/);
+                entity.setProperty("link_src_keyword", parts[0] || "");
+                entity.setProperty("link_src_display", parts[1] || "");
             }
         },
         {
@@ -256,10 +274,8 @@ tapestry.flows.register({
                 }
 
                 return "Create this connection?\r\n" +
-                    "  Pack: " + pack + "\r\n" +
-                    "  Destination room: " + targetRoom + "\r\n" +
-                    "  Source exit - " + srcType + ": " + srcLabel + "\r\n" +
-                    "  Return exit - " + tgtType + ": " + tgtLabel + "\r\n";
+                    "  From: " + entity.roomId + " via " + srcLabel + "\r\n" +
+                    "  To: " + targetRoom + " (return via " + tgtLabel + ")\r\n";
             }
         }
     ],
