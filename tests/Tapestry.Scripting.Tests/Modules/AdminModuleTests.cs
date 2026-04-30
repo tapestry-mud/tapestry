@@ -174,7 +174,7 @@ public class AdminModuleTests
         world.TrackEntity(mob);
         room.AddEntity(mob);
 
-        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'elf', 'npc').name");
+        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'goblin', 'npc').name");
         Assert.Equal("goblin guard", name?.ToString());
     }
 
