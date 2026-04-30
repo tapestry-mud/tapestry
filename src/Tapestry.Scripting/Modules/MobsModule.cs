@@ -60,7 +60,10 @@ public class MobsModule : IJintApiModule
                 if (gmcpJs.Type != Types.Undefined && gmcpJs.Type != Types.Null)
                 {
                     var gmcpObj = (ObjectInstance)gmcpJs;
-                    gmcpChannel = gmcpObj.Get("channel").ToString();
+                    var channelJs = gmcpObj.Get("channel");
+                    gmcpChannel = (channelJs.Type != Types.Undefined && channelJs.Type != Types.Null)
+                        ? channelJs.ToString()
+                        : null;
                     var prependJs = gmcpObj.Get("prependSender");
                     prependSender = prependJs.Type == Types.Boolean && (bool)prependJs.ToObject()!;
                 }
