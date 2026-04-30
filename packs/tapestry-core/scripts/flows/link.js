@@ -51,6 +51,16 @@ tapestry.flows.register({
             on_select: function(entity, option) {
                 entity.setProperty("link_pack", String(option.value));
                 entity.setProperty("link_show_all", "false");
+                entity.setProperty("link_room", "");
+                entity.setProperty("link_src_type", "");
+                entity.setProperty("link_src_direction", "");
+                entity.setProperty("link_src_keyword", "");
+                entity.setProperty("link_src_display", "");
+                entity.setProperty("link_tgt_type", "");
+                entity.setProperty("link_tgt_direction", "");
+                entity.setProperty("link_tgt_keyword", "");
+                entity.setProperty("link_tgt_display", "");
+                entity.setProperty("link_confirmed", "");
             }
         },
         {
