@@ -232,6 +232,9 @@ public class JintRuntimeTests
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
         var mobs = new ApiMobs(world, mobAIManager, spawnManager);
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
+        var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
+        var tickTimer = new TickTimer(10);
+        var mobCommandQueue = new MobCommandQueue(world, mobCommandRegistry, tickTimer, NullLogger<MobCommandQueue>.Instance);
 
         // Create modules
         var modules = new IJintApiModule[]
@@ -246,7 +249,7 @@ public class JintRuntimeTests
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobs, mobAIManager, NullLogger<MobsModule>.Instance),
+            new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, NullLogger<MobsModule>.Instance),
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry()),
         };
 
@@ -259,8 +262,48 @@ public class JintRuntimeTests
             EventBus = eventBus,
             World = world,
             Sessions = sessions,
-            Messaging = messaging
+            Messaging = messaging,
+            MobCommandQueue = mobCommandQueue
         });
+    }
+
+    [Fact]
+    public void RegisterMobCommand_RegistersVerb_AndDispatchQueuesFire()
+    {
+        var (runtime, ctx) = CreateRuntime();
+
+        // Register a mob command via JS
+        runtime.Execute("""
+            tapestry.mobs.registerCommand("say", {
+                gmcp: { channel: "say" },
+                handler: function(mob, text) {
+                    tapestry.world.sendToRoom(mob.roomId, "handled:" + text);
+                }
+            });
+            """, "test-pack");
+
+        // Spawn a mob and place it in a room
+        var room = new Room("test:room", "Town", "A room.");
+        ctx.World.AddRoom(room);
+        var mob = new Entity("npc", "Guard");
+        mob.LocationRoomId = "test:room";
+        ctx.World.TrackEntity(mob);
+
+        // Connect a fake player to capture send output
+        var connection = new FakeConnection();
+        var player = new Entity("player", "Alice");
+        player.LocationRoomId = "test:room";
+        var session = new PlayerSession(connection, player);
+        ctx.Sessions.Add(session);
+        ctx.World.TrackEntity(player);
+
+        // Queue a mob command (delay 0 = immediate)
+        runtime.Execute($"tapestry.mobs.command('{mob.Id}', 'say Hello!', 0);", "test-pack");
+
+        // ProcessTick to dispatch queued commands
+        ctx.MobCommandQueue.ProcessTick();
+
+        string.Join("", connection.SentText).Should().Contain("handled:Hello!");
     }
 
     private class TestContext
@@ -271,5 +314,6 @@ public class JintRuntimeTests
         public required World World { get; init; }
         public required SessionManager Sessions { get; init; }
         public required ApiMessaging Messaging { get; init; }
+        public required MobCommandQueue MobCommandQueue { get; init; }
     }
 }

@@ -193,6 +193,9 @@ public class PackLoaderTests
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService);
         var stats = new ApiStats(world, statDisplayNames);
         var mobsApi = new ApiMobs(world, mobAIManager, spawnManager);
+        var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
+        var tickTimer = new TickTimer(10);
+        var mobCommandQueue = new MobCommandQueue(world, mobCommandRegistry, tickTimer, NullLogger<MobCommandQueue>.Instance);
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
         var classRegistry = new ClassRegistry();
         var raceRegistry = new RaceRegistry();
@@ -235,7 +238,7 @@ public class PackLoaderTests
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobsApi, mobAIManager, NullLogger<MobsModule>.Instance),
+            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, NullLogger<MobsModule>.Instance),
             new ThemeModule(themeRegistry),
             new DiceModule(),
             new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig),
