@@ -166,12 +166,32 @@ tapestry.flows.register({
             on_select: function(entity, option) {
                 var val = String(option.value);
                 if (val.indexOf("direction:") === 0) {
+                    var dir = val.slice("direction:".length);
                     entity.setProperty("link_tgt_type", "direction");
-                    entity.setProperty("link_tgt_direction", val.slice("direction:".length));
+                    entity.setProperty("link_tgt_direction", dir);
+
+                    var opposite = OPPOSITES[dir.toLowerCase()];
+                    if (opposite) {
+                        var srcExits = tapestry.rooms.getExits(entity.roomId);
+                        var oppAvailable = srcExits.some(function(e) {
+                            return e.type === "direction" && !e.occupied && e.direction === opposite;
+                        });
+                        if (oppAvailable) {
+                            entity.setProperty("link_src_type", "direction");
+                            entity.setProperty("link_src_direction", opposite);
+                            entity.setProperty("link_src_auto", "true");
+                        } else {
+                            entity.setProperty("link_src_auto", "false");
+                        }
+                    } else {
+                        entity.setProperty("link_src_auto", "false");
+                    }
                 } else if (val === "one-way") {
                     entity.setProperty("link_tgt_type", "one-way");
+                    entity.setProperty("link_src_auto", "false");
                 } else {
                     entity.setProperty("link_tgt_type", "keyword");
+                    entity.setProperty("link_src_auto", "false");
                 }
             }
         },
@@ -190,28 +210,24 @@ tapestry.flows.register({
             }
         },
         {
-            // Step 5: Choose source exit (auto-suggest opposite of target direction)
+            // Step 5: Choose source exit (skipped if opposite was auto-assigned)
             id: "choose_source_exit",
             type: "choice",
+            skip_if: function(entity) {
+                return entity.getProperty("link_src_auto") === "true";
+            },
             prompt: function(entity) {
                 var targetRoom = entity.getProperty("link_room") || "destination";
-                return "From this room, which exit leads to " + targetRoom + "?";
+                return "The opposite direction is not available. From this room, which exit leads to " + targetRoom + "?";
             },
             options: function(entity) {
                 var exits = tapestry.rooms.getExits(entity.roomId);
-                var tgtDir = (entity.getProperty("link_tgt_direction") || "").toLowerCase();
-                var suggestedSrc = OPPOSITES[tgtDir] || null;
-
                 var options = [];
 
                 exits.forEach(function(e) {
                     if (e.type === "direction" && !e.occupied) {
-                        var label = e.direction;
-                        if (suggestedSrc && e.direction === suggestedSrc) {
-                            label = label + " (opposite of return exit)";
-                        }
                         options.push({
-                            label: label,
+                            label: e.direction,
                             value: "direction:" + e.direction
                         });
                     }
