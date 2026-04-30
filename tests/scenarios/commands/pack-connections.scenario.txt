@@ -1,0 +1,160 @@
+# Scenario: Pack connections (link, unlink, connections commands)
+# Tests: creating, viewing, and removing connections between rooms in different packs
+# Assumes: example-pack is loaded, no connections/ directory exists on boot
+
+# ---------------------------------------------------------------------------
+# Setup: Server starts with example-pack, connections/ directory empty
+# Admin logs in and navigates to town-square
+# ---------------------------------------------------------------------------
+
+> connect admin password
+< Welcome, admin.
+> nav town-square
+< You are now in town-square.
+
+# ---------------------------------------------------------------------------
+# Step 1-3: View connections (expect empty), start link flow
+# ---------------------------------------------------------------------------
+
+> connections
+< No connections for this room.
+> link
+< Room A Connection Wizard - Step 1 of 7
+< Choose a room in the current pack to be "Room A":
+< Rooms in example-pack:
+<   1. town-square
+<   2. haunted-forest/forest-entrance
+<   3. haunted-forest/dark-glade
+<   4. haunted-forest/cursed-grove
+
+# ---------------------------------------------------------------------------
+# Step 2-3: Select Room A (town-square) - already here
+# ---------------------------------------------------------------------------
+
+> 1
+< Room A: town-square selected.
+< Step 2 of 7: Choose a direction for Room A:
+<   1. north
+<   2. south
+<   3. east
+<   4. west
+<   5. up
+<   6. down
+
+# ---------------------------------------------------------------------------
+# Step 4: Select direction (north)
+# ---------------------------------------------------------------------------
+
+> 1
+< Direction: north selected.
+< Step 3 of 7: Choose Room B (the destination):
+< Rooms in example-pack:
+<   1. town-square
+<   2. haunted-forest/forest-entrance
+<   3. haunted-forest/dark-glade
+<   4. haunted-forest/cursed-grove
+
+# ---------------------------------------------------------------------------
+# Step 5: Select Room B (haunted-forest/forest-entrance)
+# ---------------------------------------------------------------------------
+
+> 2
+< Room B: haunted-forest/forest-entrance selected.
+< Step 4 of 7: Choose a direction for Room B:
+<   1. north
+<   2. south
+<   3. east
+<   4. west
+<   5. up
+<   6. down
+
+# ---------------------------------------------------------------------------
+# Step 6: Select direction (south)
+# ---------------------------------------------------------------------------
+
+> 2
+< Direction: south selected.
+< Step 5 of 7: Choose message type for Room A exit:
+<   1. plain (no message)
+<   2. custom (enter your own)
+
+# ---------------------------------------------------------------------------
+# Step 7: Select message type (plain)
+# ---------------------------------------------------------------------------
+
+> 1
+< Message type: plain selected.
+< Step 6 of 7: Choose message type for Room B exit:
+<   1. plain (no message)
+<   2. custom (enter your own)
+
+# ---------------------------------------------------------------------------
+# Step 8: Select message type (plain)
+# ---------------------------------------------------------------------------
+
+> 1
+< Message type: plain selected.
+< Step 7 of 7: Confirm connection:
+< Room A: town-square (north)
+< Room B: haunted-forest/forest-entrance (south)
+< Create this connection? [y/n]
+
+# ---------------------------------------------------------------------------
+# Step 9: Confirm with 'y'
+# ---------------------------------------------------------------------------
+
+> y
+< Connection created successfully.
+< You may now type commands normally.
+
+# ---------------------------------------------------------------------------
+# Step 10: Verify connection is listed
+# ---------------------------------------------------------------------------
+
+> connections
+< Connections for town-square:
+<   north -> haunted-forest/forest-entrance (south)
+
+# ---------------------------------------------------------------------------
+# Step 11: Test link cancellation with 'quit'
+# ---------------------------------------------------------------------------
+
+> link
+< Room A Connection Wizard - Step 1 of 7
+< Choose a room in the current pack to be "Room A":
+< Rooms in example-pack:
+<   1. town-square
+<   2. haunted-forest/forest-entrance
+<   3. haunted-forest/dark-glade
+<   4. haunted-forest/cursed-grove
+> quit
+< Link cancelled.
+> help
+< (help output shown - normal input restored)
+
+# ---------------------------------------------------------------------------
+# Step 12-14: Unlink the connection
+# ---------------------------------------------------------------------------
+
+> unlink
+< Connections for town-square:
+<   1. north -> haunted-forest/forest-entrance (south)
+< Select connection to remove [1]:
+> 1
+< Remove connection: town-square (north) -> haunted-forest/forest-entrance (south)? [y/n]
+> y
+< Connection removed.
+
+# ---------------------------------------------------------------------------
+# Step 15: Verify connection is gone
+# ---------------------------------------------------------------------------
+
+> connections
+< No connections for this room.
+
+# ---------------------------------------------------------------------------
+# Step 16: Reboot scenario (server restart with connections/ persisted)
+# Note: Manual step - restart the server. Verify connections/ directory exists
+# and contains the YAML file for the connection created above.
+# On reboot, the connection should be restored and visible via 'connections' command.
+# ---------------------------------------------------------------------------
