@@ -53,7 +53,7 @@ public class FlowCancelTests
         session.HandleInput("quit");
 
         session.CurrentFlow.Should().BeNull();
-        conn.SentText.Should().Contain(s => s.Contains("Link cancelled."));
+        conn.SentText.Should().Contain(s => s.Contains("Cancelled."));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class FlowCancelTests
         session.HandleInput("cancel");
 
         session.CurrentFlow.Should().BeNull();
-        conn.SentText.Should().Contain(s => s.Contains("Link cancelled."));
+        conn.SentText.Should().Contain(s => s.Contains("Cancelled."));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class FlowCancelTests
         session.HandleInput("QUIT");
 
         session.CurrentFlow.Should().BeNull();
-        conn.SentText.Should().Contain(s => s.Contains("Link cancelled."));
+        conn.SentText.Should().Contain(s => s.Contains("Cancelled."));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class FlowCancelTests
         session.HandleInput("quit");
 
         session.CurrentFlow.Should().NotBeNull();
-        conn.SentText.Should().NotContain(s => s.Contains("Link cancelled."));
+        conn.SentText.Should().NotContain(s => s.Contains("Cancelled."));
     }
 
     [Fact]
