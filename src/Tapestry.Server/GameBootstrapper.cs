@@ -25,6 +25,7 @@ using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Prompt;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
 using Tapestry.Shared;
@@ -41,6 +42,7 @@ public class GameBootstrapper
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly PackLoader _packLoader;
+    private readonly ConnectionLoader _connectionLoader;
     private readonly ThemeRegistry _themeRegistry;
     private readonly ApiMessaging _messaging;
     private readonly PropertyTypeRegistry _propertyRegistry;
@@ -80,6 +82,7 @@ public class GameBootstrapper
         SessionManager sessions,
         World world,
         PackLoader packLoader,
+        ConnectionLoader connectionLoader,
         ThemeRegistry themeRegistry,
         ApiMessaging messaging,
         PropertyTypeRegistry propertyRegistry,
@@ -118,6 +121,7 @@ public class GameBootstrapper
         _sessions = sessions;
         _world = world;
         _packLoader = packLoader;
+        _connectionLoader = connectionLoader;
         _themeRegistry = themeRegistry;
         _messaging = messaging;
         _propertyRegistry = propertyRegistry;
@@ -156,6 +160,7 @@ public class GameBootstrapper
         RegisterPropertyTypes();
         _messaging.SetMotd(_config.Server.Motd);
         LoadPacks();
+        _connectionLoader.Load();
         AppendPackCreditsToMotd();
         _abilityCommandBridge.WireAll();
         _commandsModule.LogLoadTimeWarnings();
