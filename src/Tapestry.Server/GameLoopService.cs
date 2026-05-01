@@ -84,11 +84,11 @@ public class GameLoopService : IHostedService
             _sessions.Remove(session);
             _metrics.ActiveConnections.Add(-1);
 
-            if (session.PlayerEntity.LocationRoomId != null)
+            if (lastRoomId != null)
             {
-                var room = _world.GetRoom(session.PlayerEntity.LocationRoomId);
+                var room = _world.GetRoom(lastRoomId);
                 room?.RemoveEntity(session.PlayerEntity);
-                _mobAI.PlayerLeftRoom(session.PlayerEntity.LocationRoomId);
+                _mobAI.PlayerLeftRoom(lastRoomId);
             }
 
             _world.UntrackEntity(session.PlayerEntity);
