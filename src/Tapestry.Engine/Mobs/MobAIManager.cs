@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Shared;
 
 namespace Tapestry.Engine.Mobs;
 
@@ -136,6 +137,20 @@ public class MobAIManager
                         entity.Id, entity.Name, behavior);
                 }
             }
+
+            _eventBus.Publish(new GameEvent
+            {
+                Type = "mob.ai.tick",
+                SourceEntityId = entity.Id,
+                RoomId = entity.LocationRoomId,
+                Data = new Dictionary<string, object?>
+                {
+                    ["entityId"] = entity.Id.ToString(),
+                    ["name"] = entity.Name,
+                    ["roomId"] = entity.LocationRoomId,
+                    ["behavior"] = behavior
+                }
+            });
         }
 
         foreach (var entity in _world.GetEntitiesByTag("npc").ToList())

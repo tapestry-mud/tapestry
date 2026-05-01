@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Persistence;
 using Tapestry.Shared;
@@ -21,6 +22,7 @@ public class GameLoopService : IHostedService
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly ILogger<GameLoopService> _logger;
     private readonly EventBus _eventBus;
+    private readonly MobAIManager _mobAI;
     private Task? _runTask;
 
     public GameLoopService(
@@ -34,7 +36,8 @@ public class GameLoopService : IHostedService
         PlayerPersistenceService persistence,
         IHostApplicationLifetime appLifetime,
         ILogger<GameLoopService> logger,
-        EventBus eventBus)
+        EventBus eventBus,
+        MobAIManager mobAI)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -47,6 +50,7 @@ public class GameLoopService : IHostedService
         _appLifetime = appLifetime;
         _logger = logger;
         _eventBus = eventBus;
+        _mobAI = mobAI;
 
         WireEvents();
     }
@@ -80,10 +84,11 @@ public class GameLoopService : IHostedService
             _sessions.Remove(session);
             _metrics.ActiveConnections.Add(-1);
 
-            if (session.PlayerEntity.LocationRoomId != null)
+            if (lastRoomId != null)
             {
-                var room = _world.GetRoom(session.PlayerEntity.LocationRoomId);
+                var room = _world.GetRoom(lastRoomId);
                 room?.RemoveEntity(session.PlayerEntity);
+                _mobAI.PlayerLeftRoom(lastRoomId);
             }
 
             _world.UntrackEntity(session.PlayerEntity);

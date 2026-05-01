@@ -16,11 +16,20 @@
             player.name + ' says "<highlight>' + message + '</highlight>"\r\n'
         );
 
-        var inRoom = tapestry.world.getEntitiesInRoom(player.roomId, 'player');
-        for (var i = 0; i < inRoom.length; i++) {
-            if (inRoom[i].id !== player.entityId) {
-                tapestry.gmcp.send(inRoom[i].id, 'Comm.Channel', { channel: 'say', sender: player.name, text: message });
-            }
-        }
+        tapestry.events.publish("communication.message", {
+            channel: "say",
+            sender: player.name,
+            senderId: player.entityId,
+            source: "player",
+            text: message,
+            roomId: player.roomId
+        });
+
+        tapestry.events.publish("player.say", {
+            playerId: player.entityId,
+            playerName: player.name,
+            roomId: player.roomId,
+            text: message
+        });
     }
 });

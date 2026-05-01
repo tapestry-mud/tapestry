@@ -3,6 +3,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
@@ -26,6 +27,7 @@ public class ConnectionHandler
     private readonly LoginGateRegistry _loginGates;
     private readonly GmcpService _gmcpService;
     private readonly GameLoop _gameLoop;
+    private readonly MobAIManager _mobAI;
     private readonly object _nameReservationLock = new();
 
     public ConnectionHandler(
@@ -40,7 +42,8 @@ public class ConnectionHandler
         ColorRenderer colorRenderer,
         LoginGateRegistry loginGates,
         GmcpService gmcpService,
-        GameLoop gameLoop)
+        GameLoop gameLoop,
+        MobAIManager mobAI)
     {
         _sessions = sessions;
         _world = world;
@@ -54,6 +57,7 @@ public class ConnectionHandler
         _loginGates = loginGates;
         _gmcpService = gmcpService;
         _gameLoop = gameLoop;
+        _mobAI = mobAI;
         _flowEngine.NewPlayerEntityFactory = CreateNewPlayerEntity;
     }
 
@@ -136,6 +140,7 @@ public class ConnectionHandler
             if (spawnRoom != null)
             {
                 spawnRoom.AddEntity(entity);
+                _mobAI.PlayerEnteredRoom(spawnRoom.Id);
             }
 
             _world.TrackEntity(entity);
