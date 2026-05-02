@@ -6,7 +6,30 @@ on:
     tags: ['v*']
 
 jobs:
-  build:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'src/**'
+              - 'packs/**'
+              - 'Dockerfile'
+              - '*.yaml'
+              - '*.csproj'
+              - '*.slnx'
+            client:
+              - 'client/**'
+
+  deploy-server:
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,3 +52,46 @@ jobs:
           tags: |
             ghcr.io/tapestry-mud/tapestry:latest
             ghcr.io/tapestry-mud/tapestry:${{ github.sha }}
+
+      # Phase 1 only: deploy to Droplet when example-pack is the active server.
+      # When LF becomes the active server, remove this step or set the
+      # DEPLOY_ENABLED repository variable to "false" to skip it.
+      - name: Deploy to Droplet
+        if: github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED != 'false'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 165.22.230.43
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/tapestry
+            docker compose pull game-server
+            docker compose up -d game-server
+
+  deploy-client:
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy client to Droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 165.22.230.43
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "client/dist/"
+          target: /opt/tapestry/client
+          strip_components: 1
