@@ -11,7 +11,7 @@ export function RoomViewPanel() {
   const exitCount = exits.length
 
   return (
-    <div className="px-4 py-3 font-mono text-sm border-b border-border shrink-0 bg-surface-raised">
+    <div className="px-4 py-3 font-mono text-sm border-b border-border shrink-0 bg-surface-raised" aria-hidden="true">
       <div className="text-yellow-400 font-bold mb-0.5">{current.name}</div>
       {current.area && (
         <div className="text-text-secondary text-[10px] uppercase tracking-wider mb-2">

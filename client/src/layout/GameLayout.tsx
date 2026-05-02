@@ -9,6 +9,7 @@ import { TopBar } from './TopBar'
 import { SortablePanel } from './SortablePanel'
 import { useLayoutStore } from '../stores/layoutStore'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useLandmarkCycling } from '../hooks/useLandmarkCycling'
 import { Announcer } from '../accessibility/Announcer'
 import { SkipLinks } from '../accessibility/SkipLinks'
 import { CharacterPanel }   from '../panels/CharacterPanel'
@@ -50,6 +51,7 @@ export function GameLayout() {
   const { panels, setPanelColumn, setPanelOrder } = useLayoutStore()
   const [activeId, setActiveId] = useState<string | null>(null)
   const isMobile = useIsMobile()
+  useLandmarkCycling()
 
   const leftPanels  = panels.filter((p) => p.column === 'left').sort((a, b) => a.order - b.order)
   const rightPanels = panels.filter((p) => p.column === 'right').sort((a, b) => a.order - b.order)
@@ -114,6 +116,7 @@ export function GameLayout() {
 
               <Panel defaultSize="25%" minSize="15%" maxSize="40%"
                 className="flex flex-col overflow-y-auto border-r border-border gap-1 p-1">
+                <div id="left-panels" tabIndex={-1} role="complementary" aria-label="Left game panels" className="flex flex-col gap-1 outline-none">
                 <SortableContext items={leftPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                   {leftPanels.map((p) => {
                     const Component = PANEL_COMPONENTS[p.id]
@@ -125,6 +128,7 @@ export function GameLayout() {
                     )
                   })}
                 </SortableContext>
+                </div>
               </Panel>
 
               <PanelResizeHandle className="w-1 bg-border hover:bg-accent cursor-col-resize transition-colors" />
@@ -139,6 +143,7 @@ export function GameLayout() {
 
               <Panel defaultSize="25%" minSize="15%" maxSize="40%"
                 className="flex flex-col overflow-y-auto border-l border-border gap-1 p-1">
+                <div id="right-panels" tabIndex={-1} role="complementary" aria-label="Right game panels" className="flex flex-col gap-1 outline-none">
                 <SortableContext items={rightPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                   {rightPanels.map((p) => {
                     const Component = PANEL_COMPONENTS[p.id]
@@ -150,6 +155,7 @@ export function GameLayout() {
                     )
                   })}
                 </SortableContext>
+                </div>
               </Panel>
 
             </PanelGroup>
