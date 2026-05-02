@@ -82,6 +82,7 @@ interface SettingsState {
   setCharacter: (name: string) => void
   setTheme: (theme: Theme) => void
   toggleSettings: () => void
+  openSettings: () => void
 }
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
@@ -106,4 +107,5 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 
   toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+  openSettings: () => set({ settingsOpen: true }),
 }))

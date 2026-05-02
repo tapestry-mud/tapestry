@@ -8,6 +8,9 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-ki
 import { TopBar } from './TopBar'
 import { SortablePanel } from './SortablePanel'
 import { useLayoutStore } from '../stores/layoutStore'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { Announcer } from '../accessibility/Announcer'
+import { SkipLinks } from '../accessibility/SkipLinks'
 import { CharacterPanel }   from '../panels/CharacterPanel'
 import { StatsPanel }       from '../panels/StatsPanel'
 import { VitalsPanel }      from '../panels/VitalsPanel'
@@ -46,6 +49,7 @@ const PANEL_COMPONENTS: Record<string, React.ComponentType> = {
 export function GameLayout() {
   const { panels, setPanelColumn, setPanelOrder } = useLayoutStore()
   const [activeId, setActiveId] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const leftPanels  = panels.filter((p) => p.column === 'left').sort((a, b) => a.order - b.order)
   const rightPanels = panels.filter((p) => p.column === 'right').sort((a, b) => a.order - b.order)
@@ -81,65 +85,85 @@ export function GameLayout() {
 
   const ActiveComponent = activeId ? PANEL_COMPONENTS[activeId] : null
 
+  const allPanelIds = [...leftPanels, ...rightPanels].map((p) => p.id)
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-surface-deep">
+      <SkipLinks />
+      <Announcer />
       <TopBar />
 
-      <div className="flex-1 overflow-hidden">
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <PanelGroup orientation="horizontal" className="h-full">
+      <main className="flex-1 overflow-hidden">
+        {isMobile ? (
+          <div className="flex flex-col h-full overflow-hidden">
+            <RoomViewPanel />
+            <OutputViewport />
+            <Hotbar />
 
-            <Panel defaultSize="25%" minSize="15%" maxSize="40%"
-              className="flex flex-col overflow-y-auto border-r border-border gap-1 p-1">
-              <SortableContext items={leftPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                {leftPanels.map((p) => {
-                  const Component = PANEL_COMPONENTS[p.id]
-                  if (!Component) { return null }
-                  return (
-                    <SortablePanel key={p.id} id={p.id}>
-                      <Component />
-                    </SortablePanel>
-                  )
-                })}
-              </SortableContext>
-            </Panel>
+            <div className="sr-only" role="complementary" aria-label="Game panels">
+              {allPanelIds.map((id) => {
+                const Component = PANEL_COMPONENTS[id]
+                if (!Component) { return null }
+                return <Component key={id} />
+              })}
+            </div>
+          </div>
+        ) : (
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <PanelGroup orientation="horizontal" className="h-full">
 
-            <PanelResizeHandle className="w-1 bg-border hover:bg-accent cursor-col-resize transition-colors" />
+              <Panel defaultSize="25%" minSize="15%" maxSize="40%"
+                className="flex flex-col overflow-y-auto border-r border-border gap-1 p-1">
+                <SortableContext items={leftPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {leftPanels.map((p) => {
+                    const Component = PANEL_COMPONENTS[p.id]
+                    if (!Component) { return null }
+                    return (
+                      <SortablePanel key={p.id} id={p.id}>
+                        <Component />
+                      </SortablePanel>
+                    )
+                  })}
+                </SortableContext>
+              </Panel>
 
-            <Panel defaultSize="50%" minSize="30%" className="flex flex-col overflow-hidden">
-              <RoomViewPanel />
-              <OutputViewport />
-              <Hotbar />
-            </Panel>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-accent cursor-col-resize transition-colors" />
 
-            <PanelResizeHandle className="w-1 bg-border hover:bg-accent cursor-col-resize transition-colors" />
+              <Panel defaultSize="50%" minSize="30%" className="flex flex-col overflow-hidden">
+                <RoomViewPanel />
+                <OutputViewport />
+                <Hotbar />
+              </Panel>
 
-            <Panel defaultSize="25%" minSize="15%" maxSize="40%"
-              className="flex flex-col overflow-y-auto border-l border-border gap-1 p-1">
-              <SortableContext items={rightPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                {rightPanels.map((p) => {
-                  const Component = PANEL_COMPONENTS[p.id]
-                  if (!Component) { return null }
-                  return (
-                    <SortablePanel key={p.id} id={p.id}>
-                      <Component />
-                    </SortablePanel>
-                  )
-                })}
-              </SortableContext>
-            </Panel>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-accent cursor-col-resize transition-colors" />
 
-          </PanelGroup>
+              <Panel defaultSize="25%" minSize="15%" maxSize="40%"
+                className="flex flex-col overflow-y-auto border-l border-border gap-1 p-1">
+                <SortableContext items={rightPanels.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {rightPanels.map((p) => {
+                    const Component = PANEL_COMPONENTS[p.id]
+                    if (!Component) { return null }
+                    return (
+                      <SortablePanel key={p.id} id={p.id}>
+                        <Component />
+                      </SortablePanel>
+                    )
+                  })}
+                </SortableContext>
+              </Panel>
 
-          <DragOverlay>
-            {ActiveComponent && (
-              <div className="opacity-80 shadow-lg">
-                <ActiveComponent />
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-      </div>
+            </PanelGroup>
+
+            <DragOverlay>
+              {ActiveComponent && (
+                <div className="opacity-80 shadow-lg">
+                  <ActiveComponent />
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        )}
+      </main>
 
       <CommandBar />
       <CommandsDrawer />

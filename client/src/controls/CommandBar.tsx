@@ -83,12 +83,14 @@ export function CommandBar() {
         className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_COLOR[status] ?? 'bg-border'}`}
       />
       <input
+        id="command-input"
         ref={inputRef}
         type={isPassword ? 'password' : 'text'}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Enter command..."
+        aria-label="Game command input"
         className="flex-1 bg-surface border border-border rounded px-2 py-1 text-sm font-mono text-text-primary outline-none focus:border-accent"
         autoComplete="off"
         spellCheck={false}

@@ -1,3 +1,5 @@
+import { announce } from '../accessibility/announceStore'
+import { checkVitalAlerts } from '../accessibility/vitalAlerts'
 import { useCharStore } from '../stores/charStore'
 import { useEquipmentStore } from '../stores/equipmentStore'
 import { useDisplayStore } from '../stores/displayStore'
@@ -50,6 +52,8 @@ export function initCoreHandlers(): void {
     const result = CharVitalsSchema.safeParse(data)
     if (result.success) {
       useCharStore.getState().updateVitals(result.data)
+      const s = useCharStore.getState()
+      checkVitalAlerts({ hp: s.hp, maxHp: s.maxHp, mana: s.mana, maxMana: s.maxMana, mv: s.mv, maxMv: s.maxMv })
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Char.Vitals')
     }
@@ -117,7 +121,13 @@ export function initCoreHandlers(): void {
   GmcpDispatcher.register('Char.Combat.Targets', (data) => {
     const result = CharCombatTargetsSchema.safeParse(data)
     if (result.success) {
+      const prev = useCombatTargetsStore.getState().targets
       useCombatTargetsStore.getState().update(result.data)
+      if (prev.length === 0 && result.data.targets.length > 0) {
+        announce(`Combat started with ${result.data.targets.length} target${result.data.targets.length > 1 ? 's' : ''}`, 'combat', 'assertive')
+      } else if (prev.length > 0 && result.data.targets.length === 0) {
+        announce('Combat ended', 'combat', 'assertive')
+      }
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Char.Combat.Targets')
     }
@@ -195,6 +205,7 @@ export function initCoreHandlers(): void {
     const result = CommChannelSchema.safeParse(data)
     if (result.success) {
       useChatStore.getState().addMessage(result.data)
+      announce(`${result.data.sender} on ${result.data.channel}: ${result.data.text}`, 'chat')
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Comm.Channel')
     }
