@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { WebSocketClient } from '../connection/WebSocketClient'
 import { useConnectionStore } from '../stores/connectionStore'
 
@@ -24,8 +24,20 @@ export function ConnectScreen() {
   const { status, error } = useConnectionStore()
   const [address, setAddress] = useState(() => localStorage.getItem(LAST_KEY) ?? '')
   const [recent, setRecent] = useState<string[]>(loadRecent)
+  const [autoConnectAttempted, setAutoConnectAttempted] = useState(false)
 
   const isConnecting = status === 'connecting'
+
+  useEffect(() => {
+    if (autoConnectAttempted) {
+      return
+    }
+    const autoUrl = WebSocketClient.deriveServerUrl()
+    if (autoUrl) {
+      setAutoConnectAttempted(true)
+      WebSocketClient.connect(autoUrl)
+    }
+  }, [autoConnectAttempted])
 
   function connect() {
     const addr = address.trim()
@@ -33,6 +45,18 @@ export function ConnectScreen() {
     saveRecent(addr)
     setRecent(loadRecent())
     WebSocketClient.connect(addr)
+  }
+
+  // If auto-connecting, show a minimal connecting screen
+  const autoUrl = WebSocketClient.deriveServerUrl()
+  if (autoUrl && (status === 'connecting' || status === 'connected')) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-surface">
+        <div className="bg-surface-raised border border-border rounded-lg p-8 w-80 flex flex-col gap-4">
+          <h1 className="text-text-primary text-xl font-bold font-ui text-center">Connecting...</h1>
+        </div>
+      </div>
+    )
   }
 
   return (
