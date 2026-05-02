@@ -36,7 +36,7 @@ function mapStorageKey(charName: string): string {
   return `tapestry:map:${charName}`
 }
 
-function saveMapToStorage(charName: string, graph: Map<number, RoomNode>): void {
+function saveMapToStorage(charName: string, graph: Map<string, RoomNode>): void {
   if (!charName) { return }
   localStorage.setItem(mapStorageKey(charName), JSON.stringify([...graph.entries()]))
 }

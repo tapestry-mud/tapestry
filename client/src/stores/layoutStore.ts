@@ -39,7 +39,7 @@ interface LayoutState {
   resetLayout: () => void
 }
 
-export const useLayoutStore = create<LayoutState>()((set, get) => ({
+export const useLayoutStore = create<LayoutState>()((set) => ({
   panels: DEFAULT_PANELS,
 
   loadLayoutForCharacter: (charName) => {

@@ -4,8 +4,9 @@ import { ConnectScreen } from './ConnectScreen'
 import { useConnectionStore } from '../stores/connectionStore'
 
 const mockConnect = vi.hoisted(() => vi.fn())
+const mockDeriveServerUrl = vi.hoisted(() => vi.fn().mockReturnValue(null))
 vi.mock('../connection/WebSocketClient', () => ({
-  WebSocketClient: { connect: mockConnect },
+  WebSocketClient: { connect: mockConnect, deriveServerUrl: mockDeriveServerUrl },
 }))
 
 beforeEach(() => {

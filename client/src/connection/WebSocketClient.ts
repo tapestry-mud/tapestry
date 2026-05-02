@@ -11,6 +11,15 @@ let reconnectAttempt = 0
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let shouldReconnect = false
 
+function deriveServerUrl(): string | null {
+  const { hostname, host, protocol } = window.location
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return null
+  }
+  const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${wsProtocol}//${host}/ws`
+}
+
 function connect(address: string): void {
   const url = address.startsWith('ws') ? address : `ws://${address}`
   useConnectionStore.getState().setServerAddress(address)
@@ -87,4 +96,4 @@ function sendGmcp(pkg: string, data: unknown): void {
   useDebugStore.getState().logGmcp(pkg, data, 'out')
 }
 
-export const WebSocketClient = { connect, disconnect, send, sendGmcp }
+export const WebSocketClient = { connect, disconnect, send, sendGmcp, deriveServerUrl }

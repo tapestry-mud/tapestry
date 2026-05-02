@@ -5,7 +5,7 @@ import type { RoomNode } from '../types/game'
 const MAP_RADIUS = 2
 const CELL_SIZE = 10
 
-function MiniMap({ graph, currentNum }: { graph: Map<number, RoomNode>; currentNum: number }) {
+function MiniMap({ graph, currentNum }: { graph: Map<string, RoomNode>; currentNum: string }) {
   const current = graph.get(currentNum)
   if (!current) { return <div className="w-24 h-24 bg-surface rounded" /> }
 
