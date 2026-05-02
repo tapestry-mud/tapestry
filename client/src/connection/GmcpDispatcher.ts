@@ -14,7 +14,6 @@ import { useLayoutStore } from '../stores/layoutStore'
 import { useAffectsStore } from '../stores/affectsStore'
 import { useCombatTargetStore } from '../stores/combatTargetStore'
 import { useCombatTargetsStore } from '../stores/combatTargetsStore'
-import { getTerminal } from '../terminal/terminalStore'
 import {
   CharVitalsSchema, CharStatusSchema, CharExperienceSchema, CharCommandsSchema,
   CharEffectsSchema, CharCombatTargetSchema, CharCombatTargetsSchema, CharItemsSchema,
