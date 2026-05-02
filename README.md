@@ -22,6 +22,20 @@ Enter a name, and you're in. Type `help` for commands.
 
 A browser-based client lives in [`client/`](client/). See the [Web Client Roadmap](client/ROADMAP.md) for its own phase tracking.
 
+## Accessibility
+
+Tapestry treats accessibility as a first-class concern. The web client includes:
+
+- **Skip navigation** -- links to jump directly to game output, command input, or announcement settings
+- **Screen reader announcements** -- live regions that announce game state changes (vitals warnings, combat events, chat messages, room changes) without requiring navigation away from the command input
+- **Configurable announcement priority** -- each category can be set to Interrupt (assertive), Polite, or Off via the settings panel. Preferences persist per-browser
+- **Vitals threshold alerts** -- announces when HP, mana, or movement drop below 40% (low) and 10% (critical), then stays silent until the player heals above the low threshold
+- **xterm screen reader mode** -- terminal output is mirrored to a live text buffer so screen readers can read game output as it arrives
+- **Semantic markup** -- proper landmarks (`<main>`, `role="log"`, `role="complementary"`), labeled inputs, and ARIA attributes throughout
+- **Mobile layout** -- on small screens, GMCP panels are visually hidden but remain in the DOM for assistive technology
+
+The telnet server works with any screen reader out of the box since it's plain text over a terminal connection.
+
 ## Architecture
 
 **Modular monolith** in C#/.NET 10. The engine has zero hardcoded game logic — everything comes from content packs.
@@ -177,7 +191,7 @@ dotnet test
 
 **Character Creation:** Step-based wizard with ANSI panels, race/class/alignment selection, per-option lore text, validation rules.
 
-**Web Client:** React 19 + TypeScript browser client. Three-column drag-and-drop layout. Auto-mapper. Real-time vitals, stats, effects, combat target, XP tracking via GMCP. Four themes.
+**Web Client:** React 19 + TypeScript browser client. Three-column drag-and-drop layout. Auto-mapper. Real-time vitals, stats, effects, combat target, XP tracking via GMCP. Four themes. Screen reader support with configurable announcements.
 
 ### Roadmap
 
