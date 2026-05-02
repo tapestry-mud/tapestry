@@ -37,8 +37,8 @@ export function EquipmentPanel() {
       <div className="font-mono text-xs">
         {sortedKeys.map((key) => {
           const item = slots[key]
-          const raritySegs = item?.rarity ? renderTags(item.rarity, colorMap) : []
-          const essenceSegs = item?.essence ? renderTags(item.essence, colorMap) : []
+          const raritySegs = item?.rarityTag ? renderTags(item.rarityTag, colorMap) : []
+          const essenceSegs = item?.essenceTag ? renderTags(item.essenceTag, colorMap) : []
           return (
             <div key={key} className="flex items-baseline py-0.5 gap-1">
               <span className="text-text-secondary w-20 shrink-0 text-right">[{slotLabel(key)}]</span>

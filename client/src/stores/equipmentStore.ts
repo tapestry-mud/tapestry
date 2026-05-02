@@ -5,6 +5,8 @@ interface EquipmentSlot {
   name: string
   rarity?: string
   essence?: string
+  rarityTag?: string
+  essenceTag?: string
 }
 
 interface EquipmentState {

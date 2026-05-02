@@ -15,8 +15,8 @@ export function InventoryPanel() {
       ) : (
         <ul className="flex flex-col gap-0.5">
           {items.map((item) => {
-            const raritySegs = item.rarity ? renderTags(item.rarity, colorMap) : []
-            const essenceSegs = item.essence ? renderTags(item.essence, colorMap) : []
+            const raritySegs = item.rarityTag ? renderTags(item.rarityTag, colorMap) : []
+            const essenceSegs = item.essenceTag ? renderTags(item.essenceTag, colorMap) : []
             return (
               <li key={item.id} className="flex items-baseline gap-1 text-xs font-mono">
                 {raritySegs.length > 0 && (

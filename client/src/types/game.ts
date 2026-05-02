@@ -49,6 +49,8 @@ export interface Item {
   templateId?: string
   rarity?: string
   essence?: string
+  rarityTag?: string
+  essenceTag?: string
 }
 
 export interface HotbarSlot {
