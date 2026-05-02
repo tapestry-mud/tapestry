@@ -16,7 +16,7 @@ export function OutputViewport() {
       cursorBlink: false,
       cursorStyle: 'bar',
       disableStdin: true,
-      screenReaderMode: true,
+      screenReaderMode: false,
       scrollback: 5000,
       fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
       fontSize: 14,
@@ -74,8 +74,8 @@ export function OutputViewport() {
   }
 
   return (
-    <div id="game-output" className="relative flex-1 overflow-hidden bg-surface-deep pl-3" role="log" aria-label="Game output">
-      <div ref={containerRef} className="h-full w-full" />
+    <div id="game-output" className="relative flex-1 overflow-hidden bg-surface-deep pl-3" aria-hidden="true">
+      <div ref={containerRef} className="h-full w-full" tabIndex={-1} />
       {scrolledUp && (
         <button
           onClick={scrollToBottom}

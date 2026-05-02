@@ -112,7 +112,11 @@ export function initCoreHandlers(): void {
   GmcpDispatcher.register('Char.Combat.Target', (data) => {
     const result = CharCombatTargetSchema.safeParse(data)
     if (result.success) {
+      const prev = useCombatTargetStore.getState()
       useCombatTargetStore.getState().update(result.data)
+      if (result.data.active && result.data.healthTier && result.data.healthTier !== prev.healthTier) {
+        announce(`${result.data.name}: ${result.data.healthText ?? result.data.healthTier}`, 'combat', 'polite')
+      }
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Char.Combat.Target')
     }
@@ -137,6 +141,9 @@ export function initCoreHandlers(): void {
     const result = RoomInfoSchema.safeParse(data)
     if (result.success) {
       useRoomStore.getState().updateRoom(result.data)
+      const exits = Object.keys(result.data.exits)
+      const exitStr = exits.length > 0 ? `, exits: ${exits.join(', ')}` : ', no exits'
+      announce(`${result.data.name}${exitStr}`, 'room')
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Room.Info')
     }
