@@ -31,6 +31,7 @@ export default function App() {
         toggleDebug()
         return
       }
+      // startsWith('Key') limits dispatch to letter keys only; Alt+1, Alt+F1, etc. will not trigger shortcuts
       if (e.altKey && e.code.startsWith('Key')) {
         const passthrough = (document.activeElement as HTMLElement | null)?.dataset?.shortcutPassthrough
         if (passthrough === 'false') { return }
