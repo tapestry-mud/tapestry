@@ -97,15 +97,21 @@ public class FlowInstance
 
             if (match == null)
             {
-                _session!.SendLine($"Unknown option: {helpTarget}");
+                var unknownText = $"Unknown option: {helpTarget}";
+                _session!.SendLine(unknownText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = unknownText });
             }
             else if (match.Description != null)
             {
-                _session!.SendLine(match.Description(_entity));
+                var descText = match.Description(_entity);
+                _session!.SendLine(descText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = descText });
             }
             else
             {
-                _session!.SendLine($"No additional information available for {match.Label}.");
+                var noInfoText = $"No additional information available for {match.Label}.";
+                _session!.SendLine(noInfoText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = noInfoText });
             }
             if (_definition.WizardSteps == null || !_session!.Connection.SupportsAnsi)
             {

@@ -198,3 +198,8 @@ export const FlowStepSchema = z.object({
   })).optional(),
 })
 export type FlowStep = z.infer<typeof FlowStepSchema>
+
+export const FlowHelpSchema = z.object({
+  text: z.string(),
+})
+export type FlowHelp = z.infer<typeof FlowHelpSchema>

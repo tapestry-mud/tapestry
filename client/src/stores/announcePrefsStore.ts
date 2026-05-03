@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type AnnouncePref = 'assertive' | 'polite' | 'off'
 
-export type AnnounceCategory = 'vitals' | 'chat' | 'combat' | 'room' | 'feedback'
+export type AnnounceCategory = 'vitals' | 'chat' | 'combat' | 'room' | 'feedback' | 'prompt'
 
 const STORAGE_KEY = 'tapestry:announce-prefs'
 
@@ -12,6 +12,7 @@ const DEFAULTS: Record<AnnounceCategory, AnnouncePref> = {
   combat: 'assertive',
   room: 'polite',
   feedback: 'polite',
+  prompt: 'assertive',
 }
 
 function loadPrefs(): Record<AnnounceCategory, AnnouncePref> {

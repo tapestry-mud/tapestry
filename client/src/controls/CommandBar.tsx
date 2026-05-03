@@ -34,6 +34,10 @@ export function CommandBar() {
     inputRef.current?.focus()
   }, [pending, clearPending])
 
+  useEffect(() => {
+    if (!isPassword) { setValue('') }
+  }, [isPassword])
+
   function send() {
     const cmd = value.trim()
     if (!cmd) { return }
