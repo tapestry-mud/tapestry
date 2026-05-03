@@ -102,6 +102,47 @@ function showCombatStatusInRoom(player) {
     }
 }
 
+function buildRoomLookPayload(player) {
+    var roomId = tapestry.world.getEntityRoomId(player.entityId);
+    if (!roomId) { return null; }
+
+    var roomName = tapestry.world.getRoomName(roomId) || '';
+    var roomDesc = tapestry.world.getRoomDescription(roomId) || '';
+
+    // getRoomExits takes entityId (not roomId)
+    var exits = tapestry.world.getRoomExits(player.entityId);
+
+    // getEntitiesInRoom takes (roomId, tag)
+    var npcs = tapestry.world.getEntitiesInRoom(roomId, 'npc');
+    var otherPlayers = tapestry.world.getEntitiesInRoom(roomId, 'player');
+    var groundItems = tapestry.world.getEntitiesInRoom(roomId, 'item');
+
+    var entities = [];
+    for (var i = 0; i < npcs.length; i++) {
+        entities.push({ name: npcs[i].name, type: 'npc', tags: [] });
+    }
+    for (var j = 0; j < otherPlayers.length; j++) {
+        if (otherPlayers[j].id !== player.entityId) {
+            entities.push({ name: otherPlayers[j].name, type: 'player', tags: [] });
+        }
+    }
+
+    var items = [];
+    for (var k = 0; k < groundItems.length; k++) {
+        items.push({ name: groundItems[k].name, quantity: 1 });
+    }
+
+    return {
+        status: 'ok',
+        type: 'room',
+        name: roomName,
+        description: roomDesc,
+        exits: exits,
+        entities: entities,
+        items: items
+    };
+}
+
 tapestry.commands.register({
     name: 'look',
     aliases: ['l'],
@@ -114,6 +155,14 @@ tapestry.commands.register({
             return;
         }
         if (args.length === 0) {
+            var lookPayload = buildRoomLookPayload(player);
+            if (lookPayload) {
+                tapestry.gmcp.send(player.entityId, 'Response.Look', lookPayload);
+                tapestry.respond.suppress(player.entityId);
+            }
+
+            // sendRoomDescription calls ApiMessaging.Send() internally.
+            // suppress is already set, so no auto-feedback for any of these sends.
             tapestry.world.sendRoomDescription(player.entityId);
 
             var lookRoomId = tapestry.world.getEntityRoomId(player.entityId);
