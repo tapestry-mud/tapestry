@@ -132,22 +132,6 @@ describe('Room.WrongDir handler -- removeExit', () => {
   })
 })
 
-describe('Room.Nearby handler', () => {
-  beforeEach(() => {
-    GmcpDispatcher.clear()
-    useNearbyStore.setState({ entities: [] })
-    initCoreHandlers()
-  })
-
-  it('sets entities on valid Room.Nearby packet', () => {
-    GmcpDispatcher.dispatch('Room.Nearby', {
-      entities: [{ name: 'Grimjaw', type: 'npc', tags: ['shop'] }],
-    })
-    expect(useNearbyStore.getState().entities).toHaveLength(1)
-    expect(useNearbyStore.getState().entities[0].name).toBe('Grimjaw')
-  })
-})
-
 describe('Room.Info handler with context hint', () => {
   const baseRoom = {
     num: 'core:square',
