@@ -1,4 +1,5 @@
 using Tapestry.Engine;
+using Tapestry.Scripting.Modules;
 using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Services;
@@ -7,12 +8,20 @@ public class ApiMessaging
 {
     private readonly World _world;
     private readonly SessionManager _sessions;
+    private readonly IGmcpModuleAdapter _gmcp;
+    private readonly CommandResponseContext _responseContext;
     private string _motd = "";
 
-    public ApiMessaging(World world, SessionManager sessions)
+    public ApiMessaging(
+        World world,
+        SessionManager sessions,
+        IGmcpModuleAdapter gmcp,
+        CommandResponseContext responseContext)
     {
         _world = world;
         _sessions = sessions;
+        _gmcp = gmcp;
+        _responseContext = responseContext;
     }
 
     public void SetMotd(string motd)
@@ -27,6 +36,30 @@ public class ApiMessaging
     public void Send(Guid entityId, string text)
     {
         _sessions.SendToPlayer(entityId, text);
+
+        if (_responseContext.IsSuppressed(entityId))
+        {
+            return;
+        }
+
+        if (!_gmcp.SupportsPackage(entityId, "Response"))
+        {
+            return;
+        }
+
+        var clean = TextSanitizer.Strip(text.TrimEnd('\r', '\n', ' '));
+        if (string.IsNullOrWhiteSpace(clean))
+        {
+            return;
+        }
+
+        _gmcp.Send(entityId, "Response.Feedback", new
+        {
+            status = "ok",
+            type = "info",
+            message = clean,
+            category = "general"
+        });
     }
 
     public void SendToRoomExcept(string roomId, string excludeIdStr, string text)
