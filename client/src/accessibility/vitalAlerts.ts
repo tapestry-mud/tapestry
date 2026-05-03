@@ -18,9 +18,9 @@ interface VitalAlertState {
 }
 
 const state: Record<string, VitalAlertState> = {
-  hp: { low: false, critical: false },
+  health: { low: false, critical: false },
   mana: { low: false, critical: false },
-  mv: { low: false, critical: false },
+  movement: { low: false, critical: false },
 }
 
 function pct(current: number, max: number): number {
