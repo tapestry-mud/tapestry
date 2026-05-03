@@ -11,6 +11,7 @@ export interface ShortcutEntry {
 }
 
 interface ShortcutState {
+  // Runtime-only: Map and handler functions are not serializable; do not add persist middleware.
   shortcuts: Map<string, ShortcutEntry>
   register: (id: string, label: string, defaultKey: string, handler: () => void) => void
   unregister: (id: string) => void
