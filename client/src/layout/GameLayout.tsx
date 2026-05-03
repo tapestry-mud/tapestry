@@ -98,9 +98,7 @@ export function GameLayout() {
       <main className="flex-1 overflow-hidden">
         {isMobile ? (
           <div className="flex flex-col h-full overflow-hidden">
-            <RoomViewPanel />
             <OutputViewport />
-            <Hotbar />
 
             <div className="sr-only" role="complementary" aria-label="Game panels">
               {allPanelIds.map((id) => {
