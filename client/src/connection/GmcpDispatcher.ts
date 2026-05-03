@@ -23,6 +23,7 @@ import {
   RoomInfoSchema, RoomNearbySchema,
   WorldTimeSchema, WorldWeatherSchema, WorldDisplayColorsSchema, CommChannelSchema, LoginPhaseSchema,
 } from '../types/gmcp'
+import { buildContextHint } from '../accessibility/shortcuts/contextHint'
 import {
   ResponseFeedbackSchema,
   ResponseShopListSchema,
@@ -76,7 +77,10 @@ export const GmcpDispatcher = {
   },
 }
 
+let pendingContextHint = ''
+
 export function initCoreHandlers(): void {
+  pendingContextHint = ''
   GmcpDispatcher.register('Char.Vitals', (data) => {
     const result = CharVitalsSchema.safeParse(data)
     if (result.success) {
@@ -172,7 +176,12 @@ export function initCoreHandlers(): void {
       useRoomStore.getState().updateRoom(result.data)
       const exits = Object.keys(result.data.exits)
       const exitStr = exits.length > 0 ? `, exits: ${exits.join(', ')}` : ', no exits'
-      announce(`${result.data.name}${exitStr}`, 'room')
+      const hint = pendingContextHint
+      pendingContextHint = ''
+      const roomAnnouncement = hint
+        ? `${result.data.name}${exitStr}. ${hint}`
+        : `${result.data.name}${exitStr}`
+      announce(roomAnnouncement, 'room')
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Room.Info')
     }
@@ -182,6 +191,7 @@ export function initCoreHandlers(): void {
     const result = RoomNearbySchema.safeParse(data)
     if (result.success) {
       useNearbyStore.getState().setEntities(result.data.entities)
+      pendingContextHint = buildContextHint(result.data.entities)
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Room.Nearby')
     }

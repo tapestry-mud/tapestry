@@ -61,6 +61,7 @@ describe('Char.Login.Phase handler', () => {
 import { useNearbyStore } from '../stores/nearbyStore'
 import { useWorldStore } from '../stores/worldStore'
 import { useRoomStore } from '../stores/roomStore'
+import * as announceModule from '../accessibility/announceStore'
 
 describe('Room.Nearby handler', () => {
   beforeEach(() => {
@@ -128,5 +129,74 @@ describe('Room.WrongDir handler -- removeExit', () => {
   it('removes lastDirection exit from store', () => {
     GmcpDispatcher.dispatch('Room.WrongDir', '')
     expect(useRoomStore.getState().current.exits.north).toBeUndefined()
+  })
+})
+
+describe('Room.Nearby handler', () => {
+  beforeEach(() => {
+    GmcpDispatcher.clear()
+    useNearbyStore.setState({ entities: [] })
+    initCoreHandlers()
+  })
+
+  it('sets entities on valid Room.Nearby packet', () => {
+    GmcpDispatcher.dispatch('Room.Nearby', {
+      entities: [{ name: 'Grimjaw', type: 'npc', tags: ['shop'] }],
+    })
+    expect(useNearbyStore.getState().entities).toHaveLength(1)
+    expect(useNearbyStore.getState().entities[0].name).toBe('Grimjaw')
+  })
+})
+
+describe('Room.Info handler with context hint', () => {
+  const baseRoom = {
+    num: 'core:square',
+    name: 'Town Square',
+    area: 'Midgaard',
+    environment: 'city',
+    exits: { north: 'core:inn' },
+  }
+
+  const nullRoom = {
+    num: '', name: '', area: '', environment: '', description: '',
+    weatherExposed: false, timeExposed: false, doors: {}, exits: {},
+  }
+
+  beforeEach(() => {
+    GmcpDispatcher.clear()
+    useNearbyStore.setState({ entities: [] })
+    useRoomStore.setState({ current: { ...nullRoom }, mapGraph: new Map(), lastDirection: null })
+    initCoreHandlers()
+  })
+
+  it('announces room name with exits and no hint when Nearby has not fired', () => {
+    const announceSpy = vi.spyOn(announceModule, 'announce')
+    GmcpDispatcher.dispatch('Room.Info', baseRoom)
+    expect(announceSpy).toHaveBeenCalledWith('Town Square, exits: north', 'room')
+    announceSpy.mockRestore()
+  })
+
+  it('appends shop hint when Room.Nearby fires before Room.Info', () => {
+    const announceSpy = vi.spyOn(announceModule, 'announce')
+    GmcpDispatcher.dispatch('Room.Nearby', {
+      entities: [{ name: 'Grimjaw', type: 'npc', tags: ['shop'] }],
+    })
+    GmcpDispatcher.dispatch('Room.Info', baseRoom)
+    expect(announceSpy).toHaveBeenCalledWith(
+      'Town Square, exits: north. Shop nearby.',
+      'room'
+    )
+    announceSpy.mockRestore()
+  })
+
+  it('clears hint after Room.Info so next room entry has no stale hint', () => {
+    const announceSpy = vi.spyOn(announceModule, 'announce')
+    GmcpDispatcher.dispatch('Room.Nearby', {
+      entities: [{ name: 'Grimjaw', type: 'npc', tags: ['shop'] }],
+    })
+    GmcpDispatcher.dispatch('Room.Info', baseRoom)
+    GmcpDispatcher.dispatch('Room.Info', { ...baseRoom, name: 'The Inn' })
+    expect(announceSpy).toHaveBeenLastCalledWith('The Inn, exits: north', 'room')
+    announceSpy.mockRestore()
   })
 })
