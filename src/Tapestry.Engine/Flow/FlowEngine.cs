@@ -26,6 +26,8 @@ public class FlowEngine
     /// TelnetService sets this on startup so stat defaults match initial creation.
     public Func<string, Entity>? NewPlayerEntityFactory { get; set; }
 
+    public Action<string, string, object>? GmcpSend { get; set; }
+
     public FlowEngine(
         FlowRegistry registry,
         SessionManager sessions,
@@ -57,6 +59,7 @@ public class FlowEngine
 
         var instance = new FlowInstance(definition, session.PlayerEntity, _panelRenderer);
         instance.OnCompleted = () => Complete(session);
+        instance.GmcpSend = GmcpSend;
         session.CurrentFlow = instance;
         _playerCreator.TrackEntity(session.PlayerEntity);
         instance.Start(session);

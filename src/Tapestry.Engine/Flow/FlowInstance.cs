@@ -13,6 +13,7 @@ public class FlowInstance
     private int _currentStepIndex;
 
     public Action? OnCompleted { get; set; }
+    public Action<string, string, object>? GmcpSend { get; set; }
     public FlowDefinition Definition => _definition;
     public Entity Entity => _entity;
     public int CurrentStepIndex => _currentStepIndex;
@@ -208,8 +209,11 @@ public class FlowInstance
         switch (step)
         {
             case InfoStep info:
+            {
                 _session!.SendLine(info.Text(_entity));
+                GmcpSend?.Invoke(_session.Connection.Id, "Flow.Step", new { type = "info", prompt = info.Text(_entity) });
                 break;
+            }
             case ChoiceStep choice:
             {
                 if (_definition.WizardSteps != null && _session!.Connection.SupportsAnsi)
@@ -226,18 +230,29 @@ public class FlowInstance
                     }
                     _session!.SendLine("  ? [option] or ? [number] for details");
                 }
+                var choiceOptions = choice.Options(_entity);
+                var choicePayload = choiceOptions.Select(o => o.TagLine != null
+                    ? (object)new { label = o.Label, tagLine = o.TagLine }
+                    : (object)new { label = o.Label }).ToArray();
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "choice", prompt = choice.Prompt(_entity), options = choicePayload });
                 break;
             }
             case TextStep text:
+            {
                 if (text.Secret)
                 {
                     _session!.Connection.SuppressEcho();
                 }
                 _session!.SendLine(text.Prompt(_entity));
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "text", prompt = text.Prompt(_entity) });
                 break;
+            }
             case ConfirmStep confirm:
+            {
                 _session!.SendLine($"{confirm.Prompt(_entity)} (y/n)");
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "confirm", prompt = $"{confirm.Prompt(_entity)} (y/n)" });
                 break;
+            }
         }
     }
 
