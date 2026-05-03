@@ -274,7 +274,7 @@ export function initCoreHandlers(): void {
         const optionLines = options.map((o, i) =>
           o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`
         )
-        announce(`${prompt} ${optionLines.join('. ')}. Type ? and a number for details.`, 'prompt')
+        announce(`${prompt} ${optionLines.join('. ')}. Type question mark and a number for details.`, 'prompt')
       } else {
         announce(prompt, 'prompt')
       }

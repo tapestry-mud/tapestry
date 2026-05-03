@@ -87,6 +87,7 @@ export function CommandBar() {
         className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_COLOR[status] ?? 'bg-border'}`}
       />
       <input
+        key={isPassword ? 'password' : 'text'}
         id="command-input"
         ref={inputRef}
         type={isPassword ? 'password' : 'text'}
