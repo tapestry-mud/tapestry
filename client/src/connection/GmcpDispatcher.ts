@@ -272,10 +272,10 @@ export function initCoreHandlers(): void {
       const { type, prompt, options } = result.data
       announce(prompt, 'feedback')
       if (type === 'choice' && options && options.length > 0) {
-        const optionText = options
-          .map((o, i) => o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`)
-          .join(', ')
-        announce(optionText, 'feedback')
+        options.forEach((o, i) => {
+          const text = o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`
+          announce(text, 'feedback')
+        })
       }
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Flow.Step')
