@@ -4,6 +4,62 @@
     priority: 0,
     handler: function(player, args) {
         var s = player.stats;
+
+        // --- Build GMCP payload from the same data the renderer will use ---
+        var race = tapestry.world.getProperty(player.entityId, 'race') || '';
+        var charClass = tapestry.world.getProperty(player.entityId, 'class') || '';
+
+        var allTracks = tapestry.progression.getTracks();
+        var xpTracks = [];
+        var primaryLevel = 0;
+        if (allTracks && allTracks.length > 0) {
+            for (var gi = 0; gi < allTracks.length; gi++) {
+                var gInfo = tapestry.progression.getInfo(player.entityId, allTracks[gi].name);
+                if (!gInfo) { continue; }
+                if (gi === 0) { primaryLevel = gInfo.level; }
+                xpTracks.push({
+                    name: allTracks[gi].name,
+                    level: gInfo.level,
+                    xp: gInfo.xp,
+                    xpToNext: gInfo.xpToNext
+                });
+            }
+        }
+
+        var goldAmount = tapestry.currency.getGold(player.entityId);
+        var alignmentValue = tapestry.alignment.get(player.entityId);
+        var alignmentLabel = tapestry.alignment.bucket(player.entityId);
+        var hungerLabel = tapestry.consumables.getSustenanceTier(player.entityId);
+
+        tapestry.gmcp.send(player.entityId, 'Response.Char.Score', {
+            status: 'ok',
+            name: player.name,
+            race: race,
+            class: charClass,
+            level: primaryLevel,
+            stats: {
+                str: s.strength,
+                int: s.intelligence,
+                wis: s.wisdom,
+                dex: s.dexterity,
+                con: s.constitution,
+                luk: s.luck
+            },
+            hp: s.hp,
+            maxHp: s.maxHp,
+            mana: s.resource,
+            maxMana: s.maxResource,
+            mv: s.movement,
+            maxMv: s.maxMovement,
+            gold: goldAmount,
+            alignment: alignmentValue + ' [' + alignmentLabel + ']',
+            hungerTier: hungerLabel,
+            xpTracks: xpTracks
+        });
+
+        tapestry.respond.suppress(player.entityId);
+
+        // --- existing rendering continues below, using the existing local vars ---
         var hpName = tapestry.stats.getDisplayName('hp');
         var resName = tapestry.stats.getDisplayName('resource');
         var movName = tapestry.stats.getDisplayName('movement');
