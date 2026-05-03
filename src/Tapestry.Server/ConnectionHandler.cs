@@ -187,6 +187,7 @@ public class ConnectionHandler
             if (string.IsNullOrWhiteSpace(name))
             {
                 connection.SendLine("Please enter a name.");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "Please enter a name.");
                 return;
             }
 
@@ -240,6 +241,7 @@ public class ConnectionHandler
                             return;
                         }
                         connection.SendLine("Incorrect password.");
+                        _gmcpService.SendLoginPrompt(rawConnection.Id, "Incorrect password.");
                         connection.SendLine("What is your name, adventurer?");
                         _gmcpService.SendLoginPhase(rawConnection.Id, "name");
                         _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
