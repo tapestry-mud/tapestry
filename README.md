@@ -20,7 +20,7 @@ Enter a name, and you're in. Type `help` for commands.
 
 ### Web Client
 
-A browser-based client lives in [`client/`](client/). See the [Web Client Roadmap](client/ROADMAP.md) for its own phase tracking.
+A browser-based client lives in [`client/`](client/). Connect via browser -- no plugins required.
 
 ## Accessibility
 
@@ -167,13 +167,11 @@ docker-compose down            # Stop the stack — engine keeps running
 dotnet test
 ```
 
-1058 tests across engine, scripting, and networking.
-
 ## Current Status
 
 ### What's Built
 
-**Core Engine:** Telnet + WebSocket server, ANSI color themes, GMCP protocol, tick-based game loop, event bus with cancellation, command registry with pack override, OpenTelemetry observability. 1058 tests.
+**Core Engine:** Telnet + WebSocket server, ANSI color themes, GMCP protocol, tick-based game loop, event bus with cancellation, command registry with pack override, OpenTelemetry observability.
 
 **Content System:** YAML + JavaScript content packs with load ordering and version constraints. Pack-defined equipment slots, rarity tiers, progression tracks, class paths, races.
 
@@ -193,34 +191,11 @@ dotnet test
 
 **Web Client:** React 19 + TypeScript browser client. Three-column drag-and-drop layout. Auto-mapper. Real-time vitals, stats, effects, combat target, XP tracking via GMCP. Four themes. Screen reader support with configurable announcements.
 
-### Roadmap
+## Contributing
 
-The core engine is feature-complete -- rooms, exits, combat, leveling, persistence, skills, spells, classes, races, alignment, character creation, shops, consumables, doors/portals, channels, weather/time, mob AI, groups/parties, GMCP/MSSP, and a full web client.
+The [issue tracker](https://github.com/tapestry-mud/tapestry/issues) is where all planned work lives. Issues are labeled by area (`server`, `client`, `pack`) and difficulty (`good first issue`).
 
-**Planned:**
-
-| System | Notes |
-|--------|-------|
-| Essence / Enchantment | Item augmentation and progression |
-| UI Polish | Command list, help system, prompt customization |
-| Quests | NPC quest givers, task tracking, rewards |
-| Combat balance | Tuning pass across all combat systems |
-| Area Editor | In-game builder commands + visual editor in the web client |
-
-**Good First Issues:**
-
-| System | Notes |
-|--------|-------|
-| Biome & Visibility | YAML-defined biome types (cave, forest, city) on rooms. Biomes control darkness, light source requirements, map symbols. Complements areas (areas = WHERE, biomes = WHAT KIND) |
-| Buff Spec YAML | Standalone buff definitions with trigger rates, trigger counts, flags (cancel-on-combat, cancel-on-action), permabuffs from race/equipment |
-| Mob Command AI | `idle_commands`/`combat_commands` arrays on mob YAML. Mobs execute game commands (emote, say, wander) as their AI -- no JavaScript needed for flavor behavior |
-| Room Atmosphere | Idle messages (ambient flavor text), signs (readable objects), exit messages (flavor text on traversal) |
-| Secret Exits | `secret: true` on exits, hidden from `look` until discovered via search or skill check |
-| Elemental Damage | Fire/ice/lightning/etc on weapons and spells, resistance properties on armor |
-| NPC Conversations | Branching YAML-defined dialogue trees for NPCs |
-| Advanced Protocols | MCCP2 (zlib compression), MXP (clickable links/sends), TLS port for encrypted connections |
-| Telnet Map | ASCII auto-map from room graph (web client already has one) |
-| Copyover | Graceful server restart without disconnecting players |
+To contribute: pick an issue, leave a comment, and open a PR against `master`.
 
 ## Why Tapestry
 
@@ -231,12 +206,7 @@ Most MUD engines hardcode game logic. Tapestry doesn't. The engine provides syst
 - Stack multiple packs. Your cyberpunk pack and someone's fantasy pack can coexist on the same server
 - Override anything. A pack can replace the `look` command, redefine equipment slots, or add new stat types
 - 37 scripting API modules with full engine access from JavaScript
-- Modern tooling: OpenTelemetry observability, browser client with GMCP, 1058 tests
-
-### Tech Debt (Deferred)
-- **SendToRoom O(n sessions)** -- Room-indexed session lookup when player count demands it
-- **World.GetEntity fallback scan** -- Masks incomplete entity tracking, low frequency
-- **EventBus reentrant locking** -- Theoretical contention under high throughput, no issues observed
+- Modern tooling: OpenTelemetry observability, browser client with GMCP, comprehensive test suite
 
 ## License
 
