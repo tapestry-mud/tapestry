@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GmcpDispatcher, initCoreHandlers } from './GmcpDispatcher'
 import { useConnectionStore } from '../stores/connectionStore'
+import { useNearbyStore } from '../stores/nearbyStore'
+import { useWorldStore } from '../stores/worldStore'
+import { useRoomStore } from '../stores/roomStore'
+import * as announceModule from '../accessibility/announceStore'
 
 beforeEach(() => {
   GmcpDispatcher.clear()
@@ -57,11 +61,6 @@ describe('Char.Login.Phase handler', () => {
     expect(useConnectionStore.getState().loginPhase).toBe('disconnected')
   })
 })
-
-import { useNearbyStore } from '../stores/nearbyStore'
-import { useWorldStore } from '../stores/worldStore'
-import { useRoomStore } from '../stores/roomStore'
-import * as announceModule from '../accessibility/announceStore'
 
 describe('Room.Nearby handler', () => {
   beforeEach(() => {

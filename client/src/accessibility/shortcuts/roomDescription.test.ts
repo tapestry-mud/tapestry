@@ -40,4 +40,14 @@ describe('handleRoomDescription', () => {
     expect(pushSpy).toHaveBeenCalledWith('Dead End. A dead end. No exits.', 'assertive')
     pushSpy.mockRestore()
   })
+
+  it('handles description without trailing period', () => {
+    useRoomStore.setState({
+      current: { ...nullRoom, name: 'Hallway', description: 'A narrow hallway', exits: {} },
+    })
+    const pushSpy = vi.spyOn(useAnnounceStore.getState(), 'pushMessage')
+    handleRoomDescription()
+    expect(pushSpy).toHaveBeenCalledWith('Hallway. A narrow hallway. No exits.', 'assertive')
+    pushSpy.mockRestore()
+  })
 })
