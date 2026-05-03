@@ -60,7 +60,9 @@ public class ConnectionHandler
         _mobAI = mobAI;
         _flowEngine.NewPlayerEntityFactory = CreateNewPlayerEntity;
         _flowEngine.GmcpSend = (connectionId, package, payload) =>
+        {
             _gmcpService.SendRaw(connectionId, package, payload);
+        };
     }
 
     private static Entity CreateNewPlayerEntity(string name)
