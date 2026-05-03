@@ -210,8 +210,9 @@ public class FlowInstance
         {
             case InfoStep info:
             {
-                _session!.SendLine(info.Text(_entity));
-                GmcpSend?.Invoke(_session.Connection.Id, "Flow.Step", new { type = "info", prompt = info.Text(_entity) });
+                var infoText = info.Text(_entity);
+                _session!.SendLine(infoText);
+                GmcpSend?.Invoke(_session.Connection.Id, "Flow.Step", new { type = "info", prompt = infoText });
                 break;
             }
             case ChoiceStep choice:
@@ -243,14 +244,16 @@ public class FlowInstance
                 {
                     _session!.Connection.SuppressEcho();
                 }
-                _session!.SendLine(text.Prompt(_entity));
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "text", prompt = text.Prompt(_entity) });
+                var textPrompt = text.Prompt(_entity);
+                _session!.SendLine(textPrompt);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "text", prompt = textPrompt });
                 break;
             }
             case ConfirmStep confirm:
             {
-                _session!.SendLine($"{confirm.Prompt(_entity)} (y/n)");
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "confirm", prompt = $"{confirm.Prompt(_entity)} (y/n)" });
+                var confirmPrompt = confirm.Prompt(_entity);
+                _session!.SendLine($"{confirmPrompt} (y/n)");
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "confirm", prompt = confirmPrompt });
                 break;
             }
         }
