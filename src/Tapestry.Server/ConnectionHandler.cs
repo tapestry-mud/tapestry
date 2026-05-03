@@ -187,7 +187,7 @@ public class ConnectionHandler
             if (string.IsNullOrWhiteSpace(name))
             {
                 connection.SendLine("Please enter a name.");
-                _gmcpService.SendLoginPrompt(rawConnection.Id, "Please enter a name.");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                 return;
             }
 
