@@ -1,4 +1,4 @@
-﻿// Shop commands: list, buy, sell, value
+// Shop commands: list, buy, sell, value
 // All player-facing strings live here; tapestry.shop exposes structured result codes.
 
 tapestry.commands.register({
@@ -6,9 +6,43 @@ tapestry.commands.register({
     description: 'List items for sale in a shop.',
     handler: function(player, args) {
         var npcId = tapestry.shop.findShopInRoom(player.entityId);
-        if (!npcId) { player.send('There is no shop here.\r\n'); return; }
+        if (!npcId) {
+            player.send('There is no shop here.\r\n');
+            return;
+        }
+
+        var npc = tapestry.world.getEntity(npcId);
+        var shopkeeperName = npc ? npc.name : 'Shopkeeper';
         var items = tapestry.shop.listings(npcId);
-        if (!items || items.length === 0) { player.send('The shop has nothing for sale.\r\n'); return; }
+        var filter = args.length > 0 ? args.join(' ') : null;
+
+        if (!items || items.length === 0) {
+            tapestry.gmcp.send(player.entityId, 'Response.Shop.List', {
+                status: 'ok',
+                shopkeeper: shopkeeperName,
+                items: [],
+                filter: filter
+            });
+            tapestry.respond.suppress(player.entityId);
+            player.send('The shop has nothing for sale.\r\n');
+            return;
+        }
+
+        tapestry.gmcp.send(player.entityId, 'Response.Shop.List', {
+            status: 'ok',
+            shopkeeper: shopkeeperName,
+            items: items.map(function(item) {
+                return {
+                    id: item.templateId,
+                    name: item.name,
+                    price: item.price
+                };
+            }),
+            filter: filter
+        });
+
+        tapestry.respond.suppress(player.entityId);
+
         var lines = items.map(function(item) {
             var name = item.name;
             var price = item.price + ' gold';
@@ -23,11 +57,20 @@ tapestry.commands.register({
     name: 'buy',
     description: 'Buy an item from a shop.',
     handler: function(player, args) {
-        if (args.length === 0) { player.send('Buy what?\r\n'); return; }
+        if (args.length === 0) {
+            player.send('Buy what?\r\n');
+            return;
+        }
+
         var npcId = tapestry.shop.findShopInRoom(player.entityId);
-        if (!npcId) { player.send('There is no shop here.\r\n'); return; }
+        if (!npcId) {
+            player.send('There is no shop here.\r\n');
+            return;
+        }
+
         var query = args.join(' ');
         var result = tapestry.shop.buy(player.entityId, npcId, query);
+
         var messages = {
             ok: 'You buy ' + (result.itemName || query) + ' for ' + result.amount + ' gold.',
             noShopHere: 'There is no shop here.',
@@ -35,7 +78,18 @@ tapestry.commands.register({
             insufficientGold: "You can't afford that. (" + (result.amount - result.goldRemaining) + ' gold short)',
             ambiguousItem: "Which one? Several listings match '" + query + "'."
         };
-        player.send((messages[result.reason] || "Something went wrong.") + '\r\n');
+        var message = messages[result.reason] || 'Something went wrong.';
+
+        tapestry.gmcp.send(player.entityId, 'Response.Shop.Buy', {
+            status: result.ok ? 'ok' : 'error',
+            message: message,
+            item: result.ok ? (result.itemName || query) : undefined,
+            cost: result.ok ? result.amount : undefined,
+            goldRemaining: result.ok ? result.goldRemaining : undefined
+        });
+
+        tapestry.respond.suppress(player.entityId);
+        player.send(message + '\r\n');
     }
 });
 
@@ -43,11 +97,20 @@ tapestry.commands.register({
     name: 'sell',
     description: 'Sell an item to a shop.',
     handler: function(player, args) {
-        if (args.length === 0) { player.send('Sell what?\r\n'); return; }
+        if (args.length === 0) {
+            player.send('Sell what?\r\n');
+            return;
+        }
+
         var npcId = tapestry.shop.findShopInRoom(player.entityId);
-        if (!npcId) { player.send('There is no shop here.\r\n'); return; }
+        if (!npcId) {
+            player.send('There is no shop here.\r\n');
+            return;
+        }
+
         var query = args.join(' ');
         var result = tapestry.shop.sell(player.entityId, npcId, query);
+
         var messages = {
             ok: 'You sell ' + (result.itemName || query) + ' for ' + result.amount + ' gold.',
             noShopHere: 'There is no shop here.',
@@ -55,7 +118,18 @@ tapestry.commands.register({
             itemIsNoSell: "The shopkeeper won't take that.",
             itemValueZero: "The shopkeeper won't take that."
         };
-        player.send((messages[result.reason] || "Something went wrong.") + '\r\n');
+        var message = messages[result.reason] || 'Something went wrong.';
+
+        tapestry.gmcp.send(player.entityId, 'Response.Shop.Sell', {
+            status: result.ok ? 'ok' : 'error',
+            message: message,
+            item: result.ok ? (result.itemName || query) : undefined,
+            earnings: result.ok ? result.amount : undefined,
+            goldRemaining: result.ok ? result.goldRemaining : undefined
+        });
+
+        tapestry.respond.suppress(player.entityId);
+        player.send(message + '\r\n');
     }
 });
 
@@ -63,21 +137,42 @@ tapestry.commands.register({
     name: 'value',
     description: 'Check how much a shop will pay for an item.',
     handler: function(player, args) {
-        if (args.length === 0) { player.send('Value what?\r\n'); return; }
+        if (args.length === 0) {
+            player.send('Value what?\r\n');
+            return;
+        }
+
         var npcId = tapestry.shop.findShopInRoom(player.entityId);
-        if (!npcId) { player.send('There is no shop here.\r\n'); return; }
+        if (!npcId) {
+            player.send('There is no shop here.\r\n');
+            return;
+        }
+
         var query = args.join(' ');
         var result = tapestry.shop.value(player.entityId, npcId, query);
-        if (result.reason === 'ok') {
+
+        var message;
+        if (result.ok) {
             if (result.scope === 'inventory') {
-                player.send('The shopkeeper would pay ' + result.amount + ' gold for ' + result.itemName + '.\r\n');
+                message = 'The shopkeeper would pay ' + result.amount + ' gold for ' + result.itemName + '.';
             } else {
-                player.send(result.itemName + ' would cost you ' + result.amount + ' gold.\r\n');
+                message = result.itemName + ' would cost you ' + result.amount + ' gold.';
             }
         } else if (result.reason === 'itemNotInInventory' || result.reason === 'itemNotForSale') {
-            player.send("You don't have that, and the shop doesn't sell it.\r\n");
+            message = "You don't have that, and the shop doesn't sell it.";
         } else {
-            player.send('There is no shop here.\r\n');
+            message = 'There is no shop here.';
         }
+
+        tapestry.gmcp.send(player.entityId, 'Response.Shop.Value', {
+            status: result.ok ? 'ok' : 'error',
+            message: message,
+            item: result.ok ? result.itemName : undefined,
+            buyPrice: (result.ok && result.scope !== 'inventory') ? result.amount : undefined,
+            sellPrice: (result.ok && result.scope === 'inventory') ? result.amount : undefined
+        });
+
+        tapestry.respond.suppress(player.entityId);
+        player.send(message + '\r\n');
     }
 });
