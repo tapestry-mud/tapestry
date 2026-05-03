@@ -270,12 +270,13 @@ export function initCoreHandlers(): void {
     const result = FlowStepSchema.safeParse(data)
     if (result.success) {
       const { type, prompt, options } = result.data
-      announce(prompt, 'feedback')
       if (type === 'choice' && options && options.length > 0) {
-        options.forEach((o, i) => {
-          const text = o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`
-          announce(text, 'feedback')
-        })
+        const optionLines = options.map((o, i) =>
+          o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`
+        )
+        announce(`${prompt} ${optionLines.join('. ')}`, 'feedback')
+      } else {
+        announce(prompt, 'feedback')
       }
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Flow.Step')
