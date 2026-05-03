@@ -6,8 +6,11 @@ import { useConnectionStore } from './stores/connectionStore'
 import { useDebugStore } from './stores/debugStore'
 import { useAffectsStore } from './stores/affectsStore'
 import { initCoreHandlers } from './connection/GmcpDispatcher'
+import { useShortcutStore } from './stores/shortcutStore'
+import { registerAllShortcuts } from './accessibility/shortcuts/registerAll'
 
 initCoreHandlers()
+registerAllShortcuts()
 
 export default function App() {
   const status = useConnectionStore((s) => s.status)
@@ -26,6 +29,19 @@ export default function App() {
       if (e.key === '`' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         toggleDebug()
+        return
+      }
+      // startsWith('Key') limits dispatch to letter keys only; Alt+1, Alt+F1, etc. will not trigger shortcuts
+      if (e.altKey && e.code.startsWith('Key')) {
+        const passthrough = (document.activeElement as HTMLElement | null)?.dataset?.shortcutPassthrough
+        if (passthrough === 'false') { return }
+        const letter = e.code.slice(3)
+        const keyStr = `Alt+${letter}`
+        const entry = useShortcutStore.getState().getByKey(keyStr)
+        if (entry && entry.enabled) {
+          e.preventDefault()
+          entry.handler()
+        }
       }
     }
     window.addEventListener('keydown', handleKey)
