@@ -22,6 +22,7 @@ import {
   CharEquipmentSchema,
   RoomInfoSchema, RoomNearbySchema,
   WorldTimeSchema, WorldWeatherSchema, WorldDisplayColorsSchema, CommChannelSchema, LoginPhaseSchema,
+  LoginPromptSchema, FlowStepSchema,
 } from '../types/gmcp'
 import {
   ResponseFeedbackSchema,
@@ -253,6 +254,31 @@ export function initCoreHandlers(): void {
       useConnectionStore.getState().setLoginPhase(result.data.phase)
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Char.Login.Phase')
+    }
+  })
+
+  GmcpDispatcher.register('Login.Prompt', (data) => {
+    const result = LoginPromptSchema.safeParse(data)
+    if (result.success) {
+      announce(result.data.prompt, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Login.Prompt')
+    }
+  })
+
+  GmcpDispatcher.register('Flow.Step', (data) => {
+    const result = FlowStepSchema.safeParse(data)
+    if (result.success) {
+      const { type, prompt, options } = result.data
+      announce(prompt, 'feedback')
+      if (type === 'choice' && options && options.length > 0) {
+        const optionText = options
+          .map((o, i) => o.tagLine ? `${i + 1}. ${o.label}: ${o.tagLine}` : `${i + 1}. ${o.label}`)
+          .join(', ')
+        announce(optionText, 'feedback')
+      }
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Flow.Step')
     }
   })
 
