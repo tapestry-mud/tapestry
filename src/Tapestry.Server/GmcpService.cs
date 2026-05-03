@@ -262,6 +262,20 @@ public class GmcpService
         _handlers.TryRemove(connectionId, out _);
     }
 
+    public void SendRaw(string connectionId, string package, object payload)
+    {
+        if (!_handlers.TryGetValue(connectionId, out var handler)) { return; }
+        if (!handler.GmcpActive) { return; }
+        handler.Send(package, payload);
+    }
+
+    public void SendLoginPrompt(string connectionId, string prompt)
+    {
+        if (!_handlers.TryGetValue(connectionId, out var handler)) { return; }
+        if (!handler.GmcpActive) { return; }
+        handler.Send("Login.Prompt", new { prompt });
+    }
+
     public void SendLoginPhase(string connectionId, string phase)
     {
         if (!_handlers.TryGetValue(connectionId, out var handler)) { return; }

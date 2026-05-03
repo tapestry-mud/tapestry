@@ -13,6 +13,7 @@ public class FlowInstance
     private int _currentStepIndex;
 
     public Action? OnCompleted { get; set; }
+    public Action<string, string, object>? GmcpSend { get; set; }
     public FlowDefinition Definition => _definition;
     public Entity Entity => _entity;
     public int CurrentStepIndex => _currentStepIndex;
@@ -96,15 +97,21 @@ public class FlowInstance
 
             if (match == null)
             {
-                _session!.SendLine($"Unknown option: {helpTarget}");
+                var unknownText = $"Unknown option: {helpTarget}";
+                _session!.SendLine(unknownText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = unknownText });
             }
             else if (match.Description != null)
             {
-                _session!.SendLine(match.Description(_entity));
+                var descText = match.Description(_entity);
+                _session!.SendLine(descText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = descText });
             }
             else
             {
-                _session!.SendLine($"No additional information available for {match.Label}.");
+                var noInfoText = $"No additional information available for {match.Label}.";
+                _session!.SendLine(noInfoText);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = noInfoText });
             }
             if (_definition.WizardSteps == null || !_session!.Connection.SupportsAnsi)
             {
@@ -208,8 +215,12 @@ public class FlowInstance
         switch (step)
         {
             case InfoStep info:
-                _session!.SendLine(info.Text(_entity));
+            {
+                var infoText = info.Text(_entity);
+                _session!.SendLine(infoText);
+                GmcpSend?.Invoke(_session.Connection.Id, "Flow.Step", new { type = "info", prompt = infoText });
                 break;
+            }
             case ChoiceStep choice:
             {
                 if (_definition.WizardSteps != null && _session!.Connection.SupportsAnsi)
@@ -226,18 +237,31 @@ public class FlowInstance
                     }
                     _session!.SendLine("  ? [option] or ? [number] for details");
                 }
+                var choiceOptions = choice.Options(_entity);
+                var choicePayload = choiceOptions.Select(o => o.TagLine != null
+                    ? (object)new { label = o.Label, tagLine = o.TagLine }
+                    : (object)new { label = o.Label }).ToArray();
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "choice", prompt = choice.Prompt(_entity), options = choicePayload });
                 break;
             }
             case TextStep text:
+            {
                 if (text.Secret)
                 {
                     _session!.Connection.SuppressEcho();
                 }
-                _session!.SendLine(text.Prompt(_entity));
+                var textPrompt = text.Prompt(_entity);
+                _session!.SendLine(textPrompt);
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "text", prompt = textPrompt });
                 break;
+            }
             case ConfirmStep confirm:
-                _session!.SendLine($"{confirm.Prompt(_entity)} (y/n)");
+            {
+                var confirmPrompt = confirm.Prompt(_entity);
+                _session!.SendLine($"{confirmPrompt} (y/n)");
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "confirm", prompt = confirmPrompt });
                 break;
+            }
         }
     }
 

@@ -183,3 +183,23 @@ export const LoginPhaseSchema = z.object({
 })
 export type LoginPhase = z.infer<typeof LoginPhaseSchema>['phase']
 export type LoginPhaseState = LoginPhase | 'disconnected'
+
+export const LoginPromptSchema = z.object({
+  prompt: z.string(),
+})
+export type LoginPrompt = z.infer<typeof LoginPromptSchema>
+
+export const FlowStepSchema = z.object({
+  type: z.enum(['info', 'choice', 'text', 'confirm']),
+  prompt: z.string(),
+  options: z.array(z.object({
+    label: z.string(),
+    tagLine: z.string().optional(),
+  })).optional(),
+})
+export type FlowStep = z.infer<typeof FlowStepSchema>
+
+export const FlowHelpSchema = z.object({
+  text: z.string(),
+})
+export type FlowHelp = z.infer<typeof FlowHelpSchema>
