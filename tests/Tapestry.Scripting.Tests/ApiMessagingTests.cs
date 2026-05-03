@@ -1,17 +1,23 @@
 using FluentAssertions;
 using Tapestry.Engine;
+using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
 
 namespace Tapestry.Scripting.Tests;
 
 public class ApiMessagingTests
 {
+    private static ApiMessaging CreateMessaging(World world, SessionManager sessions)
+    {
+        return new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
+    }
+
     [Fact]
     public void SendToRoomExceptMany_ExcludesSpecifiedEntities()
     {
         var world = new World();
         var sessions = new SessionManager();
-        var messaging = new ApiMessaging(world, sessions);
+        var messaging = CreateMessaging(world, sessions);
 
         // Set up a room with two players
         var room = new Room("core:arena", "Arena", "The arena.");
@@ -47,7 +53,7 @@ public class ApiMessagingTests
     {
         var world = new World();
         var sessions = new SessionManager();
-        var messaging = new ApiMessaging(world, sessions);
+        var messaging = CreateMessaging(world, sessions);
 
         var room = new Room("core:arena", "Arena", "The arena.");
         world.AddRoom(room);
@@ -70,7 +76,7 @@ public class ApiMessagingTests
     {
         var world = new World();
         var sessions = new SessionManager();
-        var messaging = new ApiMessaging(world, sessions);
+        var messaging = CreateMessaging(world, sessions);
 
         var conn1 = new FakeConnection();
         var entity1 = new Entity("player", "Player1");

@@ -187,7 +187,7 @@ public class PackLoaderTests
             new CommandRouter(commandRegistry, sessions),
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics());
-        var messaging = new ApiMessaging(world, sessions);
+        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService);
