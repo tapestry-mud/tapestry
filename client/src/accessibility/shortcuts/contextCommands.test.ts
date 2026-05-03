@@ -61,6 +61,14 @@ describe('buildContextAnnouncement', () => {
     ])).toBe('Hostiles: goblin scout, orc warrior.')
   })
 
+  it('mixes counted and uncounted hostiles', () => {
+    expect(buildContextAnnouncement([
+      mob('goblin scout', ['hostile']),
+      mob('goblin scout', ['hostile']),
+      mob('orc warrior', ['hostile']),
+    ])).toBe('Hostiles: goblin scout times 2, orc warrior.')
+  })
+
   it('formats players', () => {
     expect(buildContextAnnouncement([player('Gandalf'), player('Aragorn')])).toBe(
       'Players: Gandalf, Aragorn.'
