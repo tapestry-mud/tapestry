@@ -4,6 +4,7 @@ tapestry.commands.register({
     description: 'List connections for this room or all rooms.',
     priority: 10,
     handler: function(player, args) {
+        if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
         if (args[0] === 'all') {
             var all = tapestry.connections.getAll();
             if (all.length === 0) {

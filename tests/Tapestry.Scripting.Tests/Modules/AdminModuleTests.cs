@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -16,6 +17,23 @@ public class AdminModuleTests
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
         return (rt, provider.GetRequiredService<World>());
+    }
+
+    private (JintRuntime rt, World world, CommandRegistry commandRegistry, SessionManager sessions) BuildRuntimeWithSessions()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        rt.Initialize();
+        return (
+            rt,
+            provider.GetRequiredService<World>(),
+            provider.GetRequiredService<CommandRegistry>(),
+            provider.GetRequiredService<SessionManager>()
+        );
     }
 
     private Entity CreateAdmin(World world)
@@ -451,5 +469,130 @@ public class AdminModuleTests
         Assert.Equal("false", rt.Evaluate("_invoked")?.ToString()?.ToLower());
         rt.Execute($"tapestry.admin.set.dispatch('{admin.Id}', ['player', 'alignment', '?'])");
         Assert.Equal("false", rt.Evaluate("_invoked")?.ToString()?.ToLower());
+    }
+
+    [Fact]
+    public void LinkCommand_NonAdminPlayer_ReceivesHuhAndFlowNotTriggered()
+    {
+        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var connection = new FakeConnection();
+        var player = new Entity("player", "NonAdmin");
+        world.TrackEntity(player);
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        rt.Execute(@"
+            tapestry.commands.register({
+                name: 'link',
+                aliases: [],
+                description: 'Link rooms across packs via guided flow.',
+                priority: 10,
+                handler: function(player, args) {
+                    if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
+                    player.send(""Starting link wizard. Type 'cancel' or 'quit' to exit at any time.\r\n"");
+                    tapestry.flows.trigger(player.entityId, 'admin_link');
+                }
+            });
+        ");
+
+        var registration = commandRegistry.Resolve("link");
+        Assert.NotNull(registration);
+
+        var cmdCtx = new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "link",
+            Command = "link",
+            Args = []
+        };
+        registration!.Handler(cmdCtx);
+
+        Assert.Contains("Huh?", string.Join("", connection.SentText));
+        Assert.DoesNotContain("Starting link wizard", string.Join("", connection.SentText));
+    }
+
+    [Fact]
+    public void UnlinkCommand_NonAdminPlayer_ReceivesHuhAndFlowNotTriggered()
+    {
+        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var connection = new FakeConnection();
+        var player = new Entity("player", "NonAdmin");
+        world.TrackEntity(player);
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        rt.Execute(@"
+            tapestry.commands.register({
+                name: 'unlink',
+                aliases: [],
+                description: 'Remove a connection from this room.',
+                priority: 10,
+                handler: function(player, args) {
+                    if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
+                    player.send(""Starting unlink wizard. Type 'cancel' or 'quit' to exit at any time.\r\n"");
+                    tapestry.flows.trigger(player.entityId, 'admin_unlink');
+                }
+            });
+        ");
+
+        var registration = commandRegistry.Resolve("unlink");
+        Assert.NotNull(registration);
+
+        var cmdCtx = new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "unlink",
+            Command = "unlink",
+            Args = []
+        };
+        registration!.Handler(cmdCtx);
+
+        Assert.Contains("Huh?", string.Join("", connection.SentText));
+        Assert.DoesNotContain("Starting unlink wizard", string.Join("", connection.SentText));
+    }
+
+    [Fact]
+    public void ConnectionsCommand_NonAdminPlayer_ReceivesHuhAndListingNotShown()
+    {
+        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var connection = new FakeConnection();
+        var player = new Entity("player", "NonAdmin");
+        world.TrackEntity(player);
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        rt.Execute(@"
+            tapestry.commands.register({
+                name: 'connections',
+                aliases: [],
+                description: 'List connections for this room or all rooms.',
+                priority: 10,
+                handler: function(player, args) {
+                    if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
+                    var conns = tapestry.connections.getForRoom(player.roomId);
+                    if (conns.length === 0) {
+                        player.send('No connections for this room.\r\n');
+                        return;
+                    }
+                    player.send('Connections for ' + player.roomId + ':\r\n');
+                }
+            });
+        ");
+
+        var registration = commandRegistry.Resolve("connections");
+        Assert.NotNull(registration);
+
+        var cmdCtx = new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "connections",
+            Command = "connections",
+            Args = []
+        };
+        registration!.Handler(cmdCtx);
+
+        Assert.Contains("Huh?", string.Join("", connection.SentText));
+        Assert.DoesNotContain("Connections for", string.Join("", connection.SentText));
+        Assert.DoesNotContain("No connections", string.Join("", connection.SentText));
     }
 }
