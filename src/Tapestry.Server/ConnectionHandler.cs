@@ -59,6 +59,8 @@ public class ConnectionHandler
         _gameLoop = gameLoop;
         _mobAI = mobAI;
         _flowEngine.NewPlayerEntityFactory = CreateNewPlayerEntity;
+        _flowEngine.GmcpSend = (connectionId, package, payload) =>
+            _gmcpService.SendRaw(connectionId, package, payload);
     }
 
     private static Entity CreateNewPlayerEntity(string name)
@@ -106,6 +108,7 @@ public class ConnectionHandler
         connection.SendLine("=== " + _config.Server.Name + " ===");
         connection.SendLine("");
         connection.SendLine("What is your name, adventurer?");
+        _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
 
         Action<string>? currentHandler = null;
 
@@ -189,6 +192,7 @@ public class ConnectionHandler
             {
                 connection.SendLine("Names must be 2-20 letters only.");
                 connection.SendLine("What is your name, adventurer?");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                 return;
             }
 
@@ -196,6 +200,7 @@ public class ConnectionHandler
             {
                 connection.SendLine("Someone else is creating that name right now. Try another.");
                 connection.SendLine("What is your name, adventurer?");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                 return;
             }
 
@@ -204,6 +209,7 @@ public class ConnectionHandler
                 _gmcpService.SendLoginPhase(rawConnection.Id, "password");
                 connection.SuppressEcho();
                 connection.SendLine("Password:");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "Password:");
 
                 SetHandler((passwordInput) =>
                 {
@@ -217,6 +223,7 @@ public class ConnectionHandler
                         connection.SendLine("Error loading character. Please try again.");
                         connection.SendLine("What is your name, adventurer?");
                         _gmcpService.SendLoginPhase(rawConnection.Id, "name");
+                        _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                         SetHandler(nameHandler);
                         return;
                     }
@@ -233,6 +240,7 @@ public class ConnectionHandler
                         connection.SendLine("Incorrect password.");
                         connection.SendLine("What is your name, adventurer?");
                         _gmcpService.SendLoginPhase(rawConnection.Id, "name");
+                        _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                         SetHandler(nameHandler);
                         return;
                     }
@@ -242,6 +250,7 @@ public class ConnectionHandler
                     {
                         _gmcpService.SendLoginPhase(rawConnection.Id, "name");
                         connection.SendLine("That character is already connected. Reconnect? (y/n)");
+                        _gmcpService.SendLoginPrompt(rawConnection.Id, "That character is already connected. Reconnect? (y/n)");
 
                         SetHandler((confirmInput) =>
                         {
@@ -260,6 +269,7 @@ public class ConnectionHandler
                             {
                                 connection.SendLine("What is your name, adventurer?");
                                 _gmcpService.SendLoginPhase(rawConnection.Id, "name");
+                                _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                                 SetHandler(nameHandler);
                             }
                         });
@@ -308,6 +318,7 @@ public class ConnectionHandler
                         return;
                     }
                     connection.SendLine("What is your name, adventurer?");
+                    _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                     return;
                 }
 
@@ -316,6 +327,7 @@ public class ConnectionHandler
                 _gmcpService.SendLoginPhase(rawConnection.Id, "password");
                 connection.SuppressEcho();
                 connection.SendLine("New character! Choose a password:");
+                _gmcpService.SendLoginPrompt(rawConnection.Id, "New character! Choose a password:");
 
                 Action<string> firstPasswordHandler = null!;
                 firstPasswordHandler = (passwordInput) =>
@@ -336,10 +348,12 @@ public class ConnectionHandler
                             $"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
                         connection.SuppressEcho();
                         connection.SendLine("Choose a password:");
+                        _gmcpService.SendLoginPrompt(rawConnection.Id, "Choose a password:");
                         return;
                     }
 
                     connection.SendLine("Confirm password:");
+                    _gmcpService.SendLoginPrompt(rawConnection.Id, "Confirm password:");
                     SetHandler((confirmInput) =>
                     {
                         connection.SendLine("");
@@ -357,6 +371,7 @@ public class ConnectionHandler
                             connection.SendLine("Passwords don't match. Try again.");
                             connection.SuppressEcho();
                             connection.SendLine("Choose a password:");
+                            _gmcpService.SendLoginPrompt(rawConnection.Id, "Choose a password:");
                             SetHandler(firstPasswordHandler);
                             return;
                         }
@@ -385,6 +400,7 @@ public class ConnectionHandler
                         {
                             connection.SendLine("Someone else is creating that name right now. Try another.");
                             connection.SendLine("What is your name, adventurer?");
+                            _gmcpService.SendLoginPrompt(rawConnection.Id, "What is your name, adventurer?");
                             SetHandler(nameHandler);
                             return;
                         }
