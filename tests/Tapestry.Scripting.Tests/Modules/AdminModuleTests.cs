@@ -1,11 +1,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
 public class AdminModuleTests
 {
+    private static readonly string InspectScriptPath = Path.GetFullPath(
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..", "..",
+            "packs", "tapestry-core", "scripts", "commands", "admin-inspect.js"));
+
     private (JintRuntime rt, World world) BuildRuntime()
     {
         var services = new ServiceCollection();
@@ -16,6 +23,44 @@ public class AdminModuleTests
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
         return (rt, provider.GetRequiredService<World>());
+    }
+
+    private (JintRuntime rt, World world, CommandRegistry registry, SessionManager sessions) BuildInspectRuntime()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        rt.Initialize();
+        var world = provider.GetRequiredService<World>();
+        var registry = provider.GetRequiredService<CommandRegistry>();
+        var sessions = provider.GetRequiredService<SessionManager>();
+        var script = File.ReadAllText(InspectScriptPath);
+        rt.Execute(script, "tapestry-core", "scripts/commands/admin-inspect.js");
+        return (rt, world, registry, sessions);
+    }
+
+    private (Entity admin, FakeConnection conn) CreateAdminSession(World world, SessionManager sessions, Room room)
+    {
+        var conn = new FakeConnection();
+        var admin = new Entity("player", "AdminTester");
+        admin.AddTag("admin");
+        admin.AddTag("player");
+        world.TrackEntity(admin);
+        room.AddEntity(admin);
+        sessions.Add(new PlayerSession(conn, admin));
+        return (admin, conn);
+    }
+
+    private Entity CreateNpc(World world, Room room, string name)
+    {
+        var mob = new Entity("npc", name);
+        mob.AddTag("npc");
+        world.TrackEntity(mob);
+        room.AddEntity(mob);
+        return mob;
     }
 
     private Entity CreateAdmin(World world)
@@ -431,6 +476,99 @@ public class AdminModuleTests
         var (rt, _) = BuildRuntime();
         var ex = Record.Exception(() => rt.Execute("tapestry.admin.setEntityHp('not-a-guid', 100)"));
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public void InspectCommand_NoOrdinal_FindsFirstGoblin()
+    {
+        var (rt, world, registry, sessions) = BuildInspectRuntime();
+        var room = new Room("test:inspect1", "Test Room", "A room.");
+        world.AddRoom(room);
+        var (admin, conn) = CreateAdminSession(world, sessions, room);
+        CreateNpc(world, room, "goblin guard");
+        CreateNpc(world, room, "goblin warrior");
+
+        var ctx = new CommandContext
+        {
+            PlayerEntityId = admin.Id,
+            RawInput = "inspect goblin",
+            Command = "inspect",
+            Args = new[] { "goblin" }
+        };
+        registry.Resolve("inspect")!.Handler(ctx);
+
+        var output = string.Join("", conn.SentText);
+        Assert.Contains("goblin guard", output);
+    }
+
+    [Fact]
+    public void InspectCommand_Ordinal1_FindsFirstGoblin()
+    {
+        var (rt, world, registry, sessions) = BuildInspectRuntime();
+        var room = new Room("test:inspect2", "Test Room", "A room.");
+        world.AddRoom(room);
+        var (admin, conn) = CreateAdminSession(world, sessions, room);
+        CreateNpc(world, room, "goblin guard");
+        CreateNpc(world, room, "goblin warrior");
+
+        var ctx = new CommandContext
+        {
+            PlayerEntityId = admin.Id,
+            RawInput = "inspect 1.goblin",
+            Command = "inspect",
+            Args = new[] { "1.goblin" }
+        };
+        registry.Resolve("inspect")!.Handler(ctx);
+
+        var output = string.Join("", conn.SentText);
+        Assert.Contains("goblin guard", output);
+    }
+
+    [Fact]
+    public void InspectCommand_Ordinal2_FindsSecondGoblin()
+    {
+        var (rt, world, registry, sessions) = BuildInspectRuntime();
+        var room = new Room("test:inspect3", "Test Room", "A room.");
+        world.AddRoom(room);
+        var (admin, conn) = CreateAdminSession(world, sessions, room);
+        CreateNpc(world, room, "goblin guard");
+        CreateNpc(world, room, "goblin warrior");
+
+        var ctx = new CommandContext
+        {
+            PlayerEntityId = admin.Id,
+            RawInput = "inspect 2.goblin",
+            Command = "inspect",
+            Args = new[] { "2.goblin" }
+        };
+        registry.Resolve("inspect")!.Handler(ctx);
+
+        var output = string.Join("", conn.SentText);
+        Assert.Contains("goblin warrior", output);
+        Assert.DoesNotContain("goblin guard", output);
+    }
+
+    [Fact]
+    public void InspectCommand_OrdinalOutOfRange_ReturnsNothingNamed()
+    {
+        var (rt, world, registry, sessions) = BuildInspectRuntime();
+        var room = new Room("test:inspect4", "Test Room", "A room.");
+        world.AddRoom(room);
+        var (admin, conn) = CreateAdminSession(world, sessions, room);
+        CreateNpc(world, room, "goblin guard");
+        CreateNpc(world, room, "goblin warrior");
+
+        var ctx = new CommandContext
+        {
+            PlayerEntityId = admin.Id,
+            RawInput = "inspect 3.goblin",
+            Command = "inspect",
+            Args = new[] { "3.goblin" }
+        };
+        registry.Resolve("inspect")!.Handler(ctx);
+
+        var output = string.Join("", conn.SentText);
+        Assert.Contains("Nothing named", output);
     }
 
     [Fact]
