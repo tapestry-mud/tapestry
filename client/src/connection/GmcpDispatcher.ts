@@ -23,6 +23,18 @@ import {
   RoomInfoSchema, RoomNearbySchema,
   WorldTimeSchema, WorldWeatherSchema, WorldDisplayColorsSchema, CommChannelSchema, LoginPhaseSchema,
 } from '../types/gmcp'
+import {
+  ResponseFeedbackSchema,
+  ResponseShopListSchema,
+  ResponseShopBuySchema,
+  ResponseShopSellSchema,
+  ResponseShopValueSchema,
+  ResponseTrainingPracticeSchema,
+  ResponseTrainingTrainSchema,
+  ResponseCharScoreSchema,
+  ResponseLookSchema,
+  ResponseHelpSchema,
+} from '../types/responseGmcp'
 
 type GmcpHandler = (data: unknown) => void
 
@@ -37,7 +49,24 @@ export const GmcpDispatcher = {
     const handler = handlers.get(pkg)
     if (handler) {
       handler(data)
-    } else if (import.meta.env.DEV) {
+      return
+    }
+
+    // Unknown Response.* packages fall through to the feedback handler.
+    // This handles new server-side response types without a client update,
+    // as long as the payload carries a message field.
+    if (pkg.startsWith('Response.')) {
+      const feedbackHandler = handlers.get('Response.Feedback')
+      if (feedbackHandler) {
+        const asObj = data as Record<string, unknown>
+        if (asObj && typeof asObj.message === 'string') {
+          feedbackHandler({ status: 'ok', type: 'info', message: asObj.message, category: 'general' })
+        }
+      }
+      return
+    }
+
+    if (import.meta.env.DEV) {
       console.debug(`[GMCP] unhandled package: ${pkg}`)
     }
   },
@@ -224,6 +253,135 @@ export function initCoreHandlers(): void {
       useConnectionStore.getState().setLoginPhase(result.data.phase)
     } else {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Char.Login.Phase')
+    }
+  })
+
+  // --- Response.Feedback: catch-all for unsuppressed command output ---
+  GmcpDispatcher.register('Response.Feedback', (data) => {
+    const result = ResponseFeedbackSchema.safeParse(data)
+    if (result.success) {
+      announce(result.data.message, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Feedback')
+    }
+  })
+
+  // --- Response.Shop.List ---
+  GmcpDispatcher.register('Response.Shop.List', (data) => {
+    const result = ResponseShopListSchema.safeParse(data)
+    if (result.success) {
+      const count = result.data.items.length
+      const summary = count === 0
+        ? `${result.data.shopkeeper} has nothing for sale.`
+        : `${result.data.shopkeeper} sells ${count} item${count === 1 ? '' : 's'}.`
+      announce(summary, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Shop.List')
+    }
+  })
+
+  // --- Response.Shop.Buy ---
+  GmcpDispatcher.register('Response.Shop.Buy', (data) => {
+    const result = ResponseShopBuySchema.safeParse(data)
+    if (result.success) {
+      announce(result.data.message, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Shop.Buy')
+    }
+  })
+
+  // --- Response.Shop.Sell ---
+  GmcpDispatcher.register('Response.Shop.Sell', (data) => {
+    const result = ResponseShopSellSchema.safeParse(data)
+    if (result.success) {
+      announce(result.data.message, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Shop.Sell')
+    }
+  })
+
+  // --- Response.Shop.Value ---
+  GmcpDispatcher.register('Response.Shop.Value', (data) => {
+    const result = ResponseShopValueSchema.safeParse(data)
+    if (result.success) {
+      announce(result.data.message, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Shop.Value')
+    }
+  })
+
+  // --- Response.Training.Practice ---
+  GmcpDispatcher.register('Response.Training.Practice', (data) => {
+    const result = ResponseTrainingPracticeSchema.safeParse(data)
+    if (result.success) {
+      const { abilities, trainer } = result.data
+      if (abilities.length === 0) {
+        announce('No abilities to practice.', 'feedback')
+      } else {
+        const names = abilities.slice(0, 3).map((a) => a.name).join(', ')
+        const more = abilities.length > 3 ? ` and ${abilities.length - 3} more` : ''
+        const trainerNote = trainer ? ` ${trainer} is here.` : ''
+        announce(`Practice list: ${names}${more}.${trainerNote}`, 'feedback')
+      }
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Training.Practice')
+    }
+  })
+
+  // --- Response.Training.Train ---
+  GmcpDispatcher.register('Response.Training.Train', (data) => {
+    const result = ResponseTrainingTrainSchema.safeParse(data)
+    if (result.success) {
+      if (result.data.message) {
+        announce(result.data.message, 'feedback')
+      } else if (result.data.trainsRemaining != null) {
+        announce(`Trains available: ${result.data.trainsRemaining}.`, 'feedback')
+      }
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Training.Train')
+    }
+  })
+
+  // --- Response.Char.Score ---
+  GmcpDispatcher.register('Response.Char.Score', (data) => {
+    const result = ResponseCharScoreSchema.safeParse(data)
+    if (result.success) {
+      const d = result.data
+      const summary = `${d.name}, level ${d.level} ${d.race} ${d.class}. HP: ${d.hp}/${d.maxHp}, Mana: ${d.mana}/${d.maxMana}, Gold: ${d.gold}.`
+      announce(summary, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Char.Score')
+    }
+  })
+
+  // --- Response.Look ---
+  GmcpDispatcher.register('Response.Look', (data) => {
+    const result = ResponseLookSchema.safeParse(data)
+    if (result.success) {
+      const d = result.data
+      if (d.type === 'room') {
+        const exits = d.exits && d.exits.length > 0
+          ? `, exits: ${d.exits.join(', ')}`
+          : ', no exits'
+        const entityNames = d.entities && d.entities.length > 0
+          ? `. ${d.entities.map((e) => e.name).join(', ')} here.`
+          : ''
+        announce(`${d.name}${exits}${entityNames}`, 'feedback')
+      } else {
+        announce(`${d.name}: ${d.description}`, 'feedback')
+      }
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Look')
+    }
+  })
+
+  // --- Response.Help ---
+  GmcpDispatcher.register('Response.Help', (data) => {
+    const result = ResponseHelpSchema.safeParse(data)
+    if (result.success) {
+      announce(`Help: ${result.data.body}`, 'feedback')
+    } else {
+      useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Help')
     }
   })
 }

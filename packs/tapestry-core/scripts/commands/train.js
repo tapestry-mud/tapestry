@@ -54,6 +54,23 @@ tapestry.commands.register({
     description: 'Spend a train to raise a stat.',
     handler: function(player, args) {
         if (args.length === 0) {
+            var trainsAvail = tapestry.training.getTrainsAvailable(player.entityId);
+            var statsObj = tapestry.stats.get(player.entityId);
+
+            tapestry.gmcp.send(player.entityId, 'Response.Training.Train', {
+                status: 'ok',
+                trainsRemaining: trainsAvail,
+                stats: statsObj ? {
+                    str: statsObj.strength,
+                    int: statsObj.intelligence,
+                    wis: statsObj.wisdom,
+                    dex: statsObj.dexterity,
+                    con: statsObj.constitution,
+                    luk: statsObj.luck
+                } : null
+            });
+
+            tapestry.respond.suppress(player.entityId);
             renderTrainList(player);
             return;
         }
@@ -65,6 +82,23 @@ tapestry.commands.register({
         }
 
         var result = tapestry.training.trainStat(player.entityId, statName);
+
+        var statsAfter = tapestry.stats.get(player.entityId);
+        tapestry.gmcp.send(player.entityId, 'Response.Training.Train', {
+            status: result.kind === 'ok' ? 'ok' : 'error',
+            message: result.message,
+            trainsRemaining: tapestry.training.getTrainsAvailable(player.entityId),
+            stats: result.kind === 'ok' && statsAfter ? {
+                str: statsAfter.strength,
+                int: statsAfter.intelligence,
+                wis: statsAfter.wisdom,
+                dex: statsAfter.dexterity,
+                con: statsAfter.constitution,
+                luk: statsAfter.luck
+            } : undefined
+        });
+
+        tapestry.respond.suppress(player.entityId);
         player.send(result.message + '\r\n');
     }
 });

@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
     {
         // Service classes
         services.AddSingleton<ApiMessaging>();
+        services.AddSingleton<CommandResponseContext>();
         services.AddSingleton<ApiWorld>();
         services.AddSingleton<ApiStats>();
         services.AddSingleton<ApiMobs>();
@@ -66,6 +67,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IGmcpModuleAdapter, NullGmcpModuleAdapter>();
         services.AddSingleton<IJintApiModule, GmcpModule>();
+        services.AddSingleton<IJintApiModule, RespondModule>();
 
         // Runtime and loader
         services.AddSingleton<JintRuntime>();

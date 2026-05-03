@@ -49,9 +49,43 @@ function renderPracticeList(player) {
 tapestry.commands.register({
     name: 'practice',
     aliases: ['prac'],
-    description: 'Show your proficiencies or train with a teacher.',
+    description: 'Show your proficiencies or practice with a teacher.',
     handler: function(player, args) {
         if (args.length === 0) {
+            var learned = tapestry.abilities.getLearnedAbilities(player.entityId);
+            var trainerResult = tapestry.training.findTrainerInRoom(player.entityId);
+            var trainerName = trainerResult ? trainerResult.name : null;
+            var trainerTier = trainerResult ? trainerResult.tier : null;
+            var nextTierMap = {
+                novice: 'apprentice',
+                apprentice: 'journeyman',
+                journeyman: 'master',
+                master: null
+            };
+
+            tapestry.gmcp.send(player.entityId, 'Response.Training.Practice', {
+                status: 'ok',
+                trainer: trainerName,
+                trainerTier: trainerTier,
+                abilities: (learned || []).map(function(a) {
+                    var capTier = tapestry.training.getCap(player.entityId, a.id);
+                    var capNum = capTier === 'novice' ? 25
+                        : capTier === 'apprentice' ? 50
+                        : capTier === 'journeyman' ? 75 : 100;
+                    var def = tapestry.abilities.getDefinition(a.id);
+                    var displayName = (def && def.short_name) ? def.short_name
+                        : (def ? def.name : a.id);
+                    return {
+                        id: a.id,
+                        name: displayName,
+                        proficiency: a.proficiency,
+                        cap: capNum,
+                        nextTier: nextTierMap[capTier] !== undefined ? nextTierMap[capTier] : null
+                    };
+                })
+            });
+
+            tapestry.respond.suppress(player.entityId);
             renderPracticeList(player);
             return;
         }

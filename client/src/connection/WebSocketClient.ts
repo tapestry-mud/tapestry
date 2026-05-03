@@ -35,7 +35,7 @@ function connect(address: string): void {
     useConnectionStore.getState().setError(null)
     useDebugStore.getState().logConnection('connected', url)
     useConnectionStore.getState().setLoginPhase('name')
-    sendGmcp('Core.Supports.Set', ['Char 1', 'Room 1', 'Comm 1', 'Login 1'])
+    sendGmcp('Core.Supports.Set', ['Char 1', 'Room 1', 'Comm 1', 'Login 1', 'Response 1'])
   }
 
   ws.onmessage = (event) => {

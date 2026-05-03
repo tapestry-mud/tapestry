@@ -212,6 +212,12 @@ public class ApiWorld
         return room?.Name;
     }
 
+    public string? GetRoomDescription(string roomId)
+    {
+        var room = _world.GetRoom(roomId);
+        return room?.Description;
+    }
+
     public string? GetRoomArea(string roomId)
     {
         var room = _world.GetRoom(roomId);

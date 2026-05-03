@@ -18,6 +18,7 @@ public class CommandsModule : IJintApiModule
     private readonly ApiStats _stats;
     private readonly World _world;
     private readonly ILogger<CommandsModule> _logger;
+    private readonly CommandResponseContext _responseContext;
 
     private readonly List<string> _undescribedCommands = new();
 
@@ -27,7 +28,8 @@ public class CommandsModule : IJintApiModule
         ApiWorld worldOps,
         ApiStats stats,
         World world,
-        ILogger<CommandsModule> logger)
+        ILogger<CommandsModule> logger,
+        CommandResponseContext responseContext)
     {
         _commandRegistry = commandRegistry;
         _messaging = messaging;
@@ -35,6 +37,7 @@ public class CommandsModule : IJintApiModule
         _stats = stats;
         _world = world;
         _logger = logger;
+        _responseContext = responseContext;
     }
 
     public string Namespace => "commands";
@@ -252,6 +255,13 @@ public class CommandsModule : IJintApiModule
             })
         };
 
-        engine.Invoke(handler, null, new object[] { playerObj, ctx.Args });
+        try
+        {
+            engine.Invoke(handler, null, new object[] { playerObj, ctx.Args });
+        }
+        finally
+        {
+            _responseContext.Reset(ctx.PlayerEntityId);
+        }
     }
 }
