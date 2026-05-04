@@ -237,73 +237,65 @@ public class FlowInstanceTests
     }
 
     [Fact]
-    public void ChoiceStep_bare_question_mark_shows_hint_message()
+    public void ChoiceStep_bare_question_mark_routes_to_help_command()
     {
+        string? routed = null;
         var (instance, session, conn) = Setup(
             new ChoiceStep
             {
                 Id = "c",
                 Prompt = _ => "Choose:",
-                Options = _ => new[]
-                {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious."),
-                    new ChoiceOption("Andoran", "folk", _ => "Children of the Light.")
-                },
+                Options = _ => new[] { new ChoiceOption("Human", "human") },
                 OnSelect = (_, _) => { }
             });
+        instance.CommandFallback = cmd => { routed = cmd; };
 
         instance.Start(session);
         instance.HandleInput("?");
 
-        conn.SentText.Should().Contain(s => s.Contains("? [option]") || s.Contains("learn more"));
-        conn.SentText.Should().NotContain(s => s.Contains("Adaptable and ambitious."));
+        routed.Should().Be("help");
         instance.CurrentStepIndex.Should().Be(0);
     }
 
     [Fact]
-    public void ChoiceStep_bare_help_shows_hint_message()
+    public void ChoiceStep_bare_help_routes_to_help_command()
     {
+        string? routed = null;
         var (instance, session, conn) = Setup(
             new ChoiceStep
             {
                 Id = "c",
                 Prompt = _ => "Choose:",
-                Options = _ => new[]
-                {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious.")
-                },
+                Options = _ => new[] { new ChoiceOption("Human", "human") },
                 OnSelect = (_, _) => { }
             });
+        instance.CommandFallback = cmd => { routed = cmd; };
 
         instance.Start(session);
         instance.HandleInput("help");
 
-        conn.SentText.Should().Contain(s => s.Contains("? [option]") || s.Contains("learn more"));
-        conn.SentText.Should().NotContain(s => s.Contains("Adaptable and ambitious."));
+        routed.Should().Be("help");
         instance.CurrentStepIndex.Should().Be(0);
     }
 
     [Fact]
-    public void ChoiceStep_help_with_number_shows_description_for_that_option()
+    public void ChoiceStep_question_with_term_routes_to_help_with_term()
     {
+        string? routed = null;
         var (instance, session, conn) = Setup(
             new ChoiceStep
             {
                 Id = "c",
                 Prompt = _ => "Choose:",
-                Options = _ => new[]
-                {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious."),
-                    new ChoiceOption("Andoran", "folk", _ => "Children of the Light.")
-                },
+                Options = _ => new[] { new ChoiceOption("Human", "human") },
                 OnSelect = (_, _) => { }
             });
+        instance.CommandFallback = cmd => { routed = cmd; };
 
         instance.Start(session);
-        instance.HandleInput("? 2");
+        instance.HandleInput("? races");
 
-        conn.SentText.Should().Contain(s => s.Contains("Children of the Light."));
-        conn.SentText.Should().NotContain(s => s.Contains("Adaptable and ambitious."));
+        routed.Should().Be("help races");
         instance.CurrentStepIndex.Should().Be(0);
     }
 
@@ -321,77 +313,31 @@ public class FlowInstanceTests
 
         instance.Start(session);
 
-        conn.SentText.Should().Contain(s => s.Contains("? [option]") || s.Contains("for details"));
+        conn.SentText.Should().Contain(s => s.Contains("help") && s.Contains("for details"));
     }
 
     [Fact]
-    public void ChoiceStep_help_with_name_shows_matching_description()
+    public void ChoiceStep_rendered_prompt_uses_help_hint_when_set()
     {
         var (instance, session, conn) = Setup(
             new ChoiceStep
             {
                 Id = "c",
                 Prompt = _ => "Choose:",
-                Options = _ => new[]
-                {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious."),
-                    new ChoiceOption("Andoran", "folk", _ => "Children of the Light.")
-                },
-                OnSelect = (_, _) => { }
+                Options = _ => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _) => { },
+                HelpHint = "races"
             });
 
         instance.Start(session);
-        instance.HandleInput("? Human");
 
-        conn.SentText.Should().Contain(s => s.Contains("Adaptable and ambitious."));
-        conn.SentText.Should().NotContain(s => s.Contains("Children of the Light."));
-        instance.CurrentStepIndex.Should().Be(0);
+        conn.SentText.Should().Contain(s => s.Contains("help races") && s.Contains("for details"));
     }
 
     [Fact]
-    public void ChoiceStep_help_prefix_is_case_insensitive()
+    public void ChoiceStep_help_with_term_routes_regardless_of_option_match()
     {
-        var (instance, session, conn) = Setup(
-            new ChoiceStep
-            {
-                Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[]
-                {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious.")
-                },
-                OnSelect = (_, _) => { }
-            });
-
-        instance.Start(session);
-        instance.HandleInput("HELP HUMAN");
-
-        conn.SentText.Should().Contain(s => s.Contains("Adaptable and ambitious."));
-        instance.CurrentStepIndex.Should().Be(0);
-    }
-
-    [Fact]
-    public void ChoiceStep_help_unknown_option_sends_unknown_message()
-    {
-        var (instance, session, conn) = Setup(
-            new ChoiceStep
-            {
-                Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human", _ => "Warriors.") },
-                OnSelect = (_, _) => { }
-            });
-
-        instance.Start(session);
-        instance.HandleInput("? Elf");
-
-        conn.SentText.Should().Contain(s => s.Contains("Unknown option: Elf"));
-        instance.CurrentStepIndex.Should().Be(0);
-    }
-
-    [Fact]
-    public void ChoiceStep_help_option_without_description_sends_fallback()
-    {
+        string? routed = null;
         var (instance, session, conn) = Setup(
             new ChoiceStep
             {
@@ -400,11 +346,33 @@ public class FlowInstanceTests
                 Options = _ => new[] { new ChoiceOption("Human", "human") },
                 OnSelect = (_, _) => { }
             });
+        instance.CommandFallback = cmd => { routed = cmd; };
 
         instance.Start(session);
-        instance.HandleInput("? Human");
+        instance.HandleInput("? Elf");
 
-        conn.SentText.Should().Contain(s => s.Contains("No additional information available for Human."));
+        routed.Should().Be("help Elf");
+        instance.CurrentStepIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public void ChoiceStep_help_prefix_routes_full_input_to_fallback()
+    {
+        string? routed = null;
+        var (instance, session, conn) = Setup(
+            new ChoiceStep
+            {
+                Id = "c",
+                Prompt = _ => "Choose:",
+                Options = _ => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _) => { }
+            });
+        instance.CommandFallback = cmd => { routed = cmd; };
+
+        instance.Start(session);
+        instance.HandleInput("help races");
+
+        routed.Should().Be("help races");
         instance.CurrentStepIndex.Should().Be(0);
     }
 
@@ -685,8 +653,9 @@ public class FlowInstanceTests
     }
 
     [Fact]
-    public void WizardPanel_help_query_does_not_clear_screen()
+    public void WizardPanel_help_query_routes_to_command_fallback()
     {
+        string? routed = null;
         var (instance, session, conn) = SetupWizard(
             new[] { new WizardStep("c", "Race") },
             new ChoiceStep
@@ -699,12 +668,13 @@ public class FlowInstanceTests
                 },
                 OnSelect = (_, _) => { }
             });
+        instance.CommandFallback = cmd => { routed = cmd; };
 
         instance.Start(session);
         conn.SentText.Clear();
         instance.HandleInput("? Human");
 
-        conn.SentText.Should().Contain(s => s.Contains("Adaptable and ambitious."));
-        conn.SentText.Should().NotContain(s => s.Contains("\x1b[2J"));
+        routed.Should().Be("help Human");
+        conn.SentText.Should().NotContain(s => s.Contains("Adaptable and ambitious."));
     }
 }

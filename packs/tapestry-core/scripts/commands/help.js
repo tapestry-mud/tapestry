@@ -1,44 +1,54 @@
 tapestry.commands.register({
     name: 'help',
     aliases: ['?'],
-    description: 'Show help for a command or topic.',
-    priority: 0,
+    description: 'Browse or search help topics.',
+    priority: 100,
     handler: function(player, args) {
-        var topic = args.length > 0 ? args.join(' ') : 'commands';
-
-        var helpBody = [
-            'Movement:  north(n) south(s) east(e) west(w) up(u) down(d)',
-            'Looking:   look(l) exits examine(ex)',
-            'Items:     get(take) drop give put',
-            'Equipment: wear wield remove equipment(eq)',
-            "Talking:   say(') yell emote(:)",
-            'Info:      who help(?) score inventory(i) motd',
-            'Other:     recall quit(qq)'
-        ].join('\n');
-
-        tapestry.gmcp.send(player.entityId, 'Response.Help', {
-            status: 'ok',
-            topic: topic,
-            body: helpBody,
-            seeAlso: []
-        });
-
         tapestry.respond.suppress(player.entityId);
 
-        var output = tapestry.ui.panel({
-            sections: [{
-                rows: [
-                    { type: 'title', left: 'Tapestry Commands' },
-                    { type: 'text', content: "  Movement:  north(n) south(s) east(e) west(w) up(u) down(d)" },
-                    { type: 'text', content: '  Looking:   look(l) exits examine(ex)' },
-                    { type: 'text', content: '  Items:     get(take) drop give put' },
-                    { type: 'text', content: '  Equipment: wear wield remove equipment(eq)' },
-                    { type: 'text', content: "  Talking:   say(') yell emote(:)" },
-                    { type: 'text', content: '  Info:      who help(?) score inventory(i) motd' },
-                    { type: 'text', content: '  Other:     recall quit(qq)' }
-                ]
-            }]
-        });
-        player.send('\r\n' + output + '\r\n');
+        var helpId = player.isChargen ? null : player.entityId;
+        var term = args ? String(args).trim() : '';
+
+        if (!term) {
+            var cats = helpId ? tapestry.help.categories(helpId) : tapestry.help.categories();
+
+            if (cats.length === 0) {
+                player.send('No help topics available.\r\n');
+                return;
+            }
+
+            var lines = ['Help Topics:\r\n'];
+            for (var i = 0; i < cats.length; i++) {
+                var cat = String(cats[i]);
+                var topics = helpId ? tapestry.help.list(helpId, cat) : tapestry.help.list(cat);
+                lines.push('  ' + cat + ' (' + topics.length + (topics.length === 1 ? ' topic' : ' topics') + ')\r\n');
+            }
+            lines.push('\r\nType help [topic] for details.\r\n');
+            player.send(lines.join(''));
+            return;
+        }
+
+        var result = helpId ? tapestry.help.query(helpId, term) : tapestry.help.query(term);
+
+        if (result.status === 'ok') {
+            player.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+                status: 'ok',
+                topic: result.topic
+            });
+        } else if (result.status === 'multiple') {
+            player.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+                status: 'multiple',
+                term: result.term,
+                matches: result.matches
+            });
+        } else {
+            player.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+                status: 'no_match',
+                term: result.term
+            });
+        }
     }
 });

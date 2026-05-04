@@ -157,12 +157,24 @@ export type ResponseLook = z.infer<typeof ResponseLookSchema>
 
 // --- Response.Help ---
 
-export const ResponseHelpSchema = z.object({
-  status: z.enum(['ok', 'error']),
-  topic: z.string(),
-  category: z.string().optional(),
-  body: z.string(),
-  seeAlso: z.array(z.string()).optional(),
+const ResponseHelpTopicSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string().default(''),
+  brief: z.string().default(''),
+  body: z.string().default(''),
+  syntax: z.array(z.string()).default([]),
+  seeAlso: z.array(z.string()).default([]),
 })
+
+export const ResponseHelpSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('ok'), topic: ResponseHelpTopicSchema }),
+  z.object({
+    status: z.literal('multiple'),
+    term: z.string(),
+    matches: z.array(z.object({ id: z.string(), title: z.string(), brief: z.string() })),
+  }),
+  z.object({ status: z.literal('no_match'), term: z.string() }),
+])
 
 export type ResponseHelp = z.infer<typeof ResponseHelpSchema>

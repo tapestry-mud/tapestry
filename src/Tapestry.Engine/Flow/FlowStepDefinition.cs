@@ -18,6 +18,7 @@ public class ChoiceStep : FlowStepDefinition
     public required Func<Entity, string> Prompt { get; init; }
     public required Func<Entity, IReadOnlyList<ChoiceOption>> Options { get; init; }
     public required Action<Entity, ChoiceOption> OnSelect { get; init; }
+    public string? HelpHint { get; init; }
 }
 
 public class TextStep : FlowStepDefinition

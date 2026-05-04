@@ -1,0 +1,114 @@
+# help command
+# Tests role-filtered TOC, topic lookup, exact ID match, fuzzy keyword match,
+# and "no match" error message -- covering chargen and player contexts.
+
+## Scenario: Chargen TOC shows chargen category, not combat
+- Players: (none -- pre-login chargen context)
+
+### Steps
+1. Connect without logging in (session is in Creating phase, no player entity)
+2. Send: `help`
+3. Assert sees: `chargen`
+4. Assert does not see: `combat`
+
+### Notes
+- All combat topics have role:player. Chargen context has no role, so
+  role:player topics must be filtered out.
+- Expected: category list contains "chargen", omits "combat".
+
+---
+
+## Scenario: Chargen topic with no role requirement renders
+- Players: (none -- pre-login chargen context)
+
+### Steps
+1. Connect without logging in
+2. Send: `help races`
+3. Assert sees: `Choosing a Race`
+
+### Notes
+- races.yaml has no role field -- available in all contexts.
+
+---
+
+## Scenario: Chargen context blocks player-only topic
+- Players: (none -- pre-login chargen context)
+
+### Steps
+1. Connect without logging in
+2. Send: `help combat-basics`
+3. Assert sees: `No help found for 'combat-basics'.`
+
+### Notes
+- combat-basics.yaml has role:player. Without a player entity, the topic
+  must be invisible and return the "no match" message.
+
+---
+
+## Scenario: Player TOC includes both combat and chargen
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `help`
+2. Assert Wanderer sees: `combat`
+3. Assert Wanderer sees: `chargen`
+
+### Notes
+- Logged-in player has role:player, so all categories visible.
+
+---
+
+## Scenario: Player retrieves player-only topic
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `help combat-basics`
+2. Assert Wanderer sees: `Combat Basics`
+3. Assert Wanderer sees: `kill [target]`
+4. Assert Wanderer sees: `flee`
+5. Assert Wanderer sees: `Combat begins when you attack`
+
+### Notes
+- Verifies title, syntax block, and body all render.
+
+---
+
+## Scenario: Player gets no-match message for unknown topic
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `help xyzzy`
+2. Assert Wanderer sees: `No help found for 'xyzzy'.`
+
+---
+
+## Scenario: Exact ID match returns overview topic directly
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `help combat`
+2. Assert Wanderer sees: `Combat`
+3. Assert Wanderer sees: `combat-basics`
+4. Assert Wanderer does not see: `disambiguation`
+5. Assert Wanderer does not see: `Did you mean`
+
+### Notes
+- "combat" is an exact topic ID. The resolver must match it directly
+  and render the combat.yaml overview, not a disambiguation list.
+- see_also should include "combat-basics" per the topic definition.
+
+---
+
+## Scenario: Fuzzy keyword single match returns topic directly
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `help fighting`
+2. Assert Wanderer sees: `Combat Basics`
+
+### Notes
+- "fighting" is a keyword on combat-basics.yaml. It is the only topic
+  in example-pack with that keyword, so the resolver returns it directly
+  without a disambiguation prompt.
+- If a second "fighting" keyword topic is added later, this scenario
+  should be updated to test disambiguation instead.

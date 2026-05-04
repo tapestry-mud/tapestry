@@ -240,6 +240,7 @@ public class CommandsModule : IJintApiModule
             roomId = roomId,
             previousRoomId = roomId,
             stats = statsObj,
+            isChargen = ctx.IsChargen,
             hasTag = new Func<string, bool>(tag =>
             {
                 var entity = _world.GetEntity(ctx.PlayerEntityId);

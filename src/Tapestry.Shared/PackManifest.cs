@@ -29,4 +29,5 @@ public class PackContentPaths
     public string Mobs { get; set; } = "";
     public string AreaDefinitions { get; set; } = "";
     public string WeatherZones { get; set; } = "";
+    public string Help { get; set; } = "";
 }

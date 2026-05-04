@@ -1,4 +1,5 @@
 using Jint.Native;
+using Jint.Native.Array;
 using Jint.Native.Object;
 using Jint.Runtime;
 using Tapestry.Engine.Ui;
@@ -21,7 +22,8 @@ public class UiModule : IJintApiModule
     {
         return new
         {
-            panel = new Func<JsValue, string>(RenderPanel)
+            panel = new Func<JsValue, string>(RenderPanel),
+            help = new Func<JsValue, string>(RenderHelp)
         };
     }
 
@@ -227,5 +229,74 @@ public class UiModule : IJintApiModule
             "center" => Align.Center,
             _ => Align.Left
         };
+    }
+
+    private static string RenderHelp(JsValue specVal)
+    {
+        if (specVal is not ObjectInstance spec) { return ""; }
+
+        var status = spec.Get("status");
+        if (status.Type == Types.Undefined) { return ""; }
+
+        return status.ToString() switch
+        {
+            "ok" => RenderHelpTopic(spec),
+            "multiple" => RenderHelpDisambiguation(spec),
+            "no_match" => HelpRenderer.RenderNoMatch(spec.Get("term")?.ToString() ?? ""),
+            _ => ""
+        };
+    }
+
+    private static string RenderHelpTopic(ObjectInstance spec)
+    {
+        var topicObj = spec.Get("topic");
+        if (topicObj is not ObjectInstance t) { return ""; }
+
+        var topic = new Tapestry.Shared.Help.HelpTopic
+        {
+            Title = t.Get("title")?.ToString() ?? "",
+            Brief = t.Get("brief")?.ToString() ?? "",
+            Body = t.Get("body")?.ToString() ?? "",
+            Syntax = GetStringList(t, "syntax"),
+            SeeAlso = GetStringList(t, "seeAlso")
+        };
+        return HelpRenderer.RenderTopic(topic);
+    }
+
+    private static string RenderHelpDisambiguation(ObjectInstance spec)
+    {
+        var term = spec.Get("term")?.ToString() ?? "";
+        var matchesArr = spec.Get("matches");
+        var matches = new List<Tapestry.Shared.Help.HelpTopicSummary>();
+
+        if (matchesArr is JsArray arr)
+        {
+            for (uint i = 0; i < arr.Length; i++)
+            {
+                if (arr[i] is ObjectInstance m)
+                {
+                    matches.Add(new Tapestry.Shared.Help.HelpTopicSummary
+                    {
+                        Id = m.Get("id")?.ToString() ?? "",
+                        Title = m.Get("title")?.ToString() ?? "",
+                        Brief = m.Get("brief")?.ToString() ?? ""
+                    });
+                }
+            }
+        }
+
+        return HelpRenderer.RenderDisambiguation(term, matches);
+    }
+
+    private static List<string> GetStringList(ObjectInstance obj, string key)
+    {
+        var val = obj.Get(key);
+        if (val is not JsArray arr) { return new(); }
+        var result = new List<string>();
+        for (uint i = 0; i < arr.Length; i++)
+        {
+            result.Add(arr[i].ToString());
+        }
+        return result;
     }
 }

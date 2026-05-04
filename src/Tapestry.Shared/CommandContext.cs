@@ -6,4 +6,5 @@ public class CommandContext
     public required string RawInput { get; init; }
     public required string Command { get; init; }
     public required string[] Args { get; init; }
+    public bool IsChargen { get; init; }
 }
