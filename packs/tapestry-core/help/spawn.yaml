@@ -1,0 +1,16 @@
+id: "spawn"
+title: "Spawn"
+category: "admin"
+role: "admin"
+keywords: [create mob, npc, summon, template, admin]
+brief: "Spawn a mob from a template ID into your current room."
+syntax:
+  - "spawn [template-id]"
+body: |
+  Spawn creates an NPC instance from the given mob template ID and
+  places it in your current room. Use it to test mob behavior, populate
+  areas during development, or restore NPCs removed by purge.
+
+  Template IDs follow the format "pack:mob-id". Use inspect on an
+  existing mob to find its template ID.
+see_also: [purge, loaditem, admin]

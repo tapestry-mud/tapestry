@@ -1,0 +1,22 @@
+id: "human"
+title: "Human"
+category: "creation"
+keywords: [race, versatile, adaptable, common, folk, balanced]
+brief: "Adaptable and ambitious - the most common folk in the world."
+body: |
+  Humans are the most widespread race, known for their adaptability
+  and drive. They excel at no single discipline but take to any path
+  with ease, making them a reliable choice for any class.
+
+  STAT CAPS: Strength 25, Intelligence 25, Wisdom 25, Dexterity 25,
+  Constitution 25, Luck 25.
+
+  POOL CAPS: HP 18, Resource 18, Move 16.
+
+  SPELLCASTING: Humans have a slight advantage in mana efficiency,
+  reducing spell costs by 10%.
+
+  Humans pair well with any class. Their balanced caps mean no class
+  is a poor fit, though they lack the specialized highs that other
+  races bring to their preferred disciplines.
+see_also: [elf, races, creation, warrior, mage]

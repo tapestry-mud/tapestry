@@ -1,0 +1,20 @@
+id: "score"
+title: "Score"
+category: "character"
+role: "player"
+keywords: [stats, status, sheet, info, level, hp, xp, experience, attributes]
+brief: "Display your character stats and status."
+syntax:
+  - "score"
+body: |
+  Score displays your full character sheet: name, race, class, level,
+  experience, HP, resource, movement, gold, and all core attributes
+  (strength, intelligence, wisdom, dexterity, constitution, luck).
+
+  It also shows secondary values derived from your attributes and
+  equipment: armor class, hit roll, damage roll, and any relevant
+  modifiers.
+
+  Check score regularly after leveling, equipping new gear, or gaining
+  stat-affecting buffs to understand how your character has changed.
+see_also: [affects, character, progression]

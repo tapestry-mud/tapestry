@@ -1,0 +1,18 @@
+id: "say"
+title: "Say"
+category: "communication"
+role: "player"
+keywords: [speak, talk, local, room, chat, ']
+brief: "Speak to everyone in your current room."
+syntax:
+  - "say [message]"
+  - "' [message]"
+body: |
+  Say sends your message to everyone in the same room. NPCs and players
+  alike can hear it. Use the apostrophe (') as a shortcut.
+
+  Say is local only - players in other rooms cannot hear you. For
+  messages that cross rooms, use gossip, yell, or tell.
+
+  Your speech appears as: You say, 'message here.'
+see_also: [emote, tell, gossip, yell, communication]

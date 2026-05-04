@@ -1,0 +1,18 @@
+id: "motd"
+title: "Message of the Day"
+category: "world"
+role: "player"
+keywords: [message, announcement, news, bulletin, daily, login]
+brief: "Display the message of the day."
+syntax:
+  - "motd"
+body: |
+  Motd shows the current message of the day, which administrators use
+  to share news, announcements, events, and important changes.
+
+  The MOTD is shown automatically when you log in. Use motd to view
+  it again at any time during play.
+
+  Check the MOTD when you return after a break - it is the primary
+  way staff communicate updates to the player base.
+see_also: [packs, world]

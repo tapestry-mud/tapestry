@@ -1,0 +1,19 @@
+id: "unlink"
+title: "Unlink"
+category: "builder"
+role: "builder"
+keywords: [remove exit, disconnect, delete link, builder]
+brief: "Remove an exit connection from the current room."
+syntax:
+  - "unlink [direction]"
+body: |
+  Unlink removes the exit in the specified direction from the current
+  room. The destination room is not affected - only the exit from this
+  room is removed.
+
+  If the connection was two-way, you will need to unlink the return
+  direction from the destination room separately.
+
+  Use connections before unlinking to confirm which direction you
+  want to remove.
+see_also: [link, connections, builder]

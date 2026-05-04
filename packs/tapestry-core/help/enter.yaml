@@ -1,0 +1,19 @@
+id: "enter"
+title: "Enter"
+category: "navigation"
+role: "player"
+keywords: [portal, gateway, passage, go in, go through]
+brief: "Enter a portal or special exit."
+syntax:
+  - "enter [portal]"
+body: |
+  Some exits in the world are portals or special passages that do not
+  correspond to a standard direction. Use enter to pass through them.
+
+  You may need to name the portal specifically if there is more than
+  one in the room. The room description will usually indicate what
+  can be entered.
+
+  To exit a portal destination, use leave or a standard directional
+  command if one is available.
+see_also: [leave, navigation]

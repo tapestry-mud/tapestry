@@ -1,0 +1,24 @@
+id: "equipment"
+title: "Equipment"
+category: "equipment"
+role: "player"
+keywords: [eq, worn, wear, wield, armor, weapon, slot, gear]
+brief: "View and manage your equipped items."
+syntax:
+  - "equipment"
+  - "eq"
+body: |
+  Equipment shows all items you currently have worn or wielded. Each
+  item occupies a specific slot on your body: head, body, hands, legs,
+  feet, finger, neck, wrist, and so on.
+
+  WEARING ITEMS: Use wear [item] to equip an item from your inventory.
+  Tapestry will automatically find the right slot for most items.
+  Use wield [item] to equip a weapon in your main hand.
+
+  REMOVING ITEMS: Use remove [item] to take off a worn or wielded item
+  and return it to your inventory.
+
+  Better equipment improves your stats, armor class, and combat
+  effectiveness. Some items have level or stat requirements.
+see_also: [wear, wield, remove, inventory]

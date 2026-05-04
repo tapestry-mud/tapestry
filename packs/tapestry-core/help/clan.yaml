@@ -1,0 +1,18 @@
+id: "clan"
+title: "Clan"
+category: "communication"
+role: "player"
+keywords: [guild, organization, clan channel, members]
+brief: "Send a message to your clan members."
+syntax:
+  - "clan [message]"
+body: |
+  Clan sends a message to all online members of your clan, regardless
+  of where they are in the world. Only clan members can see it.
+
+  You must belong to a clan to use this command. If you are not in a
+  clan, the command will tell you so.
+
+  Clan chat is useful for coordinating with your organization without
+  broadcasting to the whole server via gossip.
+see_also: [gossip, tell, communication]

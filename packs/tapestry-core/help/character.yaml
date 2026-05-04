@@ -1,0 +1,23 @@
+id: "character"
+title: "Character"
+category: "character"
+role: "player"
+keywords: [stats, status, info, sheet, profile, attributes]
+brief: "View and understand your character's stats, effects, and abilities."
+body: |
+  Your character has a set of stats, active effects, and learned abilities
+  that define how you interact with the world.
+
+  STATS: Use score to see your full character sheet - HP, resource, move,
+  attributes, level, experience, and more.
+
+  EFFECTS: Use affects (or aff) to see what spells or conditions are
+  currently active on your character, and how long they last.
+
+  ABILITIES: Use skills and spells to see what you have learned.
+  Use tree to see your class path and which abilities are available
+  at each level.
+
+  MAGIC: Cast spells with cast. Use quaff to drink a potion and recite
+  to use a scroll. Effects vary by item.
+see_also: [score, affects, skills, spells, tree, cast, quaff, recite, progression]

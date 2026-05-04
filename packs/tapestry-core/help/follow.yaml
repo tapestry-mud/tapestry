@@ -1,0 +1,19 @@
+id: "follow"
+title: "Follow"
+category: "group"
+role: "player"
+keywords: [trail, shadow, tag along, auto move, join]
+brief: "Follow a player so you move with them automatically."
+syntax:
+  - "follow [player]"
+  - "follow stop"
+body: |
+  Follow makes you automatically move with the named player whenever
+  they change rooms. This is how groups move together efficiently.
+
+  Use "follow stop" to stop following and move independently again.
+  You can only follow one person at a time.
+
+  The person you follow must be in the same room to begin following.
+  If they have nofollow enabled, you cannot follow them.
+see_also: [nofollow, group, gtell]

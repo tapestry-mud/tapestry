@@ -1,0 +1,21 @@
+id: "kill"
+title: "Kill"
+category: "combat"
+role: "player"
+keywords: [attack, fight, engage, murder, hit, k]
+brief: "Attack a target to initiate combat."
+syntax:
+  - "kill [target]"
+  - "attack [target]"
+body: |
+  Kill (or attack) initiates combat with the named target in your room.
+  Once started, combat continues automatically each round until one
+  side flees, dies, or is otherwise stopped.
+
+  Use consider first to gauge how dangerous a target is relative to
+  your level. Charging into a fight without assessing the risk is
+  how adventurers become corpses.
+
+  You can use abilities and spells during combat in addition to your
+  automatic attacks. Some spells have combat-only effects.
+see_also: [consider, flee, wimpy, combat]

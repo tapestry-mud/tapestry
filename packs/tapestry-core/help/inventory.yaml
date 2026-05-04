@@ -1,0 +1,23 @@
+id: "inventory"
+title: "Inventory"
+category: "inventory"
+role: "player"
+keywords: [items, carry, bag, pack, belongings, i]
+brief: "View and manage the items you are carrying."
+syntax:
+  - "inventory"
+  - "i"
+body: |
+  Your inventory is the collection of items you are currently carrying.
+  Use inventory (or i) to see the full list.
+
+  Each item takes up carry weight. You can only carry so much before
+  you become encumbered, so manage your load carefully.
+
+  Items in your inventory can be equipped, eaten, drunk, read, used in
+  containers, given to others, or dropped on the ground.
+
+  CONTAINERS: Some items are containers - bags, packs, chests - that
+  hold other items. Use put and get to move items in and out of them.
+  Containers let you carry more by organizing your items.
+see_also: [get, drop, put, give, fill, eat, drink, equipment]

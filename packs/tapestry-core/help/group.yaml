@@ -1,0 +1,33 @@
+id: "group"
+title: "Group"
+category: "group"
+role: "player"
+keywords: [party, team, follow, grouping, invite, members]
+brief: "Form and manage a group with other players."
+syntax:
+  - "group"
+  - "group invite [player]"
+  - "group accept"
+  - "group decline"
+  - "group leave"
+  - "group kick [player]"
+  - "group promote [player]"
+  - "group disband"
+body: |
+  Groups let players team up for adventuring. Experience and loot
+  from kills are shared among group members in the same room.
+
+  FORMING A GROUP: The group leader uses group invite [player] to
+  send an invitation. The invited player uses group accept or group
+  decline. The inviter must already be a group leader or solo.
+
+  GROUP CHAT: Use gtell (or gt) to send a message only your group
+  members can see, regardless of where they are in the world.
+
+  FOLLOWING: Use follow [player] to automatically move with someone
+  when they change rooms. Use follow stop to stop following. The
+  nofollow command toggles whether others can follow you.
+
+  MANAGEMENT: The group leader can kick members, promote a new leader,
+  or disband the group entirely. Any member can leave with group leave.
+see_also: [follow, nofollow, gtell]

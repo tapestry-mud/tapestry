@@ -1,0 +1,18 @@
+id: "weather"
+title: "Weather"
+category: "world"
+role: "player"
+keywords: [climate, storm, rain, sun, conditions, forecast]
+brief: "Show the current weather conditions."
+syntax:
+  - "weather"
+body: |
+  Weather displays the current conditions in the game world. Conditions
+  cycle naturally over time and may vary by region depending on how
+  the server is configured.
+
+  Weather can affect outdoor movement, certain spells that call upon
+  nature or lightning, and the atmosphere of exploration.
+
+  Use time alongside weather for full context on current world state.
+see_also: [time, world]

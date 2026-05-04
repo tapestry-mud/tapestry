@@ -1,0 +1,20 @@
+id: "lock"
+title: "Lock"
+category: "navigation"
+role: "player"
+keywords: [key, secure, door, container]
+brief: "Lock a door or container."
+syntax:
+  - "lock [direction]"
+  - "lock [container]"
+body: |
+  Lock secures a closed door or container so it cannot be opened
+  without the correct key. You must have the appropriate key in your
+  inventory to lock something.
+
+  The door or container must already be closed before you can lock it.
+  Use close first, then lock.
+
+  Locked doors prevent movement in that direction for anyone who does
+  not have the key.
+see_also: [unlock, close, open, navigation]

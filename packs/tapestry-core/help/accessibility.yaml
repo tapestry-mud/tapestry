@@ -1,0 +1,29 @@
+id: "accessibility"
+title: "Accessibility"
+category: "accessibility"
+role: "player"
+keywords: [screen reader, blind, vi, accessible, keyboard, shortcut, aria]
+brief: "Accessibility features for screen reader and keyboard users."
+body: |
+  The Tapestry web client includes features designed specifically for
+  screen reader users, blind players, and anyone who prefers keyboard
+  navigation over a mouse.
+
+  KEYBOARD SHORTCUTS: Several Alt-key shortcuts give quick access to
+  important information without navigating the page manually.
+
+  SCREEN READER SUPPORT: Room descriptions, combat events, and key
+  game events are announced through ARIA live regions so screen readers
+  pick them up automatically as they happen.
+
+  STRUCTURED DATA: The server sends structured game data (GMCP) that
+  the client uses to present information in screen-reader-friendly
+  panels, rather than relying on raw scrolling text alone.
+
+  MODALS: Help topics, inventory, and other panels open as accessible
+  modals that trap focus, support Escape to close, and return focus to
+  your previous position when dismissed.
+
+  See the related topics below for specifics on keyboard shortcuts,
+  screen reader behavior, and GMCP structured data.
+see_also: [keyboard-shortcuts, screen-reader, gmcp-overview]

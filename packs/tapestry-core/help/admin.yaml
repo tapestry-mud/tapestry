@@ -1,0 +1,24 @@
+id: "admin"
+title: "Admin Commands"
+category: "admin"
+role: "admin"
+keywords: [immortal, god, wizard, admin, staff, imm]
+brief: "Administrative commands for managing the game world and players."
+body: |
+  Admin commands give elevated access to game internals. They are
+  only available to players with admin-level role access.
+
+  PLAYER MANAGEMENT: Use inspect to view full details on any target.
+  Use set to modify player, NPC, or item fields directly. Use grant
+  to award experience or trains, and forget/learn to remove or add
+  abilities.
+
+  WORLD MANAGEMENT: spawn creates a mob from a template in your room.
+  loaditem adds an item from a template to your inventory. purge removes
+  NPCs, items, or all entities from the current room. teleport moves
+  yourself or another player to a room or player.
+
+  CLASS TOOLS: setclass assigns a class to a player and grants their
+  level-1 abilities. settrainable is a debug tool for toggling stats
+  in and out of the trainable list.
+see_also: [forget, grant, inspect, learn, loaditem, purge, set, setclass, settrainable, spawn, teleport]

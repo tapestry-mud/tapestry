@@ -1,0 +1,26 @@
+id: "movement"
+title: "Movement"
+category: "navigation"
+role: "player"
+keywords: [north, south, east, west, up, down, n, s, e, w, u, d, walk, go, direction]
+brief: "Move between rooms using directional commands."
+syntax:
+  - "north | n"
+  - "south | s"
+  - "east  | e"
+  - "west  | w"
+  - "up    | u"
+  - "down  | d"
+body: |
+  Move in a direction to travel to the next room. Each move costs a
+  small amount of movement points. When movement runs out, you will
+  need to rest or sleep to recover before moving again.
+
+  Not all exits are available from every room. Use exits or look to
+  see which directions lead somewhere from your current position.
+
+  Some exits are blocked by closed doors. Use open [direction] to
+  open a door before passing through it.
+
+  Movement during combat is not allowed - use flee to escape a fight.
+see_also: [exits, look, open, flee, navigation]

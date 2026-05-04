@@ -1,0 +1,20 @@
+id: "wear"
+title: "Wear"
+category: "equipment"
+role: "player"
+keywords: [equip, put on, armor, clothing, slot]
+brief: "Wear an item from your inventory."
+syntax:
+  - "wear [item]"
+body: |
+  Wear equips an armor, clothing, or accessory item from your inventory,
+  placing it in the appropriate equipment slot.
+
+  If the target slot is already occupied, you must remove the existing
+  item first before wearing a new one in its place.
+
+  Some items have level or stat requirements. If you do not meet them,
+  the wear command will fail with an explanation.
+
+  Use equipment (or eq) to see what you currently have equipped.
+see_also: [wield, remove, equipment]

@@ -1,0 +1,28 @@
+id: "screen-reader"
+title: "Screen Reader Support"
+category: "accessibility"
+role: "player"
+keywords: [blind, vi, nvda, jaws, voiceover, aria, live region, announce, narrate]
+brief: "How the Tapestry web client supports screen readers and blind players."
+body: |
+  The Tapestry web client is built to work alongside screen readers
+  from the ground up, not as an afterthought.
+
+  LIVE ANNOUNCEMENTS: Room descriptions, combat events, tells, and
+  other key game events are pushed through ARIA live regions. Your
+  screen reader picks these up automatically as they happen - you do
+  not need to navigate to them.
+
+  MODALS: Help topics, inventory panels, and other information windows
+  open as accessible modals. Focus moves into the modal automatically,
+  all elements are reachable via Tab, and pressing Escape closes the
+  modal and returns focus to where you were.
+
+  KEYBOARD ONLY: Every interactive element in the client - links,
+  buttons, input fields - is fully keyboard accessible. No mouse
+  is needed to play.
+
+  STRUCTURED DATA: The server uses GMCP to send structured game data
+  separate from the text stream. This powers screen-reader-friendly
+  panels for inventory, room info, and help topics.
+see_also: [keyboard-shortcuts, gmcp-overview, accessibility]

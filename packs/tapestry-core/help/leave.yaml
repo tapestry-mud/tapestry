@@ -1,0 +1,19 @@
+id: "leave"
+title: "Leave"
+category: "navigation"
+role: "player"
+keywords: [exit portal, out, depart]
+brief: "Leave a portal or special exit."
+syntax:
+  - "leave"
+body: |
+  Leave is the counterpart to enter. Use it to exit a portal or
+  special area that you entered with the enter command.
+
+  In most cases, leave takes you back to where you came from, but
+  some portals are one-way. The room description will usually
+  indicate how to get out.
+
+  Standard directional commands may also work depending on the
+  exits available in the destination room.
+see_also: [enter, navigation]

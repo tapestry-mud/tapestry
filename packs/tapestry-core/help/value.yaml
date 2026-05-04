@@ -1,0 +1,19 @@
+id: "value"
+title: "Value"
+category: "shop"
+role: "player"
+keywords: [appraise, worth, price, gold, check, offer]
+brief: "Check how much a shop will pay for an item."
+syntax:
+  - "value [item]"
+body: |
+  Value asks the merchant in your room how much they would pay for an
+  item from your inventory. It does not sell the item - it is just a
+  quote.
+
+  Use value before selling to avoid surprises. If the shop is not
+  interested in the item at all, value tells you that too.
+
+  Some items are worth significantly more to specialized merchants.
+  If value returns a low number, try a different shop.
+see_also: [sell, buy, list, shop]

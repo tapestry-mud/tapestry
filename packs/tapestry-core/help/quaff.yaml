@@ -1,0 +1,18 @@
+id: "quaff"
+title: "Quaff"
+category: "character"
+role: "player"
+keywords: [potion, drink, use, consume, magic]
+brief: "Quaff a potion from your inventory to trigger its magic effect."
+syntax:
+  - "quaff [potion]"
+body: |
+  Quaff drinks a potion from your inventory, triggering the spell
+  effect stored inside it. The potion is consumed on use.
+
+  Unlike drink, which handles ordinary liquids, quaff is specifically
+  for magic potions. The effect happens immediately on you.
+
+  Use examine on a potion before quaffing if you are unsure what it
+  does. Unknown potions are a risk.
+see_also: [drink, recite, cast, character]

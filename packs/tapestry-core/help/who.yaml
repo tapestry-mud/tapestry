@@ -1,0 +1,19 @@
+id: "who"
+title: "Who"
+category: "world"
+role: "player"
+keywords: [players, online, connected, list, people]
+brief: "List players currently online."
+syntax:
+  - "who"
+body: |
+  Who displays a list of all players currently connected to the game.
+  Each entry typically shows the player's level, class, race, and name.
+
+  Admin and builder players may appear with their role indicated.
+  Some players may have titles or clan tags displayed alongside
+  their name.
+
+  Use who to find out who is around for grouping, trading, or just
+  to see how busy the server is.
+see_also: [gossip, tell, world]

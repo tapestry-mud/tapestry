@@ -1,0 +1,18 @@
+id: "give"
+title: "Give"
+category: "inventory"
+role: "player"
+keywords: [hand, transfer, trade, share]
+brief: "Give an item to another player or NPC."
+syntax:
+  - "give [item] [player]"
+body: |
+  Give transfers an item from your inventory to another player or NPC
+  in the same room. The target receives the item directly.
+
+  Both you and the target must be in the same room. You cannot give
+  items to players in other rooms - use drop if you need to leave
+  something for someone to pick up later.
+
+  Some NPCs accept items as part of quests or trade interactions.
+see_also: [drop, get, inventory]

@@ -1,0 +1,26 @@
+id: "gmcp-overview"
+title: "GMCP Structured Data"
+category: "accessibility"
+role: "player"
+keywords: [gmcp, structured, data, protocol, client, response, json]
+brief: "How GMCP structured data enhances gameplay for all players, especially VI users."
+body: |
+  GMCP (Generic Mud Communication Protocol) lets the Tapestry server
+  send structured data alongside the normal text stream. The web client
+  uses this to build richer, more accessible interfaces.
+
+  Instead of parsing raw text, the client receives structured messages
+  for room state (Response.Room), help topics (Response.Help), inventory
+  contents (Response.Inventory), and other game events.
+
+  For VI and blind players, this means the client can present information
+  in organized, screen-reader-friendly panels rather than relying on the
+  player to parse scrolling text output. Room descriptions, item lists,
+  and help bodies are all available as structured content.
+
+  For all players, GMCP enables features like auto-updating status bars,
+  map displays, and context-aware command suggestions.
+
+  GMCP is handled automatically by the web client. No configuration is
+  required to benefit from it.
+see_also: [screen-reader, keyboard-shortcuts, accessibility]

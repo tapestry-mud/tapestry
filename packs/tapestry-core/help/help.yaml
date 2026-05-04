@@ -1,0 +1,23 @@
+id: "help"
+title: "Help"
+category: "world"
+role: "player"
+keywords: [?, info, manual, documentation, guide, how to]
+brief: "Browse or search help topics."
+syntax:
+  - "help"
+  - "help [topic]"
+  - "? [topic]"
+body: |
+  Help with no argument opens the help index, listing available topic
+  categories. Help [topic] looks up a specific topic by name or keyword.
+
+  Topics are organized into categories: navigation, communication,
+  combat, inventory, equipment, progression, rest, shop, group, social,
+  world, character, and accessibility.
+
+  If you type a keyword that does not match a topic exactly, help will
+  search for related topics and suggest them.
+
+  Use ? as a shortcut for help.
+see_also: [commands, world]

@@ -1,0 +1,19 @@
+id: "sleep"
+title: "Sleep"
+category: "rest"
+role: "player"
+keywords: [rest, recover, regenerate, nap, pass out]
+brief: "Lie down and sleep to recover HP, resource, and movement quickly."
+syntax:
+  - "sleep"
+body: |
+  Sleep puts your character into a sleep state, providing the fastest
+  regeneration rate for HP, resource, and movement. You cannot act
+  while asleep.
+
+  To wake up, use wake or stand. You will also be woken by being
+  attacked or by certain events in the room.
+
+  Do not sleep in dangerous areas - you cannot defend yourself while
+  sleeping and will take a round of hits before waking if attacked.
+see_also: [rest, wake]

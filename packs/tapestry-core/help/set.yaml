@@ -1,0 +1,19 @@
+id: "set"
+title: "Set"
+category: "admin"
+role: "admin"
+keywords: [modify, edit, field, property, player, npc, item, admin]
+brief: "Modify player, NPC, or item fields directly."
+syntax:
+  - "set [target] [field] [value]"
+body: |
+  Set modifies a specific field on a player, NPC, or item. The field
+  names and valid values depend on the entity type.
+
+  Common uses: adjusting HP, gold, level, or stat values for testing
+  or support. Use inspect first to see the available fields and
+  current values on a target.
+
+  Changes made with set take effect immediately. Some fields may
+  require a save or relog to persist across sessions.
+see_also: [inspect, grant, admin]

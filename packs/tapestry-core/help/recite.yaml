@@ -1,0 +1,20 @@
+id: "recite"
+title: "Recite"
+category: "character"
+role: "player"
+keywords: [scroll, use, invoke, magic, paper, read aloud]
+brief: "Recite a scroll to trigger its stored spell."
+syntax:
+  - "recite [scroll]"
+  - "recite [scroll] [target]"
+body: |
+  Recite reads a scroll aloud and triggers the spell encoded within it.
+  The scroll is consumed after use. Some scrolls target a specific
+  entity and require a target argument.
+
+  Unlike quaff (which always affects you), scroll spells can target
+  others - useful for healing allies or applying debuffs to enemies.
+
+  Recite success can depend on your level or intelligence. Low stats
+  increase the chance of misfire or failure.
+see_also: [quaff, cast, character]

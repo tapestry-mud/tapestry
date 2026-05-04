@@ -1,0 +1,20 @@
+id: "read"
+title: "Read"
+category: "world"
+role: "player"
+keywords: [sign, letter, book, text, note, inscription]
+brief: "Read a sign, letter, book, or other written item."
+syntax:
+  - "read [item]"
+  - "read [sign]"
+body: |
+  Read displays the text content of a readable item or sign in the
+  room. Many locations have signs or boards with useful information
+  about the area, quests, or lore.
+
+  Letters, books, and notes in your inventory or on the ground can
+  also be read. Some quest items require reading to advance.
+
+  Read is different from examine - examine shows an item's stats and
+  properties, while read shows its written content.
+see_also: [look, examine, world]

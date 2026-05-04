@@ -1,0 +1,19 @@
+id: "eat"
+title: "Eat"
+category: "inventory"
+role: "player"
+keywords: [food, consume, hunger, meal]
+brief: "Eat food from your inventory."
+syntax:
+  - "eat [food]"
+body: |
+  Eat consumes a food item from your inventory. Some food items restore
+  HP or other stats when eaten. Others simply satisfy hunger if the
+  server tracks that.
+
+  You must have the food in your inventory to eat it. Food items are
+  consumed on use.
+
+  Some magic items can also be eaten for special effects - examine
+  them first if you are unsure what they do.
+see_also: [drink, inventory]

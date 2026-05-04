@@ -1,0 +1,18 @@
+id: "sell"
+title: "Sell"
+category: "shop"
+role: "player"
+keywords: [trade, pawn, merchant, money, gold, unload]
+brief: "Sell an item to a shop."
+syntax:
+  - "sell [item]"
+body: |
+  Sell removes an item from your inventory and gives you gold in return
+  based on the shop's appraisal. The item must be in your inventory.
+
+  Not every shop buys everything. Use value first to check whether the
+  merchant is interested and how much they will pay.
+
+  Shops buy items at a fraction of their full value. If you need a
+  better price, look for a specialized merchant.
+see_also: [value, buy, list, shop]

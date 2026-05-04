@@ -1,0 +1,20 @@
+id: "open"
+title: "Open"
+category: "navigation"
+role: "player"
+keywords: [door, container, lid, unlock and open]
+brief: "Open a door or container."
+syntax:
+  - "open [direction]"
+  - "open [container]"
+body: |
+  Open is used for two things: opening a door in a given direction so
+  you can pass through, and opening a container like a chest or bag
+  to access its contents.
+
+  If the door or container is locked, you must unlock it first with
+  the unlock command.
+
+  Doors can be opened by any player in the room and will remain open
+  until closed again. Some doors close automatically.
+see_also: [close, lock, unlock, navigation]

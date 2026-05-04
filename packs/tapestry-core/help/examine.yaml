@@ -1,0 +1,21 @@
+id: "examine"
+title: "Examine"
+category: "navigation"
+role: "player"
+keywords: [ex, exa, inspect, detail, study, look at]
+brief: "Examine an item or entity in detail."
+syntax:
+  - "examine [target]"
+  - "ex [target]"
+  - "exa [target]"
+body: |
+  Examine gives a detailed description of an item or entity. For items,
+  this often includes stats, condition, flags, and any special properties.
+  For NPCs and players, it shows equipment and visible details.
+
+  Examine works on items in your inventory, items on the ground, items
+  in the room, NPCs, and other players.
+
+  Use look for a quick glance; use examine when you need full details
+  before equipping, selling, or interacting with something.
+see_also: [look, navigation]

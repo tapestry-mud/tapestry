@@ -1,0 +1,18 @@
+id: "time"
+title: "Time"
+category: "world"
+role: "player"
+keywords: [clock, date, day, night, in-game time, hour]
+brief: "Show the current in-game time."
+syntax:
+  - "time"
+body: |
+  Time displays the current in-game time of day and date. Tapestry
+  uses a separate game calendar that advances independently of real time.
+
+  Time of day can affect certain spells, mob behavior, shop hours, and
+  world events depending on how the server is configured.
+
+  Use weather alongside time to get a full picture of current world
+  conditions.
+see_also: [weather, world]

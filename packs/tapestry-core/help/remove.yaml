@@ -1,0 +1,18 @@
+id: "remove"
+title: "Remove"
+category: "equipment"
+role: "player"
+keywords: [unequip, take off, unwield, dequip]
+brief: "Remove a worn or wielded item and return it to inventory."
+syntax:
+  - "remove [item]"
+body: |
+  Remove unequips a worn or wielded item and places it back in your
+  inventory. You can reference the item by its name or slot.
+
+  You cannot remove items during certain states - some cursed items
+  cannot be removed at all without a remove curse effect.
+
+  Use equipment (or eq) to see what you have equipped and the slot
+  names before using remove.
+see_also: [wear, wield, equipment]

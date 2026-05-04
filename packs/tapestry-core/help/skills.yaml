@@ -1,0 +1,19 @@
+id: "skills"
+title: "Skills"
+category: "character"
+role: "player"
+keywords: [abilities, proficiency, learned, combat skills, physical]
+brief: "Show your learned skills and their proficiency levels."
+syntax:
+  - "skills"
+body: |
+  Skills lists every physical or combat skill you have learned, along
+  with your current proficiency percentage in each.
+
+  Higher proficiency means the skill fires more reliably and may hit
+  harder or apply effects more consistently. Improve proficiency by
+  using practice near a teacher NPC.
+
+  Skills are learned automatically as you level up based on your class.
+  Use tree to see what is coming and at what level you gain each ability.
+see_also: [spells, tree, practice, character]

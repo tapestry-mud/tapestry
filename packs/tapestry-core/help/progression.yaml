@@ -1,0 +1,22 @@
+id: "progression"
+title: "Progression"
+category: "progression"
+role: "player"
+keywords: [level, experience, xp, train, practice, advance, grow]
+brief: "How to grow your character through experience and training."
+body: |
+  Your character grows by gaining experience from combat and quests.
+  When you earn enough experience you will level up automatically.
+
+  TRAINING STATS: Each level grants a number of trains depending on
+  your class. Use train with a trainer NPC to spend trains and raise
+  your core attributes (strength, intelligence, wisdom, etc.).
+
+  PRACTICING SKILLS: Use practice (or prac) near a teacher NPC to
+  improve your proficiency with learned skills and spells. Higher
+  proficiency means more reliable results and stronger effects.
+
+  ABILITIES: New abilities are granted automatically when you reach
+  the required level for your class. Use tree to see what is coming
+  and at what level.
+see_also: [train, practice, tree, skills, spells, character]

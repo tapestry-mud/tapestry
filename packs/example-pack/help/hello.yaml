@@ -1,0 +1,16 @@
+id: "hello"
+title: "Hello"
+category: "world"
+role: "player"
+keywords: [hi, greet, greeting, example]
+brief: "Greet the world."
+syntax:
+  - "hello"
+  - "hi"
+body: |
+  Hello (or hi) sends a greeting to the world. It is a simple example
+  command included with the example pack to demonstrate how commands
+  work in Tapestry.
+
+  Use it to say hello when you first log in. Everyone will see it.
+see_also: [say, emote, world]

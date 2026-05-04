@@ -1,0 +1,19 @@
+id: "nofollow"
+title: "Nofollow"
+category: "group"
+role: "player"
+keywords: [toggle, block, prevent, following, solo]
+brief: "Toggle whether other players can follow you."
+syntax:
+  - "nofollow"
+body: |
+  Nofollow toggles a flag on your character that prevents other players
+  from using follow on you. Use it when you want to move solo without
+  accidentally pulling someone along.
+
+  When nofollow is active, anyone who tries to follow you will be told
+  you are not accepting followers. Toggle it off to allow following again.
+
+  Using nofollow does not stop people already following you from being
+  in your group - it only blocks new follow attempts.
+see_also: [follow, group]

@@ -1,0 +1,22 @@
+id: "navigation"
+title: "Navigation"
+category: "navigation"
+role: "player"
+keywords: [move, movement, travel, direction, walk, go, room, exit]
+brief: "How to move through the world and interact with your surroundings."
+body: |
+  Navigation covers everything you need to explore the world: movement,
+  looking around, examining objects, and interacting with doors and portals.
+
+  MOVEMENT: Use the cardinal directions (north, south, east, west) and
+  vertical directions (up, down) to move between rooms. Most directions
+  have single-letter aliases: n, s, e, w, u, d.
+
+  LOOKING: The look command shows you the current room. Use examine on
+  objects and entities for more detail. The exits command lists all
+  available exits without the full room description.
+
+  DOORS AND PORTALS: Some exits are blocked by doors - use open and close
+  to manage them. Locked doors require the lock and unlock commands.
+  Special portals use enter and leave instead of directional movement.
+see_also: [look, examine, exits, movement, enter, leave, open, close, lock, unlock]

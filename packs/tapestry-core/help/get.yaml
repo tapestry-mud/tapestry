@@ -1,0 +1,21 @@
+id: "get"
+title: "Get"
+category: "inventory"
+role: "player"
+keywords: [take, pick up, grab, loot, retrieve]
+brief: "Pick up an item from the room or a container."
+syntax:
+  - "get [item]"
+  - "get [item] [container]"
+  - "take [item]"
+  - "get all"
+body: |
+  Get picks up an item from the ground and adds it to your inventory.
+  Use "get all" to pick up everything in the room at once.
+
+  To retrieve an item from inside a container, specify the container
+  after the item name: "get sword pack" takes the sword from your pack.
+
+  You must have enough carry capacity to pick up the item. If you are
+  too encumbered, you will need to drop something first.
+see_also: [drop, put, inventory]

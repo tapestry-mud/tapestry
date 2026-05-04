@@ -1,0 +1,21 @@
+id: "builder"
+title: "Builder Commands"
+category: "builder"
+role: "builder"
+keywords: [build, zone, area, room, link, connect, create]
+brief: "Builder commands for creating and connecting rooms."
+body: |
+  Builder commands are available to players with builder-level access.
+  They are used to construct and connect the game world.
+
+  CONNECTIONS: Use connections to view the exits and links defined for
+  the current room, or to list connections across all rooms.
+
+  LINKING ROOMS: Use link to create a connection between two rooms.
+  The link command walks you through a guided flow to specify the
+  source room, direction, and destination. Rooms can be linked across
+  different content packs.
+
+  REMOVING LINKS: Use unlink to remove an exit connection from the
+  current room. This does not remove the destination room itself.
+see_also: [connections, link, unlink]

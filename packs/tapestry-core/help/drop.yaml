@@ -1,0 +1,20 @@
+id: "drop"
+title: "Drop"
+category: "inventory"
+role: "player"
+keywords: [discard, leave, put down, throw down]
+brief: "Drop an item from your inventory onto the ground."
+syntax:
+  - "drop [item]"
+  - "drop all"
+body: |
+  Drop removes an item from your inventory and places it on the ground
+  in your current room. Other players can then pick it up.
+
+  Items dropped in the world may decay over time and disappear.
+  Do not drop items you want to keep unless you plan to retrieve them
+  quickly.
+
+  Use "drop all" to drop everything you are carrying at once. Be careful
+  with this - it drops equipped items too if you are not careful.
+see_also: [get, put, give, inventory]

@@ -1,0 +1,22 @@
+id: "look"
+title: "Look"
+category: "navigation"
+role: "player"
+keywords: [l, see, view, describe, room, description]
+brief: "Look at the room, an entity, or an item."
+syntax:
+  - "look"
+  - "look [target]"
+  - "l"
+  - "l [target]"
+body: |
+  Look with no argument displays the current room: its description,
+  visible exits, NPCs, and items on the ground.
+
+  Look at a specific target - an NPC, player, or item - to see a
+  brief description of that target. For more detail on items and
+  entities, use examine.
+
+  You receive a room look automatically when you move into a new room.
+  Use look to refresh it if the room state has changed.
+see_also: [examine, exits, navigation]

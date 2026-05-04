@@ -1,0 +1,20 @@
+id: "purge"
+title: "Purge"
+category: "admin"
+role: "admin"
+keywords: [remove, clear, delete, clean room, npcs, items, admin]
+brief: "Remove NPCs, items, or all entities from your current room."
+syntax:
+  - "purge"
+  - "purge [target]"
+body: |
+  Purge with no argument removes all NPCs and items from the current
+  room. Purge [target] removes a specific NPC or item by name.
+
+  Use purge to clean up rooms during testing, remove bugged NPCs,
+  or clear items left by players. Purged entities are gone permanently
+  unless respawned or re-spawned.
+
+  Be careful with purge all - it removes everything in the room and
+  cannot be undone.
+see_also: [spawn, loaditem, admin]

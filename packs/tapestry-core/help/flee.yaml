@@ -1,0 +1,19 @@
+id: "flee"
+title: "Flee"
+category: "combat"
+role: "player"
+keywords: [run, escape, retreat, get away, exit combat]
+brief: "Attempt to flee from combat."
+syntax:
+  - "flee"
+body: |
+  Flee attempts to escape from combat by running through a random
+  available exit. Success is not guaranteed - if you fail, you stay
+  in the fight and lose some experience.
+
+  When you flee successfully, combat ends and you land in an adjacent
+  room. The enemy does not follow automatically.
+
+  Set wimpy to automatically flee when your HP drops to a threshold,
+  so you do not have to manually flee when things go badly.
+see_also: [wimpy, kill, combat]
