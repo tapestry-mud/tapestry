@@ -2,7 +2,7 @@ id: "emote"
 title: "Emote"
 category: "communication"
 role: "player"
-keywords: [action, roleplay, rp, pose, :, me]
+keywords: [action, roleplay, rp, pose, me]
 brief: "Perform a freeform emote action visible to the room."
 syntax:
   - "emote [action]"

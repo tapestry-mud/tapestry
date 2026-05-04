@@ -2,7 +2,7 @@ id: "say"
 title: "Say"
 category: "communication"
 role: "player"
-keywords: [speak, talk, local, room, chat, ']
+keywords: [speak, talk, local, room, chat]
 brief: "Speak to everyone in your current room."
 syntax:
   - "say [message]"
