@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useHelpStore, type HelpTopicData, type HelpTopicSummary } from '../stores/helpStore'
-import { parseColorTags } from '../utils/text'
+import { parseColorTags, stripMarkup } from '../utils/text'
+import { useAnnounceStore } from '../accessibility/announceStore'
 import { WebSocketClient } from '../connection/WebSocketClient'
 
 export function HelpModal() {
@@ -21,6 +22,15 @@ export function HelpModal() {
             }
         }
     }, [isOpen])
+
+    useEffect(() => {
+        if (!isOpen || !response || response.status !== 'ok') { return }
+        const topic = response.topic
+        const parts: string[] = [topic.brief]
+        if (topic.syntax.length > 0) { parts.push('Syntax: ' + topic.syntax.join(', ')) }
+        if (topic.seeAlso.length > 0) { parts.push('See also: ' + topic.seeAlso.join(', ')) }
+        useAnnounceStore.getState().pushMessage(stripMarkup(parts.join('. ')), 'polite')
+    }, [isOpen, response])
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
