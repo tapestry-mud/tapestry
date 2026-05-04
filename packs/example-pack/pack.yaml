@@ -16,3 +16,4 @@ content:
   items: "areas/**/items/*.yaml"
   scripts: "scripts/**/*.js"
   mobs: "areas/**/mobs/*.yaml"
+  help: "help/**/*.yaml"

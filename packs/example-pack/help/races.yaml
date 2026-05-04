@@ -1,0 +1,10 @@
+id: "races"
+title: "Choosing a Race"
+category: "chargen"
+keywords: [race, races, character creation, species]
+brief: "Each race has unique stats and abilities."
+body: |
+  Your race determines your starting attributes and grants
+  access to racial abilities as you level.
+
+  Type help [race name] for details on a specific race.

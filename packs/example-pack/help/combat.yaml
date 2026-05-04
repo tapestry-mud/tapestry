@@ -1,0 +1,12 @@
+id: "combat"
+title: "Combat"
+category: "combat"
+role: "player"
+brief: "How fighting works in the world."
+body: |
+  Combat in Tapestry is round-based. Attack a target to engage,
+  then exchange blows each round until one side falls or flees.
+
+  See the related topics below for details on specific aspects
+  of the combat system.
+see_also: [combat-basics]

@@ -18,3 +18,4 @@ content:
   equipment_slots: "equipment_slots.yaml"
   scripts: "scripts/**/*.js"
   strings: "strings/**/*.yaml"
+  help: "help/**/*.yaml"
