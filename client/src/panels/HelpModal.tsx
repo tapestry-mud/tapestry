@@ -42,7 +42,9 @@ export function HelpModal() {
                         <h2 className="text-lg font-semibold">
                             {response.status === 'ok'
                                 ? response.topic.title
-                                : `Help: "${(response as { term?: string }).term ?? ''}"`}
+                                : response.status === 'multiple' || response.status === 'no_match'
+                                    ? `Help: "${response.term}"`
+                                    : ''}
                         </h2>
                         <button
                             onClick={closeHelp}
@@ -67,11 +69,11 @@ export function HelpModal() {
     )
 }
 
-function HelpTopicContent({ topic }: { topic: HelpTopicData }) {
-    function sendCommand(cmd: string) {
-        WebSocketClient.send(cmd)
-    }
+function sendCommand(cmd: string) {
+    WebSocketClient.send(cmd)
+}
 
+function HelpTopicContent({ topic }: { topic: HelpTopicData }) {
     return (
         <div className="space-y-4">
             <p className="text-gray-400 italic">{topic.brief}</p>
@@ -110,10 +112,6 @@ function HelpTopicContent({ topic }: { topic: HelpTopicData }) {
 }
 
 function HelpDisambiguation({ term, matches }: { term: string; matches: HelpTopicSummary[] }) {
-    function sendCommand(cmd: string) {
-        WebSocketClient.send(cmd)
-    }
-
     return (
         <div className="space-y-2">
             <p className="text-gray-400 text-sm">Multiple topics match "{term}":</p>
