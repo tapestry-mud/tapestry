@@ -50,20 +50,28 @@ public class HelpModule : IJintApiModule
     private JsValue ListJs(JintEngine engine, JsValue first, JsValue second)
     {
         var (entityId, category) = ResolveArgs(first, second);
-        if (category == null) { return engine.Intrinsics.Array.Construct(Array.Empty<JsValue>()); }
+        if (category == null) { return BuildArray(engine, Array.Empty<JsValue>()); }
 
         var summaries = _helpService.List(entityId, category);
         var items = summaries
             .Select(s => JsValue.FromObject(engine, new { id = s.Id, title = s.Title, brief = s.Brief }))
             .ToArray();
-        return engine.Intrinsics.Array.Construct(items);
+        return BuildArray(engine, items);
     }
 
     private JsValue CategoriesJs(JintEngine engine, JsValue first)
     {
         var entityId = IsGuid(first) ? first.ToString() : null;
         var cats = _helpService.Categories(entityId);
-        return engine.Intrinsics.Array.Construct(cats.Select(c => JsValue.FromObject(engine, c)).ToArray());
+        return BuildArray(engine, cats.Select(c => JsValue.FromObject(engine, c)).ToArray());
+    }
+
+    // Array.Construct passes items as constructor arguments, so a single item hits
+    // the new Array(singleArg) path where Jint checks if it is a number (length).
+    // JsArray(engine, items) constructs the array directly, bypassing that path.
+    private static JsValue BuildArray(JintEngine engine, JsValue[] items)
+    {
+        return new Jint.Native.JsArray(engine, items);
     }
 
     private static JsValue BuildResult(JintEngine engine, HelpQueryResult result)
