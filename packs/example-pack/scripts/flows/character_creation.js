@@ -39,6 +39,7 @@ tapestry.flows.register({
         {
             id: "race",
             type: "choice",
+            help_hint: "races",
             prompt: "Choose your race:",
             options: function() {
                 return tapestry.races.getAll().map(function(r) {
@@ -57,6 +58,7 @@ tapestry.flows.register({
         {
             id: "gender",
             type: "choice",
+            help_hint: "gender",
             prompt: "Choose your gender:",
             options: CORE_GENDER_OPTIONS,
             on_select: function(entity, option) {
@@ -66,6 +68,7 @@ tapestry.flows.register({
         {
             id: "class",
             type: "choice",
+            help_hint: "classes",
             prompt: "Choose your class:",
             options: function(entity) {
                 var raceId = entity.getProperty("race");

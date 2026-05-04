@@ -177,4 +177,29 @@ public class HelpServiceTests
 
         Assert.Empty(list);
     }
+
+    [Fact]
+    public void List_RolelessTopic_VisibleToPlayer()
+    {
+        var svc = new HelpService();
+        svc.AddTopic(MakeTopic("races", category: "creation"));
+
+        var list = svc.List(Guid.NewGuid().ToString(), "creation");
+
+        Assert.Single(list);
+    }
+
+    [Fact]
+    public void Categories_And_List_Consistent_For_Roleless_Topic()
+    {
+        var svc = new HelpService();
+        svc.AddTopic(MakeTopic("races", category: "creation"));
+
+        var entityId = Guid.NewGuid().ToString();
+        var cats = svc.Categories(entityId);
+        var list = svc.List(entityId, "creation");
+
+        Assert.Contains("creation", cats);
+        Assert.Single(list);
+    }
 }

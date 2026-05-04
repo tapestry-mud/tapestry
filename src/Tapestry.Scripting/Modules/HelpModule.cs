@@ -63,7 +63,7 @@ public class HelpModule : IJintApiModule
     {
         var entityId = IsGuid(first) ? first.ToString() : null;
         var cats = _helpService.Categories(entityId);
-        return engine.Intrinsics.Array.Construct(cats.Select(c => (JsValue)c).ToArray());
+        return engine.Intrinsics.Array.Construct(cats.Select(c => JsValue.FromObject(engine, c)).ToArray());
     }
 
     private static JsValue BuildResult(JintEngine engine, HelpQueryResult result)
@@ -109,7 +109,7 @@ public class HelpModule : IJintApiModule
         }
         if (IsGuid(first))
         {
-            return (first.ToString(), second.Type == Types.String ? second.ToString() : null);
+            return (first.ToString(), second.ToString());
         }
         return (null, first.Type == Types.String ? first.ToString() : null);
     }
