@@ -1,0 +1,114 @@
+using Jint.Native;
+using Jint.Runtime;
+using Tapestry.Engine.Help;
+using Tapestry.Shared.Help;
+using JintEngine = Jint.Engine;
+
+namespace Tapestry.Scripting.Modules;
+
+public class HelpModule : IJintApiModule
+{
+    private readonly HelpService _helpService;
+
+    public string Namespace => "help";
+
+    public HelpModule(HelpService helpService)
+    {
+        _helpService = helpService;
+    }
+
+    public object Build(JintEngine engine)
+    {
+        return new
+        {
+            query = new Func<JsValue, JsValue, JsValue>((a, b) => QueryJs(engine, a, b)),
+            list = new Func<JsValue, JsValue, JsValue>((a, b) => ListJs(engine, a, b)),
+            categories = new Func<JsValue, JsValue>(a => CategoriesJs(engine, a))
+        };
+    }
+
+    // Exposed for unit tests without a live Jint engine
+    public HelpQueryResult QueryDirect(string? entityId, string term) =>
+        _helpService.Query(entityId, term);
+
+    public List<string> CategoriesDirect(string? entityId) =>
+        _helpService.Categories(entityId);
+
+    private JsValue QueryJs(JintEngine engine, JsValue first, JsValue second)
+    {
+        var (entityId, term) = ResolveArgs(first, second);
+        if (term == null) { return JsValue.Null; }
+
+        var result = _helpService.Query(entityId, term);
+        return BuildResult(engine, result);
+    }
+
+    private JsValue ListJs(JintEngine engine, JsValue first, JsValue second)
+    {
+        var (entityId, category) = ResolveArgs(first, second);
+        if (category == null) { return engine.Intrinsics.Array.Construct(Array.Empty<JsValue>()); }
+
+        var summaries = _helpService.List(entityId, category);
+        var items = summaries
+            .Select(s => JsValue.FromObject(engine, new { id = s.Id, title = s.Title, brief = s.Brief }))
+            .ToArray();
+        return engine.Intrinsics.Array.Construct(items);
+    }
+
+    private JsValue CategoriesJs(JintEngine engine, JsValue first)
+    {
+        var entityId = IsGuid(first) ? first.ToString() : null;
+        var cats = _helpService.Categories(entityId);
+        return engine.Intrinsics.Array.Construct(cats.Select(c => (JsValue)c).ToArray());
+    }
+
+    private static JsValue BuildResult(JintEngine engine, HelpQueryResult result)
+    {
+        object payload = result.Status switch
+        {
+            "ok" => new
+            {
+                status = "ok",
+                topic = result.Topic == null ? null : TopicToAnon(result.Topic)
+            },
+            "multiple" => new
+            {
+                status = "multiple",
+                term = result.Term,
+                matches = result.Matches?.Select(m => new { id = m.Id, title = m.Title, brief = m.Brief }).ToArray()
+            },
+            _ => (object)new { status = "no_match", term = result.Term }
+        };
+        return JsValue.FromObject(engine, payload);
+    }
+
+    private static object TopicToAnon(HelpTopic t) => new
+    {
+        id = t.Id,
+        title = t.Title,
+        category = t.Category,
+        brief = t.Brief,
+        body = t.Body,
+        syntax = t.Syntax.ToArray(),
+        seeAlso = t.SeeAlso.ToArray()
+    };
+
+    // If first arg is a GUID -> player context, second arg is term.
+    // If first arg is not a GUID -> no player, first arg is term.
+    private static (string? entityId, string? term) ResolveArgs(JsValue first, JsValue second)
+    {
+        if (first.Type == Types.Undefined || first.Type == Types.Null) { return (null, null); }
+        if (second.Type == Types.Undefined || second.Type == Types.Null)
+        {
+            return (null, first.Type == Types.String ? first.ToString() : null);
+        }
+        if (IsGuid(first))
+        {
+            return (first.ToString(), second.Type == Types.String ? second.ToString() : null);
+        }
+        return (null, first.Type == Types.String ? first.ToString() : null);
+    }
+
+    private static bool IsGuid(JsValue val) =>
+        val.Type == Types.String && Guid.TryParse(val.ToString(), out _);
+}
