@@ -23,10 +23,3 @@ public class HelpTopic
     [YamlIgnore]
     public string NamespacedId => $"{PackName}:{Id}";
 }
-
-public class HelpTopicSummary
-{
-    public string Id { get; set; } = "";
-    public string Title { get; set; } = "";
-    public string Brief { get; set; } = "";
-}
