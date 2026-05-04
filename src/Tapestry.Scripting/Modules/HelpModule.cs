@@ -102,8 +102,8 @@ public class HelpModule : IJintApiModule
     // If first arg is not a GUID -> no player, first arg is term.
     internal static (string? entityId, string? term) ResolveArgs(JsValue first, JsValue second)
     {
-        if (first.Type == Types.Undefined || first.Type == Types.Null) { return (null, null); }
-        if (second.Type == Types.Undefined || second.Type == Types.Null)
+        if (first is null || first.Type == Types.Undefined || first.Type == Types.Null) { return (null, null); }
+        if (second is null || second.Type == Types.Undefined || second.Type == Types.Null)
         {
             return (null, first.Type == Types.String ? first.ToString() : null);
         }
@@ -116,6 +116,6 @@ public class HelpModule : IJintApiModule
 
     private static bool IsGuid(JsValue val)
     {
-        return val.Type == Types.String && Guid.TryParse(val.ToString(), out _);
+        return val is not null && val.Type == Types.String && Guid.TryParse(val.ToString(), out _);
     }
 }
