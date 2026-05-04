@@ -45,6 +45,7 @@ public class HelpService
             .IgnoreUnmatchedProperties()
             .Build();
 
+        // helpGlob serves as an enabled-guard; GetFiles doesn't support ** patterns so all .yaml files are loaded
         foreach (var file in Directory.GetFiles(helpDir, "*.yaml", SearchOption.AllDirectories).OrderBy(f => f))
         {
             try
