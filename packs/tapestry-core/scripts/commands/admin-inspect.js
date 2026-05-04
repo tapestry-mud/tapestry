@@ -12,24 +12,40 @@ tapestry.commands.register({
 
         var keyword = args.join(' ').toLowerCase();
 
+        var ordinal = 1;
+        var baseKeyword = keyword;
+        var ordinalMatch = keyword.match(/^(\d+)\.(.+)$/);
+        if (ordinalMatch) {
+            ordinal = parseInt(ordinalMatch[1], 10);
+            baseKeyword = ordinalMatch[2];
+        }
+
         var target = null;
         if (keyword === 'self' || keyword === 'me') {
             target = { id: player.entityId, name: player.name };
         } else {
             var players = tapestry.world.getOnlinePlayers();
+            var playerCount = 0;
             for (var i = 0; i < players.length; i++) {
-                if (players[i].name.toLowerCase().indexOf(keyword) !== -1 &&
+                if (players[i].name.toLowerCase().indexOf(baseKeyword) !== -1 &&
                     tapestry.world.getEntityRoomId(players[i].id) === player.roomId) {
-                    target = { id: players[i].id, name: players[i].name };
-                    break;
+                    playerCount++;
+                    if (playerCount === ordinal) {
+                        target = { id: players[i].id, name: players[i].name };
+                        break;
+                    }
                 }
             }
             if (!target) {
                 var npcs = tapestry.world.getEntitiesInRoom(player.roomId, 'npc');
+                var npcCount = 0;
                 for (var n = 0; n < npcs.length; n++) {
-                    if (npcs[n].name.toLowerCase().indexOf(keyword) !== -1) {
-                        target = { id: npcs[n].id, name: npcs[n].name };
-                        break;
+                    if (npcs[n].name.toLowerCase().indexOf(baseKeyword) !== -1) {
+                        npcCount++;
+                        if (npcCount === ordinal) {
+                            target = { id: npcs[n].id, name: npcs[n].name };
+                            break;
+                        }
                     }
                 }
             }
