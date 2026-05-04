@@ -9,7 +9,7 @@
 1. Connect without logging in (session is in Creating phase, no player entity)
 2. Send: `help`
 3. Assert sees: `chargen`
-4. Assert does NOT see: `combat`
+4. Assert does not see: `combat`
 
 ### Notes
 - All combat topics have role:player. Chargen context has no role, so
@@ -37,7 +37,7 @@
 ### Steps
 1. Connect without logging in
 2. Send: `help combat-basics`
-3. Assert sees: `No help found for 'combat-basics'`
+3. Assert sees: `No help found for 'combat-basics'.`
 
 ### Notes
 - combat-basics.yaml has role:player. Without a player entity, the topic
@@ -78,7 +78,7 @@
 
 ### Steps
 1. Wanderer: `help xyzzy`
-2. Assert Wanderer sees: `No help found for 'xyzzy'`
+2. Assert Wanderer sees: `No help found for 'xyzzy'.`
 
 ---
 
@@ -89,8 +89,8 @@
 1. Wanderer: `help combat`
 2. Assert Wanderer sees: `Combat`
 3. Assert Wanderer sees: `combat-basics`
-4. Assert Wanderer does NOT see: `disambiguation`
-5. Assert Wanderer does NOT see: `Did you mean`
+4. Assert Wanderer does not see: `disambiguation`
+5. Assert Wanderer does not see: `Did you mean`
 
 ### Notes
 - "combat" is an exact topic ID. The resolver must match it directly
