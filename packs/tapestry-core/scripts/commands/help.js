@@ -6,10 +6,11 @@ tapestry.commands.register({
     handler: function(player, args) {
         tapestry.respond.suppress(player.entityId);
 
+        var helpId = player.isChargen ? null : player.entityId;
         var term = args ? String(args).trim() : '';
 
         if (!term) {
-            var cats = tapestry.help.categories(player.entityId);
+            var cats = tapestry.help.categories(helpId);
 
             if (cats.length === 0) {
                 player.send('No help topics available.\r\n');
@@ -18,8 +19,8 @@ tapestry.commands.register({
 
             var lines = ['Help Topics:\r\n'];
             for (var i = 0; i < cats.length; i++) {
-                var cat = cats[i];
-                var topics = tapestry.help.list(player.entityId, cat);
+                var cat = String(cats[i]);
+                var topics = tapestry.help.list(helpId, cat);
                 lines.push('  ' + cat + ' (' + topics.length + (topics.length === 1 ? ' topic' : ' topics') + ')\r\n');
             }
             lines.push('\r\nType help [topic] for details.\r\n');
@@ -27,7 +28,7 @@ tapestry.commands.register({
             return;
         }
 
-        var result = tapestry.help.query(player.entityId, term);
+        var result = tapestry.help.query(helpId, term);
 
         if (result.status === 'ok') {
             player.send(tapestry.ui.help(result));

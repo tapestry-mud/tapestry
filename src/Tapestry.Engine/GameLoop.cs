@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine.Flow;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Sustenance;
@@ -179,7 +180,8 @@ public class GameLoop
                     PlayerEntityId = session.PlayerEntity.Id,
                     RawInput = actualInput,
                     Command = parts[0],
-                    Args = parts.Length > 1 ? parts[1..] : []
+                    Args = parts.Length > 1 ? parts[1..] : [],
+                    IsChargen = session.Phase == SessionPhase.Creating
                 };
 
                 var handlerSw = Stopwatch.StartNew();
