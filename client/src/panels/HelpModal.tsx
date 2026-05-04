@@ -1,61 +1,54 @@
 import { useEffect, useRef } from 'react'
 import { useHelpStore, type HelpTopicData, type HelpTopicSummary } from '../stores/helpStore'
-import { parseColorTags, stripMarkup } from '../utils/text'
-import { useAnnounceStore } from '../accessibility/announceStore'
+import { parseColorTags } from '../utils/text'
 import { WebSocketClient } from '../connection/WebSocketClient'
 
+let savedFocus: Element | null = null
+
 export function HelpModal() {
-    const { isOpen, response, closeHelp } = useHelpStore()
+    const { isOpen, response, closeHelp, inDialogKey, inDialogAnnouncement } = useHelpStore()
     const dialogRef = useRef<HTMLDialogElement>(null)
-    const previousFocusRef = useRef<Element | null>(null)
+    const headingRef = useRef<HTMLHeadingElement>(null)
 
     useEffect(() => {
         const dialog = dialogRef.current
         if (!dialog) { return }
         if (isOpen) {
-            previousFocusRef.current = document.activeElement
+            if (!savedFocus) { savedFocus = document.activeElement }
             dialog.showModal()
         } else {
             dialog.close()
-            if (previousFocusRef.current instanceof HTMLElement) {
-                previousFocusRef.current.focus()
-            }
+            if (savedFocus instanceof HTMLElement) { savedFocus.focus() }
+            savedFocus = null
         }
     }, [isOpen])
 
+    // Prevent native <dialog> Escape from closing without updating React state
+    useEffect(() => {
+        const dialog = dialogRef.current
+        if (!dialog) { return }
+        const handleCancel = (e: Event) => { e.preventDefault(); closeHelp() }
+        dialog.addEventListener('cancel', handleCancel)
+        return () => { dialog.removeEventListener('cancel', handleCancel) }
+    }, [closeHelp])
+
+    // Move focus to heading when response changes so focus doesn't fall to dialog root
     useEffect(() => {
         if (!isOpen || !response) { return }
-        if (response.status === 'ok') {
-            const topic = response.topic
-            const parts: string[] = [topic.brief]
-            if (topic.syntax.length > 0) { parts.push('Syntax: ' + topic.syntax.join(', ')) }
-            if (topic.seeAlso.length > 0) { parts.push('See also: ' + topic.seeAlso.join(', ')) }
-            useAnnounceStore.getState().pushMessage(stripMarkup(parts.join('. ')), 'assertive')
-        } else if (response.status === 'multiple') {
-            const titles = response.matches.map((m) => m.title).join(', ')
-            const label = response.term ? `Multiple matches for "${response.term}": ${titles}` : `Help categories: ${titles}`
-            useAnnounceStore.getState().pushMessage(label, 'assertive')
-        }
+        headingRef.current?.focus()
     }, [isOpen, response])
-
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) { closeHelp() }
-        }
-        document.addEventListener('keydown', handler)
-        return () => { document.removeEventListener('keydown', handler) }
-    }, [isOpen, closeHelp])
 
     return (
         <dialog
             ref={dialogRef}
+            aria-labelledby="help-modal-title"
             className="fixed z-50 m-auto max-w-2xl w-full max-h-[80vh] rounded-lg bg-gray-900 text-gray-100 shadow-2xl p-0 backdrop:bg-black/60 border border-gray-700"
             onClick={(e) => { if (e.target === dialogRef.current) { closeHelp() } }}
         >
             {response && (
-                <div className="flex flex-col max-h-[80vh]">
-                    <header className="flex items-center justify-between px-4 py-3 border-b border-gray-700 shrink-0">
-                        <h2 className="text-lg font-semibold">
+                <div className="relative flex flex-col max-h-[80vh]">
+                    <div className="px-4 py-3 border-b border-gray-700 shrink-0 pr-12">
+                        <h2 id="help-modal-title" ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
                             {response.status === 'ok'
                                 ? response.topic.title
                                 : response.status === 'multiple'
@@ -64,14 +57,12 @@ export function HelpModal() {
                                         ? `Help: "${response.term}"`
                                         : ''}
                         </h2>
-                        <button
-                            onClick={closeHelp}
-                            className="text-gray-400 hover:text-gray-100 text-xl leading-none ml-4"
-                            aria-label="Close help"
-                        >
-                            &times;
-                        </button>
-                    </header>
+                    </div>
+                    {inDialogAnnouncement && (
+                        <div key={inDialogKey} role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
+                            {inDialogAnnouncement}
+                        </div>
+                    )}
                     <div className="overflow-y-auto px-4 py-4 flex-1">
                         {response.status === 'ok' && <HelpTopicContent topic={response.topic} />}
                         {response.status === 'multiple' && (
@@ -81,6 +72,18 @@ export function HelpModal() {
                             <p className="text-gray-400 text-sm">No help topic found for "{response.term}".</p>
                         )}
                     </div>
+                    <div className="sr-only">
+                        {response.status === 'ok'
+                            ? 'Press Alt+H to read detailed help text. Press Escape to exit.'
+                            : 'Press Escape to exit.'}
+                    </div>
+                    <button
+                        onClick={closeHelp}
+                        className="absolute top-3 right-4 text-gray-400 hover:text-gray-100 text-xl leading-none"
+                        aria-label="Close help"
+                    >
+                        &times;
+                    </button>
                 </div>
             )}
         </dialog>
@@ -105,7 +108,7 @@ function HelpTopicContent({ topic }: { topic: HelpTopicData }) {
                 </div>
             )}
 
-            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+            <div aria-hidden="true" className="text-sm leading-relaxed whitespace-pre-wrap">
                 <ColorTaggedText text={topic.body} />
             </div>
 
@@ -133,7 +136,7 @@ function HelpDisambiguation({ term, matches }: { term: string; matches: HelpTopi
     return (
         <div className="space-y-2">
             <p className="text-gray-400 text-sm">
-                {term ? `Multiple topics match "${term}":` : 'Browse a category or type help [topic]:'}
+                {term ? `Multiple topics match "${term}":` : 'Select a category:'}
             </p>
             <ul className="space-y-1">
                 {matches.map((m) => (
@@ -142,8 +145,10 @@ function HelpDisambiguation({ term, matches }: { term: string; matches: HelpTopi
                             className="text-left w-full hover:bg-gray-800 rounded px-2 py-1.5 flex gap-3"
                             onClick={() => { sendCommand(`help ${m.id}`) }}
                         >
-                            <span className="text-blue-400 font-mono shrink-0">{m.id}</span>
-                            <span className="text-gray-300">{m.title}</span>
+                            {m.id !== m.title.toLowerCase()
+                                ? <><span className="text-blue-400 font-mono shrink-0">{m.id}</span><span className="text-gray-300">{m.title}</span></>
+                                : <span className="text-blue-400 font-mono">{m.title}</span>
+                            }
                         </button>
                     </li>
                 ))}

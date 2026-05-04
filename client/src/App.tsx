@@ -9,6 +9,7 @@ import { initCoreHandlers } from './connection/GmcpDispatcher'
 import { useShortcutStore } from './stores/shortcutStore'
 import { registerAllShortcuts } from './accessibility/shortcuts/registerAll'
 import { HelpModal } from './panels/HelpModal'
+import { useHelpStore } from './stores/helpStore'
 
 initCoreHandlers()
 registerAllShortcuts()
@@ -17,6 +18,7 @@ export default function App() {
   const status = useConnectionStore((s) => s.status)
   const loginPhase = useConnectionStore((s) => s.loginPhase)
   const toggleDebug = useDebugStore((s) => s.toggleOpen)
+  const helpDialogKey = useHelpStore((s) => s.dialogKey)
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -56,7 +58,7 @@ export default function App() {
     return (
       <>
         {/* Mounted at App level (not inside GameLayout) so it's available during chargen */}
-        <HelpModal />
+        <HelpModal key={helpDialogKey} />
         <GameLayout />
       </>
     )

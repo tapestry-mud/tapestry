@@ -34,7 +34,7 @@ describe('HelpModal', () => {
         })
         render(<HelpModal />)
         expect(screen.getByText('Combat')).toBeTruthy()
-        expect(screen.getByText('Fight stuff.')).toBeTruthy()
+        expect(screen.getByText('Fight stuff.', { selector: 'p' })).toBeTruthy()
     })
 
     it('renders disambiguation list when opened with multiple response', () => {
