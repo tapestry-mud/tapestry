@@ -50,7 +50,7 @@ public static class HelpRenderer
         sb.AppendLine("  Multiple matches found:");
         sb.AppendLine();
 
-        var pad = matches.Max(m => m.Id.Length) + 4;
+        var pad = matches.Count > 0 ? matches.Max(m => m.Id.Length) + 4 : 4;
         foreach (var m in matches)
         {
             sb.AppendLine($"    {m.Id.PadRight(pad)}{m.Title}");

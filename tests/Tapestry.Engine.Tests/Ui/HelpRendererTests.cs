@@ -63,4 +63,11 @@ public class HelpRendererTests
         var output = HelpRenderer.RenderDisambiguation("x", matches, 60);
         Assert.Contains("Multiple matches", output);
     }
+
+    [Fact]
+    public void RenderNoMatch_ContainsTerm()
+    {
+        var output = HelpRenderer.RenderNoMatch("xyzzy");
+        Assert.Contains("xyzzy", output);
+    }
 }
