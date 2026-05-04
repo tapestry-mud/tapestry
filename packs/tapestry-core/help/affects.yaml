@@ -1,0 +1,20 @@
+id: "affects"
+title: "Affects"
+category: "character"
+role: "player"
+keywords: [aff, buffs, debuffs, effects, active, spells on, conditions]
+brief: "Show active effects currently on your character."
+syntax:
+  - "affects"
+  - "aff"
+body: |
+  Affects lists every spell or condition currently active on you,
+  including what stat it modifies, how much, and how long it lasts.
+
+  Positive effects (buffs) can come from spells cast by yourself or
+  allies, potions, scrolls, or special room effects. Negative effects
+  (debuffs) can come from enemy spells or environmental hazards.
+
+  Effects expire naturally when their duration runs out. Some can be
+  removed early with dispel or remove curse spells.
+see_also: [score, cast, character]

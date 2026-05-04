@@ -1,0 +1,19 @@
+id: "spells"
+title: "Spells"
+category: "character"
+role: "player"
+keywords: [magic, abilities, learned, proficiency, arcane, mana]
+brief: "Show your learned spells and their proficiency levels."
+syntax:
+  - "spells"
+body: |
+  Spells lists every spell you have learned, along with your current
+  proficiency in each. Spell proficiency affects cast reliability,
+  effect magnitude, and in some cases the cost to cast.
+
+  Spells are learned automatically at level milestones defined by your
+  class. Use tree to see your full list and when each is unlocked.
+
+  Improve spell proficiency with the practice command near a teacher.
+  Use cast to invoke a spell in the world.
+see_also: [skills, tree, practice, cast, character]

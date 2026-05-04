@@ -1,0 +1,18 @@
+id: "gossip"
+title: "Gossip"
+category: "communication"
+role: "player"
+keywords: [global, broadcast, all, world, chat, ooc]
+brief: "Send a message to all players currently online."
+syntax:
+  - "gossip [message]"
+body: |
+  Gossip sends your message to every player currently connected,
+  regardless of where they are in the world.
+
+  Use gossip for announcements, looking for groups, or general
+  conversation that does not need to be private or area-specific.
+
+  If the channel feels noisy, some servers offer a way to mute it -
+  check with an admin if you are unsure.
+see_also: [yell, tell, say, communication]

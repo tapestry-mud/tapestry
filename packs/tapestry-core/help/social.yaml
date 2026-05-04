@@ -1,0 +1,28 @@
+id: "social"
+title: "Socials"
+category: "social"
+role: "player"
+keywords: [emote, action, gesture, expression, roleplay, rp]
+brief: "Pre-written emotes and gestures to express yourself in the world."
+body: |
+  Socials are built-in emote actions you can perform with a single command.
+  Each social has a message shown to you, one shown to the room, and
+  optionally a targeted version if you name a player or NPC.
+
+  Use a social by typing its name alone or followed by a target:
+    wave
+    wave merchant
+    bow reginald
+
+  Available socials include: ack, applaud, bark, beam, blush, boggle,
+  bonk, bounce, bow, burp, cackle, cheer, chuckle, clap, comb, comfort,
+  cough, cringe, cry, cuddle, curse, dance, drool, eye, faint, flex,
+  flip, flirt, flutter, frown, gasp, giggle, glare, grin, groan, growl,
+  grumble, grunt, hide, hmm, hop, howl, hug, kiss, kneel, laugh, lick,
+  mock, mutter, nibble, nod, nudge, pat, peer, poke, ponder, pout,
+  purr, roar, ruffle, salute, scowl, shake, shrug, sigh, slap, smile,
+  smirk, snap, snicker, sniff, sob, spit, sulk, tackle, tap, thank,
+  think, tickle, wave, whine, whistle, wink, worship, yawn.
+
+  For freeform actions, use emote to write your own.
+see_also: [emote]

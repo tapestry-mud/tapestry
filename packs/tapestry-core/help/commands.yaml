@@ -1,0 +1,19 @@
+id: "commands"
+title: "Commands"
+category: "world"
+role: "player"
+keywords: [cmds, list, available, what can i do, command list]
+brief: "List all commands currently available to you."
+syntax:
+  - "commands"
+  - "cmds"
+body: |
+  Commands (or cmds) prints a complete list of every command available
+  to your character given your current role and location.
+
+  The list reflects your actual access level. Admin and builder commands
+  appear only for those with appropriate roles.
+
+  Use help [command] to get detailed information about any specific
+  command from the list.
+see_also: [help, world]

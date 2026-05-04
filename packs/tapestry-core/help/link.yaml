@@ -1,0 +1,20 @@
+id: "link"
+title: "Link"
+category: "builder"
+role: "builder"
+keywords: [connect, join, exit, room, builder, create exit]
+brief: "Link two rooms by creating an exit connection."
+syntax:
+  - "link"
+body: |
+  Link starts a guided flow to create a directional exit from the
+  current room to a destination room. You will be prompted for the
+  direction and target room ID.
+
+  Rooms can be linked across different content packs. The target room
+  must already exist. Link does not create rooms - it only connects
+  existing ones.
+
+  After linking, use connections to verify the new exit is correctly
+  configured.
+see_also: [unlink, connections, builder]

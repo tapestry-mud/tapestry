@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useHelpStore } from './helpStore'
 
 interface CommandBarState {
   pending: string
@@ -13,5 +14,8 @@ export const useCommandBarStore = create<CommandBarState>()((set) => ({
   focusToken: 0,
   setPending: (cmd) => set({ pending: cmd }),
   clearPending: () => set({ pending: '' }),
-  requestFocus: () => set((s) => ({ focusToken: s.focusToken + 1 })),
+  requestFocus: () => {
+    if (useHelpStore.getState().isOpen) { return }
+    set((s) => ({ focusToken: s.focusToken + 1 }))
+  },
 }))

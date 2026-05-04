@@ -1,0 +1,17 @@
+id: "immtalk"
+title: "Immtalk"
+category: "communication"
+role: "admin"
+keywords: [immortal, admin channel, imm, ;, staff chat]
+brief: "Send a message on the immortal channel."
+syntax:
+  - "immtalk [message]"
+  - "; [message]"
+body: |
+  Immtalk sends a message on the immortal channel, visible only to
+  players with admin-level access. Use the semicolon (;) as a shortcut.
+
+  This channel is for admin coordination and is not visible to regular
+  players. Use it for world management discussion, player reports,
+  and staff communication.
+see_also: [communication, admin]

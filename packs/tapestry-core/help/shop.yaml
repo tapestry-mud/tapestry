@@ -1,0 +1,23 @@
+id: "shop"
+title: "Shop"
+category: "shop"
+role: "player"
+keywords: [store, buy, sell, merchant, vendor, trade, purchase]
+brief: "How to buy and sell items at shops."
+body: |
+  Shops are run by merchant NPCs found throughout the world. Each shop
+  carries a different stock of items and will buy different things from
+  players.
+
+  BROWSING: Use list to see what is available for sale and the prices.
+  Some shops have more items than fit on one page.
+
+  BUYING: Use buy [item] to purchase something. The cost is deducted
+  from your gold. You need enough gold and free carry capacity.
+
+  SELLING: Use sell [item] to sell something from your inventory. Use
+  value [item] first to check how much the shop will pay before selling.
+
+  Shops do not always buy everything you carry. If a shop is not
+  interested in an item, value will tell you.
+see_also: [list, buy, sell, value]

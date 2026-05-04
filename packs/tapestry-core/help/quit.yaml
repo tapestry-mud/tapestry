@@ -1,0 +1,19 @@
+id: "quit"
+title: "Quit"
+category: "world"
+role: "player"
+keywords: [qq, exit, logout, disconnect, leave game, bye]
+brief: "Disconnect from the game."
+syntax:
+  - "quit"
+  - "qq"
+body: |
+  Quit saves your character and disconnects you from the game. Your
+  progress, inventory, and position are all saved.
+
+  You cannot quit during combat. Flee first, then quit once you are
+  out of danger.
+
+  Use qq as a quick shortcut for quit. When you log back in, you will
+  return to the same room you logged out from.
+see_also: [recall, world]

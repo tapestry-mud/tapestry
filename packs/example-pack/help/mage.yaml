@@ -1,0 +1,24 @@
+id: "mage"
+title: "Mage"
+category: "creation"
+keywords: [class, wizard, arcane, magic, caster, spellcaster, intelligence]
+brief: "Student of arcane forces - raw magical power, healing, and broad spell coverage."
+body: |
+  Mages wield raw magical power. They can heal allies, destroy enemies,
+  and bring a broad and flexible spell list to any group. Their HP is
+  fragile, but their resource growth and spell access more than compensate.
+
+  HP GROWTH: 1d6 per level. Resource: 2d4+1 per level. Trains per level: 5.
+
+  ABILITIES BY LEVEL:
+    1  - cure_light
+    3  - fireball
+    5  - shield
+    10 - blindness
+    15 - poison
+    20 - second_cast
+
+  Mages rely on intelligence and wisdom. Elves are the ideal Mage race
+  due to high int/wis caps and superior mana efficiency. second_cast at
+  level 20 allows two spells per round, making late-game Mages dominant.
+see_also: [warrior, classes, creation, human, elf]

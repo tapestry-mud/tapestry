@@ -1,0 +1,17 @@
+id: "forget"
+title: "Forget"
+category: "admin"
+role: "admin"
+keywords: [remove ability, strip, unlearn, admin]
+brief: "Remove an ability from yourself or another player."
+syntax:
+  - "forget [ability]"
+  - "forget [player] [ability]"
+body: |
+  Forget removes a learned ability from a player's ability list.
+  Without a player name, it targets yourself. With a player name,
+  it targets that player.
+
+  Use with care - abilities removed this way must be re-granted with
+  learn or setclass. This is primarily a debug and correction tool.
+see_also: [learn, setclass, admin]

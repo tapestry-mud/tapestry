@@ -1,0 +1,16 @@
+id: "inspect"
+title: "Inspect"
+category: "admin"
+role: "admin"
+keywords: [view, details, stats, debug, admin, examine deep]
+brief: "Show detailed stats, equipment, and properties for a target."
+syntax:
+  - "inspect [target]"
+body: |
+  Inspect gives a full detailed readout of a player, NPC, or item:
+  all stats, flags, equipment, active effects, template ID, and
+  other internal properties not visible through normal commands.
+
+  Use inspect when debugging unexpected behavior, verifying item
+  properties, or checking player state during support requests.
+see_also: [set, admin]

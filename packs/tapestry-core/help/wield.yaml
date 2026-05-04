@@ -1,0 +1,19 @@
+id: "wield"
+title: "Wield"
+category: "equipment"
+role: "player"
+keywords: [weapon, hold, equip, sword, main hand, offhand]
+brief: "Wield a weapon from your inventory."
+syntax:
+  - "wield [weapon]"
+body: |
+  Wield equips a weapon from your inventory into your main hand. Some
+  classes or builds may allow dual-wielding a second weapon as well.
+
+  If you already have a weapon wielded, wield will swap it out with
+  the new one. The old weapon returns to your inventory.
+
+  Wielding a better weapon is one of the most direct ways to improve
+  your combat effectiveness. Use examine on weapons to compare stats
+  before committing.
+see_also: [wear, remove, equipment]

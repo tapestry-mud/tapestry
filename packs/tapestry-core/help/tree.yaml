@@ -1,0 +1,19 @@
+id: "tree"
+title: "Tree"
+category: "character"
+role: "player"
+keywords: [class path, ability tree, progression tree, unlock, levels]
+brief: "Show your class path and learned abilities by level."
+syntax:
+  - "tree"
+body: |
+  Tree displays your full class progression path: every ability your
+  class can learn, what level it is unlocked at, and whether you have
+  learned it yet.
+
+  Use tree to plan your progression, understand what is coming next,
+  and confirm what you have already unlocked.
+
+  Abilities shown as learned match what appears in skills and spells.
+  Abilities not yet reached show their unlock level as a milestone.
+see_also: [skills, spells, practice, progression, character]

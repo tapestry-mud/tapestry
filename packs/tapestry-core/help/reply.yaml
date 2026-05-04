@@ -1,0 +1,19 @@
+id: "reply"
+title: "Reply"
+category: "communication"
+role: "player"
+keywords: [respond, answer, r, tell back]
+brief: "Reply to the last player who sent you a tell."
+syntax:
+  - "reply [message]"
+  - "r [message]"
+body: |
+  Reply sends a tell back to the last player who messaged you, without
+  needing to type their name. It is a shortcut for tell [last-sender].
+
+  If no one has sent you a tell yet this session, reply will fail and
+  notify you. The reply target resets each session.
+
+  Use tell if you want to start a conversation or message someone who
+  has not told you first.
+see_also: [tell, say, communication]

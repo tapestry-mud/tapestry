@@ -1,0 +1,19 @@
+id: "rescue"
+title: "Rescue"
+category: "combat"
+role: "player"
+keywords: [save, protect, pull aggro, tank, group combat]
+brief: "Rescue an ally from combat, redirecting the enemy to you."
+syntax:
+  - "rescue [ally]"
+body: |
+  Rescue pulls an enemy off an ally who is being attacked, redirecting
+  the combat to you instead. The ally is freed from the fight and you
+  become the new target.
+
+  Rescue is essential for tanks and front-line fighters in a group.
+  Use it to protect healers, mages, or weaker allies from taking damage.
+
+  Rescue requires you to be in the same room as both the ally and the
+  enemy. Success is not always guaranteed.
+see_also: [kill, group, combat]

@@ -1,0 +1,21 @@
+id: "train"
+title: "Train"
+category: "progression"
+role: "player"
+keywords: [stat, attribute, trains, raise, strength, intelligence, dexterity]
+brief: "Spend a train to permanently raise a core attribute."
+syntax:
+  - "train"
+  - "train [stat]"
+body: |
+  Train used alone shows your available trains and current stat values.
+  Train [stat] spends one train to permanently raise that attribute
+  by one point, up to your race's maximum cap.
+
+  Stats you can train include: strength, intelligence, wisdom, dexterity,
+  constitution, and luck. Trains are granted each time you level up,
+  with the amount depending on your class.
+
+  Choose carefully - trains are limited and stats near their cap
+  become more valuable. Focus on the stats your class relies on most.
+see_also: [practice, score, progression]

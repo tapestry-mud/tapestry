@@ -1,0 +1,19 @@
+id: "recall"
+title: "Recall"
+category: "world"
+role: "player"
+keywords: [teleport home, safe, return, base, temple, recall room]
+brief: "Teleport to the recall room."
+syntax:
+  - "recall"
+body: |
+  Recall teleports you instantly to the designated recall room - a
+  safe central location used as a common meeting point and starting
+  place for new players.
+
+  Recall cannot be used during combat. If you are fighting, you must
+  flee first before recalling.
+
+  Some areas are "no recall" zones where the command is blocked. If
+  you find yourself stuck in one, you will need to find another way out.
+see_also: [flee, quit, world]

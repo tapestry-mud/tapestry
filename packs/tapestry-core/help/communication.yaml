@@ -1,0 +1,22 @@
+id: "communication"
+title: "Communication"
+category: "communication"
+role: "player"
+keywords: [talk, chat, message, channel, speak]
+brief: "How to communicate with other players and the world."
+body: |
+  Tapestry has several channels for communicating with other players.
+  Each channel has a different audience and purpose.
+
+  LOCAL: say (or ') speaks to everyone in your room. emote (or :)
+  lets you describe an action to the room.
+
+  PRIVATE: tell sends a private message to a specific player anywhere
+  in the world. reply responds to the last tell you received.
+
+  GLOBAL: gossip reaches all players. yell reaches everyone in the
+  same area. clan reaches members of your clan.
+
+  ADMIN: immtalk is the immortal channel, visible only to admin-level
+  players. Use ; as an alias.
+see_also: [say, tell, reply, gossip, yell, clan, emote, immtalk]

@@ -1,0 +1,25 @@
+id: "keyboard-shortcuts"
+title: "Keyboard Shortcuts"
+category: "accessibility"
+role: "player"
+keywords: [alt, hotkey, shortcut, keybind, keyboard, quick access]
+brief: "Keyboard shortcuts for quick access to game information."
+body: |
+  The Tapestry web client provides Alt-key shortcuts that give fast
+  access to important information without navigating the page manually.
+  These are especially useful for screen reader users.
+
+  Alt+L: Re-announces the current room name and description through
+  your screen reader. Use this whenever you need to hear the room
+  context again after chat or combat scrolls it away.
+
+  Alt+C: Reads out context-sensitive commands available for your
+  current room or situation. Helpful for discovering what actions
+  are possible without leaving the input field.
+
+  Alt+H: Reads the full body text of the currently displayed help
+  topic aloud through your screen reader.
+
+  All interactive elements - help links, modal close buttons, and
+  navigation - are reachable with the Tab key. No mouse required.
+see_also: [screen-reader, gmcp-overview, accessibility]

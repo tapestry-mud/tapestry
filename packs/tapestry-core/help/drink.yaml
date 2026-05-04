@@ -1,0 +1,19 @@
+id: "drink"
+title: "Drink"
+category: "inventory"
+role: "player"
+keywords: [quaff, sip, water, potion, flask, liquid, thirst]
+brief: "Drink from an item in your inventory."
+syntax:
+  - "drink [item]"
+body: |
+  Drink consumes liquid from a container in your inventory, such as
+  a water flask or a liquid-filled vial. The effect depends on what
+  the container holds.
+
+  Water and common drinks satisfy thirst if the server tracks it.
+  Special liquids may heal, harm, or apply effects.
+
+  To drink from a fountain or well in the room directly, you may
+  need to fill a container first with the fill command.
+see_also: [fill, eat, quaff, inventory]

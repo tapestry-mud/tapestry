@@ -1,0 +1,19 @@
+id: "gtell"
+title: "Gtell"
+category: "group"
+role: "player"
+keywords: [gt, group tell, group chat, party chat]
+brief: "Send a message to your group members."
+syntax:
+  - "gtell [message]"
+  - "gt [message]"
+body: |
+  Gtell sends a message to every member of your group, regardless of
+  where they are in the world. Only group members can see it.
+
+  Use gt as a shortcut. Gtell is the primary coordination channel for
+  groups - use it for tactics, warnings, and general group chat.
+
+  You must be in a group to use gtell. If you are solo, the command
+  will tell you so.
+see_also: [group, follow, communication]

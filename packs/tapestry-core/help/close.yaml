@@ -1,0 +1,18 @@
+id: "close"
+title: "Close"
+category: "navigation"
+role: "player"
+keywords: [door, shut, container]
+brief: "Close a door or container."
+syntax:
+  - "close [direction]"
+  - "close [container]"
+body: |
+  Close shuts an open door in the given direction or closes an open
+  container. A closed door blocks movement until opened again.
+
+  Closing a door does not lock it. Use the lock command after closing
+  if you want to prevent others from opening it.
+
+  Containers must be closed before they can be locked.
+see_also: [open, lock, unlock, navigation]

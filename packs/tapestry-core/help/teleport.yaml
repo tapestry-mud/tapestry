@@ -1,0 +1,22 @@
+id: "teleport"
+title: "Teleport"
+category: "admin"
+role: "admin"
+keywords: [tp, warp, goto, move, jump, admin]
+brief: "Teleport yourself or another player to a room or player."
+syntax:
+  - "teleport [room-id]"
+  - "teleport [player]"
+  - "tp [room-id]"
+  - "tp [player]"
+body: |
+  Teleport moves you instantly to a target room by ID or to another
+  player's location. With a player name as the second argument, it
+  moves that player to you or to the specified destination.
+
+  Room IDs follow the pack format: "pack:room-id". Use inspect on
+  your current room to find its ID.
+
+  Use teleport for world navigation during building, responding to
+  player requests, and testing area layouts.
+see_also: [spawn, admin]

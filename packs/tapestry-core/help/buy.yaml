@@ -1,0 +1,18 @@
+id: "buy"
+title: "Buy"
+category: "shop"
+role: "player"
+keywords: [purchase, shop, merchant, acquire, get, gold]
+brief: "Buy an item from a shop."
+syntax:
+  - "buy [item]"
+body: |
+  Buy purchases the named item from the merchant in your current room
+  and adds it to your inventory. The cost is deducted from your gold.
+
+  If you cannot afford the item or do not have enough carry capacity,
+  the purchase fails. Use list to see prices before buying.
+
+  Item names can be partial matches. If there are multiple matching
+  items, the first one in the shop's list is selected.
+see_also: [list, sell, value, shop]

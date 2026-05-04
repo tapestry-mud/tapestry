@@ -1,0 +1,19 @@
+id: "unlock"
+title: "Unlock"
+category: "navigation"
+role: "player"
+keywords: [key, open, door, container]
+brief: "Unlock a door or container."
+syntax:
+  - "unlock [direction]"
+  - "unlock [container]"
+body: |
+  Unlock removes the lock from a door or container so it can be
+  opened. You must have the appropriate key in your inventory.
+
+  After unlocking, use open to pass through the door or access the
+  container's contents.
+
+  If you do not have the right key, you will need to find it or
+  find another way past the obstacle.
+see_also: [lock, open, close, navigation]

@@ -1,0 +1,17 @@
+id: "learn"
+title: "Learn"
+category: "admin"
+role: "admin"
+keywords: [grant ability, teach, add skill, spell, admin]
+brief: "Grant an ability to yourself or another player."
+syntax:
+  - "learn [ability]"
+  - "learn [player] [ability]"
+body: |
+  Learn grants a specific ability to a player. Without a player name,
+  it targets yourself. With a player name, it targets that player.
+
+  The ability must exist in a loaded content pack. Use this to manually
+  grant abilities outside of the normal class progression, or to correct
+  missing abilities after a setclass or pack change.
+see_also: [forget, setclass, admin]

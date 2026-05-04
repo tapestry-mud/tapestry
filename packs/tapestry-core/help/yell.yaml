@@ -1,0 +1,16 @@
+id: "yell"
+title: "Yell"
+category: "communication"
+role: "player"
+keywords: [shout, area, loud, nearby]
+brief: "Shout a message to everyone in the current area."
+syntax:
+  - "yell [message]"
+body: |
+  Yell sends your message to all players in the same area (zone) as
+  you, but not to players in other parts of the world.
+
+  Use yell when you need to reach nearby players quickly - calling for
+  help in a dungeon, warning others about danger, or coordinating
+  without bothering the whole server with gossip.
+see_also: [gossip, say, tell, communication]

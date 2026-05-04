@@ -1,0 +1,22 @@
+id: "character-creation"
+title: "Character Creation"
+category: "creation"
+keywords: [create, new, race, class, start, begin, chargen]
+brief: "Overview of the character creation process."
+body: |
+  Creating a character in Tapestry involves choosing a name, a race,
+  and a class. Each choice shapes how your character develops and
+  plays throughout the game.
+
+  RACE: Your race determines your base stat caps, natural abilities,
+  and some passive modifiers. Choose a race that fits the kind of
+  character you want to play.
+
+  CLASS: Your class determines how you fight, what abilities you learn
+  as you level up, and how fast your HP and resources grow. Each class
+  has a distinct role in groups.
+
+  Once created, your character enters the world at the starting area.
+  You can use the help system at any time to learn more about commands,
+  your class, and the world around you.
+see_also: [races, classes]

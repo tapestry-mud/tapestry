@@ -1,0 +1,17 @@
+id: "put"
+title: "Put"
+category: "inventory"
+role: "player"
+keywords: [place, store, container, bag, pack, insert]
+brief: "Put an item into a container."
+syntax:
+  - "put [item] [container]"
+body: |
+  Put places an item from your inventory into a container. The container
+  can be in your inventory or on the ground in the same room.
+
+  Containers have their own weight and item limits. If the container
+  is full or the item does not fit, the command will fail.
+
+  Use get to retrieve items from a container later.
+see_also: [get, drop, inventory]

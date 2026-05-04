@@ -1,0 +1,16 @@
+id: "setclass"
+title: "Setclass"
+category: "admin"
+role: "admin"
+keywords: [class, assign, reset, level 1 abilities, admin]
+brief: "Assign a class to a player and grant their level-1 abilities."
+syntax:
+  - "setclass [player] [class]"
+body: |
+  Setclass assigns a class to the named player and automatically grants
+  all abilities that class gives at level 1. Existing abilities are
+  not removed - use forget first if you need a clean slate.
+
+  Use setclass when correcting a player's class, testing a class
+  from scratch, or setting up test characters.
+see_also: [learn, forget, admin]

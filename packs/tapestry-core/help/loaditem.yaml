@@ -1,0 +1,16 @@
+id: "loaditem"
+title: "Loaditem"
+category: "admin"
+role: "admin"
+keywords: [create item, spawn item, template, admin, add item]
+brief: "Add an item from a template ID to your inventory."
+syntax:
+  - "loaditem [template-id]"
+body: |
+  Loaditem creates an instance of an item from the given template ID
+  and places it directly in your inventory. Use it to test items,
+  restore lost items, or inspect item templates in play.
+
+  Template IDs are in the format "pack:item-id". Use inspect on an
+  existing item to find its template ID.
+see_also: [spawn, inspect, admin]

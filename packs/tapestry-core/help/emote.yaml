@@ -1,0 +1,19 @@
+id: "emote"
+title: "Emote"
+category: "communication"
+role: "player"
+keywords: [action, roleplay, rp, pose, me]
+brief: "Perform a freeform emote action visible to the room."
+syntax:
+  - "emote [action]"
+  - ": [action]"
+body: |
+  Emote lets you describe a custom action that the room can see.
+  Your name is prepended automatically.
+
+  Example: "emote stretches and yawns." becomes "Travis stretches and yawns."
+
+  Use the colon (:) as a shortcut. Emote is freeform - you can write
+  anything. For pre-written gestures with targeted versions, see the
+  social command list.
+see_also: [social, say, communication]

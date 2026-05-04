@@ -1,0 +1,21 @@
+id: "wimpy"
+title: "Wimpy"
+category: "combat"
+role: "player"
+keywords: [auto flee, threshold, safety, hp limit, coward]
+brief: "Set HP threshold to automatically flee combat."
+syntax:
+  - "wimpy"
+  - "wimpy [hp]"
+  - "wimpy 0"
+body: |
+  Wimpy sets an HP threshold below which you will automatically attempt
+  to flee from combat. This is a critical safety setting for solo play.
+
+  Set it with "wimpy [number]" where the number is an HP value, not
+  a percentage. When your HP drops to that level or below during combat,
+  a flee attempt fires automatically.
+
+  Use "wimpy 0" to disable automatic fleeing. Use "wimpy" alone to
+  see your current setting.
+see_also: [flee, kill, combat]

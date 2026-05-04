@@ -1,0 +1,19 @@
+id: "exits"
+title: "Exits"
+category: "navigation"
+role: "player"
+keywords: [exit, doors, directions, out, where, go]
+brief: "List available exits from the current room."
+syntax:
+  - "exits"
+body: |
+  Exits lists all available exits from your current room without
+  printing the full room description. Useful when you already know
+  the room but want a quick reminder of where you can go.
+
+  Each exit shows the direction and a brief label for the destination.
+  Exits marked with a door symbol may require opening before you can
+  pass through.
+
+  For the full room view including description and contents, use look.
+see_also: [look, movement, navigation]

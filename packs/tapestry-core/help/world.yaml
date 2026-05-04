@@ -1,0 +1,24 @@
+id: "world"
+title: "World"
+category: "world"
+role: "player"
+keywords: [general, misc, commands, online, time, weather]
+brief: "General world commands: who is online, time, weather, and more."
+body: |
+  These commands give you information about the world and your place in it.
+
+  PLAYERS: who lists everyone currently connected. Use packs to see
+  what content is loaded and who created it.
+
+  WORLD STATE: time shows the current in-game time of day and date.
+  weather shows current conditions, which can affect travel and some spells.
+
+  INFORMATION: motd shows the message of the day, which admins use to
+  share news and announcements. commands (or cmds) lists all commands
+  currently available to you.
+
+  TRAVEL: recall teleports you back to the recall room - a safe point
+  in the world used as a common meeting place.
+
+  LEAVING: quit (or qq) disconnects you cleanly. Your character is saved.
+see_also: [who, time, weather, motd, packs, commands, help, recall, quit]

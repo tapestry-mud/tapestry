@@ -1,0 +1,19 @@
+id: "tell"
+title: "Tell"
+category: "communication"
+role: "player"
+keywords: [private, message, whisper, pm, t]
+brief: "Send a private message to a player by name."
+syntax:
+  - "tell [player] [message]"
+  - "t [player] [message]"
+body: |
+  Tell sends a private message to a specific player anywhere in the
+  world. Only you and the recipient see the message.
+
+  If the player is not online, the tell will fail and you will be
+  notified. Player names are not case-sensitive.
+
+  Use reply to respond to the most recent tell you received without
+  typing the player's name again.
+see_also: [reply, say, gossip, communication]

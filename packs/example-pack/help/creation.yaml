@@ -1,0 +1,20 @@
+id: "creation"
+title: "Character Creation"
+category: "creation"
+keywords: [create, new character, start, begin, chargen, race, class]
+brief: "Overview of races and classes available during character creation."
+body: |
+  When creating a new character you will choose a race and a class.
+  Each combination produces a different play style, stat caps, and
+  ability set.
+
+  RACES: Determines your base stat caps, natural modifiers, and some
+  passive traits. Available races: Human, Elf.
+
+  CLASSES: Determines your HP and resource growth, what abilities you
+  learn as you level, and your role in a group. Available classes:
+  Warrior, Mage.
+
+  Read the individual help topics for each race and class before
+  making your choice. The combination matters more than either alone.
+see_also: [races, classes, human, elf, warrior, mage, character-creation]

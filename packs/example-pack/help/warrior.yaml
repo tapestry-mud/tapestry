@@ -1,0 +1,25 @@
+id: "warrior"
+title: "Warrior"
+category: "creation"
+keywords: [class, fighter, melee, tank, physical, arms, armor, frontline]
+brief: "Master of arms and armor - front-line fighters built for steel and strength."
+body: |
+  Warriors are the front-line combatants of the world. They absorb
+  punishment and dish it back with a deep skill tree and strong HP
+  growth. Every group wants a Warrior in the thick of it.
+
+  HP GROWTH: 2d6+2 per level. Move: 1d4 per level. Trains per level: 5.
+
+  ABILITIES BY LEVEL:
+    1  - dodge
+    3  - kick
+    5  - parry
+    8  - battle_stance
+    12 - bash
+    18 - second_attack
+    25 - enhanced_damage
+
+  Warriors rely on strength, constitution, and dexterity. Focus trains
+  on strength and constitution early to maximize survivability and damage.
+  second_attack at level 18 dramatically increases damage output.
+see_also: [mage, classes, creation, human, elf]

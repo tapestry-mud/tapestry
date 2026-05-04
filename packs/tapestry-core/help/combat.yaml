@@ -1,0 +1,25 @@
+id: "combat"
+title: "Combat"
+category: "combat"
+role: "player"
+keywords: [fight, attack, battle, kill, enemy, mob]
+brief: "How combat works in Tapestry."
+body: |
+  Combat in Tapestry is round-based. When you attack a target with kill
+  (or attack), you and your enemy exchange blows each round until one
+  side flees or falls.
+
+  INITIATING: Use kill [target] to begin combat. Use consider (or con)
+  first to gauge how dangerous a target is before committing.
+
+  DURING COMBAT: Your attacks happen automatically each round. Some
+  abilities and spells can be used mid-combat for extra effects.
+  Use rescue to pull an enemy off an ally who is in trouble.
+
+  ESCAPING: flee attempts to run from the fight. Set wimpy to a HP
+  threshold and you will automatically attempt to flee when HP drops
+  that low.
+
+  When you die, you will lose some experience and your corpse will
+  remain in the room with your items.
+see_also: [kill, flee, wimpy, consider, rescue, combat-basics]

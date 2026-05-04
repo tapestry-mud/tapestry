@@ -1,0 +1,23 @@
+id: "elf"
+title: "Elf"
+category: "creation"
+keywords: [race, graceful, magic, arcane, nimble, perceptive, long-lived]
+brief: "Graceful and attuned to magic - gifted in arcane arts and agility."
+body: |
+  Elves are long-lived and naturally gifted in the arcane arts.
+  They are nimble, perceptive, and dangerous casters, though less
+  physically hardy than humans.
+
+  STAT CAPS: Strength 22, Intelligence 28, Wisdom 27, Dexterity 28,
+  Constitution 20, Luck 25.
+
+  POOL CAPS: HP 16, Resource 22, Move 18.
+
+  SPELLCASTING: Elves have excellent mana efficiency, reducing spell
+  costs by 15%. Their high intelligence and wisdom caps make them
+  outstanding mages.
+
+  Elves are the strongest choice for Mage. Their lower constitution
+  and HP cap make the Warrior path harder but not impossible for
+  players who prefer a challenge.
+see_also: [human, races, creation, mage, warrior]

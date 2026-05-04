@@ -1,0 +1,16 @@
+id: "settrainable"
+title: "Settrainable"
+category: "admin"
+role: "admin"
+keywords: [debug, stat, trainable, toggle, runtime, admin]
+brief: "Runtime debug: toggle a stat in or out of the trainable list."
+syntax:
+  - "settrainable [stat]"
+body: |
+  Settrainable is a runtime debug tool that toggles a stat between
+  trainable and non-trainable status. Changes affect all players
+  immediately but are not persistent across server restarts.
+
+  Use this for testing train mechanics or temporarily restricting
+  which stats can be trained during a content iteration.
+see_also: [train, set, admin]

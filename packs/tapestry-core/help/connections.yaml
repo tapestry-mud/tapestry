@@ -1,0 +1,18 @@
+id: "connections"
+title: "Connections"
+category: "builder"
+role: "builder"
+keywords: [exits, links, rooms, map, builder, connected]
+brief: "List connections for this room or all rooms."
+syntax:
+  - "connections"
+  - "connections all"
+body: |
+  Connections lists all defined exits and links for the current room,
+  including direction, target room ID, and any flags (locked, hidden,
+  one-way).
+
+  Use "connections all" to list every connection across all rooms
+  in the loaded packs. Useful for finding broken or missing links
+  during world building.
+see_also: [link, unlink, builder]

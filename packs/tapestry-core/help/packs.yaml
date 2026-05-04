@@ -1,0 +1,20 @@
+id: "packs"
+title: "Packs"
+category: "world"
+role: "player"
+keywords: [content, credits, authors, modules, plugins, loaded]
+brief: "Show loaded content packs and their credits."
+syntax:
+  - "packs"
+body: |
+  Packs lists all content packs currently loaded in the game, their
+  version numbers, and the authors who created them.
+
+  Tapestry uses a pack system where different content creators can
+  contribute races, classes, areas, mobs, and items. The packs command
+  shows you everything currently active on the server.
+
+  Content packs are loaded in order, with higher load_order packs able
+  to override lower ones. This allows servers to customize or extend
+  base content.
+see_also: [world]

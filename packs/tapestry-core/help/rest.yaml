@@ -1,0 +1,25 @@
+id: "rest"
+title: "Rest"
+category: "rest"
+role: "player"
+keywords: [sleep, wake, stand, recover, regen, regenerate, hp, restore]
+brief: "Rest and sleep to recover HP, resource, and movement."
+syntax:
+  - "rest"
+  - "sleep"
+  - "wake"
+  - "stand"
+body: |
+  Your HP, resource, and movement points regenerate over time, but
+  resting or sleeping speeds up recovery significantly.
+
+  REST: Sitting down to rest increases your regeneration rate. You can
+  still interact with the world while resting, but you cannot move or
+  fight without standing first.
+
+  SLEEP: Sleeping provides the fastest regeneration. While asleep you
+  cannot act. Use wake (or stand) to get up.
+
+  You cannot rest or sleep during combat. If you are attacked while
+  resting or sleeping, you will be forced to stand.
+see_also: [sleep, wake]

@@ -1,0 +1,19 @@
+id: "wake"
+title: "Wake"
+category: "rest"
+role: "player"
+keywords: [stand, get up, rise, stop resting, stop sleeping]
+brief: "Wake up and stand, ending rest or sleep."
+syntax:
+  - "wake"
+  - "stand"
+body: |
+  Wake (or stand) brings you to your feet from a resting or sleeping
+  state. You must be standing to move, fight, or use most commands.
+
+  If you are sleeping, wake brings you to standing immediately. If
+  you are resting, stand also works.
+
+  You are automatically woken if you are attacked while resting or
+  sleeping.
+see_also: [rest, sleep]

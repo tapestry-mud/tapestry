@@ -18,13 +18,25 @@ tapestry.commands.register({
             }
 
             var lines = ['Help Topics:\r\n'];
+            var matches = [];
             for (var i = 0; i < cats.length; i++) {
                 var cat = String(cats[i]);
                 var topics = helpId ? tapestry.help.list(helpId, cat) : tapestry.help.list(cat);
-                lines.push('  ' + cat + ' (' + topics.length + (topics.length === 1 ? ' topic' : ' topics') + ')\r\n');
+                var count = topics.length;
+                lines.push('  ' + cat + ' (' + count + (count === 1 ? ' topic' : ' topics') + ')\r\n');
+                matches.push({
+                    id: cat,
+                    title: cat.charAt(0).toUpperCase() + cat.slice(1),
+                    brief: count + (count === 1 ? ' topic' : ' topics')
+                });
             }
             lines.push('\r\nType help [topic] for details.\r\n');
             player.send(lines.join(''));
+            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+                status: 'multiple',
+                term: '',
+                matches: matches
+            });
             return;
         }
 

@@ -1,0 +1,21 @@
+id: "cast"
+title: "Cast"
+category: "character"
+role: "player"
+keywords: [spell, magic, invoke, mana, resource]
+brief: "Cast a spell from your learned spell list."
+syntax:
+  - "cast '[spell name]'"
+  - "cast '[spell name]' [target]"
+body: |
+  Cast invokes a spell by name. The spell name must be in quotes if
+  it is more than one word. A target is required for spells that
+  affect a specific entity.
+
+  Casting costs resource (mana). If you do not have enough, the cast
+  fails. Your proficiency in the spell affects success rate and
+  effect strength.
+
+  Some spells can be cast during combat. Others are non-combat only.
+  Check the spell description with examine or the spells list.
+see_also: [spells, quaff, recite, character]

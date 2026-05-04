@@ -1,0 +1,19 @@
+id: "list"
+title: "List"
+category: "shop"
+role: "player"
+keywords: [shop, browse, for sale, inventory, merchant, stock]
+brief: "List items for sale in a shop."
+syntax:
+  - "list"
+body: |
+  List shows every item currently available for purchase in the shop
+  you are in, along with their prices. You must be in a room with a
+  merchant NPC.
+
+  Prices are in gold. Your current gold is shown in score. Some shops
+  refresh their stock over time, so an empty slot today may be filled
+  later.
+
+  Use buy to purchase an item after finding it with list.
+see_also: [buy, sell, value, shop]

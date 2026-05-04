@@ -1,0 +1,21 @@
+id: "consider"
+title: "Consider"
+category: "combat"
+role: "player"
+keywords: [con, assess, evaluate, size up, dangerous, compare]
+brief: "Assess how dangerous a target is compared to you."
+syntax:
+  - "consider [target]"
+  - "con [target]"
+body: |
+  Consider gives you a rough assessment of how a target compares to
+  your current level and combat ability. It uses plain language:
+  "easy prey," "a fair fight," "you would need a lot of luck," and so on.
+
+  Always consider before initiating combat, especially in new areas.
+  A target that looks manageable may have special abilities or high
+  HP that make it much harder than the level suggests.
+
+  Consider does not guarantee outcomes - it is an estimate, not a
+  guarantee.
+see_also: [kill, flee, combat]

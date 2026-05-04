@@ -1,0 +1,17 @@
+id: "grant"
+title: "Grant"
+category: "admin"
+role: "admin"
+keywords: [award, experience, xp, trains, admin]
+brief: "Award experience or trains to a player."
+syntax:
+  - "grant [player] exp [amount]"
+  - "grant [player] trains [amount]"
+body: |
+  Grant awards experience points or trains to the named player.
+  Useful for correcting progression loss, rewarding players, or
+  testing level-up behavior.
+
+  Granting enough experience may trigger a level-up. Trains are added
+  to the player's available train count.
+see_also: [set, admin]

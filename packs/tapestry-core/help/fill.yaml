@@ -1,0 +1,18 @@
+id: "fill"
+title: "Fill"
+category: "inventory"
+role: "player"
+keywords: [water, flask, canteen, container, refill]
+brief: "Fill a container from a liquid source."
+syntax:
+  - "fill [container]"
+  - "fill [container] [source]"
+body: |
+  Fill takes a liquid container in your inventory and fills it from a
+  source in the room - a fountain, well, barrel, or similar.
+
+  If there is only one valid source in the room, you do not need to
+  specify it. If there are multiple, name the one you want.
+
+  A filled container can then be used with drink to consume the liquid.
+see_also: [drink, inventory]

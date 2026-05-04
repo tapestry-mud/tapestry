@@ -1,0 +1,22 @@
+id: "practice"
+title: "Practice"
+category: "progression"
+role: "player"
+keywords: [prac, proficiency, improve, skill, spell, teacher, trainer]
+brief: "Practice with a teacher to improve skill and spell proficiency."
+syntax:
+  - "practice"
+  - "practice [skill or spell]"
+  - "prac [skill or spell]"
+body: |
+  Practice used alone shows your current proficiency in all known
+  skills and spells. Practice [name] with a teacher NPC in the room
+  spends a practice session to improve that skill or spell.
+
+  Each practice session raises proficiency by a set amount. You are
+  limited by the number of practice sessions you have available,
+  which increase as you level.
+
+  Higher proficiency means more consistent results and stronger
+  effects. Max proficiency is 100%.
+see_also: [skills, spells, train, progression]
