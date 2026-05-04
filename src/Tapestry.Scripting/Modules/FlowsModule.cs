@@ -217,7 +217,10 @@ public class FlowsModule : IJintApiModule
             jint.Invoke(onSelectJs, null, new object[] { entityProxy, optionProxy });
         };
 
-        return new ChoiceStep { Id = id, SkipIf = skipIf, Prompt = prompt, Options = options, OnSelect = onSelect };
+        var helpHintVal = obj.Get("help_hint");
+        var helpHint = helpHintVal.Type == Types.String ? helpHintVal.ToString() : null;
+
+        return new ChoiceStep { Id = id, SkipIf = skipIf, Prompt = prompt, Options = options, OnSelect = onSelect, HelpHint = helpHint };
     }
 
     private TextStep ParseTextStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)

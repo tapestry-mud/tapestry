@@ -60,6 +60,7 @@ public class FlowEngine
         var instance = new FlowInstance(definition, session.PlayerEntity, _panelRenderer);
         instance.OnCompleted = () => Complete(session);
         instance.GmcpSend = GmcpSend;
+        instance.CommandFallback = input => session.EnqueueInput(input);
         session.CurrentFlow = instance;
         _playerCreator.TrackEntity(session.PlayerEntity);
         instance.Start(session);

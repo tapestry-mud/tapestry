@@ -5,7 +5,7 @@ namespace Tapestry.Engine.Ui;
 
 public static class HelpRenderer
 {
-    private const char Rule = '━'; // ━
+    private const char Rule = '=';
 
     public static string RenderTopic(HelpTopic topic, int width = 78)
     {

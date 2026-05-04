@@ -14,6 +14,7 @@ public class FlowInstance
 
     public Action? OnCompleted { get; set; }
     public Action<string, string, object>? GmcpSend { get; set; }
+    public Action<string>? CommandFallback { get; set; }
     public FlowDefinition Definition => _definition;
     public Entity Entity => _entity;
     public int CurrentStepIndex => _currentStepIndex;
@@ -39,6 +40,25 @@ public class FlowInstance
             return;
         }
 
+        var trimmed = input.Trim();
+        var lower = trimmed.ToLowerInvariant();
+
+        if (lower == "?" || lower == "help")
+        {
+            CommandFallback?.Invoke("help");
+            return;
+        }
+        if (trimmed.StartsWith("? "))
+        {
+            CommandFallback?.Invoke("help " + trimmed[2..].Trim());
+            return;
+        }
+        if (lower.StartsWith("help "))
+        {
+            CommandFallback?.Invoke(trimmed);
+            return;
+        }
+
         var step = _definition.Steps[_currentStepIndex];
 
         switch (step)
@@ -59,67 +79,6 @@ public class FlowInstance
     {
         var trimmed = input.Trim();
         var lower = trimmed.ToLowerInvariant();
-
-        if (lower == "?" || lower == "help")
-        {
-            _session!.SendLine("Type ? [option] or ? [number] to learn more about a choice.");
-            if (_definition.WizardSteps == null || !_session!.Connection.SupportsAnsi)
-            {
-                RenderCurrentStep();
-            }
-            return;
-        }
-
-        string? helpTarget = null;
-        if (trimmed.StartsWith("? "))
-        {
-            helpTarget = trimmed[2..].Trim();
-        }
-        else if (lower.StartsWith("help "))
-        {
-            helpTarget = trimmed[5..].Trim();
-        }
-
-        if (helpTarget != null)
-        {
-            var opts = step.Options(_entity);
-            ChoiceOption? match;
-
-            if (int.TryParse(helpTarget, out var helpNum) && helpNum >= 1 && helpNum <= opts.Count)
-            {
-                match = opts[helpNum - 1];
-            }
-            else
-            {
-                var targetLower = helpTarget.ToLowerInvariant();
-                match = opts.FirstOrDefault(o => o.Label.ToLowerInvariant().StartsWith(targetLower));
-            }
-
-            if (match == null)
-            {
-                var unknownText = $"Unknown option: {helpTarget}";
-                _session!.SendLine(unknownText);
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = unknownText });
-            }
-            else if (match.Description != null)
-            {
-                var descText = match.Description(_entity);
-                _session!.SendLine(descText);
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = descText });
-            }
-            else
-            {
-                var noInfoText = $"No additional information available for {match.Label}.";
-                _session!.SendLine(noInfoText);
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Help", new { text = noInfoText });
-            }
-            if (_definition.WizardSteps == null || !_session!.Connection.SupportsAnsi)
-            {
-                RenderCurrentStep();
-            }
-            return;
-        }
-
         var options = step.Options(_entity);
         ChoiceOption? chosen = null;
 
@@ -235,7 +194,8 @@ public class FlowInstance
                     {
                         _session!.SendLine($"  {i + 1}. {options[i].Label}");
                     }
-                    _session!.SendLine("  ? [option] or ? [number] for details");
+                    var hint = choice.HelpHint != null ? $"help {choice.HelpHint}" : "help [topic]";
+                    _session!.SendLine($"  Type {hint} for details");
                 }
                 var choiceOptions = choice.Options(_entity);
                 var choicePayload = choiceOptions.Select(o => o.TagLine != null
@@ -366,7 +326,7 @@ public class FlowInstance
                 SeparatorAbove = RuleStyle.Major,
                 Rows = new Row[]
                 {
-                    new FooterRow { Content = "? [option] or ? [number] for details" }
+                    new FooterRow { Content = step.HelpHint != null ? $"Type help {step.HelpHint} for details" : "Type help [topic] for details" }
                 }
             });
         }
