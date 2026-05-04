@@ -7,9 +7,7 @@ export function handleHelpTopic(): void {
   if (!isOpen || !response || response.status !== 'ok') { return }
   const topic = response.topic
   const parts: string[] = [topic.brief]
-  for (const s of topic.syntax) {
-    parts.push('Syntax: ' + s)
-  }
+  if (topic.syntax.length > 0) { parts.push('Syntax: ' + topic.syntax.join(', ')) }
   if (topic.seeAlso.length > 0) { parts.push('See also: ' + topic.seeAlso.join(', ')) }
   parts.push(topic.body)
   useAnnounceStore.getState().pushMessage(stripMarkup(parts.join('. ')), 'assertive')
