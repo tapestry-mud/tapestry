@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Color;
+using Tapestry.Engine.Help;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
@@ -27,6 +28,7 @@ public class PackLoader
     private readonly PackContext _packContext;
     private readonly AreaRegistry _areaRegistry;
     private readonly WeatherZoneRegistry _weatherZoneRegistry;
+    private readonly HelpService _helpService;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -35,7 +37,8 @@ public class PackLoader
     public PackLoader(World world, SlotRegistry slotRegistry, JintRuntime runtime,
                      ThemeRegistry theme, SpawnManager spawnManager, ItemRegistry itemRegistry,
                      ILogger<PackLoader> logger, PackContext packContext,
-                     AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry)
+                     AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
+                     HelpService helpService)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -47,6 +50,7 @@ public class PackLoader
         _packContext = packContext;
         _areaRegistry = areaRegistry;
         _weatherZoneRegistry = weatherZoneRegistry;
+        _helpService = helpService;
     }
 
     public PackManifest Load(string packDirectory)
@@ -119,6 +123,11 @@ public class PackLoader
         if (!string.IsNullOrEmpty(manifest.Content.Scripts))
         {
             LoadScripts(packDirectory, manifest.Content.Scripts, manifest.Name);
+        }
+
+        if (!string.IsNullOrEmpty(manifest.Content.Help))
+        {
+            _helpService.LoadPack(manifest.Name, packDirectory, manifest.Content.Help, manifest.LoadOrder);
         }
 
         return manifest;

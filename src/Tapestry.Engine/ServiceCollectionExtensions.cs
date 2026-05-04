@@ -21,6 +21,7 @@ using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Ui;
+using Tapestry.Engine.Help;
 using Tapestry.Data;
 
 namespace Tapestry.Engine;
@@ -156,6 +157,9 @@ public static class ServiceCollectionExtensions
                     new CheckWimpyPhase()
                 });
         });
+
+        // Help
+        services.AddSingleton<HelpService>();
 
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();
