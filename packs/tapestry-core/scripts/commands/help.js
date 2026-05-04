@@ -6,7 +6,7 @@ tapestry.commands.register({
     handler: function(player, args) {
         tapestry.respond.suppress(player.entityId);
 
-        var term = (args || '').trim();
+        var term = args ? String(args).trim() : '';
 
         if (!term) {
             var cats = tapestry.help.categories(player.entityId);
