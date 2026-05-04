@@ -24,12 +24,18 @@ export function HelpModal() {
     }, [isOpen])
 
     useEffect(() => {
-        if (!isOpen || !response || response.status !== 'ok') { return }
-        const topic = response.topic
-        const parts: string[] = [topic.brief]
-        if (topic.syntax.length > 0) { parts.push('Syntax: ' + topic.syntax.join(', ')) }
-        if (topic.seeAlso.length > 0) { parts.push('See also: ' + topic.seeAlso.join(', ')) }
-        useAnnounceStore.getState().pushMessage(stripMarkup(parts.join('. ')), 'polite')
+        if (!isOpen || !response) { return }
+        if (response.status === 'ok') {
+            const topic = response.topic
+            const parts: string[] = [topic.brief]
+            if (topic.syntax.length > 0) { parts.push('Syntax: ' + topic.syntax.join(', ')) }
+            if (topic.seeAlso.length > 0) { parts.push('See also: ' + topic.seeAlso.join(', ')) }
+            useAnnounceStore.getState().pushMessage(stripMarkup(parts.join('. ')), 'assertive')
+        } else if (response.status === 'multiple') {
+            const titles = response.matches.map((m) => m.title).join(', ')
+            const label = response.term ? `Multiple matches for "${response.term}": ${titles}` : `Help categories: ${titles}`
+            useAnnounceStore.getState().pushMessage(label, 'assertive')
+        }
     }, [isOpen, response])
 
     useEffect(() => {
@@ -52,9 +58,11 @@ export function HelpModal() {
                         <h2 className="text-lg font-semibold">
                             {response.status === 'ok'
                                 ? response.topic.title
-                                : response.status === 'multiple' || response.status === 'no_match'
-                                    ? `Help: "${response.term}"`
-                                    : ''}
+                                : response.status === 'multiple'
+                                    ? (response.term ? `Help: "${response.term}"` : 'Help Topics')
+                                    : response.status === 'no_match'
+                                        ? `Help: "${response.term}"`
+                                        : ''}
                         </h2>
                         <button
                             onClick={closeHelp}
@@ -124,7 +132,9 @@ function HelpTopicContent({ topic }: { topic: HelpTopicData }) {
 function HelpDisambiguation({ term, matches }: { term: string; matches: HelpTopicSummary[] }) {
     return (
         <div className="space-y-2">
-            <p className="text-gray-400 text-sm">Multiple topics match "{term}":</p>
+            <p className="text-gray-400 text-sm">
+                {term ? `Multiple topics match "${term}":` : 'Browse a category or type help [topic]:'}
+            </p>
             <ul className="space-y-1">
                 {matches.map((m) => (
                     <li key={m.id}>
