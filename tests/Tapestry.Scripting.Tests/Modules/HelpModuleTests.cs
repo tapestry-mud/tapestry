@@ -1,3 +1,4 @@
+using Jint.Native;
 using Tapestry.Engine.Help;
 using Tapestry.Scripting.Modules;
 using Tapestry.Shared.Help;
@@ -63,5 +64,32 @@ public class HelpModuleTests
         var cats = module.CategoriesDirect(null);
 
         Assert.Contains("general", cats);
+    }
+
+    [Fact]
+    public void ResolveArgs_GuidFirstArg_ReturnsEntityIdAndTerm()
+    {
+        var guid = Guid.NewGuid().ToString();
+        var engine = new Jint.Engine();
+        var first = JsValue.FromObject(engine, guid);
+        var second = JsValue.FromObject(engine, "combat");
+
+        var (entityId, term) = HelpModule.ResolveArgs(first, second);
+
+        Assert.Equal(guid, entityId);
+        Assert.Equal("combat", term);
+    }
+
+    [Fact]
+    public void ResolveArgs_NonGuidFirstArg_ReturnsTerm()
+    {
+        var engine = new Jint.Engine();
+        var first = JsValue.FromObject(engine, "races");
+        var second = JsValue.Undefined;
+
+        var (entityId, term) = HelpModule.ResolveArgs(first, second);
+
+        Assert.Null(entityId);
+        Assert.Equal("races", term);
     }
 }

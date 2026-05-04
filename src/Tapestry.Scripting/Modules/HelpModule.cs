@@ -28,11 +28,15 @@ public class HelpModule : IJintApiModule
     }
 
     // Exposed for unit tests without a live Jint engine
-    public HelpQueryResult QueryDirect(string? entityId, string term) =>
-        _helpService.Query(entityId, term);
+    public HelpQueryResult QueryDirect(string? entityId, string term)
+    {
+        return _helpService.Query(entityId, term);
+    }
 
-    public List<string> CategoriesDirect(string? entityId) =>
-        _helpService.Categories(entityId);
+    public List<string> CategoriesDirect(string? entityId)
+    {
+        return _helpService.Categories(entityId);
+    }
 
     private JsValue QueryJs(JintEngine engine, JsValue first, JsValue second)
     {
@@ -90,12 +94,13 @@ public class HelpModule : IJintApiModule
         brief = t.Brief,
         body = t.Body,
         syntax = t.Syntax.ToArray(),
+        keywords = t.Keywords.ToArray(),
         seeAlso = t.SeeAlso.ToArray()
     };
 
     // If first arg is a GUID -> player context, second arg is term.
     // If first arg is not a GUID -> no player, first arg is term.
-    private static (string? entityId, string? term) ResolveArgs(JsValue first, JsValue second)
+    internal static (string? entityId, string? term) ResolveArgs(JsValue first, JsValue second)
     {
         if (first.Type == Types.Undefined || first.Type == Types.Null) { return (null, null); }
         if (second.Type == Types.Undefined || second.Type == Types.Null)
@@ -109,6 +114,8 @@ public class HelpModule : IJintApiModule
         return (null, first.Type == Types.String ? first.ToString() : null);
     }
 
-    private static bool IsGuid(JsValue val) =>
-        val.Type == Types.String && Guid.TryParse(val.ToString(), out _);
+    private static bool IsGuid(JsValue val)
+    {
+        return val.Type == Types.String && Guid.TryParse(val.ToString(), out _);
+    }
 }
