@@ -16,6 +16,7 @@ import { useLayoutStore } from '../stores/layoutStore'
 import { useAffectsStore } from '../stores/affectsStore'
 import { useCombatTargetStore } from '../stores/combatTargetStore'
 import { useCombatTargetsStore } from '../stores/combatTargetsStore'
+import { useHelpStore } from '../stores/helpStore'
 import {
   CharVitalsSchema, CharStatusSchema, CharExperienceSchema, CharCommandsSchema,
   CharEffectsSchema, CharCombatTargetSchema, CharCombatTargetsSchema, CharItemsSchema,
@@ -425,10 +426,13 @@ export function initCoreHandlers(): void {
   // --- Response.Help ---
   GmcpDispatcher.register('Response.Help', (data) => {
     const result = ResponseHelpSchema.safeParse(data)
-    if (result.success) {
-      announce(`Help: ${result.data.body}`, 'feedback')
-    } else {
+    if (!result.success) {
       useDebugStore.getState().logConnection('gmcp-parse-error', 'Response.Help')
+      return
+    }
+    // no_match: telnet already sent the "no help found" message; no modal needed
+    if (result.data.status !== 'no_match') {
+      useHelpStore.getState().openHelp(result.data)
     }
   })
 }

@@ -8,6 +8,7 @@ import { useAffectsStore } from './stores/affectsStore'
 import { initCoreHandlers } from './connection/GmcpDispatcher'
 import { useShortcutStore } from './stores/shortcutStore'
 import { registerAllShortcuts } from './accessibility/shortcuts/registerAll'
+import { HelpModal } from './panels/HelpModal'
 
 initCoreHandlers()
 registerAllShortcuts()
@@ -52,7 +53,19 @@ export default function App() {
     return <ConnectScreen />
   }
   if (loginPhase === 'playing') {
-    return <GameLayout />
+    return (
+      <>
+        {/* Mounted at App level (not inside GameLayout) so it's available during chargen */}
+        <HelpModal />
+        <GameLayout />
+      </>
+    )
   }
-  return <LoginLayout />
+  return (
+    <>
+      {/* Mounted at App level (not inside GameLayout) so it's available during chargen */}
+      <HelpModal />
+      <LoginLayout />
+    </>
+  )
 }
