@@ -14,18 +14,18 @@ public class ConnectionsModule : IJintApiModule
 {
     private readonly World _world;
     private readonly ConnectionLoader _loader;
-    private readonly string _serverRootPath;
+    private readonly string _connectionsPath;
 
     private static readonly ISerializer Serializer = new SerializerBuilder()
         .WithNamingConvention(UnderscoredNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
         .Build();
 
-    public ConnectionsModule(World world, ConnectionLoader loader, string serverRootPath)
+    public ConnectionsModule(World world, ConnectionLoader loader, string connectionsPath)
     {
         _world = world;
         _loader = loader;
-        _serverRootPath = serverRootPath;
+        _connectionsPath = connectionsPath;
     }
 
     public string Namespace => "connections";
@@ -66,10 +66,9 @@ public class ConnectionsModule : IJintApiModule
                     ApplySideToRoom(fromSide, toRoomId);
                     ApplySideToRoom(toSide, fromRoomId);
 
-                    var connectionsDir = Path.Combine(_serverRootPath, "connections");
-                    Directory.CreateDirectory(connectionsDir);
+                    Directory.CreateDirectory(_connectionsPath);
 
-                    var filePath = Path.Combine(connectionsDir, $"{id}.yaml");
+                    var filePath = Path.Combine(_connectionsPath, $"{id}.yaml");
                     var yaml = Serializer.Serialize(record);
                     File.WriteAllText(filePath, yaml);
 
@@ -88,7 +87,7 @@ public class ConnectionsModule : IJintApiModule
 
                 _loader.RemoveLoaded(record);
 
-                var filePath = Path.Combine(_serverRootPath, "connections", $"{connectionId}.yaml");
+                var filePath = Path.Combine(_connectionsPath, $"{connectionId}.yaml");
                 if (File.Exists(filePath)) { File.Delete(filePath); }
             }),
 

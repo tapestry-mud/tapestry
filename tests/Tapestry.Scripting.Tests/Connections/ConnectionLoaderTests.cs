@@ -37,7 +37,7 @@ public class ConnectionLoaderTests : IDisposable
 
     private ConnectionLoader CreateLoader()
     {
-        return new ConnectionLoader(_world, NullLogger<ConnectionLoader>.Instance, _tempRoot);
+        return new ConnectionLoader(_world, NullLogger<ConnectionLoader>.Instance, _connectionsDir);
     }
 
     private void WriteYaml(string filename, string yaml)

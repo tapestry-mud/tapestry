@@ -30,6 +30,7 @@ telemetry:
 
 persistence:
   save_path: "./data/saves"
+  connections_path: "./data/connections"
   autosave_interval: 3000
   password_min_length: 6
   max_login_attempts: 5

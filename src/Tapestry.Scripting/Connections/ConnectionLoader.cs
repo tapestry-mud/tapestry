@@ -10,7 +10,7 @@ public class ConnectionLoader
 {
     private readonly World _world;
     private readonly ILogger<ConnectionLoader> _logger;
-    private readonly string _serverRootPath;
+    private readonly string _connectionsPath;
     private readonly List<ConnectionRecord> _loaded = new();
 
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
@@ -30,23 +30,24 @@ public class ConnectionLoader
         _loaded.Remove(record);
     }
 
-    public ConnectionLoader(World world, ILogger<ConnectionLoader> logger, string serverRootPath)
+    public string ConnectionsDirectory => _connectionsPath;
+
+    public ConnectionLoader(World world, ILogger<ConnectionLoader> logger, string connectionsPath)
     {
         _world = world;
         _logger = logger;
-        _serverRootPath = serverRootPath;
+        _connectionsPath = connectionsPath;
     }
 
     public void Load()
     {
-        var connectionsDir = Path.Combine(_serverRootPath, "connections");
-        if (!Directory.Exists(connectionsDir))
+        if (!Directory.Exists(_connectionsPath))
         {
-            _logger.LogInformation("No connections directory found at {Path}, skipping", connectionsDir);
+            _logger.LogInformation("No connections directory found at {Path}, skipping", _connectionsPath);
             return;
         }
 
-        var files = Directory.GetFiles(connectionsDir, "*.yaml", SearchOption.TopDirectoryOnly)
+        var files = Directory.GetFiles(_connectionsPath, "*.yaml", SearchOption.TopDirectoryOnly)
                              .OrderBy(f => f)
                              .ToList();
 

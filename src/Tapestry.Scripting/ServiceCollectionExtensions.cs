@@ -78,14 +78,16 @@ public static class ServiceCollectionExtensions
             var world = sp.GetRequiredService<World>();
             var logger = sp.GetRequiredService<ILogger<ConnectionLoader>>();
             var config = sp.GetRequiredService<ServerConfig>();
-            return new ConnectionLoader(world, logger, config.ConfigDirectory);
+            var connectionsPath = ResolveDataPath(config.Persistence.ConnectionsPath, config.ConfigDirectory);
+            return new ConnectionLoader(world, logger, connectionsPath);
         });
         services.AddSingleton<ConnectionsModule>(sp =>
         {
             var world = sp.GetRequiredService<World>();
             var loader = sp.GetRequiredService<ConnectionLoader>();
             var config = sp.GetRequiredService<ServerConfig>();
-            return new ConnectionsModule(world, loader, config.ConfigDirectory);
+            var connectionsPath = ResolveDataPath(config.Persistence.ConnectionsPath, config.ConfigDirectory);
+            return new ConnectionsModule(world, loader, connectionsPath);
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<ConnectionsModule>());
 
@@ -100,5 +102,18 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FsModule>());
 
         return services;
+    }
+
+    private static string ResolveDataPath(string configuredPath, string configDirectory)
+    {
+        if (Path.IsPathRooted(configuredPath))
+        {
+            return configuredPath;
+        }
+        if (string.IsNullOrEmpty(configDirectory))
+        {
+            return Path.GetFullPath(configuredPath);
+        }
+        return Path.GetFullPath(configuredPath, configDirectory);
     }
 }
