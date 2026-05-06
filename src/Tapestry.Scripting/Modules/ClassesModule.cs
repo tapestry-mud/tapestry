@@ -18,13 +18,15 @@ public class ClassesModule : IJintApiModule
     private readonly RaceRegistry _raceRegistry;
     private readonly World _world;
     private readonly ProficiencyManager _proficiency;
+    private readonly IGmcpModuleAdapter _gmcp;
 
-    public ClassesModule(ClassRegistry registry, RaceRegistry raceRegistry, World world, ProficiencyManager proficiency)
+    public ClassesModule(ClassRegistry registry, RaceRegistry raceRegistry, World world, ProficiencyManager proficiency, IGmcpModuleAdapter gmcp)
     {
         _registry = registry;
         _raceRegistry = raceRegistry;
         _world = world;
         _proficiency = proficiency;
+        _gmcp = gmcp;
     }
 
     public string Namespace => "classes";
@@ -214,6 +216,13 @@ public class ClassesModule : IJintApiModule
                 if (entity == null) { return; }
 
                 entity.SetProperty("class", classId);
+
+                _gmcp.Send(entityId, "Response.Char.Class", new
+                {
+                    class_id = classId,
+                    class_name = def.Name,
+                    track = def.Track
+                });
 
                 var levelKey = ProgressionProperties.Level(def.Track);
                 var level = entity.GetProperty<int>(levelKey);

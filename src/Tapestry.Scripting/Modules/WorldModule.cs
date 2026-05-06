@@ -16,8 +16,9 @@ public class WorldModule : IJintApiModule
     private readonly ClassRegistry _classRegistry;
     private readonly RaceRegistry _raceRegistry;
     private readonly MobAIManager _mobAIManager;
+    private readonly IGmcpModuleAdapter _gmcp;
 
-    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager)
+    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp)
     {
         _messaging = messaging;
         _worldOps = worldOps;
@@ -26,6 +27,7 @@ public class WorldModule : IJintApiModule
         _classRegistry = classRegistry;
         _raceRegistry = raceRegistry;
         _mobAIManager = mobAIManager;
+        _gmcp = gmcp;
     }
 
     public string Namespace => "world";
@@ -92,8 +94,15 @@ public class WorldModule : IJintApiModule
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
                 var entity = _world.GetEntity(entityId);
                 if (entity == null) { return; }
-                if (!_classRegistry.Has(classId)) { return; }
+                var def = _classRegistry.Get(classId);
+                if (def == null) { return; }
                 entity.SetProperty("class", classId);
+                _gmcp.Send(entityId, "Response.Char.Class", new
+                {
+                    class_id = classId,
+                    class_name = def.Name,
+                    track = def.Track
+                });
             }),
             setRace = new Action<string, string>((entityIdStr, raceId) =>
             {
