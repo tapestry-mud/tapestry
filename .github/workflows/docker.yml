@@ -52,6 +52,8 @@ jobs:
           tags: |
             ghcr.io/tapestry-mud/tapestry:latest
             ghcr.io/tapestry-mud/tapestry:${{ github.sha }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
 
       # Phase 1 only: deploy to Droplet when example-pack is the active server.
       # When LF becomes the active server, remove this step or set the

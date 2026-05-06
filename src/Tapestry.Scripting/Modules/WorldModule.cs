@@ -126,7 +126,11 @@ public class WorldModule : IJintApiModule
                 var entity = _world.GetEntitiesByTag(tag).FirstOrDefault();
                 return entity?.Id.ToString();
             }),
-            findPlayerByName = new Func<string, object?>(_worldOps.FindPlayerByName)
+            findPlayerByName = new Func<string, object?>(_worldOps.FindPlayerByName),
+            buildInfo = new Func<object>(() => new
+            {
+                engineSha = Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev"
+            })
         };
     }
 }
