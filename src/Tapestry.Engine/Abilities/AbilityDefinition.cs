@@ -24,6 +24,11 @@ public class AbilityDefinition
     public Dictionary<string, object?> Metadata { get; init; } = new();
     public object? Handler { get; set; }
     public AlignmentRange? AlignmentRange { get; init; }
+    public int Variance { get; init; } = 100;
+    public string? GainStat { get; init; }
+    public double GainStatScale { get; init; } = 0.0;
+    public string? RequiresSlot { get; init; }
+    public string? RequiresSlotTag { get; init; }
 }
 
 public class AbilityEffectDefinition
