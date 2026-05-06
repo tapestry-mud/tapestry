@@ -70,7 +70,7 @@ tapestry.events.on("combat.evade", function(event) {
     var defenderName = data.defenderName || "Someone";
     var attackerName = data.attackerName || "something";
     var abilityId = data.abilityId || "dodge";
-    var abilityName = abilityId.replace(/_/g, " ");
+    var abilityName = tapestry.abilities.getDisplayName(abilityId);
 
     var roomId = event.roomId;
     if (roomId && event.sourceEntityId && event.targetEntityId) {

@@ -490,6 +490,18 @@ public class AbilitiesModule : IJintApiModule
                 };
             }),
 
+            getDisplayName = new Func<string, string>(abilityId =>
+            {
+                var def = _registry.Get(abilityId);
+                if (def != null)
+                {
+                    return def.ShortName ?? def.Name;
+                }
+                var colonIdx = abilityId.LastIndexOf(':');
+                var shortId = colonIdx >= 0 ? abilityId[(colonIdx + 1)..] : abilityId;
+                return shortId.Replace('_', ' ');
+            }),
+
             getAll = new Func<object[]>(() =>
             {
                 return _registry.GetAll()
