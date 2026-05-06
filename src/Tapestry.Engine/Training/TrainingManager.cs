@@ -10,14 +10,25 @@ public class TrainingManager
     private readonly ProficiencyManager _proficiency;
     private readonly RaceRegistry _races;
     private readonly TrainingConfig _config;
+    private readonly AbilityRegistry _abilities;
 
     public TrainingManager(World world, ProficiencyManager proficiency,
-        RaceRegistry races, TrainingConfig config)
+        RaceRegistry races, TrainingConfig config, AbilityRegistry abilities)
     {
         _world = world;
         _proficiency = proficiency;
         _races = races;
         _config = config;
+        _abilities = abilities;
+    }
+
+    private string AbilityDisplayName(string abilityId)
+    {
+        var def = _abilities.Get(abilityId);
+        if (def != null) { return def.ShortName ?? def.Name; }
+        var colonIdx = abilityId.LastIndexOf(':');
+        var shortId = colonIdx >= 0 ? abilityId[(colonIdx + 1)..] : abilityId;
+        return shortId.Replace('_', ' ');
     }
 
     public int GetTrainsAvailable(Guid entityId)
@@ -56,7 +67,7 @@ public class TrainingManager
         if (!_proficiency.HasAbility(entityId, abilityId))
         {
             return new PracticeResult(PracticeResultKind.NotLearned,
-                $"You have not learned {abilityId}.");
+                $"You have not learned {AbilityDisplayName(abilityId)}.");
         }
 
         var match = FindTrainerInRoom(entityId);
@@ -69,7 +80,7 @@ public class TrainingManager
         if (!match.AbilityIds.Contains(abilityId))
         {
             return new PracticeResult(PracticeResultKind.CannotTeach,
-                $"{match.TrainerName} cannot teach you {abilityId}.");
+                $"{match.TrainerName} cannot teach you {AbilityDisplayName(abilityId)}.");
         }
 
         var currentCap = _proficiency.GetCap(entityId, abilityId);
@@ -99,7 +110,7 @@ public class TrainingManager
         }
 
         return new PracticeResult(PracticeResultKind.Success,
-            $"{match.TrainerName} teaches you more of {abilityId}.",
+            $"{match.TrainerName} teaches you more of {AbilityDisplayName(abilityId)}.",
             NewCap: trainerTierValue, NewProficiency: currentProf);
     }
 
