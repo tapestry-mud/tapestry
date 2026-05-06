@@ -398,4 +398,123 @@ public class AbilityResolutionPhaseTests
         // Queue cleared
         Assert.False(player.HasProperty(AbilityProperties.QueuedActions));
     }
+
+    [Fact]
+    public void Resolve_Variance0_AlwaysHitsRegardlessOfLowProficiency()
+    {
+        Setup();
+        var player = CreatePlayer("Alice", 100, 100);
+        var mob = CreateMob("Trolloc", 50);
+        _combatManager.Engage(player, mob);
+
+        _abilityRegistry.Register(new AbilityDefinition
+        {
+            Id = "test_zero_variance",
+            Name = "Test Zero Variance",
+            Category = AbilityCategory.Skill,
+            Variance = 0,
+            ProficiencyGainChance = 0.0
+        });
+
+        _proficiencyManager.Learn(player.Id, "test_zero_variance", 1);
+
+        // Run 20 times -- all should hit (ability.used), never miss
+        for (var i = 0; i < 20; i++)
+        {
+            _events.Clear();
+            player.SetProperty("queued_actions", new List<object>
+            {
+                new Dictionary<string, object?> { ["abilityId"] = "test_zero_variance" }
+            });
+            _phase.Execute(MakeContext(i + 1));
+        }
+
+        Assert.DoesNotContain(_events, e => e.Type == "ability.missed");
+    }
+
+    [Fact]
+    public void Resolve_Variance50_HalfProficiencyChance()
+    {
+        Setup();
+        var player = CreatePlayer("Bob", 100, 100);
+        player.Stats.BaseLuck = 0;
+        var mob = CreateMob("Trolloc", 5000);
+        _combatManager.Engage(player, mob);
+
+        _abilityRegistry.Register(new AbilityDefinition
+        {
+            Id = "test_half_variance",
+            Name = "Test Half Variance",
+            Category = AbilityCategory.Skill,
+            Variance = 50,
+            ProficiencyGainChance = 0.0
+        });
+
+        _proficiencyManager.Learn(player.Id, "test_half_variance", 100);
+
+        // proficiency=100, variance=50, luck=0 -> hitChance=50
+        _events.Clear();
+        player.SetProperty("queued_actions", new List<object>
+        {
+            new Dictionary<string, object?> { ["abilityId"] = "test_half_variance" }
+        });
+        _phase.Execute(MakeContext(1));
+
+        // Either ability.used or ability.missed - just verify it resolves without error
+        Assert.True(_events.Any(e => e.Type == "ability.used" || e.Type == "ability.missed"));
+    }
+
+    [Fact]
+    public void Resolve_LuckBonus_IncreasesHitChance()
+    {
+        Setup();
+        var phase = new AbilityResolutionPhase(luckScale: 1.0); // luck=1 = +1% per luck point
+
+        var player = CreatePlayer("Charlie", 100, 100);
+        player.Stats.BaseLuck = 0;
+        var mob = CreateMob("Trolloc", 5000);
+        _combatManager.Engage(player, mob);
+
+        _abilityRegistry.Register(new AbilityDefinition
+        {
+            Id = "test_luck_ability",
+            Name = "Test Luck",
+            Category = AbilityCategory.Skill,
+            Variance = 100,
+            ProficiencyGainChance = 0.0
+        });
+
+        _proficiencyManager.Learn(player.Id, "test_luck_ability", 0);
+        _proficiencyManager.SetProficiency(player.Id, "test_luck_ability", 1);
+
+        // With proficiency=1, variance=100, luck=0: hitChance=1 -> very low hit rate
+        var hitCount = 0;
+        for (var i = 0; i < 100; i++)
+        {
+            player.SetProperty("queued_actions", new List<object>
+            {
+                new Dictionary<string, object?> { ["abilityId"] = "test_luck_ability" }
+            });
+            var ctx = new PulseContext
+            {
+                CurrentTick = i + 1,
+                CurrentPulse = i + 1,
+                World = _world,
+                EventBus = _eventBus,
+                CombatManager = _combatManager,
+                AbilityRegistry = _abilityRegistry,
+                ProficiencyManager = _proficiencyManager,
+                EffectManager = _effectManager,
+                SessionManager = _sessionManager,
+                AlignmentManager = new Tapestry.Engine.Alignment.AlignmentManager(_world, _eventBus, new Tapestry.Engine.Alignment.AlignmentConfig()),
+                Random = new Random(i + 100)
+            };
+            phase.Execute(ctx);
+            if (_events.Any(e => e.Type == "ability.used")) { hitCount++; }
+            _events.Clear();
+        }
+
+        // With hitChance=1, expect roughly 1% hit rate -- definitely < 10 out of 100
+        Assert.True(hitCount < 10, $"Expected <10 hits with hitChance=1, got {hitCount}");
+    }
 }

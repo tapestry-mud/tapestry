@@ -19,13 +19,18 @@ public class AbilityResolutionPhase : IPulseHandler
 
     private readonly RaceRegistry? _raceRegistry;
     private readonly AlignmentManager? _alignmentManager;
+    private readonly double _luckScale;
 
     public AbilityResolutionPhase() { }
 
-    public AbilityResolutionPhase(RaceRegistry? raceRegistry = null, AlignmentManager? alignmentManager = null)
+    public AbilityResolutionPhase(
+        RaceRegistry? raceRegistry = null,
+        AlignmentManager? alignmentManager = null,
+        double luckScale = 0.002)
     {
         _raceRegistry = raceRegistry;
         _alignmentManager = alignmentManager;
+        _luckScale = luckScale;
     }
 
     private RaceDefinition? GetRaceFor(Entity entity)
@@ -113,6 +118,7 @@ public class AbilityResolutionPhase : IPulseHandler
         Asleep,
         Alignment_Restricted,
         No_Proficiency,
+        Equipment_Required,
         Initiate_Only,
         Invalid_Target,
         Not_In_Combat,
@@ -145,6 +151,20 @@ public class AbilityResolutionPhase : IPulseHandler
         if (!context.ProficiencyManager.HasAbility(entity.Id, definition.Id))
         {
             return ValidationResult.No_Proficiency;
+        }
+
+        // 1b. Slot requirement check
+        if (!string.IsNullOrEmpty(definition.RequiresSlot))
+        {
+            var equipped = entity.GetEquipment(definition.RequiresSlot);
+            if (equipped == null)
+            {
+                return ValidationResult.Equipment_Required;
+            }
+            if (!string.IsNullOrEmpty(definition.RequiresSlotTag) && !equipped.HasTag(definition.RequiresSlotTag))
+            {
+                return ValidationResult.Equipment_Required;
+            }
         }
 
         // 2. Initiate-only check: fizzles if entity is in combat
@@ -233,10 +253,20 @@ public class AbilityResolutionPhase : IPulseHandler
             delays[definition.Id] = context.CurrentPulse + definition.PulseDelay + 1;
         }
 
-        // Proficiency roll (d100 vs proficiency)
+        // Proficiency roll (variance + luck formula)
         var proficiency = context.ProficiencyManager.GetProficiency(entity.Id, definition.Id) ?? 0;
-        var roll = context.Random.Next(1, 101);
-        var hit = roll <= proficiency;
+        bool hit;
+        if (definition.Variance == 0)
+        {
+            hit = true;
+        }
+        else
+        {
+            var luck = entity.Stats.Luck;
+            var hitChance = (proficiency * (definition.Variance / 100.0)) + (luck * _luckScale);
+            var roll = context.Random.Next(1, 101);
+            hit = roll <= hitChance;
+        }
 
         // Resolve target
         var target = ResolveTarget(entity, queued, context);
