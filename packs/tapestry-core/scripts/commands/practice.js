@@ -17,8 +17,7 @@ function renderPracticeList(player) {
         var a = learned[i];
         var cap = tapestry.training.getCap(player.entityId, a.id);
         var capNum = cap === 'novice' ? 25 : cap === 'apprentice' ? 50 : cap === 'journeyman' ? 75 : 100;
-        var def = tapestry.abilities.getDefinition(a.id);
-        var displayName = (def && def.short_name) ? def.short_name : a.id;
+        var displayName = tapestry.abilities.getDisplayName(a.id);
         rows.push({
             type: 'cell',
             cells: [
@@ -72,9 +71,7 @@ tapestry.commands.register({
                     var capNum = capTier === 'novice' ? 25
                         : capTier === 'apprentice' ? 50
                         : capTier === 'journeyman' ? 75 : 100;
-                    var def = tapestry.abilities.getDefinition(a.id);
-                    var displayName = (def && def.short_name) ? def.short_name
-                        : (def ? def.name : a.id);
+                    var displayName = tapestry.abilities.getDisplayName(a.id);
                     return {
                         id: a.id,
                         name: displayName,
@@ -107,8 +104,7 @@ tapestry.commands.register({
         }
         var result = tapestry.training.practice(player.entityId, abilityId);
         if (result.kind === 'success') {
-            var abilityDef = tapestry.abilities.getDefinition(abilityId);
-            var displayName = (abilityDef && abilityDef.short_name) ? abilityDef.short_name : abilityId;
+            var displayName = tapestry.abilities.getDisplayName(abilityId);
             var trainerResult = tapestry.training.findTrainerInRoom(player.entityId);
             var trainerName = trainerResult ? trainerResult.name : 'Your trainer';
             player.send(trainerName + ' teaches you more of ' + displayName + '.\r\n');
