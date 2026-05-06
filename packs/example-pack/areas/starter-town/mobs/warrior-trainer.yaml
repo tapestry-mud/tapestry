@@ -17,7 +17,7 @@ disposition:
   default: neutral
 properties:
   description: "A weathered fighter with scars that tell a hundred stories. He trains those with the will to learn."
-  trains:
-    tier: apprentice
-    abilities: [dodge, kick, parry, battle_stance, bash, second_attack, enhanced_damage]
+trains:
+  tier: apprentice
+  abilities: [dodge, kick, parry, battle_stance, bash, second_attack, enhanced_damage]
 equipment: []

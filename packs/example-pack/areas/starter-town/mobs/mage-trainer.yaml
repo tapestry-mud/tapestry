@@ -17,7 +17,7 @@ disposition:
   default: neutral
 properties:
   description: "An elderly scholar whose eyes carry the quiet focus of someone who has spent decades in study."
-  trains:
-    tier: apprentice
-    abilities: [cure_light, fireball, shield, blindness, poison, second_cast]
+trains:
+  tier: apprentice
+  abilities: [cure_light, fireball, shield, blindness, poison, second_cast]
 equipment: []
