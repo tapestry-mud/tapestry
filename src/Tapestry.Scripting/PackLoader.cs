@@ -259,7 +259,7 @@ public class PackLoader
 
             if (template.Tags.Contains("skill_trainer")
                 && template.Properties.TryGetValue("trains", out var trainsRaw)
-                && trainsRaw is Dictionary<object, object> trainsDict)
+                && trainsRaw is Dictionary<string, object> trainsDict)
             {
                 var tierStr = trainsDict.GetValueOrDefault("tier")?.ToString() ?? "apprentice";
                 var tier = tierStr.ToLower() switch
