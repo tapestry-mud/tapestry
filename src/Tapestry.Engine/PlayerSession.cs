@@ -31,6 +31,7 @@ public class PlayerSession
     public string? LastCommand { get; set; }
     public InputMode InputMode { get; set; } = InputMode.Normal;
     public Action<string>? PromptHandler { get; set; }
+    public Action? CancelPreLoginTimeout { get; set; }
 
     public void UpdateLastInputTick(long tick)
     {

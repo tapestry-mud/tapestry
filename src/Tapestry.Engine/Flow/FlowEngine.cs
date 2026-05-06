@@ -186,6 +186,8 @@ public class FlowEngine
             Data = new Dictionary<string, object?>()
         });
 
+        session.CancelPreLoginTimeout?.Invoke();
+        session.CancelPreLoginTimeout = null;
         session.Phase = SessionPhase.Playing;
         session.CurrentFlow = null;
 

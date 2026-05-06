@@ -431,6 +431,7 @@ public class ConnectionHandler
                             return;
                         }
                         _metrics.ActiveConnections.Add(1);
+                        session.CancelPreLoginTimeout = () => preLoginCts.Cancel();
 
                         _logger.LogInformation(
                             "New player {Name} entering creation flow (entity {Id})", name, entity.Id);
