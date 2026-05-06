@@ -163,6 +163,11 @@ public class AbilitiesModule : IJintApiModule
                     ? shortNameVal.ToString()
                     : null;
 
+                var commandNameVal = obj.Get("command_name");
+                var commandName = (commandNameVal.Type != Types.Undefined && commandNameVal.Type != Types.Null)
+                    ? commandNameVal.ToString()
+                    : null;
+
                 var handler = obj.Get("handler");
                 object? handlerObj = (handler.Type == Types.Undefined) ? null : (object)handler;
 
@@ -364,6 +369,7 @@ public class AbilitiesModule : IJintApiModule
                     Priority = priority,
                     PackName = packNameStr,
                     ShortName = shortName,
+                    CommandName = commandName,
                     SourceFile = sourceFileStr,
                     Effect = effectDef,
                     CanTarget = canTarget,

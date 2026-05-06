@@ -4,33 +4,6 @@ using Tapestry.Shared;
 
 namespace Tapestry.Engine;
 
-file static class AbilityNameWords
-{
-    private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
-        { "the", "of", "in", "a", "an", "and", "or", "with" };
-
-    public static string[] GetAliases(string name) =>
-        name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(w => w.ToLowerInvariant())
-            .Where(w => !StopWords.Contains(w))
-            .ToArray();
-
-    // Strip leading args that are words from the ability name so "heron sword form trolloc" resolves to "trolloc".
-    public static string[] StripNamePrefix(string[] args, string abilityName)
-    {
-        var nameWords = new HashSet<string>(
-            abilityName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Select(w => w.ToLowerInvariant()),
-            StringComparer.OrdinalIgnoreCase);
-
-        var i = 0;
-        while (i < args.Length - 1 && nameWords.Contains(args[i]))
-        {
-            i++;
-        }
-        return i > 0 ? args[i..] : args;
-    }
-}
 
 /// <summary>
 /// Wires every active ability as a directly typeable command after packs finish loading.
@@ -80,16 +53,12 @@ public class AbilityCommandBridge
         var displayName = ability.ShortName ?? ability.Name;
         var category = ability.Category == AbilityCategory.Skill ? "skills" : "spells";
 
-        // Primary keyword: first word of the ability name (lowercase).
-        // Aliases: all non-stop words from the name + full namespaced ID.
-        var nameWords = AbilityNameWords.GetAliases(ability.Name);
-        var keyword = nameWords.Length > 0 ? nameWords[0] : abilityId;
+        // command_name is the explicit, intentional keyword set by the pack author.
+        // Falls back to the short ID (after last ':') if not set.
         var colonPos = abilityId.LastIndexOf(':');
-        var aliases = nameWords.Skip(1)
-            .Concat(colonPos >= 0 ? new[] { abilityId } : Array.Empty<string>())
-            .Distinct()
-            .Where(a => a != keyword)
-            .ToArray();
+        var shortId = colonPos >= 0 ? abilityId[(colonPos + 1)..] : abilityId;
+        var keyword = ability.CommandName ?? shortId;
+        var aliases = keyword != abilityId ? new[] { abilityId } : Array.Empty<string>();
 
         Func<Entity, bool> visibleTo = entity =>
         {
@@ -159,8 +128,6 @@ public class AbilityCommandBridge
 
         if (args.Length > 0)
         {
-            // Strip ability name words typed before the target: "heron sword form trolloc" -> "trolloc"
-            if (ability != null) { args = AbilityNameWords.StripNamePrefix(args, ability.Name); }
             var raw = string.Join(" ", args).ToLower();
 
             // self-keywords and player's own name always resolve to self

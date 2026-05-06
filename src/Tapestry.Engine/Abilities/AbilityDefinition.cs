@@ -18,6 +18,7 @@ public class AbilityDefinition
     public string PackName { get; init; } = "";
     public int Priority { get; init; }
     public string? ShortName { get; init; }
+    public string? CommandName { get; init; }
     public string SourceFile { get; init; } = "";
     public AbilityEffectDefinition? Effect { get; init; }
     public List<string> CanTarget { get; init; } = new();
