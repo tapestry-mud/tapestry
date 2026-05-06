@@ -106,6 +106,14 @@ tapestry.commands.register({
             }
         }
         var result = tapestry.training.practice(player.entityId, abilityId);
-        player.send(result.message + '\r\n');
+        if (result.kind === 'success') {
+            var abilityDef = tapestry.abilities.getDefinition(abilityId);
+            var displayName = (abilityDef && abilityDef.short_name) ? abilityDef.short_name : abilityId;
+            var trainerResult = tapestry.training.findTrainerInRoom(player.entityId);
+            var trainerName = trainerResult ? trainerResult.name : 'Your trainer';
+            player.send(trainerName + ' teaches you more of ' + displayName + '.\r\n');
+        } else {
+            player.send(result.message + '\r\n');
+        }
     }
 });
