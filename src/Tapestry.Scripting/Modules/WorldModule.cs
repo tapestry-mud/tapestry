@@ -129,7 +129,8 @@ public class WorldModule : IJintApiModule
             findPlayerByName = new Func<string, object?>(_worldOps.FindPlayerByName),
             buildInfo = new Func<object>(() => new
             {
-                engineSha = Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev"
+                engineSha = Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev",
+                packBuildRef = Environment.GetEnvironmentVariable("PACK_BUILD_REF") ?? "dev"
             })
         };
     }

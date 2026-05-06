@@ -8,13 +8,15 @@ tapestry.commands.register({
         var shortSha = info.engineSha.length > 7 ? info.engineSha.substring(0, 7) : info.engineSha;
         var packs = tapestry.packs.list();
 
+        var packRef = info.packBuildRef || 'dev';
         var rows = [];
         for (var i = 0; i < packs.length; i++) {
+            var ver = packs[i].version || 'unknown';
             rows.push({
                 type: 'cell',
                 cells: [
                     { content: '  ' + packs[i].name, width: 26 },
-                    { content: packs[i].version || 'unknown', width: 'fill' }
+                    { content: ver + '  (' + packRef + ')', width: 'fill' }
                 ]
             });
         }
