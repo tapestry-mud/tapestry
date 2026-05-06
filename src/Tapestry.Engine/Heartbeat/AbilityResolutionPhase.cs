@@ -302,7 +302,7 @@ public class AbilityResolutionPhase : IPulseHandler
                 Data = new Dictionary<string, object?>
                 {
                     ["vital"] = "hp",
-                    ["attackerId"] = entity.Id.ToString()
+                    ["killerId"] = entity.Id.ToString()
                 }
             });
         }
