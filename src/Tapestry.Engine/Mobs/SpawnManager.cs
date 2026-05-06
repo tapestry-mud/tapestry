@@ -240,6 +240,8 @@ public class SpawnManager
         }
     }
 
+    public IEnumerable<MobTemplate> AllTemplates => _templates.Values;
+
     public IEnumerable<string> GetAreaNames() => _areaConfigs.Keys;
 
     public AreaSpawnConfig? GetAreaConfig(string areaName) =>

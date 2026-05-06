@@ -73,6 +73,7 @@ public class GameBootstrapper
     private readonly AreaTickService _areaTick;
     private readonly GmcpService _gmcpService;
     private readonly TickTimer _tickTimer;
+    private readonly PackValidator _packValidator;
     private readonly ILogger<GameBootstrapper> _logger;
 
     public GameBootstrapper(
@@ -115,6 +116,7 @@ public class GameBootstrapper
         AreaTickService areaTick,
         GmcpService gmcpService,
         TickTimer tickTimer,
+        PackValidator packValidator,
         ILogger<GameBootstrapper> logger)
     {
         _gameLoop = gameLoop;
@@ -156,6 +158,7 @@ public class GameBootstrapper
         _areaTick = areaTick;
         _gmcpService = gmcpService;
         _tickTimer = tickTimer;
+        _packValidator = packValidator;
         _logger = logger;
     }
 
@@ -166,6 +169,7 @@ public class GameBootstrapper
         RegisterPropertyTypes();
         _messaging.SetMotd(_config.Server.Motd);
         LoadPacks();
+        _packValidator.Validate();
         _connectionLoader.Load();
         AppendPackCreditsToMotd();
         _abilityCommandBridge.WireAll();

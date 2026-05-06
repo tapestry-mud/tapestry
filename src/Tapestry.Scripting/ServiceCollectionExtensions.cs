@@ -73,6 +73,7 @@ public static class ServiceCollectionExtensions
         // Runtime and loader
         services.AddSingleton<JintRuntime>();
         services.AddSingleton<PackLoader>();
+        services.AddSingleton<PackValidator>();
         services.AddSingleton<ConnectionLoader>(sp =>
         {
             var world = sp.GetRequiredService<World>();

@@ -25,5 +25,7 @@ public class ItemRegistry
         return _templates.ContainsKey(templateId);
     }
 
+    public IEnumerable<ItemTemplate> AllTemplates => _templates.Values;
+
     public int Count => _templates.Count;
 }
