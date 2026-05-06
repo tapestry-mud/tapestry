@@ -257,6 +257,19 @@ public class PackLoader
                 _logger.LogWarning("Filename mismatch: {File} declares id '{Id}'", file, template.Id);
             }
 
+            if (template.Tags.Contains("skill_trainer"))
+            {
+                if (!template.Properties.TryGetValue("trains", out var trainsRawCheck))
+                {
+                    _logger.LogWarning("Mob {Id} has skill_trainer tag but no 'trains' block", template.Id);
+                }
+                else if (trainsRawCheck is not Dictionary<string, object>)
+                {
+                    _logger.LogWarning("Mob {Id} 'trains' block has unexpected type {Type} -- trainer config not loaded",
+                        template.Id, trainsRawCheck?.GetType().Name ?? "null");
+                }
+            }
+
             if (template.Tags.Contains("skill_trainer")
                 && template.Properties.TryGetValue("trains", out var trainsRaw)
                 && trainsRaw is Dictionary<string, object> trainsDict)
