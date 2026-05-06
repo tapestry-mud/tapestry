@@ -205,4 +205,34 @@ public class PassiveAbilityProcessorTests
         var rate = (double)successes / trials;
         Assert.InRange(rate, 0.25, 0.35); // ~30%, not ~40%
     }
+
+    [Fact]
+    public void CheckBinaryPassive_Variance50_FiresAtHalfRateVsMaxChance100()
+    {
+        Setup();
+        _registry.Register(new AbilityDefinition
+        {
+            Id = "lf:parry",
+            Name = "Parry",
+            Type = AbilityType.Passive,
+            Category = AbilityCategory.Skill,
+            Variance = 50,
+            MaxChance = 100,
+            Metadata = new Dictionary<string, object?> { ["passive_mode"] = "binary", ["hook"] = "defensive_check" }
+        });
+        _proficiency.Learn(_player.Id, "lf:parry", 100);
+        var processor = new PassiveAbilityProcessor(_registry, _proficiency);
+
+        var hitCount = 0;
+        var random = new Random(42);
+        for (var i = 0; i < 200; i++)
+        {
+            if (processor.CheckBinaryPassive(_player.Id, "lf:parry", random))
+            {
+                hitCount++;
+            }
+        }
+        // ~50% hit rate -- not 100%. Allow 60-140 out of 200.
+        Assert.InRange(hitCount, 60, 140);
+    }
 }

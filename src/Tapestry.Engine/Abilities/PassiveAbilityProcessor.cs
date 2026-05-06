@@ -20,8 +20,11 @@ public class PassiveAbilityProcessor
         }
 
         var definition = _registry.Get(abilityId);
+        var variance = definition?.Variance ?? 100;
         var maxChance = definition?.MaxChance ?? 100;
-        var effectiveChance = (int)(prof.Value * (maxChance / 100.0));
+        var effectiveChance = variance < 100
+            ? (int)(prof.Value * (variance / 100.0))
+            : (int)(prof.Value * (maxChance / 100.0));
         var roll = random.Next(1, 101);
         return roll <= effectiveChance;
     }
@@ -58,7 +61,9 @@ public class PassiveAbilityProcessor
                 continue;
             }
 
-            var effectiveChance = (int)(prof.Value * (passive.MaxChance / 100.0));
+            var effectiveChance = passive.Variance < 100
+                ? (int)(prof.Value * (passive.Variance / 100.0))
+                : (int)(prof.Value * (passive.MaxChance / 100.0));
             var roll = random.Next(1, 101);
 
             if (roll <= effectiveChance)
@@ -82,7 +87,9 @@ public class PassiveAbilityProcessor
                 continue;
             }
 
-            var effectiveChance = (int)(prof.Value * (passive.MaxChance / 100.0));
+            var effectiveChance = passive.Variance < 100
+                ? (int)(prof.Value * (passive.Variance / 100.0))
+                : (int)(prof.Value * (passive.MaxChance / 100.0));
             var roll = random.Next(1, 101);
 
             if (roll <= effectiveChance)

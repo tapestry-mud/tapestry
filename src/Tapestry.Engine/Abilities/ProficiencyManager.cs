@@ -112,7 +112,15 @@ public class ProficiencyManager
         var definition = _registry.Get(abilityId);
         if (definition == null) { return; }
 
-        var effectiveChance = definition.ProficiencyGainChance * (1.0 - current.Value / 100.0);
+        var entity = _world.GetEntity(entityId);
+        var gainStatMultiplier = 1.0;
+        if (entity != null && !string.IsNullOrEmpty(definition.GainStat))
+        {
+            var statValue = GetStatByName(entity, definition.GainStat);
+            gainStatMultiplier = 1.0 + (statValue * definition.GainStatScale);
+        }
+
+        var effectiveChance = definition.ProficiencyGainChance * (1.0 - current.Value / 100.0) * gainStatMultiplier;
         if (wasFailure)
         {
             effectiveChance *= definition.FailureProficiencyGainMultiplier;
@@ -141,5 +149,19 @@ public class ProficiencyManager
             }
         }
         return result;
+    }
+
+    private static int GetStatByName(Entity entity, string statName)
+    {
+        return statName.ToLowerInvariant() switch
+        {
+            "strength" => entity.Stats.Strength,
+            "intelligence" => entity.Stats.Intelligence,
+            "wisdom" => entity.Stats.Wisdom,
+            "dexterity" => entity.Stats.Dexterity,
+            "constitution" => entity.Stats.Constitution,
+            "luck" => entity.Stats.Luck,
+            _ => 0
+        };
     }
 }

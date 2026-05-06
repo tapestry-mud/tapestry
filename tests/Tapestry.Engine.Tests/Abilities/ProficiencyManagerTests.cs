@@ -242,4 +242,74 @@ public class ProficiencyManagerTests
         Assert.Contains(learned, l => l.AbilityId == "kick" && l.Proficiency == 1);
         Assert.Contains(learned, l => l.AbilityId == "fireball" && l.Proficiency == 50);
     }
+
+    [Fact]
+    public void RollProficiencyGain_WithGainStat_MultipliesChanceByStatBonus()
+    {
+        Setup();
+        _registry.Register(new AbilityDefinition
+        {
+            Id = "wisdom_ability",
+            Name = "Wisdom Ability",
+            ProficiencyGainChance = 1.0,  // 100% base chance
+            GainStat = "wisdom",
+            GainStatScale = 0.1           // +10% per wisdom point
+        });
+
+        _player.Stats.BaseWisdom = 10;
+        _proficiency.Learn(_player.Id, "wisdom_ability", 50);
+        _proficiency.SetCap(_player.Id, "wisdom_ability", 100);
+
+        // effectiveChance = 1.0 * (1 - 50/100) * (1 + 10 * 0.1) = 0.5 * 2.0 = 1.0
+        // Should always gain
+        var gainCount = 0;
+        for (var i = 0; i < 20; i++)
+        {
+            var before = _proficiency.GetProficiency(_player.Id, "wisdom_ability")!.Value;
+            _proficiency.RollProficiencyGain(_player.Id, "wisdom_ability", new Random(i));
+            var after = _proficiency.GetProficiency(_player.Id, "wisdom_ability")!.Value;
+            if (after > before)
+            {
+                gainCount++;
+            }
+            _proficiency.SetProficiency(_player.Id, "wisdom_ability", 50); // reset
+        }
+
+        // With 100% effective chance, should gain every time
+        Assert.Equal(20, gainCount);
+    }
+
+    [Fact]
+    public void RollProficiencyGain_WithNullGainStat_BehavesLikeCurrentFormula()
+    {
+        Setup();
+        _registry.Register(new AbilityDefinition
+        {
+            Id = "no_stat_ability",
+            Name = "No Stat Ability",
+            ProficiencyGainChance = 1.0,
+            GainStat = null,
+            GainStatScale = 0.0
+        });
+
+        _proficiency.Learn(_player.Id, "no_stat_ability", 50);
+        _proficiency.SetCap(_player.Id, "no_stat_ability", 100);
+
+        // effectiveChance = 1.0 * (1 - 50/100) * 1.0 = 0.5
+        var gainCount = 0;
+        for (var i = 0; i < 100; i++)
+        {
+            var before = _proficiency.GetProficiency(_player.Id, "no_stat_ability")!.Value;
+            _proficiency.RollProficiencyGain(_player.Id, "no_stat_ability", new Random(i));
+            var after = _proficiency.GetProficiency(_player.Id, "no_stat_ability")!.Value;
+            if (after > before)
+            {
+                gainCount++;
+            }
+            _proficiency.SetProficiency(_player.Id, "no_stat_ability", 50);
+        }
+
+        // ~50% gain rate -- expect between 30 and 70
+        Assert.InRange(gainCount, 30, 70);
+    }
 }

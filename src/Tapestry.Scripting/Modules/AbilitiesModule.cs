@@ -214,6 +214,35 @@ public class AbilitiesModule : IJintApiModule
                     maxChance = (int)(double)maxChanceVal.ToObject()!;
                 }
 
+                var varianceVal = obj.Get("variance");
+                var variance = 100;
+                if (varianceVal.Type == Types.Number)
+                {
+                    variance = (int)(double)varianceVal.ToObject()!;
+                }
+
+                var gainStatVal = obj.Get("gain_stat");
+                string? gainStat = (gainStatVal.Type != Types.Undefined && gainStatVal.Type != Types.Null)
+                    ? gainStatVal.ToString()
+                    : null;
+
+                var gainStatScaleVal = obj.Get("gain_stat_scale");
+                var gainStatScale = 0.0;
+                if (gainStatScaleVal.Type == Types.Number)
+                {
+                    gainStatScale = (double)gainStatScaleVal.ToObject()!;
+                }
+
+                var requiresSlotVal = obj.Get("requires_slot");
+                string? requiresSlot = (requiresSlotVal.Type != Types.Undefined && requiresSlotVal.Type != Types.Null)
+                    ? requiresSlotVal.ToString()
+                    : null;
+
+                var requiresSlotTagVal = obj.Get("requires_slot_tag");
+                string? requiresSlotTag = (requiresSlotTagVal.Type != Types.Undefined && requiresSlotTagVal.Type != Types.Null)
+                    ? requiresSlotTagVal.ToString()
+                    : null;
+
                 AlignmentRange? alignmentRange = null;
                 var alignmentRangeVal = obj.Get("alignment_range");
                 if (alignmentRangeVal.Type != Types.Undefined && alignmentRangeVal.Type != Types.Null
@@ -340,7 +369,12 @@ public class AbilitiesModule : IJintApiModule
                     CanTarget = canTarget,
                     Metadata = metadata,
                     Handler = handlerObj,
-                    AlignmentRange = alignmentRange
+                    AlignmentRange = alignmentRange,
+                    Variance = variance,
+                    GainStat = gainStat,
+                    GainStatScale = gainStatScale,
+                    RequiresSlot = requiresSlot,
+                    RequiresSlotTag = requiresSlotTag
                 };
 
                 _registry.Register(abilityDef);

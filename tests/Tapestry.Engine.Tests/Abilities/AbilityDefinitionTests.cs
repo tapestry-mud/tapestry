@@ -84,4 +84,39 @@ public class AbilityDefinitionTests
         var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
         Assert.Equal(0.25, def.FailureProficiencyGainMultiplier);
     }
+
+    [Fact]
+    public void Variance_DefaultsToHundred()
+    {
+        var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
+        Assert.Equal(100, def.Variance);
+    }
+
+    [Fact]
+    public void GainStat_DefaultsToNull()
+    {
+        var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
+        Assert.Null(def.GainStat);
+    }
+
+    [Fact]
+    public void GainStatScale_DefaultsToZero()
+    {
+        var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
+        Assert.Equal(0.0, def.GainStatScale);
+    }
+
+    [Fact]
+    public void RequiresSlot_DefaultsToNull()
+    {
+        var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
+        Assert.Null(def.RequiresSlot);
+    }
+
+    [Fact]
+    public void RequiresSlotTag_DefaultsToNull()
+    {
+        var def = new AbilityDefinition { Id = "kick", Name = "Kick" };
+        Assert.Null(def.RequiresSlotTag);
+    }
 }
