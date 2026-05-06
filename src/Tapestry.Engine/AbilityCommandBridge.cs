@@ -52,6 +52,12 @@ public class AbilityCommandBridge
         var displayName = ability.ShortName ?? ability.Name;
         var category = ability.Category == AbilityCategory.Skill ? "skills" : "spells";
 
+        // Use the short name (after last ':') as the typeable command keyword.
+        // The full namespaced ID is added as an alias so both resolve.
+        var colonPos = abilityId.LastIndexOf(':');
+        var keyword = colonPos >= 0 ? abilityId[(colonPos + 1)..] : abilityId;
+        var aliases = colonPos >= 0 ? new[] { abilityId } : Array.Empty<string>();
+
         Func<Entity, bool> visibleTo = entity =>
         {
             var proficiency = _proficiency.GetProficiency(entity.Id, abilityId);
@@ -59,9 +65,9 @@ public class AbilityCommandBridge
         };
 
         _commands.Register(
-            abilityId,
+            keyword,
             ctx => { ExecuteAbilityCommand(ctx, abilityId, displayName); },
-            aliases: [],
+            aliases: aliases,
             priority: 0,
             packName: ability.PackName,
             description: displayName,
