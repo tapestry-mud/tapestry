@@ -478,6 +478,7 @@ public class AbilitiesModule : IJintApiModule
                     id = def.Id,
                     name = def.Name,
                     short_name = def.ShortName,
+                    command_name = def.CommandName,
                     type = def.Type == AbilityType.Active ? "active" : "passive",
                     category = def.Category == AbilityCategory.Skill ? "skill" : "spell",
                     resource_cost = def.ResourceCost,

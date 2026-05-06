@@ -90,7 +90,21 @@ tapestry.commands.register({
             return;
         }
 
-        var abilityId = args[0].toLowerCase();
+        var input = args[0].toLowerCase();
+        // Resolve keyword to full ability ID: match command_name, short ID (after ':'), or exact ID
+        var abilityId = input;
+        var learned = tapestry.abilities.getLearnedAbilities(player.entityId);
+        for (var i = 0; i < learned.length; i++) {
+            var def = tapestry.abilities.getDefinition(learned[i].id);
+            var shortId = learned[i].id.indexOf(':') >= 0
+                ? learned[i].id.split(':').pop()
+                : learned[i].id;
+            var cmdName = def && def.command_name ? def.command_name : shortId;
+            if (cmdName === input || shortId === input || learned[i].id === input) {
+                abilityId = learned[i].id;
+                break;
+            }
+        }
         var result = tapestry.training.practice(player.entityId, abilityId);
         player.send(result.message + '\r\n');
     }
