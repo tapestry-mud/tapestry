@@ -39,6 +39,34 @@ public class RoomTests
     }
 
     [Fact]
+    public void Room_AddEntity_DoesNotDuplicate_WhenCalledTwice()
+    {
+        var room = new Room("town:square", "Town Square", "A square.");
+        var player = new Entity("player", "Rand");
+        room.AddEntity(player);
+        room.AddEntity(player);
+        room.Entities.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Room_AddEntity_DoesNotLeakStaleEntry_AfterMoveAndReAdd()
+    {
+        var roomA = new Room("town:inn", "Inn", ".");
+        var roomB = new Room("town:stable", "Stable", ".");
+        var player = new Entity("player", "Rand");
+
+        roomA.AddEntity(player);
+        roomA.AddEntity(player);
+
+        roomA.RemoveEntity(player);
+        roomB.AddEntity(player);
+
+        roomA.Entities.Should().NotContain(player);
+        roomB.Entities.Should().Contain(player);
+        player.LocationRoomId.Should().Be("town:stable");
+    }
+
+    [Fact]
     public void Room_Tags()
     {
         var room = new Room("town:square", "Town Square", "A square.");

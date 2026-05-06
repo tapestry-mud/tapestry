@@ -17,6 +17,7 @@ public class GameLoop
     private readonly SystemEventQueue _eventQueue;
     private readonly ILogger<GameLoop> _logger;
     private readonly TapestryMetrics _metrics;
+    private readonly TickTimer _timer;
     private readonly HashSet<Guid> _activeDisconnects = new();
     private readonly List<TickHandler> _tickHandlers = new();
     private readonly ConcurrentQueue<Action> _pendingActions = new();
@@ -35,7 +36,7 @@ public class GameLoop
 
     public GameLoop(CommandRouter router, SessionManager sessions, EventBus eventBus,
                     SystemEventQueue eventQueue, ILogger<GameLoop> logger,
-                    TapestryMetrics metrics)
+                    TapestryMetrics metrics, TickTimer timer)
     {
         _router = router;
         _sessions = sessions;
@@ -43,6 +44,7 @@ public class GameLoop
         _eventQueue = eventQueue;
         _logger = logger;
         _metrics = metrics;
+        _timer = timer;
     }
 
     public void Schedule(Action action)
@@ -60,10 +62,10 @@ public class GameLoop
         _tickHandlers.Add(new TickHandler(name, intervalTicks, handler));
     }
 
-    public void ConfigureIdleTimeout(int timeoutSeconds, int tickRateMs)
+    public void ConfigureIdleTimeout(int warnSeconds, int timeoutSeconds)
     {
-        _idleTimeoutTicks = (timeoutSeconds * 1000) / tickRateMs;
-        _idleWarningTicks = (int)(_idleTimeoutTicks * 0.8);
+        _idleWarningTicks = warnSeconds > 0 ? (int)_timer.SecondsToTicks(warnSeconds) : 0;
+        _idleTimeoutTicks = timeoutSeconds > 0 ? (int)_timer.SecondsToTicks(timeoutSeconds) : 0;
     }
 
     public void Tick()
@@ -257,13 +259,16 @@ public class GameLoop
         }
     }
 
-    public void RegisterIdleTimeoutHandler(SystemEventQueue eventQueue, SessionManager sessions)
+    public void RegisterIdleTimeoutHandler(SystemEventQueue eventQueue, SessionManager sessions,
+        string warnMessage, string timeoutMessage, string adminTag = "admin")
     {
         // Check every 300 ticks (~30 seconds at 100ms tick rate)
         RegisterTickHandler("idle-timeout", 300, () =>
         {
             foreach (var session in sessions.AllSessions)
             {
+                if (session.PlayerEntity.HasTag(adminTag)) { continue; }
+
                 var idleTicks = _tickCount - session.LastInputTick;
 
                 if (_idleTimeoutTicks > 0 && idleTicks >= _idleTimeoutTicks)
@@ -272,12 +277,12 @@ public class GameLoop
                         Guid.Parse(session.Connection.Id),
                         session.PlayerEntity.Id,
                         "idle timeout"));
-                    session.Connection.SendLine("You have been disconnected for being idle.");
+                    session.Connection.SendLine(timeoutMessage);
                     session.Connection.Disconnect("idle timeout");
                 }
                 else if (_idleWarningTicks > 0 && idleTicks >= _idleWarningTicks && !session.IdleWarned)
                 {
-                    session.Connection.SendLine("You feel drowsy...");
+                    session.Connection.SendLine(warnMessage);
                     session.IdleWarned = true;
                 }
             }

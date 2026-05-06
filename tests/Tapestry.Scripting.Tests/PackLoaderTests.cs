@@ -186,7 +186,7 @@ public class PackLoaderTests
         var gameLoop = new GameLoop(
             new CommandRouter(commandRegistry, sessions),
             sessions, eventBus, new SystemEventQueue(),
-            NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
