@@ -445,23 +445,43 @@ public class AbilityResolutionPhaseTests
         {
             Id = "test_half_variance",
             Name = "Test Half Variance",
+            Type = AbilityType.Active,
             Category = AbilityCategory.Skill,
             Variance = 50,
-            ProficiencyGainChance = 0.0
+            ProficiencyGainChance = 0.0,
+            MaxChance = 100
         });
 
         _proficiencyManager.Learn(player.Id, "test_half_variance", 100);
 
-        // proficiency=100, variance=50, luck=0 -> hitChance=50
-        _events.Clear();
-        player.SetProperty("queued_actions", new List<object>
+        // proficiency=100, variance=50, luck=0 -> hitChance=50 -> ~50% hit rate
+        var hitCount = 0;
+        for (var i = 0; i < 200; i++)
         {
-            new Dictionary<string, object?> { ["abilityId"] = "test_half_variance" }
-        });
-        _phase.Execute(MakeContext(1));
+            _events.Clear();
+            QueueAbility(player, "test_half_variance");
 
-        // Either ability.used or ability.missed - just verify it resolves without error
-        Assert.True(_events.Any(e => e.Type == "ability.used" || e.Type == "ability.missed"));
+            // Create context with varied seed for each iteration
+            var ctx = new PulseContext
+            {
+                CurrentTick = i + 1,
+                CurrentPulse = i + 1,
+                World = _world,
+                EventBus = _eventBus,
+                CombatManager = _combatManager,
+                AbilityRegistry = _abilityRegistry,
+                ProficiencyManager = _proficiencyManager,
+                EffectManager = _effectManager,
+                SessionManager = _sessionManager,
+                Random = new Random(i + 1000)
+            };
+            _phase.Execute(ctx);
+
+            if (_events.Any(e => e.Type == "ability.used")) { hitCount++; }
+        }
+
+        // ~50% hit rate -- allow 60-140 out of 200
+        Assert.InRange(hitCount, 60, 140);
     }
 
     [Fact]
