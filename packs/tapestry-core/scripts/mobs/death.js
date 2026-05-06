@@ -49,7 +49,7 @@ tapestry.events.on("entity.vital.depleted", function(event) {
         if (goldDrop > 0) {
             tapestry.currency.addGold(killerId, goldDrop, "mob_kill");
             var coinWord = goldDrop === 1 ? "coin" : "coins";
-            tapestry.world.sendToPlayer(killerId, "You receive " + goldDrop + " gold " + coinWord + ".\r\n");
+            tapestry.world.send(killerId, "You receive " + goldDrop + " gold " + coinWord + ".\r\n");
         }
     }
 
