@@ -17,6 +17,7 @@ public class ServerConfig
     public TrainingSection Training { get; set; } = new();
     public EconomySection Economy { get; set; } = new();
     public GameSection Game { get; set; } = new();
+    public CombatSection Combat { get; set; } = new();
     public MsspConfig Mssp { get; set; } = new();
     public IdleSection Idle { get; set; } = new();
 
@@ -165,4 +166,9 @@ public class GameSection
     public float DefaultOccupiedModifier { get; set; } = 3.0f;
     public int DefaultResetInterval { get; set; } = 3000;
     public int WeatherRollIntervalHours { get; set; } = 24;
+}
+
+public class CombatSection
+{
+    public double LuckScale { get; set; } = 0.002;
 }
