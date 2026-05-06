@@ -106,7 +106,11 @@ public class ResolveAutoAttacksPhase : ICombatPhase
                             SourceEntityId = target.Id,
                             RoomId = target.LocationRoomId,
                             SourceEntityName = target.Name,
-                            Data = new Dictionary<string, object?> { ["vital"] = "hp" }
+                            Data = new Dictionary<string, object?>
+                        {
+                            ["vital"] = "hp",
+                            ["killerId"] = attacker.Id.ToString()
+                        }
                         });
                         break;
                     }
