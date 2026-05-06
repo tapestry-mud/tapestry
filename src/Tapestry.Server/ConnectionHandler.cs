@@ -106,6 +106,19 @@ public class ConnectionHandler
         var failedAttempts = 0;
         var maxAttempts = _config.Persistence.MaxLoginAttempts;
 
+        var preLoginCts = new CancellationTokenSource();
+        var preLoginTimeoutSec = _config.Idle.PreLoginTimeoutSeconds;
+        if (preLoginTimeoutSec > 0)
+        {
+            _ = Task.Delay(TimeSpan.FromSeconds(preLoginTimeoutSec), preLoginCts.Token)
+                .ContinueWith(_ =>
+                {
+                    connection.SendLine("Connection timed out.");
+                    connection.Disconnect("pre-login timeout");
+                }, TaskContinuationOptions.OnlyOnRanToCompletion);
+            rawConnection.OnDisconnected += () => preLoginCts.Cancel();
+        }
+
         connection.SendLine("");
         connection.SendLine("=== " + _config.Server.Name + " ===");
         connection.SendLine("");
@@ -126,6 +139,8 @@ public class ConnectionHandler
 
         void CompleteLogin(Entity entity)
         {
+            preLoginCts.Cancel();
+
             if (currentHandler != null)
             {
                 connection.OnInput -= currentHandler;
@@ -144,6 +159,13 @@ public class ConnectionHandler
 
             if (spawnRoom != null)
             {
+                // Remove from current room first -- prevents duplicate tracking on session takeover
+                // (when CompleteLogin is called with a live entity already placed in a room)
+                if (entity.LocationRoomId != null)
+                {
+                    var currentRoom = _world.GetRoom(entity.LocationRoomId);
+                    currentRoom?.RemoveEntity(entity);
+                }
                 spawnRoom.AddEntity(entity);
                 _mobAI.PlayerEnteredRoom(spawnRoom.Id);
             }

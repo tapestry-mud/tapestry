@@ -221,7 +221,7 @@ public class JintRuntimeTests
         var gameLoop = new GameLoop(
             new CommandRouter(commandRegistry, sessions),
             sessions, eventBus, new SystemEventQueue(),
-            NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         // Create service classes
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());

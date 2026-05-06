@@ -15,7 +15,7 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var order = new List<string>();
 
@@ -54,7 +54,7 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         DisconnectEvent? received = null;
         gameLoop.OnDisconnect += (evt) =>
@@ -81,7 +81,7 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var callCount = 0;
         gameLoop.OnDisconnect += (evt) =>
@@ -163,7 +163,7 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics());
+            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
         var world = new World();
 
         // Set up a room with a player entity

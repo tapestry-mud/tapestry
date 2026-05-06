@@ -23,6 +23,7 @@ tapestry.events.on("entity.vital.depleted", function(event) {
     tapestry.world.setProperty(corpseId, "corpse_decay", corpseDecay);
     tapestry.world.setProperty(corpseId, "corpse_created_tick", tapestry.world.getCurrentTick());
     tapestry.world.setProperty(corpseId, "template_id", templateId);
+    tapestry.world.setProperty(corpseId, "level", entity.properties ? (entity.properties.level || 1) : 1);
 
     // Transfer equipment and inventory to corpse
     tapestry.inventory.transferAll(event.sourceEntityId, corpseId);
@@ -37,11 +38,26 @@ tapestry.events.on("entity.vital.depleted", function(event) {
     // Notify room
     tapestry.world.sendToRoom(roomId, mobName + " has died!\r\n");
 
+    // Award gold to killer if mob has gold_min/gold_max properties
+    var killerId = event.data ? event.data.killerId : null;
+    var goldMin = entity.properties ? entity.properties.gold_min : null;
+    var goldMax = entity.properties ? entity.properties.gold_max : null;
+    if (killerId && goldMin != null) {
+        var max = goldMax != null ? parseInt(goldMax) : parseInt(goldMin);
+        var min = parseInt(goldMin);
+        var goldDrop = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (goldDrop > 0) {
+            tapestry.currency.addGold(killerId, goldDrop, "mob_kill");
+            var coinWord = goldDrop === 1 ? "coin" : "coins";
+            tapestry.world.sendToPlayer(killerId, "You receive " + goldDrop + " gold " + coinWord + ".\r\n");
+        }
+    }
+
     // Publish death event for other systems
     tapestry.events.publish("mob.death", {
         templateId: templateId,
         roomId: roomId,
         corpseId: corpseId,
-        killerId: event.data ? event.data.killerId : null
+        killerId: killerId
     });
 });

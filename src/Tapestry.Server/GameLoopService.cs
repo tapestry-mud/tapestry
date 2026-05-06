@@ -73,6 +73,13 @@ public class GameLoopService : IHostedService
                 return;
             }
 
+            // Session takeover: the entity is now owned by a different connection.
+            // The stale disconnect event from the old connection must not tear down the new session.
+            if (Guid.Parse(session.Connection.Id) != evt.SessionId)
+            {
+                return;
+            }
+
             // Snapshot is synchronous (LocationRoomId still set); only the file write is async
             var playerName = session.PlayerEntity.Name;
             _ = _persistence.SavePlayer(session).ContinueWith(
@@ -107,6 +114,14 @@ public class GameLoopService : IHostedService
 
             _logger.LogInformation("Player {Name} disconnected: {Reason}", playerName, evt.Reason);
         };
+
+        var idle = _config.Idle;
+        if (idle.WarnSeconds > 0 || idle.TimeoutSeconds > 0)
+        {
+            _gameLoop.ConfigureIdleTimeout(idle.WarnSeconds, idle.TimeoutSeconds);
+            _gameLoop.RegisterIdleTimeoutHandler(_eventQueue, _sessions,
+                idle.WarnMessage, idle.TimeoutMessage, idle.AdminTag);
+        }
 
         _gameLoop.OnTickComplete += () =>
         {

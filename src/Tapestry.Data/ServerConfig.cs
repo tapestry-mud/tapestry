@@ -18,6 +18,7 @@ public class ServerConfig
     public EconomySection Economy { get; set; } = new();
     public GameSection Game { get; set; } = new();
     public MsspConfig Mssp { get; set; } = new();
+    public IdleSection Idle { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -145,6 +146,16 @@ public class TrainingSection
         "strength", "intelligence", "wisdom", "dexterity", "constitution", "luck"
     };
     public int CatchUpBoost { get; set; } = 5;
+}
+
+public class IdleSection
+{
+    public int WarnSeconds { get; set; } = 0;
+    public int TimeoutSeconds { get; set; } = 0;
+    public int PreLoginTimeoutSeconds { get; set; } = 120;
+    public string WarnMessage { get; set; } = "The world grows distant... you are fading.";
+    public string TimeoutMessage { get; set; } = "You have faded from the world.";
+    public string AdminTag { get; set; } = "admin";
 }
 
 public class GameSection

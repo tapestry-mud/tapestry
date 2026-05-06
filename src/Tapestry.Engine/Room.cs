@@ -79,7 +79,10 @@ public class Room
     {
         entity.Container?.RemoveFromContents(entity);
         entity.LocationRoomId = Id;
-        _entities.Add(entity);
+        if (!_entities.Contains(entity))
+        {
+            _entities.Add(entity);
+        }
     }
 
     public void RemoveEntity(Entity entity)
