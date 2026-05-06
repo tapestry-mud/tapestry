@@ -72,6 +72,11 @@ public static class YamlContentLoader
             Script = def.Script
         };
 
+        if (def.Trains != null)
+        {
+            template.Properties["trains"] = def.Trains;
+        }
+
         LootTable? lootTable = null;
         if (def.Loot != null)
         {
@@ -444,6 +449,7 @@ public static class YamlContentLoader
         public double IdleChance { get; set; } = 0.3;
         public int IdleInterval { get; set; } = 30;
         public string? Script { get; set; }
+        public Dictionary<string, object>? Trains { get; set; }
     }
 
     private class LootInlineModel
