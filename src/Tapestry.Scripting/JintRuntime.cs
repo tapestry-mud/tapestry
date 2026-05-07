@@ -20,6 +20,7 @@ public class JintRuntime
         {
             options.TimeoutInterval(TimeSpan.FromSeconds(5));
             options.LimitRecursion(100);
+            options.LimitMemory(50_000_000);
             options.Strict();
         });
 

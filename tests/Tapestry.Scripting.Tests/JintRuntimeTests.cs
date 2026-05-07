@@ -147,6 +147,16 @@ public class JintRuntimeTests
     }
 
     [Fact]
+    public void ExecuteScript_MemoryLimitEnforced()
+    {
+        var (runtime, _) = CreateRuntime();
+        // Allocate a large array in a loop to exhaust memory
+        var script = "var arr = []; while(true) { arr.push(new Array(10000).fill(1)); }";
+        var act = () => runtime.Execute(script, "test-pack");
+        act.Should().Throw<Exception>();
+    }
+
+    [Fact]
     public void Stats_AccessibleFromScript()
     {
         var (runtime, ctx) = CreateRuntime();
