@@ -76,11 +76,19 @@ public class GameLoop
 
     public void Tick()
     {
-        _preTick?.Invoke();
         _tickCount++;
         using var tickActivity = TapestryTracing.Source.StartActivity("GameLoop.Tick");
         tickActivity?.SetTag("tick.number", _tickCount);
         var tickSw = Stopwatch.StartNew();
+
+        // PreTick (e.g. SwapTagBuffers) -- runs before all phases; measured separately
+        var preTickSw = Stopwatch.StartNew();
+        using (TapestryTracing.Source.StartActivity("PreTick"))
+        {
+            _preTick?.Invoke();
+        }
+        preTickSw.Stop();
+        _metrics.TickDuration.Record(preTickSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "pre_tick"));
 
         // 0. Drain scheduled actions (posted from network threads to run on game loop thread)
         var scheduledSw = Stopwatch.StartNew();
@@ -265,9 +273,12 @@ public class GameLoop
 
         if (totalMs > _slowTickThresholdMs && _slowTickThresholdMs > 0)
         {
-            _logger.LogWarning("Slow tick {TickNumber}: {DurationMs:F1}ms (budget: {Budget}ms) — events: {EventMs:F1}ms, commands: {CmdMs:F1}ms, handlers: {HandlerMs:F1}ms",
+            _logger.LogWarning(
+                "Slow tick {TickNumber}: {DurationMs:F1}ms (budget: {Budget}ms) -- pre_tick: {PreTickMs:F1}ms, scheduled: {ScheduledMs:F1}ms, events: {EventMs:F1}ms, commands: {CmdMs:F1}ms, handlers: {HandlerMs:F1}ms, flush: {FlushMs:F1}ms",
                 _tickCount, totalMs, _slowTickThresholdMs,
-                eventSw.Elapsed.TotalMilliseconds, cmdSw.Elapsed.TotalMilliseconds, handlersSw.Elapsed.TotalMilliseconds);
+                preTickSw.Elapsed.TotalMilliseconds, scheduledSw.Elapsed.TotalMilliseconds,
+                eventSw.Elapsed.TotalMilliseconds, cmdSw.Elapsed.TotalMilliseconds,
+                handlersSw.Elapsed.TotalMilliseconds, flushSw.Elapsed.TotalMilliseconds);
 
             OnSlowTick?.Invoke(_tickCount, totalMs, eventSw.Elapsed.TotalMilliseconds, cmdSw.Elapsed.TotalMilliseconds, handlersSw.Elapsed.TotalMilliseconds);
         }

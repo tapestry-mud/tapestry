@@ -14,6 +14,9 @@ public class World : ITagObserver
     private Dictionary<string, HashSet<Entity>> _writeIndex = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _dirtyTags = new(StringComparer.OrdinalIgnoreCase);
 
+    public int LastSwapDirtyCount { get; private set; }
+    public int LastSwapTagCount { get; private set; }
+
     public World(PlayerCreator? playerCreator = null)
     {
         _playerCreator = playerCreator;
@@ -178,9 +181,11 @@ public class World : ITagObserver
 
     public void SwapTagBuffers()
     {
+        LastSwapDirtyCount = _dirtyTags.Count;
         _readIndex = _writeIndex;
         _writeIndex = new Dictionary<string, HashSet<Entity>>(_readIndex, StringComparer.OrdinalIgnoreCase);
         _dirtyTags.Clear();
+        LastSwapTagCount = _readIndex.Count;
     }
 
     void ITagObserver.OnTagAdded(Entity entity, string tag)

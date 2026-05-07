@@ -426,7 +426,12 @@ public class GameBootstrapper
 
     private void RegisterTickHandlers()
     {
-        _gameLoop.SetPreTickAction(_world.SwapTagBuffers);
+        _gameLoop.SetPreTickAction(() =>
+        {
+            _world.SwapTagBuffers();
+            System.Diagnostics.Activity.Current?.SetTag("swap.dirty_tags", _world.LastSwapDirtyCount);
+            System.Diagnostics.Activity.Current?.SetTag("swap.tag_count", _world.LastSwapTagCount);
+        });
         _gameLoop.RegisterTickHandler("area-tick", 1, () => _areaTick.Tick());
         _gameLoop.RegisterTickHandler("game-clock", 1, () => _gameClock.Tick());
         _gameLoop.RegisterTickHandler("tick-timer", 1, () => _tickTimer.Advance());
