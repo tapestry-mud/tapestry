@@ -48,7 +48,7 @@ public class FlowEngineTests
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             PendingPasswordHash = "hash_" + name
         };
         sessions.Add(session);
@@ -106,7 +106,7 @@ public class FlowEngineTests
 
         engine.Trigger(session, "new_player_connect");
 
-        session.Phase.Should().Be(SessionPhase.Playing);
+        session.Phase.Should().Be(LoginPhase.Playing);
         persistence.Saved.Should().HaveCount(1);
     }
 
@@ -136,7 +136,7 @@ public class FlowEngineTests
         engine.Trigger(session, "new_player_connect");
         session.CurrentFlow!.HandleInput("1"); // advances through ChoiceStep → triggers Complete
 
-        session.Phase.Should().Be(SessionPhase.Playing);
+        session.Phase.Should().Be(LoginPhase.Playing);
         session.CurrentFlow.Should().BeNull();
         persistence.Saved.Should().HaveCount(1);
         persistence.Saved[0].hash.Should().Be("hash_Rand");
@@ -186,7 +186,7 @@ public class FlowEngineTests
         session.CurrentFlow!.HandleInput("1");
 
         // Session stays in Creating, new entity allocated, flow restarted
-        session.Phase.Should().Be(SessionPhase.Creating);
+        session.Phase.Should().Be(LoginPhase.Creating);
         session.CurrentFlow.Should().NotBeNull();
         session.PlayerEntity.Id.Should().NotBe(firstEntityId);
     }
@@ -299,14 +299,14 @@ public class FlowEngineTests
 
         var entity = new Entity("player", "Mat");
         var conn = new FakeConnection();
-        var session = new PlayerSession(conn, entity) { Phase = SessionPhase.Playing };
+        var session = new PlayerSession(conn, entity) { Phase = LoginPhase.Playing };
         sessions.Add(session);
 
         engine.Start(session, flow.Id);
         session.CurrentFlow!.HandleInput("1");
 
         session.CurrentFlow.Should().BeNull();
-        session.Phase.Should().Be(SessionPhase.Playing);
+        session.Phase.Should().Be(LoginPhase.Playing);
         persistence.Saved.Should().BeEmpty(); // no persistence for Playing phase
     }
 }

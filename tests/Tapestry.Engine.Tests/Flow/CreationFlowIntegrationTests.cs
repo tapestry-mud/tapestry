@@ -111,7 +111,7 @@ public class CreationFlowIntegrationTests
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             PendingPasswordHash = "hash"
         };
         sessions.Add(session);
@@ -126,7 +126,7 @@ public class CreationFlowIntegrationTests
         // Alignment: choose Light (1)
         session.HandleInput("1");
 
-        session.Phase.Should().Be(SessionPhase.Playing);
+        session.Phase.Should().Be(LoginPhase.Playing);
         session.CurrentFlow.Should().BeNull();
         session.PlayerEntity.GetProperty<string>("race").Should().Be("human");
         session.PlayerEntity.GetProperty<string>("class").Should().Be("warrior");
@@ -145,7 +145,7 @@ public class CreationFlowIntegrationTests
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             PendingPasswordHash = "hash"
         };
         sessions.Add(session);
@@ -156,7 +156,7 @@ public class CreationFlowIntegrationTests
         session.HandleInput("2"); // Mage
         session.HandleInput("2"); // Shadow — triggers on_complete failure
 
-        session.Phase.Should().Be(SessionPhase.Creating); // still creating
+        session.Phase.Should().Be(LoginPhase.Creating); // still creating
         session.PlayerEntity.Name.Should().Be("Ishamael"); // name preserved
         session.CurrentFlow.Should().NotBeNull(); // restarted flow
     }
@@ -171,7 +171,7 @@ public class CreationFlowIntegrationTests
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             PendingPasswordHash = "hash"
         };
         sessions.Add(session);

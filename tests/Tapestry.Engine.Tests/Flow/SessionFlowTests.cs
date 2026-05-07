@@ -13,7 +13,7 @@ public class SessionFlowTests
         var conn = new FakeConnection();
         var entity = new Entity("player", "Mat");
         var session = new PlayerSession(conn, entity);
-        session.Phase = SessionPhase.Playing;
+        session.Phase = LoginPhase.Playing;
 
         session.HandleInput("look");
 
@@ -62,7 +62,7 @@ public class SessionFlowTests
         var conn = new FakeConnection();
         var entity = new Entity("player", "Mat");
         var session = new PlayerSession(conn, entity);
-        session.Phase = SessionPhase.Playing;
+        session.Phase = LoginPhase.Playing;
 
         conn.SimulateInput("look");
 
@@ -79,7 +79,7 @@ public class SessionFlowTests
 
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             NeedsPromptRefresh = true
         };
         sessions.Add(session);
@@ -100,7 +100,7 @@ public class SessionFlowTests
 
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Playing,
+            Phase = LoginPhase.Playing,
             NeedsPromptRefresh = true
         };
         sessions.Add(session);

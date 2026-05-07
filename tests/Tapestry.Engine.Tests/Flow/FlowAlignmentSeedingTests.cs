@@ -41,7 +41,7 @@ public class FlowAlignmentSeedingTests
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, entity)
         {
-            Phase = SessionPhase.Creating,
+            Phase = LoginPhase.Creating,
             PendingPasswordHash = "hash"
         };
         sessions.Add(session);

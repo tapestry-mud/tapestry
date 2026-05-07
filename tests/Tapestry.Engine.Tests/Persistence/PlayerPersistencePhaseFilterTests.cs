@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
-using Tapestry.Engine.Flow;
 using Tapestry.Engine.Persistence;
 using Tapestry.Shared;
 
@@ -26,7 +25,7 @@ public class PlayerPersistencePhaseFilterTests
             NullLogger<PlayerPersistenceService>.Instance);
     }
 
-    private PlayerSession MakeSession(string name, SessionPhase phase)
+    private PlayerSession MakeSession(string name, LoginPhase phase)
     {
         var conn = new FakeConnection();
         var entity = new Entity("player", name);
@@ -39,7 +38,7 @@ public class PlayerPersistencePhaseFilterTests
     [Fact]
     public async Task SaveAllPlayers_SkipsCreatingSessions()
     {
-        var creatingSession = MakeSession("Newbie", SessionPhase.Creating);
+        var creatingSession = MakeSession("Newbie", LoginPhase.Creating);
         _sessions.Add(creatingSession);
 
         await _svc.SaveAllPlayers();
@@ -50,7 +49,7 @@ public class PlayerPersistencePhaseFilterTests
     [Fact]
     public async Task SaveAllPlayers_SavesPlayingSessions()
     {
-        var playingSession = MakeSession("Veteran", SessionPhase.Playing);
+        var playingSession = MakeSession("Veteran", LoginPhase.Playing);
         _sessions.Add(playingSession);
         _svc.TrackPasswordHash(playingSession.PlayerEntity.Id, "$2a$12$fakehash");
 
@@ -62,8 +61,8 @@ public class PlayerPersistencePhaseFilterTests
     [Fact]
     public async Task SaveAllPlayers_MixedPhases_OnlySavesPlaying()
     {
-        var creating = MakeSession("Ghost", SessionPhase.Creating);
-        var playing = MakeSession("Hero", SessionPhase.Playing);
+        var creating = MakeSession("Ghost", LoginPhase.Creating);
+        var playing = MakeSession("Hero", LoginPhase.Playing);
         _sessions.Add(creating);
         _sessions.Add(playing);
         _svc.TrackPasswordHash(playing.PlayerEntity.Id, "$2a$12$fakehash");
