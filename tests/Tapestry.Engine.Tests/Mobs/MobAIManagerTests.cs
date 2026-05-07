@@ -262,6 +262,7 @@ public class MobAIManagerTests
         var tickEvents = new List<GameEvent>();
         eventBus.Subscribe("mob.ai.tick", evt => { tickEvents.Add(evt); });
         ai.ActivateArea("zone");
+        ai.RegisterBehavior("wander", _ => { });
 
         var npc = new Entity("npc", "Goblin");
         npc.AddTag("npc");

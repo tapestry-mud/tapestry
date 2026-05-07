@@ -136,6 +136,8 @@ public class MobAIManager
                     }
                 }
 
+                // Publish even if no handler is registered: mob.ai.tick signals the mob was
+                // considered this tick, regardless of whether a behavior handler ran.
                 _eventBus.Publish(new GameEvent
                 {
                     Type = "mob.ai.tick",
