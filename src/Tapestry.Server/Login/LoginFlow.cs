@@ -24,6 +24,9 @@ public partial class LoginFlow
     private readonly FlowEngine? _flowEngine;
     private readonly object _nameReservationLock = new();
 
+    private const string NamePrompt = "What will your name be, this turn of the Wheel?";
+    private const string NameGmcpPrompt = "Type the name you will go by for this turn of the Wheel";
+
     [GeneratedRegex(@"^[a-zA-Z]{2,20}$")]
     private static partial Regex NamePattern();
 
@@ -82,8 +85,8 @@ public partial class LoginFlow
         _adapter.SendLine("");
         _adapter.SendLine("=== " + _config.Server.Name + " ===");
         _adapter.SendLine("");
-        _adapter.SendLine("Please type the name you would like to be known as");
-        SendGmcpPrompt("Please type the name you would like to be known as");
+        _adapter.SendLine(NamePrompt);
+        SendGmcpPrompt(NameGmcpPrompt);
 
         while (true)
         {
@@ -94,15 +97,15 @@ public partial class LoginFlow
             if (string.IsNullOrWhiteSpace(trimmed))
             {
                 _adapter.SendLine("Please enter a name.");
-                SendGmcpPrompt("Please type the name you would like to be known as");
+                SendGmcpPrompt(NameGmcpPrompt);
                 continue;
             }
 
             if (!NamePattern().IsMatch(trimmed))
             {
                 _adapter.SendLine("Names must be 2-20 letters only.");
-                _adapter.SendLine("Please type the name you would like to be known as");
-                SendGmcpPrompt("Please type the name you would like to be known as");
+                _adapter.SendLine(NamePrompt);
+                SendGmcpPrompt(NameGmcpPrompt);
                 continue;
             }
 
@@ -126,8 +129,8 @@ public partial class LoginFlow
             }
 
             SetPhase(LoginPhase.Name);
-            _adapter.SendLine("Please type the name you would like to be known as");
-            SendGmcpPrompt("Please type the name you would like to be known as");
+            _adapter.SendLine(NamePrompt);
+            SendGmcpPrompt(NameGmcpPrompt);
         }
     }
 
