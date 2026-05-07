@@ -17,7 +17,9 @@ using Tapestry.Engine.Persistence;
 using Tapestry.Server;
 using Tapestry.Server.Login;
 using Tapestry.Server.Persistence;
+using Tapestry.Server.Modules;
 using Tapestry.Scripting.Modules;
+using Tapestry.Contracts;
 using Microsoft.AspNetCore.Builder;
 
 // Load config early for Serilog and telemetry setup
@@ -98,6 +100,16 @@ builder.Services.AddSingleton<GmcpService>();
 builder.Services.AddSingleton<GmcpModuleAdapter>();
 builder.Services.AddSingleton<IGmcpModuleAdapter>(sp => sp.GetRequiredService<GmcpModuleAdapter>());
 builder.Services.AddSingleton<ConnectionHandler>();
+
+// Game modules -- order is boot order
+builder.Services.AddSingleton<IGameModule, ConfigurationModule>();
+builder.Services.AddSingleton<IGameModule, ContentLoadingModule>();
+builder.Services.AddSingleton<IGameModule, CombatEventModule>();
+builder.Services.AddSingleton<IGameModule, GmcpEventModule>();
+builder.Services.AddSingleton<IGameModule, WorldEventModule>();
+builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
+builder.Services.AddSingleton<IGameModule, PersistenceModule>();
+builder.Services.AddSingleton<IGameModule, PlayerInitModule>();
 
 // Bootstrapper and hosted services
 builder.Services.AddSingleton<GameBootstrapper>();
