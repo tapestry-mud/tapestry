@@ -42,11 +42,11 @@ public class WorldEventModule : IGameModule
 
     public void Configure()
     {
-        { WireMovementTracking(); }
-        { WirePersistenceSaves(); }
-        { WireSustenanceInit(); }
-        { RegisterRestAutoWake(); }
-        { StatGrowthOnLevelUp.Subscribe(_eventBus, _world, _classRegistry, _trainingManager); }
+        WireMovementTracking();
+        WirePersistenceSaves();
+        WireSustenanceInit();
+        RegisterRestAutoWake();
+        StatGrowthOnLevelUp.Subscribe(_eventBus, _world, _classRegistry, _trainingManager);
     }
 
     private void WireMovementTracking()

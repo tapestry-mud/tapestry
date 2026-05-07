@@ -112,7 +112,10 @@ public class PlayerInitModule : IGameModule
                     var raceDef = _raceRegistry.Get(seed.PlayerRace);
                     if (raceDef != null)
                     {
-                        foreach (var flag in raceDef.RacialFlags) { entity.AddTag(flag); }
+                        foreach (var flag in raceDef.RacialFlags)
+                        {
+                            entity.AddTag(flag);
+                        }
                     }
                 }
 
