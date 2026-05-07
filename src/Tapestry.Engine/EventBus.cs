@@ -6,6 +6,8 @@ public class EventBus
 {
     private readonly Dictionary<string, SortedList<int, List<Subscription>>> _handlers = new();
     private readonly List<Subscription> _wildcardHandlers = new();
+    private readonly Dictionary<string, Subscription[]> _cache = new();
+    private readonly object _sync = new();
     private int _nextId;
 
     public int Subscribe(string eventType, Action<GameEvent> handler, int priority = 0)
@@ -15,14 +17,15 @@ public class EventBus
 
         if (eventType == "*")
         {
-            lock (_wildcardHandlers)
+            lock (_sync)
             {
                 _wildcardHandlers.Add(sub);
+                _cache.Clear();
             }
             return id;
         }
 
-        lock (_handlers)
+        lock (_sync)
         {
             if (!_handlers.TryGetValue(eventType, out var priorityMap))
             {
@@ -36,6 +39,7 @@ public class EventBus
                 priorityMap[priority] = list;
             }
             list.Add(sub);
+            _cache.Remove(eventType);
         }
 
         return id;
@@ -43,20 +47,29 @@ public class EventBus
 
     public void Unsubscribe(int subscriptionId)
     {
-        lock (_handlers)
+        lock (_sync)
         {
-            foreach (var priorityMap in _handlers.Values)
+            foreach (var (eventType, priorityMap) in _handlers)
             {
+                var found = false;
                 foreach (var list in priorityMap.Values)
                 {
-                    list.RemoveAll(s => s.Id == subscriptionId);
+                    if (list.RemoveAll(s => s.Id == subscriptionId) > 0)
+                    {
+                        found = true;
+                    }
+                }
+                if (found)
+                {
+                    _cache.Remove(eventType);
+                    break;
                 }
             }
-        }
 
-        lock (_wildcardHandlers)
-        {
-            _wildcardHandlers.RemoveAll(s => s.Id == subscriptionId);
+            if (_wildcardHandlers.RemoveAll(s => s.Id == subscriptionId) > 0)
+            {
+                _cache.Clear();
+            }
         }
     }
 
@@ -64,50 +77,58 @@ public class EventBus
     {
         var handlers = GetHandlers(evt.Type);
 
-        foreach (var handler in handlers)
+        for (var i = 0; i < handlers.Length; i++)
         {
             if (evt.Cancelled)
             {
                 break;
             }
-            handler.Handler(evt);
+            handlers[i].Handler(evt);
         }
     }
 
-    private IEnumerable<Subscription> GetHandlers(string eventType)
+    private Subscription[] GetHandlers(string eventType)
     {
-        var result = new SortedList<int, List<Subscription>>(Comparer<int>.Create((a, b) => b.CompareTo(a)));
-
-        lock (_handlers)
+        lock (_sync)
         {
-            if (_handlers.TryGetValue(eventType, out var priorityMap))
+            if (_cache.TryGetValue(eventType, out var cached))
             {
-                foreach (var (priority, subs) in priorityMap)
-                {
-                    if (!result.TryGetValue(priority, out var list))
-                    {
-                        list = new List<Subscription>();
-                        result[priority] = list;
-                    }
-                    list.AddRange(subs);
-                }
+                return cached;
             }
+            var result = BuildMergedHandlers(eventType);
+            _cache[eventType] = result;
+            return result;
         }
+    }
 
-        lock (_wildcardHandlers)
+    private Subscription[] BuildMergedHandlers(string eventType)
+    {
+        var merged = new SortedList<int, List<Subscription>>(Comparer<int>.Create((a, b) => b.CompareTo(a)));
+
+        if (_handlers.TryGetValue(eventType, out var priorityMap))
         {
-            foreach (var sub in _wildcardHandlers)
+            foreach (var (priority, subs) in priorityMap)
             {
-                if (!result.TryGetValue(sub.Priority, out var list))
+                if (!merged.TryGetValue(priority, out var list))
                 {
                     list = new List<Subscription>();
-                    result[sub.Priority] = list;
+                    merged[priority] = list;
                 }
-                list.Add(sub);
+                list.AddRange(subs);
             }
         }
 
-        return result.Values.SelectMany(list => list);
+        foreach (var sub in _wildcardHandlers)
+        {
+            if (!merged.TryGetValue(sub.Priority, out var list))
+            {
+                list = new List<Subscription>();
+                merged[sub.Priority] = list;
+            }
+            list.Add(sub);
+        }
+
+        return merged.Values.SelectMany(l => l).ToArray();
     }
 
     private record Subscription(int Id, Action<GameEvent> Handler, int Priority);

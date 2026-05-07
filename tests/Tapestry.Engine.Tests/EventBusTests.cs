@@ -73,4 +73,83 @@ public class EventBusTests
         bus.Publish(new GameEvent { Type = "room.entered" });
         received.Should().HaveCount(2);
     }
+
+    [Fact]
+    public void Publish_Twice_SameType_BothCallsFireHandler()
+    {
+        var bus = new EventBus();
+        var callCount = 0;
+        bus.Subscribe("test.cache", (_) => { callCount++; });
+
+        bus.Publish(new GameEvent { Type = "test.cache" });
+        bus.Publish(new GameEvent { Type = "test.cache" });
+
+        callCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Subscribe_AfterPublish_NewHandlerCalledOnNextPublish()
+    {
+        var bus = new EventBus();
+        var firstCount = 0;
+        var secondCount = 0;
+        bus.Subscribe("cache.invalidate", (_) => { firstCount++; });
+        bus.Publish(new GameEvent { Type = "cache.invalidate" });
+
+        bus.Subscribe("cache.invalidate", (_) => { secondCount++; });
+        bus.Publish(new GameEvent { Type = "cache.invalidate" });
+
+        firstCount.Should().Be(2);
+        secondCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Unsubscribe_AfterPublish_RemovedHandlerNotCalledOnNextPublish()
+    {
+        var bus = new EventBus();
+        var callCount = 0;
+        var id = bus.Subscribe("cache.unsub", (_) => { callCount++; });
+        bus.Publish(new GameEvent { Type = "cache.unsub" });
+
+        bus.Unsubscribe(id);
+        bus.Publish(new GameEvent { Type = "cache.unsub" });
+
+        callCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void WildcardSubscribeAfterPublish_InvalidatesAllCachedTypes()
+    {
+        var bus = new EventBus();
+        var specificCount = 0;
+        var wildcardCount = 0;
+        bus.Subscribe("specific.event", (_) => { specificCount++; });
+        bus.Publish(new GameEvent { Type = "specific.event" });
+
+        bus.Subscribe("*", (_) => { wildcardCount++; });
+        bus.Publish(new GameEvent { Type = "specific.event" });
+
+        specificCount.Should().Be(2);
+        wildcardCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void NestedPublish_InFlightIterationNotCorrupted()
+    {
+        var bus = new EventBus();
+        var outerCount = 0;
+        var innerCount = 0;
+        bus.Subscribe("outer", (evt) =>
+        {
+            outerCount++;
+            bus.Publish(new GameEvent { Type = "inner" });
+            innerCount++;
+        });
+        bus.Subscribe("inner", (_) => { });
+
+        bus.Publish(new GameEvent { Type = "outer" });
+
+        outerCount.Should().Be(1);
+        innerCount.Should().Be(1);
+    }
 }
