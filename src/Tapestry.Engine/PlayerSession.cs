@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Login;
 using Tapestry.Engine.Prompt;
 using Tapestry.Shared;
 
@@ -106,6 +107,7 @@ public class SessionManager
     private readonly ConcurrentDictionary<string, PlayerSession> _byConnectionId = new();
     private readonly ConcurrentDictionary<Guid, PlayerSession> _byEntityId = new();
     private readonly ConcurrentDictionary<string, PlayerSession> _byPlayerName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, LoginContext> _preLogin = new();
 
     public void Add(PlayerSession session)
     {
@@ -156,6 +158,30 @@ public class SessionManager
     }
 
     public int Count => _byConnectionId.Count;
+
+    public void RegisterPreLogin(LoginContext ctx)
+    {
+        _preLogin[ctx.ConnectionId] = ctx;
+    }
+
+    public void RemovePreLogin(string connectionId)
+    {
+        _preLogin.TryRemove(connectionId, out _);
+    }
+
+    public LoginContext? GetPreLogin(string connectionId)
+    {
+        return _preLogin.GetValueOrDefault(connectionId);
+    }
+
+    public IEnumerable<LoginContext> AllPreLoginConnections => _preLogin.Values;
+
+    public IEnumerable<LoginContext> AllConnectionsByPhase(LoginPhase phase)
+    {
+        return _preLogin.Values.Where(c => c.Phase == phase);
+    }
+
+    public int ConnectionCount => _preLogin.Count + _byConnectionId.Count;
 
     private void SendContentToSession(PlayerSession session, string rendered)
     {
