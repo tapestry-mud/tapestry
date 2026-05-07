@@ -23,7 +23,7 @@ public class TrainingManagerTests
         _races = new RaceRegistry();
         _config = new TrainingConfig();
         if (requireSafeRoom) { _config.Configure(true, null, 5); }
-        _training = new TrainingManager(_world, _proficiency, _races, _config);
+        _training = new TrainingManager(_world, _proficiency, _races, _config, _abilityRegistry);
 
         _abilityRegistry.Register(new AbilityDefinition { Id = "dodge", Name = "Dodge", ProficiencyGainChance = 1.0 });
         _abilityRegistry.Register(new AbilityDefinition { Id = "parry", Name = "Parry", ProficiencyGainChance = 1.0 });

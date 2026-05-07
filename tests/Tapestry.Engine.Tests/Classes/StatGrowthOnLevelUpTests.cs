@@ -21,7 +21,7 @@ public class StatGrowthOnLevelUpTests
         _eventBus = new EventBus();
         _classRegistry = new ClassRegistry();
         _progression = new ProgressionManager(_world, _eventBus);
-        _trainingManager = new TrainingManager(_world, null!, new RaceRegistry(), new TrainingConfig());
+        _trainingManager = new TrainingManager(_world, null!, new RaceRegistry(), new TrainingConfig(), new Tapestry.Engine.Abilities.AbilityRegistry());
 
         StatGrowthOnLevelUp.Subscribe(_eventBus, _world, _classRegistry, _trainingManager, new Random(42));
 
