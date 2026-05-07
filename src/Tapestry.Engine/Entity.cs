@@ -14,6 +14,7 @@ public class Entity
     private readonly HashSet<string> _tags = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Entity> _contents = new();
     private readonly Dictionary<string, Entity> _equipment = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<ITagObserver> _tagObservers = new();
 
     public IReadOnlyList<Entity> Contents => _contents.AsReadOnly();
     public IReadOnlySet<string> Tags => _tags;
@@ -60,17 +61,39 @@ public class Entity
 
     public void AddTag(string tag)
     {
-        _tags.Add(tag);
+        if (_tags.Add(tag))
+        {
+            foreach (var obs in _tagObservers)
+            {
+                obs.OnTagAdded(this, tag);
+            }
+        }
     }
 
     public void RemoveTag(string tag)
     {
-        _tags.Remove(tag);
+        if (_tags.Remove(tag))
+        {
+            foreach (var obs in _tagObservers)
+            {
+                obs.OnTagRemoved(this, tag);
+            }
+        }
     }
 
     public bool HasTag(string tag)
     {
         return _tags.Contains(tag);
+    }
+
+    public void RegisterTagObserver(ITagObserver observer)
+    {
+        _tagObservers.Add(observer);
+    }
+
+    public void UnregisterTagObserver(ITagObserver observer)
+    {
+        _tagObservers.Remove(observer);
     }
 
     public void AddToContents(Entity entity)
