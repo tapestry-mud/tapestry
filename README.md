@@ -4,6 +4,18 @@ A modular MUD engine where the engine provides the platform and content packs pr
 
 Think Minecraft's relationship to mods: the engine is the canvas, packs are the paint. A server operator loads the packs they want and gets a unique MUD. A content creator builds a pack and shares it with the community.
 
+## Screenshots
+
+<a href="screenshots/web-client.png"><img src="screenshots/web-client.png" width="600" alt="Web client showing combat, character panel, map, and chat"></a>
+
+<a href="screenshots/grafana-dashboard.png"><img src="screenshots/grafana-dashboard.png" width="600" alt="Grafana observability dashboard with metrics, logs, and traces"></a>
+
+<a href="screenshots/accessibility.png"><img src="screenshots/accessibility.png" width="400" alt="Accessibility features page describing screen reader support"></a>
+
+<a href="screenshots/help-system.png"><img src="screenshots/help-system.png" width="400" alt="In-game help system with categorized topics"></a>
+
+<a href="screenshots/jaeger-tracing.png"><img src="screenshots/jaeger-tracing.png" width="600" alt="Jaeger distributed trace showing GameLoop tick breakdown"></a>
+
 ## Quick Start
 
 ```bash
