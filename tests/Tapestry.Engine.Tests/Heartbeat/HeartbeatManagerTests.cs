@@ -1,3 +1,7 @@
+using Tapestry.Engine.Abilities;
+using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Combat;
+using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
 
 namespace Tapestry.Engine.Tests.Heartbeat;
@@ -23,9 +27,23 @@ public class HeartbeatManager_TickTests
     private int _handlerCallCount;
     private PulseContext? _lastContext;
 
+    private static HeartbeatManager CreateHeartbeatManager(Random? random = null)
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var abilityRegistry = new AbilityRegistry();
+        var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
+        var effectManager = new EffectManager(world, eventBus);
+        var sessionManager = new SessionManager();
+        var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
+        return new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
+            proficiencyManager, effectManager, sessionManager, alignmentManager, random);
+    }
+
     private void Setup()
     {
-        _heartbeat = new HeartbeatManager();
+        _heartbeat = CreateHeartbeatManager();
         _handlerCallCount = 0;
         _lastContext = null;
     }
@@ -97,6 +115,42 @@ public class HeartbeatManager_TickTests
         Assert.Equal(1, _heartbeat.TickCount);
         _heartbeat.Tick();
         Assert.Equal(2, _heartbeat.TickCount);
+    }
+
+    [Fact]
+    public void Tick_PulseContext_ContainsAlignmentManager()
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var abilityRegistry = new AbilityRegistry();
+        var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
+        var effectManager = new EffectManager(world, eventBus);
+        var sessionManager = new SessionManager();
+        var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
+        var heartbeat = new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
+            proficiencyManager, effectManager, sessionManager, alignmentManager);
+
+        PulseContext? captured = null;
+        heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
+        heartbeat.Tick();
+
+        Assert.NotNull(captured);
+        Assert.Same(alignmentManager, captured!.AlignmentManager);
+    }
+
+    [Fact]
+    public void Tick_PulseContext_UsesInjectedRandom()
+    {
+        var deterministicRandom = new Random(42);
+        var heartbeat = CreateHeartbeatManager(random: deterministicRandom);
+
+        PulseContext? captured = null;
+        heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
+        heartbeat.Tick();
+
+        Assert.NotNull(captured);
+        Assert.Same(deterministicRandom, captured!.Random);
     }
 }
 

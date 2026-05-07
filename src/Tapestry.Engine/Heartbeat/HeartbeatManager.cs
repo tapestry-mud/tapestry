@@ -8,20 +8,41 @@ namespace Tapestry.Engine.Heartbeat;
 
 public class HeartbeatManager
 {
+    private readonly World _world;
+    private readonly EventBus _eventBus;
+    private readonly CombatManager _combatManager;
+    private readonly AbilityRegistry _abilityRegistry;
+    private readonly ProficiencyManager _proficiencyManager;
+    private readonly EffectManager _effectManager;
+    private readonly SessionManager _sessionManager;
+    private readonly AlignmentManager _alignmentManager;
+    private readonly Random _random;
     private readonly List<IPulseHandler> _handlers = new();
     private long _tickCount;
 
     public long TickCount => _tickCount;
 
-    public World? World { get; set; }
-    public EventBus? EventBus { get; set; }
-    public CombatManager? CombatManager { get; set; }
-    public AbilityRegistry? AbilityRegistry { get; set; }
-    public ProficiencyManager? ProficiencyManager { get; set; }
-    public EffectManager? EffectManager { get; set; }
-    public SessionManager? SessionManager { get; set; }
-    public AlignmentManager? AlignmentManager { get; set; }
-    public Random Random { get; set; } = new();
+    public HeartbeatManager(
+        World world,
+        EventBus eventBus,
+        CombatManager combatManager,
+        AbilityRegistry abilityRegistry,
+        ProficiencyManager proficiencyManager,
+        EffectManager effectManager,
+        SessionManager sessionManager,
+        AlignmentManager alignmentManager,
+        Random? random = null)
+    {
+        _world = world;
+        _eventBus = eventBus;
+        _combatManager = combatManager;
+        _abilityRegistry = abilityRegistry;
+        _proficiencyManager = proficiencyManager;
+        _effectManager = effectManager;
+        _sessionManager = sessionManager;
+        _alignmentManager = alignmentManager;
+        _random = random ?? new Random();
+    }
 
     public void Register(IPulseHandler handler)
     {
@@ -42,15 +63,15 @@ public class HeartbeatManager
             {
                 CurrentTick = _tickCount,
                 CurrentPulse = _tickCount / handler.Cadence,
-                World = World!,
-                EventBus = EventBus!,
-                CombatManager = CombatManager!,
-                AbilityRegistry = AbilityRegistry!,
-                ProficiencyManager = ProficiencyManager!,
-                EffectManager = EffectManager!,
-                SessionManager = SessionManager!,
-                AlignmentManager = AlignmentManager!,
-                Random = Random
+                World = _world,
+                EventBus = _eventBus,
+                CombatManager = _combatManager,
+                AbilityRegistry = _abilityRegistry,
+                ProficiencyManager = _proficiencyManager,
+                EffectManager = _effectManager,
+                SessionManager = _sessionManager,
+                AlignmentManager = _alignmentManager,
+                Random = _random
             };
 
             using var pulseSpan = TapestryTracing.Source.StartActivity($"Pulse.{handler.Name}");
