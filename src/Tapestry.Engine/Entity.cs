@@ -70,6 +70,17 @@ public class Entity
         return new Dictionary<string, object?>(_properties);
     }
 
+    public IEnumerable<KeyValuePair<string, object?>> EnumerateProperties(string prefix)
+    {
+        foreach (var kv in _properties)
+        {
+            if (kv.Key.StartsWith(prefix))
+            {
+                yield return kv;
+            }
+        }
+    }
+
     public void AddTag(string tag)
     {
         if (_tags.Add(tag))

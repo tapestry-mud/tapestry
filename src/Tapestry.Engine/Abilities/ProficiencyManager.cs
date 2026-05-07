@@ -24,7 +24,7 @@ public class ProficiencyManager
         entity.SetProperty(AbilityProperties.Proficiency(abilityId), clamped);
 
         var capKey = AbilityProperties.Cap(abilityId);
-        if (!entity.GetAllProperties().ContainsKey(capKey))
+        if (!entity.HasProperty(capKey))
         {
             entity.SetProperty(capKey, 25);
         }
@@ -34,10 +34,9 @@ public class ProficiencyManager
     {
         var entity = _world.GetEntity(entityId);
         if (entity == null) { return 100; }
-        var allProps = entity.GetAllProperties();
         var capKey = AbilityProperties.Cap(abilityId);
-        if (!allProps.TryGetValue(capKey, out var raw) || raw == null) { return 100; }
-        return (int)raw;
+        if (!entity.TryGetProperty<int>(capKey, out var capValue)) { return 100; }
+        return capValue;
     }
 
     public void SetCap(Guid entityId, string abilityId, int capValue)
@@ -65,12 +64,11 @@ public class ProficiencyManager
             return null;
         }
         var key = AbilityProperties.Proficiency(abilityId);
-        var allProps = entity.GetAllProperties();
-        if (!allProps.TryGetValue(key, out var raw) || raw == null)
+        if (!entity.TryGetProperty<int>(key, out var profValue))
         {
             return null;
         }
-        return (int)raw;
+        return profValue;
     }
 
     public bool HasAbility(Guid entityId, string abilityId)
@@ -140,9 +138,9 @@ public class ProficiencyManager
             return new List<LearnedAbility>();
         }
         var result = new List<LearnedAbility>();
-        foreach (var prop in entity.GetAllProperties())
+        foreach (var prop in entity.EnumerateProperties(AbilityProperties.ProficiencyPrefix))
         {
-            if (prop.Key.StartsWith(AbilityProperties.ProficiencyPrefix) && prop.Value is int proficiency)
+            if (prop.Value is int proficiency)
             {
                 var abilityId = prop.Key[AbilityProperties.ProficiencyPrefix.Length..];
                 result.Add(new LearnedAbility(abilityId, proficiency));

@@ -130,4 +130,31 @@ public class EntityTests
         found.Should().BeFalse();
         value.Should().BeNull();
     }
+
+    [Fact]
+    public void EnumerateProperties_ReturnsOnlyMatchingPrefix()
+    {
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("proficiency:kick", 42);
+        entity.SetProperty("proficiency:dodge", 15);
+        entity.SetProperty("cap:kick", 25);
+        entity.SetProperty("other", "value");
+
+        var matches = entity.EnumerateProperties("proficiency:").ToList();
+
+        matches.Should().HaveCount(2);
+        matches.Should().Contain(kv => kv.Key == "proficiency:kick" && (int)kv.Value! == 42);
+        matches.Should().Contain(kv => kv.Key == "proficiency:dodge" && (int)kv.Value! == 15);
+    }
+
+    [Fact]
+    public void EnumerateProperties_ReturnsEmpty_WhenNoPrefixMatch()
+    {
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("cap:kick", 25);
+
+        var matches = entity.EnumerateProperties("proficiency:").ToList();
+
+        matches.Should().BeEmpty();
+    }
 }
