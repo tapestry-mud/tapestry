@@ -160,8 +160,8 @@ public class TickHandlerModule : IGameModule
         {
             foreach (var entity in _world.GetEntitiesByTag("player"))
             {
-                var current = entity.HasProperty(SustenanceProperties.Sustenance)
-                    ? entity.GetProperty<int>(SustenanceProperties.Sustenance)
+                var current = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
+                    ? sustenanceVal
                     : 100;
                 var prevTier = _sustenanceConfig.GetTier(current);
 

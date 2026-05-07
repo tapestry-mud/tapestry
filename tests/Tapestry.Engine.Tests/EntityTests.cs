@@ -100,4 +100,34 @@ public class EntityTests
         var entity = new Entity("player", "Krakus");
         entity.Id.Should().NotBeEmpty();
     }
+
+    [Fact]
+    public void TryGetProperty_ReturnsTrue_WhenKeyExists()
+    {
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("damage", 15);
+        var found = entity.TryGetProperty<int>("damage", out var value);
+        found.Should().BeTrue();
+        value.Should().Be(15);
+    }
+
+    [Fact]
+    public void TryGetProperty_ReturnsFalse_WhenKeyMissing()
+    {
+        var entity = new Entity("player", "Rand");
+        var found = entity.TryGetProperty<int>("nonexistent", out var value);
+        found.Should().BeFalse();
+        value.Should().Be(0);
+    }
+
+    [Fact]
+    public void TryGetProperty_DistinguishesMissingFromNullValue()
+    {
+        // SetProperty with null removes the key
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("key", (object?)null);
+        var found = entity.TryGetProperty<string>("key", out var value);
+        found.Should().BeFalse();
+        value.Should().BeNull();
+    }
 }

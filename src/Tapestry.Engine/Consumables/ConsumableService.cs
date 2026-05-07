@@ -94,8 +94,8 @@ public class ConsumableService
 
         if (sustenanceValue > 0)
         {
-            var current = entity.HasProperty(SustenanceProperties.Sustenance)
-                ? entity.GetProperty<int>(SustenanceProperties.Sustenance)
+            var current = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
+                ? sustenanceVal
                 : 100;
             entity.SetProperty(SustenanceProperties.Sustenance, Math.Min(100, current + sustenanceValue));
         }

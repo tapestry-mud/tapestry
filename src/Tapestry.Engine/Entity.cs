@@ -49,6 +49,17 @@ public class Entity
         return default;
     }
 
+    public bool TryGetProperty<T>(string key, out T? value)
+    {
+        if (_properties.TryGetValue(key, out var raw) && raw is T typed)
+        {
+            value = typed;
+            return true;
+        }
+        value = default;
+        return false;
+    }
+
     public bool HasProperty(string key)
     {
         return _properties.ContainsKey(key);

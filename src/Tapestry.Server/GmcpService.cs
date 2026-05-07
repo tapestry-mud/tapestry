@@ -382,8 +382,8 @@ public class GmcpService
         var alignment = _alignmentManager.Get(entity.Id);
         var alignmentBucket = _alignmentManager.Bucket(entity.Id);
         var gold = entity.GetProperty<int>(CurrencyProperties.Gold);
-        var hungerValue = entity.HasProperty(SustenanceProperties.Sustenance)
-            ? entity.GetProperty<int>(SustenanceProperties.Sustenance)
+        var hungerValue = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
+            ? sustenanceVal
             : 100;
         var hungerTier = _sustenanceConfig.GetTier(hungerValue);
 

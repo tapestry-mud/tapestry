@@ -39,7 +39,6 @@ public class ReturnAddressService
 
     public bool HasReturn(Entity player)
     {
-        return player.HasProperty(PropertyKey)
-            && player.GetProperty<string>(PropertyKey) != null;
+        return player.TryGetProperty<string>(PropertyKey, out _);
     }
 }

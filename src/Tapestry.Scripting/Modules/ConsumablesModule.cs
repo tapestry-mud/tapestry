@@ -49,7 +49,7 @@ public class ConsumablesModule : IJintApiModule
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return 100; }
                 var entity = _world.GetEntity(entityId);
                 if (entity == null) { return 100; }
-                return entity.HasProperty("sustenance") ? entity.GetProperty<int>("sustenance") : 100;
+                return entity.TryGetProperty<int>("sustenance", out var sustenance) ? sustenance : 100;
             }),
 
             getSustenanceTier = new Func<string, string>((entityIdStr) =>
@@ -57,7 +57,7 @@ public class ConsumablesModule : IJintApiModule
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return "full"; }
                 var entity = _world.GetEntity(entityId);
                 if (entity == null) { return "full"; }
-                var value = entity.HasProperty("sustenance") ? entity.GetProperty<int>("sustenance") : 100;
+                var value = entity.TryGetProperty<int>("sustenance", out var sustenanceTier) ? sustenanceTier : 100;
                 return _sustenanceConfig.GetTier(value);
             })
         };
