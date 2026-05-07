@@ -13,6 +13,7 @@ public class HeartbeatManager
     private readonly CombatManager _combatManager;
     private readonly AbilityRegistry _abilityRegistry;
     private readonly ProficiencyManager _proficiencyManager;
+    private readonly PassiveAbilityProcessor _passiveAbilityProcessor;
     private readonly EffectManager _effectManager;
     private readonly SessionManager _sessionManager;
     private readonly AlignmentManager _alignmentManager;
@@ -28,6 +29,7 @@ public class HeartbeatManager
         CombatManager combatManager,
         AbilityRegistry abilityRegistry,
         ProficiencyManager proficiencyManager,
+        PassiveAbilityProcessor passiveAbilityProcessor,
         EffectManager effectManager,
         SessionManager sessionManager,
         AlignmentManager alignmentManager,
@@ -38,6 +40,7 @@ public class HeartbeatManager
         _combatManager = combatManager;
         _abilityRegistry = abilityRegistry;
         _proficiencyManager = proficiencyManager;
+        _passiveAbilityProcessor = passiveAbilityProcessor;
         _effectManager = effectManager;
         _sessionManager = sessionManager;
         _alignmentManager = alignmentManager;
@@ -68,6 +71,7 @@ public class HeartbeatManager
                 CombatManager = _combatManager,
                 AbilityRegistry = _abilityRegistry,
                 ProficiencyManager = _proficiencyManager,
+                PassiveAbilityProcessor = _passiveAbilityProcessor,
                 EffectManager = _effectManager,
                 SessionManager = _sessionManager,
                 AlignmentManager = _alignmentManager,

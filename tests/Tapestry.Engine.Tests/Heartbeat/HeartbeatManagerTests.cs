@@ -34,11 +34,12 @@ public class HeartbeatManager_TickTests
         var combatManager = new CombatManager(world, eventBus);
         var abilityRegistry = new AbilityRegistry();
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
+        var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);
         var effectManager = new EffectManager(world, eventBus);
         var sessionManager = new SessionManager();
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         return new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
-            proficiencyManager, effectManager, sessionManager, alignmentManager, random);
+            proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager, random);
     }
 
     private void Setup()
@@ -125,11 +126,12 @@ public class HeartbeatManager_TickTests
         var combatManager = new CombatManager(world, eventBus);
         var abilityRegistry = new AbilityRegistry();
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
+        var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);
         var effectManager = new EffectManager(world, eventBus);
         var sessionManager = new SessionManager();
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var heartbeat = new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
-            proficiencyManager, effectManager, sessionManager, alignmentManager);
+            proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager);
 
         PulseContext? captured = null;
         heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
@@ -137,6 +139,29 @@ public class HeartbeatManager_TickTests
 
         Assert.NotNull(captured);
         Assert.Same(alignmentManager, captured!.AlignmentManager);
+    }
+
+    [Fact]
+    public void Tick_PulseContext_ContainsPassiveAbilityProcessor()
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var abilityRegistry = new AbilityRegistry();
+        var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
+        var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);
+        var effectManager = new EffectManager(world, eventBus);
+        var sessionManager = new SessionManager();
+        var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
+        var heartbeat = new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
+            proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager);
+
+        PulseContext? captured = null;
+        heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
+        heartbeat.Tick();
+
+        Assert.NotNull(captured);
+        Assert.Same(passiveAbilityProcessor, captured!.PassiveAbilityProcessor);
     }
 
     [Fact]

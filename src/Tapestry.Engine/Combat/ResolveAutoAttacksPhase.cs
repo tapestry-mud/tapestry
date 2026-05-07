@@ -1,4 +1,3 @@
-using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Shared;
 
@@ -38,8 +37,7 @@ public class ResolveAutoAttacksPhase : ICombatPhase
 
             // Determine swing count: 1 base + extra attack passives
             var swingCount = 1;
-            var processor = new PassiveAbilityProcessor(context.AbilityRegistry, context.ProficiencyManager);
-            swingCount += processor.GetExtraAttackCount(attacker.Id, context.Random);
+            swingCount += context.PassiveAbilityProcessor.GetExtraAttackCount(attacker.Id, context.Random);
 
             for (var swing = 0; swing < swingCount; swing++)
             {
@@ -49,8 +47,7 @@ public class ResolveAutoAttacksPhase : ICombatPhase
                 }
 
                 // Check defensive passives on defender
-                var defProcessor = new PassiveAbilityProcessor(context.AbilityRegistry, context.ProficiencyManager);
-                var defensiveAbility = defProcessor.CheckDefensivePassives(target.Id, context.Random);
+                var defensiveAbility = context.PassiveAbilityProcessor.CheckDefensivePassives(target.Id, context.Random);
 
                 if (defensiveAbility != null)
                 {

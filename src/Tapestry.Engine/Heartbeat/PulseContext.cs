@@ -14,6 +14,7 @@ public class PulseContext
     public CombatManager CombatManager { get; init; } = null!;
     public AbilityRegistry AbilityRegistry { get; init; } = null!;
     public ProficiencyManager ProficiencyManager { get; init; } = null!;
+    public PassiveAbilityProcessor PassiveAbilityProcessor { get; init; } = null!;
     public EffectManager EffectManager { get; init; } = null!;
     public SessionManager SessionManager { get; init; } = null!;
     public AlignmentManager AlignmentManager { get; init; } = null!;
