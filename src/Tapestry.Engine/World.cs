@@ -3,11 +3,17 @@ using Tapestry.Shared;
 
 namespace Tapestry.Engine;
 
-public class World
+public class World : ITagObserver
 {
     private readonly Dictionary<string, Room> _rooms = new();
     private readonly Dictionary<Guid, Entity> _entities = new();
     private readonly PlayerCreator? _playerCreator;
+
+    private Dictionary<string, HashSet<Entity>> _readIndex = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, HashSet<Entity>> _writeIndex = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _dirtyTags = new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly HashSet<Entity> _emptyEntitySet = new();
 
     public World(PlayerCreator? playerCreator = null)
     {
@@ -71,7 +77,6 @@ public class World
         var exit = currentRoom.GetExit(direction);
         if (exit == null) { return false; }
 
-        // Door check: closed doors block movement
         if (exit.Door != null && exit.Door.IsClosed)
         {
             eventBus.Publish(new GameEvent
@@ -101,11 +106,21 @@ public class World
     public void TrackEntity(Entity entity)
     {
         _entities[entity.Id] = entity;
+        entity.RegisterTagObserver(this);
+        foreach (var tag in entity.Tags)
+        {
+            AddToWriteIndex(entity, tag);
+        }
     }
 
     public void UntrackEntity(Entity entity)
     {
         _entities.Remove(entity.Id);
+        entity.UnregisterTagObserver(this);
+        foreach (var tag in entity.Tags)
+        {
+            RemoveFromWriteIndex(entity, tag);
+        }
     }
 
     public Entity? GetEntity(Guid id)
@@ -135,16 +150,60 @@ public class World
         return _entities.Values;
     }
 
-    public IEnumerable<Entity> GetEntitiesByTag(string tag)
+    public IReadOnlySet<Entity> GetEntitiesByTag(string tag)
     {
-        return _rooms.Values
-            .SelectMany(r => r.Entities)
-            .Where(e => e.HasTag(tag));
+        if (_readIndex.TryGetValue(tag, out var set)) { return set; }
+        return _emptyEntitySet;
     }
 
     public IEnumerable<Entity> GetEntitiesInRoom(string roomId)
     {
         var room = GetRoom(roomId);
         return room?.Entities ?? Enumerable.Empty<Entity>();
+    }
+
+    public void SwapTagBuffers()
+    {
+        _readIndex = _writeIndex;
+        _writeIndex = new Dictionary<string, HashSet<Entity>>(_readIndex, StringComparer.OrdinalIgnoreCase);
+        _dirtyTags.Clear();
+    }
+
+    void ITagObserver.OnTagAdded(Entity entity, string tag)
+    {
+        AddToWriteIndex(entity, tag);
+    }
+
+    void ITagObserver.OnTagRemoved(Entity entity, string tag)
+    {
+        RemoveFromWriteIndex(entity, tag);
+    }
+
+    private void AddToWriteIndex(Entity entity, string tag)
+    {
+        if (!_dirtyTags.Contains(tag))
+        {
+            _writeIndex[tag] = _readIndex.TryGetValue(tag, out var existing)
+                ? new HashSet<Entity>(existing)
+                : new HashSet<Entity>();
+            _dirtyTags.Add(tag);
+        }
+        _writeIndex[tag].Add(entity);
+    }
+
+    private void RemoveFromWriteIndex(Entity entity, string tag)
+    {
+        if (!_dirtyTags.Contains(tag))
+        {
+            _writeIndex[tag] = _readIndex.TryGetValue(tag, out var existing)
+                ? new HashSet<Entity>(existing)
+                : new HashSet<Entity>();
+            _dirtyTags.Add(tag);
+        }
+        _writeIndex[tag].Remove(entity);
+        if (_writeIndex[tag].Count == 0)
+        {
+            _writeIndex.Remove(tag);
+        }
     }
 }

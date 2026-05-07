@@ -74,9 +74,13 @@ public class WorldTests
         var hostile = new Entity("mob", "Elf");
         hostile.AddTag("hostile");
         room.AddEntity(hostile);
+        world.TrackEntity(hostile);
         var friendly = new Entity("npc", "Vendor");
         friendly.AddTag("friendly");
         room.AddEntity(friendly);
+        world.TrackEntity(friendly);
+        world.SwapTagBuffers();
+
         world.GetEntitiesByTag("hostile").Should().Contain(hostile);
         world.GetEntitiesByTag("hostile").Should().NotContain(friendly);
     }
