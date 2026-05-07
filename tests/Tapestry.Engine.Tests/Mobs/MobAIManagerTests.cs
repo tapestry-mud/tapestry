@@ -98,6 +98,7 @@ public class MobAIManagerTests
         var handlerCalled = false;
         manager.RegisterBehavior("test-behavior", (mob) => { handlerCalled = true; });
 
+        world.SwapTagBuffers();
         manager.PlayerEnteredRoom("core:town-square");
         manager.Tick();
 
@@ -167,6 +168,7 @@ public class MobAIManagerTests
         world.TrackEntity(mob);
 
         manager.RegisterBehavior("stationary", _ => { });
+        world.SwapTagBuffers();
         manager.PlayerEnteredRoom("core:town-square");
 
         var received = new List<Tapestry.Shared.GameEvent>();

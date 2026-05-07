@@ -82,6 +82,7 @@ public class GameLoopTests
         room.AddEntity(entity);
         world.AddRoom(room);
         world.TrackEntity(entity);
+        world.SwapTagBuffers();
 
         gameLoop.Tick();
 
@@ -111,6 +112,7 @@ public class GameLoopTests
         room.AddEntity(entity);
         world.AddRoom(room);
         world.TrackEntity(entity);
+        world.SwapTagBuffers();
 
         gameLoop.Tick();
 

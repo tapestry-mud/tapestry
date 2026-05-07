@@ -204,6 +204,7 @@ public class World : ITagObserver
         if (_writeIndex[tag].Count == 0)
         {
             _writeIndex.Remove(tag);
+            _dirtyTags.Remove(tag);
         }
     }
 }
