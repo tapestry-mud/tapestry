@@ -116,6 +116,12 @@ public class FilePlayerStore : IPlayerStore
 
     private string GetFilePath(string playerName)
     {
-        return Path.Combine(_playersDir, playerName.ToLowerInvariant() + ".yaml");
+        var resolved = Path.GetFullPath(Path.Combine(_playersDir, playerName.ToLowerInvariant() + ".yaml"));
+        var safeBase = Path.GetFullPath(_playersDir);
+        if (!resolved.StartsWith(safeBase + Path.DirectorySeparatorChar) && resolved != safeBase)
+        {
+            throw new ArgumentException($"Path traversal detected for player name: {playerName}");
+        }
+        return resolved;
     }
 }

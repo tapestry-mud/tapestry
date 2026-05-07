@@ -52,6 +52,13 @@ public class FilePlayerStoreHashGuardTests : IDisposable
     }
 
     [Fact]
+    public void GetFilePath_PathTraversal_ThrowsArgumentException()
+    {
+        var act = () => _store.Exists("../etc/passwd");
+        act.Should().Throw<ArgumentException>().WithMessage("*traversal*");
+    }
+
+    [Fact]
     public async Task SaveAsync_ValidHash_WritesFile()
     {
         var data = MakeData("Carol", "$2a$12$validhash");
