@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Tapestry.Engine.Flow;
 using Tapestry.Shared;
 
@@ -12,8 +13,6 @@ public class World : ITagObserver
     private Dictionary<string, HashSet<Entity>> _readIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, HashSet<Entity>> _writeIndex = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _dirtyTags = new(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly HashSet<Entity> _emptyEntitySet = new();
 
     public World(PlayerCreator? playerCreator = null)
     {
@@ -69,13 +68,22 @@ public class World : ITagObserver
 
     public bool MoveEntity(Entity entity, Direction direction, DoorService doorService, EventBus eventBus)
     {
-        if (entity.LocationRoomId == null) { return false; }
+        if (entity.LocationRoomId == null)
+        {
+            return false;
+        }
 
         var currentRoom = GetRoom(entity.LocationRoomId);
-        if (currentRoom == null) { return false; }
+        if (currentRoom == null)
+        {
+            return false;
+        }
 
         var exit = currentRoom.GetExit(direction);
-        if (exit == null) { return false; }
+        if (exit == null)
+        {
+            return false;
+        }
 
         if (exit.Door != null && exit.Door.IsClosed)
         {
@@ -96,7 +104,10 @@ public class World : ITagObserver
         }
 
         var targetRoom = GetRoom(exit.TargetRoomId);
-        if (targetRoom == null) { return false; }
+        if (targetRoom == null)
+        {
+            return false;
+        }
 
         currentRoom.RemoveEntity(entity);
         targetRoom.AddEntity(entity);
@@ -152,8 +163,11 @@ public class World : ITagObserver
 
     public IReadOnlySet<Entity> GetEntitiesByTag(string tag)
     {
-        if (_readIndex.TryGetValue(tag, out var set)) { return set; }
-        return _emptyEntitySet;
+        if (_readIndex.TryGetValue(tag, out var set))
+        {
+            return set;
+        }
+        return ImmutableHashSet<Entity>.Empty;
     }
 
     public IEnumerable<Entity> GetEntitiesInRoom(string roomId)
@@ -188,6 +202,11 @@ public class World : ITagObserver
                 : new HashSet<Entity>();
             _dirtyTags.Add(tag);
         }
+        else if (!_writeIndex.ContainsKey(tag))
+        {
+            // Tag is dirty (mutated this tick) but its set was pruned -- start fresh.
+            _writeIndex[tag] = new HashSet<Entity>();
+        }
         _writeIndex[tag].Add(entity);
     }
 
@@ -204,7 +223,9 @@ public class World : ITagObserver
         if (_writeIndex[tag].Count == 0)
         {
             _writeIndex.Remove(tag);
-            _dirtyTags.Remove(tag);
+            // Do NOT remove from _dirtyTags -- SwapTagBuffers clears it.
+            // If AddToWriteIndex fires for this tag again before the next swap,
+            // it must not re-clone from _readIndex (which still has pre-mutation state).
         }
     }
 }
