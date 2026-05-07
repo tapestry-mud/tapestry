@@ -98,83 +98,69 @@ public class MobAIManager
         _currentTick++;
         _dispositionEvaluator.ClearCache();
 
-        foreach (var entity in _world.GetEntitiesByTag("npc").ToList())
+        foreach (var entity in _world.GetEntitiesByTag("npc"))
         {
+            if (entity.LocationRoomId == null)
+            {
+                continue;
+            }
+
+            var area = GetAreaFromRoomId(entity.LocationRoomId);
+            if (!_activeAreas.Contains(area))
+            {
+                continue;
+            }
+
             var behavior = entity.GetProperty<string>(MobProperties.Behavior);
-            if (behavior == null || entity.LocationRoomId == null)
-            {
-                continue;
-            }
 
-            var area = GetAreaFromRoomId(entity.LocationRoomId);
-            if (!_activeAreas.Contains(area))
+            if (behavior != null && !TryFlee(entity))
             {
-                continue;
-            }
-
-            if (TryFlee(entity))
-            {
-                continue;
-            }
-
-            if (_behaviors.TryGetValue(behavior, out var handler))
-            {
-                var context = new MobContext
+                if (_behaviors.TryGetValue(behavior, out var handler))
                 {
-                    EntityId = entity.Id,
-                    Name = entity.Name,
+                    var context = new MobContext
+                    {
+                        EntityId = entity.Id,
+                        Name = entity.Name,
+                        RoomId = entity.LocationRoomId,
+                        Behavior = behavior
+                    };
+                    try
+                    {
+                        handler(context);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
+                            entity.Id, entity.Name, behavior);
+                    }
+                }
+
+                _eventBus.Publish(new GameEvent
+                {
+                    Type = "mob.ai.tick",
+                    SourceEntityId = entity.Id,
                     RoomId = entity.LocationRoomId,
-                    Behavior = behavior
-                };
-                try
+                    Data = new Dictionary<string, object?>
+                    {
+                        ["entityId"] = entity.Id.ToString(),
+                        ["name"] = entity.Name,
+                        ["roomId"] = entity.LocationRoomId,
+                        ["behavior"] = behavior
+                    }
+                });
+            }
+
+            if (entity.HasProperty("disposition"))
+            {
+                var room = _world.GetRoom(entity.LocationRoomId);
+                if (room != null)
                 {
-                    handler(context);
+                    foreach (var player in room.Entities.Where(e => e.HasTag("player")).ToList())
+                    {
+                        _dispositionEvaluator.EvaluateForMob(entity, player);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex,
-                        "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
-                        entity.Id, entity.Name, behavior);
-                }
-            }
-
-            _eventBus.Publish(new GameEvent
-            {
-                Type = "mob.ai.tick",
-                SourceEntityId = entity.Id,
-                RoomId = entity.LocationRoomId,
-                Data = new Dictionary<string, object?>
-                {
-                    ["entityId"] = entity.Id.ToString(),
-                    ["name"] = entity.Name,
-                    ["roomId"] = entity.LocationRoomId,
-                    ["behavior"] = behavior
-                }
-            });
-        }
-
-        foreach (var entity in _world.GetEntitiesByTag("npc").ToList())
-        {
-            if (!entity.HasProperty("disposition") || entity.LocationRoomId == null)
-            {
-                continue;
-            }
-
-            var area = GetAreaFromRoomId(entity.LocationRoomId);
-            if (!_activeAreas.Contains(area))
-            {
-                continue;
-            }
-
-            var room = _world.GetRoom(entity.LocationRoomId);
-            if (room == null)
-            {
-                continue;
-            }
-
-            foreach (var player in room.Entities.Where(e => e.HasTag("player")).ToList())
-            {
-                _dispositionEvaluator.EvaluateForMob(entity, player);
             }
         }
     }
