@@ -162,6 +162,8 @@ public class ConnectionHandlerLoginPhaseTests
             persistence,
             config,
             NullLogger<ConnectionHandler>.Instance,
+            NullLogger<Tapestry.Server.Login.LoginFlow>.Instance,
+            NullLogger<PlayerSpawner>.Instance,
             flowEngine,
             new ColorRenderer(new ThemeRegistry()),
             new LoginGateRegistry(),
@@ -206,9 +208,11 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Alice");
+        Thread.Sleep(100);
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().ContainSingle().Which.Payload.Should().BeEquivalentTo(new { phase = "password" });
@@ -219,10 +223,13 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.Connection.SimulateInput("Alice");
+        Thread.Sleep(100);
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("hunter2");
+        Thread.Sleep(800); // BCrypt.Verify takes 200-400ms
 
         var playingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")
@@ -248,9 +255,11 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build(); // empty store = new player
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Newguy");
+        Thread.Sleep(100);
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().Contain(x => x.Payload.GetType().GetProperty("phase")!
@@ -262,11 +271,15 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.Connection.SimulateInput("Newguy");
+        Thread.Sleep(100);
         h.Connection.SimulateInput("goodpassword");  // first password
+        Thread.Sleep(100);
 
         h.Connection.SentText.Clear();
         h.Connection.SimulateInput("differentpassword");  // confirm - mismatch
+        Thread.Sleep(100);
 
         h.Connection.SentText.Should().Contain(t => t.Contains("don't match"));
         h.Connection.IsConnected.Should().BeTrue();  // not yet disconnected
@@ -277,15 +290,21 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.Connection.SimulateInput("Newguy");
+        Thread.Sleep(100);
 
         // fail 1: too short
         h.Connection.SimulateInput("ab");
+        Thread.Sleep(100);
         // fail 2: enter valid length, then mismatch on confirm
         h.Connection.SimulateInput("goodpassword");
+        Thread.Sleep(100);
         h.Connection.SimulateInput("wrongconfirm");
+        Thread.Sleep(100);
         // fail 3: too short again
         h.Connection.SimulateInput("ab");
+        Thread.Sleep(100);
 
         h.Connection.IsConnected.Should().BeFalse();
         h.Connection.SentText.Should().Contain(t => t.Contains("Too many"));
@@ -296,11 +315,15 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
         h.Connection.SimulateInput("Newguy");
+        Thread.Sleep(100);
 
         h.GmcpHandler.Sent.Clear();
         h.Connection.SimulateInput("goodpassword");   // first password
+        Thread.Sleep(100);
         h.Connection.SimulateInput("goodpassword");   // confirm
+        Thread.Sleep(800); // BCrypt.HashPassword takes 200-400ms
 
         var creatingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")

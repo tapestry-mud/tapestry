@@ -20,7 +20,7 @@ public sealed class AsyncConnectionAdapter : IDisposable
 
     public Task<string> ReadLineAsync(CancellationToken ct)
     {
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<string>();
 
         lock (_lock)
         {
