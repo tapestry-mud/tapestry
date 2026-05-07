@@ -152,9 +152,9 @@ public class GameLoop
         Activity? cmdActivity = TapestryTracing.Source.StartActivity("ProcessCommands");
         foreach (var session in _sessions.AllSessions)
         {
-            _metrics.InputQueueDepth.Record(session.InputQueue.Count);
+            _metrics.InputQueueDepth.Record(session.InputQueueCount);
 
-            while (session.InputQueue.TryDequeue(out var input))
+            while (session.TryDequeueInput(out var input))
             {
                 session.UpdateLastInputTick(_tickCount);
 
@@ -323,8 +323,8 @@ public class GameLoop
                 var sustenanceMultiplier = 1.0;
                 if (sustenanceConfig != null)
                 {
-                    var sustenance = entity.HasProperty(SustenanceProperties.Sustenance)
-                        ? entity.GetProperty<int>(SustenanceProperties.Sustenance)
+                    var sustenance = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
+                        ? sustenanceVal
                         : 100;
                     sustenanceMultiplier = sustenanceConfig.GetRegenMultiplier(sustenance);
                 }

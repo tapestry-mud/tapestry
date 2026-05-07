@@ -22,7 +22,9 @@ public class PlayerSessionPromptModeTests
 
         conn.SimulateInput("look");
 
-        session.InputQueue.Should().ContainSingle().Which.Should().Be("look");
+        session.TryDequeueInput(out var input).Should().BeTrue();
+        input.Should().Be("look");
+        session.TryDequeueInput(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -36,7 +38,7 @@ public class PlayerSessionPromptModeTests
         conn.SimulateInput("secret");
 
         received.Should().ContainSingle().Which.Should().Be("secret");
-        session.InputQueue.Should().BeEmpty();
+        session.TryDequeueInput(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -49,7 +51,7 @@ public class PlayerSessionPromptModeTests
         var act = () => conn.SimulateInput("secret");
 
         act.Should().NotThrow();
-        session.InputQueue.Should().BeEmpty();
+        session.TryDequeueInput(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -66,7 +68,7 @@ public class PlayerSessionPromptModeTests
         conn.SimulateInput("anything");
 
         promptReceived.Should().ContainSingle();
-        session.InputQueue.Should().BeEmpty();
+        session.TryDequeueInput(out _).Should().BeFalse();
     }
 
     [Fact]

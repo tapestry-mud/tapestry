@@ -17,7 +17,8 @@ public class SessionFlowTests
 
         session.HandleInput("look");
 
-        session.InputQueue.Should().Contain("look");
+        session.TryDequeueInput(out var dequeued).Should().BeTrue();
+        dequeued.Should().Be("look");
     }
 
     [Fact]
@@ -53,7 +54,7 @@ public class SessionFlowTests
         session.HandleInput("1");
 
         received.Should().Contain("x");
-        session.InputQueue.Should().BeEmpty();
+        session.TryDequeueInput(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -66,7 +67,8 @@ public class SessionFlowTests
 
         conn.SimulateInput("look");
 
-        session.InputQueue.Should().Contain("look");
+        session.TryDequeueInput(out var routed).Should().BeTrue();
+        routed.Should().Be("look");
     }
 
     [Fact]

@@ -167,8 +167,10 @@ public class FlowEngineTests
         engine.Trigger(session, "new_player_connect");
         session.CurrentFlow!.HandleInput("1");
 
-        session.InputQueue.Should().Contain("motd");
-        session.InputQueue.Should().Contain("look");
+        session.TryDequeueInput(out var firstCmd).Should().BeTrue();
+        session.TryDequeueInput(out var secondCmd).Should().BeTrue();
+        new[] { firstCmd, secondCmd }.Should().Contain("motd");
+        new[] { firstCmd, secondCmd }.Should().Contain("look");
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public class GameLoopTests
         }, packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
-        session.InputQueue.Enqueue("say hello");
+        session.EnqueueInput("say hello");
 
         loop.Tick();
 
@@ -157,7 +157,7 @@ public class GameLoopTests
         }, aliases: ["'"], packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
-        session.InputQueue.Enqueue("'hello");
+        session.EnqueueInput("'hello");
 
         loop.Tick();
 
@@ -176,7 +176,7 @@ public class GameLoopTests
         }, aliases: ["'"], packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
-        session.InputQueue.Enqueue("' hello");
+        session.EnqueueInput("' hello");
 
         loop.Tick();
 
@@ -192,7 +192,7 @@ public class GameLoopTests
         registry.Register("look", (ctx) => { handled = true; }, packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
-        session.InputQueue.Enqueue("'unknown");
+        session.EnqueueInput("'unknown");
 
         loop.Tick();
 

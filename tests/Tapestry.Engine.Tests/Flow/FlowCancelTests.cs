@@ -100,6 +100,7 @@ public class FlowCancelTests
         var act = () => session.HandleInput("quit");
 
         act.Should().NotThrow();
-        session.InputQueue.Should().Contain("quit");
+        session.TryDequeueInput(out var queued).Should().BeTrue();
+        queued.Should().Be("quit");
     }
 }

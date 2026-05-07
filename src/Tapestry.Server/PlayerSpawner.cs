@@ -97,8 +97,8 @@ public class PlayerSpawner
         connection.SendLine("Welcome, " + entity.Name + "!");
         connection.SendLine("");
 
-        session.InputQueue.Enqueue("motd");
-        session.InputQueue.Enqueue("look");
+        session.EnqueueInput("motd");
+        session.EnqueueInput("look");
 
         _gmcpService.SendLoginPhase(connection.Id, "playing");
 

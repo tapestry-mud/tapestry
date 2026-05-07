@@ -139,7 +139,7 @@ public class GameLoopHardeningTests
         var accepted = session.EnqueueInput("overflow");
 
         accepted.Should().BeFalse();
-        session.InputQueue.Count.Should().Be(PlayerSession.MaxQueueDepth);
+        session.InputQueueCount.Should().Be(PlayerSession.MaxQueueDepth);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public class GameLoopHardeningTests
         var accepted = session.EnqueueInput("hello");
 
         accepted.Should().BeTrue();
-        session.InputQueue.Count.Should().Be(1);
+        session.InputQueueCount.Should().Be(1);
     }
 
     [Fact]

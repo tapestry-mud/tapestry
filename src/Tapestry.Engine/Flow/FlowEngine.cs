@@ -196,7 +196,7 @@ public class FlowEngine
         session.SendLine($"Welcome to the world, {entity.Name}!");
         session.SendLine("");
 
-        session.InputQueue.Enqueue("motd");
-        session.InputQueue.Enqueue("look");
+        session.EnqueueInput("motd");
+        session.EnqueueInput("look");
     }
 }

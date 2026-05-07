@@ -14,7 +14,8 @@ public class PlayerSession
 
     public IConnection Connection { get; }
     public Entity PlayerEntity { get; private set; }
-    public ConcurrentQueue<string> InputQueue { get; } = new();
+    private readonly ConcurrentQueue<string> _inputQueue = new();
+    public int InputQueueCount => _inputQueue.Count;
     public LoginPhase Phase { get; set; } = LoginPhase.Creating;
     public FlowInstance? CurrentFlow { get; set; }
     public string? PendingPasswordHash { get; set; }
@@ -42,12 +43,17 @@ public class PlayerSession
 
     public bool EnqueueInput(string input)
     {
-        if (InputQueue.Count >= MaxQueueDepth)
+        if (_inputQueue.Count >= MaxQueueDepth)
         {
             return false;
         }
-        InputQueue.Enqueue(input);
+        _inputQueue.Enqueue(input);
         return true;
+    }
+
+    public bool TryDequeueInput(out string? input)
+    {
+        return _inputQueue.TryDequeue(out input);
     }
 
     public void HandleInput(string input)
