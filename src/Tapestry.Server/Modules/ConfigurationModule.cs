@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Tapestry.Contracts;
 using Tapestry.Data;
 using Tapestry.Engine;
@@ -25,7 +24,6 @@ public class ConfigurationModule : IGameModule
     private readonly TrainingConfig _trainingConfig;
     private readonly EconomyConfig _economyConfig;
     private readonly PropertyTypeRegistry _propertyRegistry;
-    private readonly ILogger<ConfigurationModule> _logger;
 
     public string Name => "Configuration";
 
@@ -33,14 +31,12 @@ public class ConfigurationModule : IGameModule
         ServerConfig config,
         TrainingConfig trainingConfig,
         EconomyConfig economyConfig,
-        PropertyTypeRegistry propertyRegistry,
-        ILogger<ConfigurationModule> logger)
+        PropertyTypeRegistry propertyRegistry)
     {
         _config = config;
         _trainingConfig = trainingConfig;
         _economyConfig = economyConfig;
         _propertyRegistry = propertyRegistry;
-        _logger = logger;
     }
 
     public void Configure()
