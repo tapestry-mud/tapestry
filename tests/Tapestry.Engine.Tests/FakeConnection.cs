@@ -4,22 +4,34 @@ namespace Tapestry.Engine.Tests;
 
 internal class FakeConnection : IConnection
 {
-    public string Id { get; } = Guid.NewGuid().ToString();
+    public string Id { get; }
     public bool IsConnected { get; private set; } = true;
     public bool SupportsAnsi { get; init; } = false;
-    public List<string> SentText { get; } = new();
+    public List<string> SentLines { get; } = new();
+    public bool EchoSuppressed { get; private set; }
+
+    // Backward compat alias
+    public List<string> SentText => SentLines;
+
     public event Action<string>? OnInput;
     public event Action? OnDisconnected;
     public event Action<string>? OnDisconnectedWithReason;
 
+    public FakeConnection() : this(Guid.NewGuid().ToString()) { }
+
+    public FakeConnection(string id)
+    {
+        Id = id;
+    }
+
     public void SendText(string text)
     {
-        SentText.Add(text);
+        SentLines.Add(text);
     }
 
     public void SendLine(string text)
     {
-        SentText.Add(text + "\r\n");
+        SentLines.Add(text + "\r\n");
     }
 
     public void ClearScreen()
@@ -30,8 +42,8 @@ internal class FakeConnection : IConnection
         }
     }
 
-    public void SuppressEcho() { }
-    public void RestoreEcho() { }
+    public void SuppressEcho() { EchoSuppressed = true; }
+    public void RestoreEcho() { EchoSuppressed = false; }
 
     public void Disconnect(string reason)
     {
