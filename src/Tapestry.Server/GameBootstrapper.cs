@@ -426,6 +426,7 @@ public class GameBootstrapper
 
     private void RegisterTickHandlers()
     {
+        _gameLoop.SetPreTickAction(_world.SwapTagBuffers);
         _gameLoop.RegisterTickHandler("area-tick", 1, () => _areaTick.Tick());
         _gameLoop.RegisterTickHandler("game-clock", 1, () => _gameClock.Tick());
         _gameLoop.RegisterTickHandler("tick-timer", 1, () => _tickTimer.Advance());

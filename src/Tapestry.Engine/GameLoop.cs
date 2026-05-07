@@ -22,6 +22,7 @@ public class GameLoop
     private readonly List<TickHandler> _tickHandlers = new();
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     private long _tickCount;
+    private Action? _preTick;
     private int _idleTimeoutTicks;
     private int _idleWarningTicks;
     private double _slowTickThresholdMs;
@@ -52,6 +53,11 @@ public class GameLoop
         _pendingActions.Enqueue(action);
     }
 
+    public void SetPreTickAction(Action action)
+    {
+        _preTick = action;
+    }
+
     public void ConfigureSlowTickThreshold(double thresholdMs)
     {
         _slowTickThresholdMs = thresholdMs;
@@ -70,6 +76,7 @@ public class GameLoop
 
     public void Tick()
     {
+        _preTick?.Invoke();
         _tickCount++;
         using var tickActivity = TapestryTracing.Source.StartActivity("GameLoop.Tick");
         tickActivity?.SetTag("tick.number", _tickCount);
