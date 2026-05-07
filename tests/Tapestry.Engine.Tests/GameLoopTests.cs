@@ -199,6 +199,26 @@ public class GameLoopTests
         handled.Should().BeFalse();
     }
 
+    [Fact]
+    public void Tick_FirstHandlerThrows_SecondHandlerStillFires()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        var secondFired = false;
+
+        loop.RegisterTickHandler("bad-handler", 1, () =>
+        {
+            throw new InvalidOperationException("boom");
+        });
+        loop.RegisterTickHandler("good-handler", 1, () =>
+        {
+            secondFired = true;
+        });
+
+        loop.Tick();
+
+        secondFired.Should().BeTrue();
+    }
+
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
     {
         var registry = new CommandRegistry();

@@ -230,7 +230,14 @@ public class GameLoop
                 handlerSpan?.SetTag("handler.name", handler.Name);
                 handlerSpan?.SetTag("handler.interval", handler.IntervalTicks);
                 var handlerTimerSw = Stopwatch.StartNew();
-                handler.Action();
+                try
+                {
+                    handler.Action();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Tick handler error: handler={HandlerName}", handler.Name);
+                }
                 handlerTimerSw.Stop();
                 handlerSpan?.SetTag("handler.duration_ms", handlerTimerSw.Elapsed.TotalMilliseconds);
             }

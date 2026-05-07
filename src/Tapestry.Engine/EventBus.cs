@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -8,7 +10,17 @@ public class EventBus
     private readonly List<Subscription> _wildcardHandlers = new();
     private readonly Dictionary<string, Subscription[]> _cache = new();
     private readonly object _sync = new();
+    private readonly ILogger<EventBus> _logger;
     private int _nextId;
+
+    public EventBus() : this(NullLogger<EventBus>.Instance)
+    {
+    }
+
+    public EventBus(ILogger<EventBus> logger)
+    {
+        _logger = logger;
+    }
 
     public int Subscribe(string eventType, Action<GameEvent> handler, int priority = 0)
     {
@@ -83,7 +95,14 @@ public class EventBus
             {
                 break;
             }
-            handlers[i].Handler(evt);
+            try
+            {
+                handlers[i].Handler(evt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "EventBus handler error: eventType={EventType} subscriptionId={SubscriptionId}", evt.Type, handlers[i].Id);
+            }
         }
     }
 

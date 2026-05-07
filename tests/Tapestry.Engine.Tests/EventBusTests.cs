@@ -134,6 +134,47 @@ public class EventBusTests
     }
 
     [Fact]
+    public void Publish_FirstHandlerThrows_SecondHandlerStillFires()
+    {
+        var bus = new EventBus();
+        var secondFired = false;
+
+        bus.Subscribe("test.event", (_) =>
+        {
+            throw new InvalidOperationException("handler boom");
+        }, priority: 100);
+        bus.Subscribe("test.event", (_) =>
+        {
+            secondFired = true;
+        }, priority: 10);
+
+        bus.Publish(new GameEvent { Type = "test.event" });
+
+        secondFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Publish_FirstHandlerThrows_CancelledEventStillStops()
+    {
+        var bus = new EventBus();
+        var secondFired = false;
+
+        bus.Subscribe("test.event", (evt) =>
+        {
+            evt.Cancelled = true;
+            throw new InvalidOperationException("cancel then throw");
+        }, priority: 100);
+        bus.Subscribe("test.event", (_) =>
+        {
+            secondFired = true;
+        }, priority: 10);
+
+        bus.Publish(new GameEvent { Type = "test.event" });
+
+        secondFired.Should().BeFalse();
+    }
+
+    [Fact]
     public void NestedPublish_InFlightIterationNotCorrupted()
     {
         var bus = new EventBus();
