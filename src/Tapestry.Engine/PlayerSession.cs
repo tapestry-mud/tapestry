@@ -15,7 +15,7 @@ public class PlayerSession
     public IConnection Connection { get; }
     public Entity PlayerEntity { get; private set; }
     public ConcurrentQueue<string> InputQueue { get; } = new();
-    public SessionPhase Phase { get; set; } = SessionPhase.Creating;
+    public LoginPhase Phase { get; set; } = LoginPhase.Creating;
     public FlowInstance? CurrentFlow { get; set; }
     public string? PendingPasswordHash { get; set; }
 
@@ -243,7 +243,7 @@ public class SessionManager
     {
         foreach (var session in _byEntityId.Values)
         {
-            if (session.Phase == SessionPhase.Creating) { continue; }
+            if (session.Phase == LoginPhase.Creating) { continue; }
             if (session.InputMode == InputMode.Prompt) { continue; }
             if (session.CurrentFlow != null) { continue; }
             if (session.NeedsPromptRefresh)

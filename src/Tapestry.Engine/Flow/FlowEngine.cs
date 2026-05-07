@@ -1,3 +1,4 @@
+using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Races;
@@ -73,7 +74,7 @@ public class FlowEngine
 
         if (flow == null)
         {
-            if (session.Phase == SessionPhase.Creating)
+            if (session.Phase == LoginPhase.Creating)
             {
                 FinalizeCreating(session);
             }
@@ -88,7 +89,7 @@ public class FlowEngine
         var instance = session.CurrentFlow;
         if (instance == null) { return; }
 
-        if (session.Phase == SessionPhase.Creating)
+        if (session.Phase == LoginPhase.Creating)
         {
             SeedCharacterAlignment(instance.Entity);
         }
@@ -98,7 +99,7 @@ public class FlowEngine
         if (!result.Success)
         {
             if (result.Message != null) { session.SendLine(result.Message); }
-            if (session.Phase == SessionPhase.Creating)
+            if (session.Phase == LoginPhase.Creating)
             {
                 Restart(session, "validation_failed");
             }
@@ -110,7 +111,7 @@ public class FlowEngine
             return;
         }
 
-        if (session.Phase == SessionPhase.Creating)
+        if (session.Phase == LoginPhase.Creating)
         {
             FinalizeCreating(session);
         }
@@ -188,7 +189,7 @@ public class FlowEngine
 
         session.CancelPreLoginTimeout?.Invoke();
         session.CancelPreLoginTimeout = null;
-        session.Phase = SessionPhase.Playing;
+        session.Phase = LoginPhase.Playing;
         session.CurrentFlow = null;
 
         session.SendLine("");

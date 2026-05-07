@@ -173,7 +173,7 @@ public class ConnectionHandler
             _world.TrackEntity(entity);
 
             var session = new PlayerSession(connection, entity);
-            session.Phase = SessionPhase.Playing;
+            session.Phase = LoginPhase.Playing;
             _sessions.Add(session);
             _metrics.ActiveConnections.Add(1);
 
@@ -408,7 +408,7 @@ public class ConnectionHandler
                         var entity = CreateNewPlayerEntity(name);
                         var session = new PlayerSession(connection, entity)
                         {
-                            Phase = SessionPhase.Creating,
+                            Phase = LoginPhase.Creating,
                             PendingPasswordHash = hash
                         };
 
@@ -438,7 +438,7 @@ public class ConnectionHandler
 
                         connection.OnDisconnected += () =>
                         {
-                            if (session.Phase == SessionPhase.Creating)
+                            if (session.Phase == LoginPhase.Creating)
                             {
                                 _sessions.Remove(session);
                                 _metrics.ActiveConnections.Add(-1);

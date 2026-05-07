@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine;
 using Tapestry.Engine.Flow;
 
 namespace Tapestry.Engine.Persistence;
@@ -77,7 +78,7 @@ public class PlayerPersistenceService
     public async Task SaveAllPlayers()
     {
         var count = 0;
-        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == SessionPhase.Playing))
+        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == LoginPhase.Playing))
         {
             try
             {
@@ -98,7 +99,7 @@ public class PlayerPersistenceService
     public List<PlayerSaveData> SnapshotAllPlayers()
     {
         var snapshots = new List<PlayerSaveData>();
-        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == SessionPhase.Playing))
+        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == LoginPhase.Playing))
         {
             try
             {

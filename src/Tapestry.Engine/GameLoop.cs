@@ -198,7 +198,7 @@ public class GameLoop
                     RawInput = actualInput,
                     Command = parts[0],
                     Args = parts.Length > 1 ? parts[1..] : [],
-                    IsChargen = session.Phase == SessionPhase.Creating
+                    IsChargen = session.Phase == LoginPhase.Creating
                 };
 
                 var handlerSw = Stopwatch.StartNew();
