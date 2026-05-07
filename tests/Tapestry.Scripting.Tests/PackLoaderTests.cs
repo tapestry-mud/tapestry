@@ -203,7 +203,7 @@ public class PackLoaderTests
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
         var panelRenderer = new PanelRenderer(themeRegistry);
         var trainingConfig = new TrainingConfig();
-        var trainingManager = new TrainingManager(world, proficiencyManager, raceRegistry, trainingConfig);
+        var trainingManager = new TrainingManager(world, proficiencyManager, raceRegistry, trainingConfig, abilityRegistry);
         var serverConfig = new ServerConfig();
         var areaRegistry = new AreaRegistry();
         var weatherZoneRegistry = new WeatherZoneRegistry();
@@ -231,7 +231,7 @@ public class PackLoaderTests
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext()),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
-            new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager),
+            new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
@@ -243,7 +243,7 @@ public class PackLoaderTests
             new DiceModule(),
             new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig),
             new EffectsModule(effectManager, world, abilityRegistry),
-            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager),
+            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager, new NullGmcpModuleAdapter()),
             new RacesModule(raceRegistry, world),
             new AlignmentModule(alignmentManager, alignmentConfig, world),
             new UiModule(panelRenderer),

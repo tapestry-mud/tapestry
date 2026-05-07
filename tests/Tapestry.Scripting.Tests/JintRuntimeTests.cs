@@ -242,7 +242,7 @@ public class JintRuntimeTests
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext()),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
-            new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager),
+            new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
