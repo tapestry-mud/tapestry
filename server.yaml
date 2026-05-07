@@ -65,3 +65,11 @@ mssp:
   equipment: true
   multiplaying: false
   player_killing: true
+
+idle:
+  pre_login_timeout_seconds: 120
+  phase_timeouts:
+    name: 60
+    password: 30
+    session_takeover: 15
+    creating: 300

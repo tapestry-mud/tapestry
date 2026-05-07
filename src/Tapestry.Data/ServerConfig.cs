@@ -149,6 +149,14 @@ public class TrainingSection
     public int CatchUpBoost { get; set; } = 5;
 }
 
+public class PhaseTimeoutsSection
+{
+    public int Name { get; set; } = 0;
+    public int Password { get; set; } = 0;
+    public int SessionTakeover { get; set; } = 0;
+    public int Creating { get; set; } = 0;
+}
+
 public class IdleSection
 {
     public int WarnSeconds { get; set; } = 0;
@@ -157,6 +165,7 @@ public class IdleSection
     public string WarnMessage { get; set; } = "The world grows distant... you are fading.";
     public string TimeoutMessage { get; set; } = "You have faded from the world.";
     public string AdminTag { get; set; } = "admin";
+    public PhaseTimeoutsSection PhaseTimeouts { get; set; } = new();
 }
 
 public class GameSection
