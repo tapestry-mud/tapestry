@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\Tapestry.Contracts\Tapestry.Contracts.csproj" />
     <ProjectReference Include="..\Tapestry.Shared\Tapestry.Shared.csproj" />
     <ProjectReference Include="..\Tapestry.Engine\Tapestry.Engine.csproj" />
     <ProjectReference Include="..\Tapestry.Networking\Tapestry.Networking.csproj" />
