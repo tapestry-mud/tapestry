@@ -104,6 +104,11 @@ public class AbilityCommandBridge
 
         if (targetEntity.Id != player.Id && !_combat.IsInCombat(player.Id))
         {
+            if (_combat.HasFleeCooldown(player.Id, _gameLoop.TickCount))
+            {
+                _sessions.SendToPlayer(ctx.PlayerEntityId, "You're too winded from fleeing to attack right now.\r\n");
+                return;
+            }
             var engaged = _combat.Engage(player, targetEntity, _gameLoop.TickCount);
             if (!engaged)
             {
@@ -209,6 +214,11 @@ public class AbilityCommandBridge
 
         if (targetEntity.Id != entity.Id && !_combat.IsInCombat(entity.Id))
         {
+            if (actorCtx.Source == "player" && _combat.HasFleeCooldown(entity.Id, _gameLoop.TickCount))
+            {
+                _sessions.SendToPlayer(actorCtx.EntityId, "You're too winded from fleeing to attack right now.\r\n");
+                return;
+            }
             var engaged = _combat.Engage(entity, targetEntity, _gameLoop.TickCount);
             if (!engaged)
             {
