@@ -60,6 +60,9 @@ function NameStep({ onAdvance }: { onAdvance: (name: string, kind: 'returning' |
     try {
       const baseUrl = deriveAuthBaseUrl()
       const res = await fetch(`${baseUrl}/auth/check?name=${encodeURIComponent(trimmed)}`)
+      if (res.status === 429) {
+        throw new Error('Too many attempts. Please wait a moment and try again.')
+      }
       const data = await res.json()
       if (!data.nameValid) {
         throw new Error('Names must be 2-20 letters only.')
@@ -148,6 +151,9 @@ function ReturningStep({ name, onBack }: { name: string; onBack: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, password }),
       })
+      if (res.status === 429) {
+        throw new Error('Too many attempts. Please wait a moment and try again.')
+      }
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error ?? 'Login failed')
@@ -250,6 +256,9 @@ function NewCharStep({ name, onBack }: { name: string; onBack: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, password, confirmPassword: confirm }),
       })
+      if (res.status === 429) {
+        throw new Error('Too many attempts. Please wait a moment and try again.')
+      }
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error ?? 'Creation failed')
