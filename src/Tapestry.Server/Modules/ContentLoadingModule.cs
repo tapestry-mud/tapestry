@@ -4,6 +4,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Color;
+using Tapestry.Engine.Help;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Services;
@@ -19,6 +20,8 @@ public class ContentLoadingModule : IGameModule
     private readonly ConnectionLoader _connectionLoader;
     private readonly ThemeRegistry _themeRegistry;
     private readonly AbilityCommandBridge _abilityCommandBridge;
+    private readonly CommandRegistry _commandRegistry;
+    private readonly HelpService _helpService;
     private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
     private readonly ILogger<ContentLoadingModule> _logger;
 
@@ -32,6 +35,8 @@ public class ContentLoadingModule : IGameModule
         ConnectionLoader connectionLoader,
         ThemeRegistry themeRegistry,
         AbilityCommandBridge abilityCommandBridge,
+        CommandRegistry commandRegistry,
+        HelpService helpService,
         Tapestry.Scripting.Modules.CommandsModule commandsModule,
         ILogger<ContentLoadingModule> logger)
     {
@@ -42,6 +47,8 @@ public class ContentLoadingModule : IGameModule
         _connectionLoader = connectionLoader;
         _themeRegistry = themeRegistry;
         _abilityCommandBridge = abilityCommandBridge;
+        _commandRegistry = commandRegistry;
+        _helpService = helpService;
         _commandsModule = commandsModule;
         _logger = logger;
     }
@@ -54,6 +61,16 @@ public class ContentLoadingModule : IGameModule
         _connectionLoader.Load();
         AppendPackCreditsToMotd();
         _abilityCommandBridge.WireAll();
+
+        // Auto-generate help topics for commands with ArgDefinitions.
+        // Pack help files (higher loadOrder from LoadPack) override these.
+        var helpRegistrations = _commandRegistry.PrimaryKeywords
+            .Select(k => _commandRegistry.Resolve(k))
+            .Where(r => r != null)
+            .Select(r => r!)
+            .DistinctBy(r => r.Keyword, StringComparer.OrdinalIgnoreCase);
+        CommandHelpGenerator.GenerateAll(helpRegistrations, _helpService);
+
         _commandsModule.LogLoadTimeWarnings();
         _themeRegistry.Compile();
     }
