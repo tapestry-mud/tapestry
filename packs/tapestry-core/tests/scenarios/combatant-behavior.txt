@@ -1,0 +1,14 @@
+# Scenario: combatant behavior
+# Setup: mob template with behavior: combatant, battlecommands: ["fireball", ""]
+#        mob has abilities: [lf:fireball], ability_proficiency: 85, MaxResource > 0
+
+# Enter combat
+> kill shadow-mage
+< You attack a shadow mage!
+
+# Wait 15+ ticks (at 40% chance per cycle, should fire within a few rounds)
+# Expected: mob uses fireball (ability effect message in room)
+# Expected: on noop rolls, no ability message (mob just auto-attacks)
+
+# Role isolation: player-only command does not execute for mob
+# No crash, no "Huh?" output from mob side
