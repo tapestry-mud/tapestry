@@ -229,7 +229,7 @@ public class JintRuntimeTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var gameLoop = new GameLoop(
-            new CommandRouter(commandRegistry, sessions),
+            new CommandRouter(commandRegistry, sessions, world),
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 

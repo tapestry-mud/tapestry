@@ -11,6 +11,7 @@ public class CommandRouterTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         string? receivedCmd = null;
         string[]? receivedArgs = null;
         registry.Register("say", (ctx) =>
@@ -18,7 +19,7 @@ public class CommandRouterTests
             receivedCmd = ctx.Command;
             receivedArgs = ctx.Args;
         }, packName: "core");
-        var router = new CommandRouter(registry, sessions);
+        var router = new CommandRouter(registry, sessions, world);
         var ctx = MakeContext("say hello world");
         router.Route(ctx);
         receivedCmd.Should().Be("say");
@@ -30,7 +31,8 @@ public class CommandRouterTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
-        var router = new CommandRouter(registry, sessions);
+        var world = new World();
+        var router = new CommandRouter(registry, sessions, world);
 
         var connection = new FakeConnection();
         var entity = new Entity("player", "Test");
@@ -47,7 +49,8 @@ public class CommandRouterTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
-        var router = new CommandRouter(registry, sessions);
+        var world = new World();
+        var router = new CommandRouter(registry, sessions, world);
         var called = false;
         registry.Register("test", (_) => { called = true; }, packName: "core");
         var ctx = MakeContext("");
@@ -60,8 +63,9 @@ public class CommandRouterTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         registry.Register("say", (ctx) => { }, packName: "core");
-        var router = new CommandRouter(registry, sessions);
+        var router = new CommandRouter(registry, sessions, world);
 
         var result = router.Resolve("say");
 
@@ -74,11 +78,45 @@ public class CommandRouterTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
-        var router = new CommandRouter(registry, sessions);
+        var world = new World();
+        var router = new CommandRouter(registry, sessions, world);
 
         var result = router.Resolve("xyzzy");
 
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void RouteForMob_DispatchesMobRoleCommand()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var dispatched = false;
+        registry.Register("say", _ => { }, roles: ["player", "mob"],
+            actorHandler: actor => { dispatched = true; });
+
+        var router = new CommandRouter(registry, sessions, world);
+
+        router.RouteForMob(Guid.NewGuid(), "say hello", null, "Goblin");
+
+        dispatched.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RouteForMob_PlayerOnlyCommand_DoesNotDispatch()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var dispatched = false;
+        registry.Register("score", _ => { dispatched = true; }, roles: ["player"]);
+
+        var router = new CommandRouter(registry, sessions, world);
+
+        router.RouteForMob(Guid.NewGuid(), "score", null, "Goblin");
+
+        dispatched.Should().BeFalse();
     }
 
     private static CommandContext MakeContext(string input, Guid? entityId = null)

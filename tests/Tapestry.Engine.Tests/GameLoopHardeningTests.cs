@@ -12,10 +12,11 @@ public class GameLoopHardeningTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var order = new List<string>();
 
@@ -51,10 +52,11 @@ public class GameLoopHardeningTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         DisconnectEvent? received = null;
         gameLoop.OnDisconnect += (evt) =>
@@ -78,10 +80,11 @@ public class GameLoopHardeningTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var callCount = 0;
         gameLoop.OnDisconnect += (evt) =>
@@ -160,11 +163,11 @@ public class GameLoopHardeningTests
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
+        var world = new World();
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
-        var world = new World();
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         // Set up a room with a player entity
         var room = new Room("town-square", "Town Square", "A bustling square.");

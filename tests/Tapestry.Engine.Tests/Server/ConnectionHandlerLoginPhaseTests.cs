@@ -133,7 +133,7 @@ public class ConnectionHandlerLoginPhaseTests
         };
 
         var gameLoop = new GameLoop(
-            new CommandRouter(new CommandRegistry(), sessions),
+            new CommandRouter(new CommandRegistry(), sessions, world),
             sessions, new EventBus(), new SystemEventQueue(),
             NullLogger<GameLoop>.Instance,
             new TapestryMetrics(), new TickTimer(10));
