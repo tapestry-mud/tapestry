@@ -3,6 +3,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Prompt;
+using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Modules;
 
@@ -12,7 +13,7 @@ public class PersistenceModule : IGameModule
     private readonly SessionManager _sessions;
     private readonly PlayerPersistenceService _persistence;
     private readonly World _world;
-    private readonly GmcpService _gmcpService;
+    private readonly LoginHandler _loginHandler;
     private readonly ServerConfig _config;
 
     public string Name => "Persistence";
@@ -22,14 +23,14 @@ public class PersistenceModule : IGameModule
         SessionManager sessions,
         PlayerPersistenceService persistence,
         World world,
-        GmcpService gmcpService,
+        LoginHandler loginHandler,
         ServerConfig config)
     {
         _commandRegistry = commandRegistry;
         _sessions = sessions;
         _persistence = persistence;
         _world = world;
-        _gmcpService = gmcpService;
+        _loginHandler = loginHandler;
         _config = config;
     }
 
@@ -66,14 +67,14 @@ public class PersistenceModule : IGameModule
                 }
 
                 session.InputMode = InputMode.Prompt;
-                _gmcpService.SendLoginPhase(session.Connection.Id, "password");
+                _loginHandler.SendLoginPhase(session.Connection.Id, "password");
                 session.Connection.SuppressEcho();
                 _sessions.SendToPlayer(ctx.PlayerEntityId, "Enter current password:\r\n");
 
                 void ExitPrompt(string message)
                 {
                     session.Connection.RestoreEcho();
-                    _gmcpService.SendLoginPhase(session.Connection.Id, "playing");
+                    _loginHandler.SendLoginPhase(session.Connection.Id, "playing");
                     session.InputMode = InputMode.Normal;
                     session.PromptHandler = null;
                     _sessions.SendToPlayer(ctx.PlayerEntityId, message + "\r\n");

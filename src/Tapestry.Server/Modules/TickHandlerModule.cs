@@ -1,6 +1,7 @@
 using Tapestry.Contracts;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Server.Gmcp;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Engine.Mobs;
@@ -20,7 +21,7 @@ public class TickHandlerModule : IGameModule
     private readonly CombatPulse _combatPulse;
     private readonly MobAIManager _mobAI;
     private readonly MobCommandQueue _mobCommandQueue;
-    private readonly GmcpService _gmcpService;
+    private readonly DirtyVitalsBatcher _dirtyVitalsBatcher;
     private readonly PlayerPersistenceService _persistence;
     private readonly SustenanceConfig _sustenanceConfig;
     private readonly RestConfig _restConfig;
@@ -40,7 +41,7 @@ public class TickHandlerModule : IGameModule
         CombatPulse combatPulse,
         MobAIManager mobAI,
         MobCommandQueue mobCommandQueue,
-        GmcpService gmcpService,
+        DirtyVitalsBatcher dirtyVitalsBatcher,
         PlayerPersistenceService persistence,
         SustenanceConfig sustenanceConfig,
         RestConfig restConfig,
@@ -57,7 +58,7 @@ public class TickHandlerModule : IGameModule
         _combatPulse = combatPulse;
         _mobAI = mobAI;
         _mobCommandQueue = mobCommandQueue;
-        _gmcpService = gmcpService;
+        _dirtyVitalsBatcher = dirtyVitalsBatcher;
         _persistence = persistence;
         _sustenanceConfig = sustenanceConfig;
         _restConfig = restConfig;
@@ -96,7 +97,7 @@ public class TickHandlerModule : IGameModule
             sustenanceConfig: _sustenanceConfig,
             restConfig: _restConfig);
 
-        _gameLoop.RegisterTickHandler("gmcp-vitals-flush", 1, () => _gmcpService.FlushDirtyVitals());
+        _gameLoop.RegisterTickHandler("gmcp-vitals-flush", 1, () => _dirtyVitalsBatcher.FlushDirtyVitals());
     }
 
     private void RegisterCorpseDecay()

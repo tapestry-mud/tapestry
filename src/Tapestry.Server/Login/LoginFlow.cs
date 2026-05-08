@@ -7,6 +7,7 @@ using Tapestry.Engine.Flow;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Prompt;
+using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Login;
 
@@ -17,7 +18,7 @@ public partial class LoginFlow
     private readonly PlayerPersistenceService _persistence;
     private readonly SessionManager _sessions;
     private readonly LoginGateRegistry _loginGates;
-    private readonly GmcpService? _gmcp;
+    private readonly LoginHandler? _loginHandler;
     private readonly ServerConfig _config;
     private readonly ILogger<LoginFlow> _logger;
     private readonly TapestryMetrics _metrics;
@@ -36,7 +37,7 @@ public partial class LoginFlow
         PlayerPersistenceService persistence,
         SessionManager sessions,
         LoginGateRegistry loginGates,
-        GmcpService? gmcp,
+        LoginHandler? loginHandler,
         ServerConfig config,
         ILogger<LoginFlow> logger,
         TapestryMetrics metrics,
@@ -47,7 +48,7 @@ public partial class LoginFlow
         _persistence = persistence;
         _sessions = sessions;
         _loginGates = loginGates;
-        _gmcp = gmcp;
+        _loginHandler = loginHandler;
         _config = config;
         _logger = logger;
         _metrics = metrics;
@@ -363,12 +364,12 @@ public partial class LoginFlow
 
     private void SendGmcpPrompt(string prompt)
     {
-        _gmcp?.SendLoginPrompt(_context.ConnectionId, prompt);
+        _loginHandler?.SendLoginPrompt(_context.ConnectionId, prompt);
     }
 
     private void SendGmcpLoginPhase(string phase)
     {
-        _gmcp?.SendLoginPhase(_context.ConnectionId, phase);
+        _loginHandler?.SendLoginPhase(_context.ConnectionId, phase);
     }
 
     public static Entity CreateNewPlayerEntity(string name)

@@ -1,26 +1,27 @@
 using System.Text.Json;
+using Tapestry.Contracts;
 using Tapestry.Scripting.Modules;
 
 namespace Tapestry.Server;
 
 public class GmcpModuleAdapter : IGmcpModuleAdapter
 {
-    private readonly GmcpService _gmcpService;
+    private readonly IGmcpConnectionManager _connectionManager;
     private readonly Dictionary<string, List<Action<Guid, object>>> _subscriptions = new(StringComparer.OrdinalIgnoreCase);
 
-    public GmcpModuleAdapter(GmcpService gmcpService)
+    public GmcpModuleAdapter(IGmcpConnectionManager connectionManager)
     {
-        _gmcpService = gmcpService;
+        _connectionManager = connectionManager;
     }
 
     public void Send(Guid entityId, string package, object payload)
     {
-        _gmcpService.Send(entityId, package, payload);
+        _connectionManager.Send(entityId, package, payload);
     }
 
     public bool SupportsPackage(Guid entityId, string package)
     {
-        return _gmcpService.SupportsPackage(entityId, package);
+        return _connectionManager.SupportsPackage(entityId, package);
     }
 
     public void Subscribe(string package, Action<Guid, object> callback)

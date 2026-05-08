@@ -3,6 +3,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
+using Tapestry.Server.Gmcp.Handlers;
 using Tapestry.Shared;
 
 namespace Tapestry.Server;
@@ -14,7 +15,7 @@ public class PlayerSpawner
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly GameLoop _gameLoop;
-    private readonly GmcpService _gmcpService;
+    private readonly LoginHandler _loginHandler;
     private readonly MobAIManager _mobAI;
     private readonly SystemEventQueue _eventQueue;
     private readonly TapestryMetrics _metrics;
@@ -24,7 +25,7 @@ public class PlayerSpawner
         SessionManager sessions,
         World world,
         GameLoop gameLoop,
-        GmcpService gmcpService,
+        LoginHandler loginHandler,
         MobAIManager mobAI,
         SystemEventQueue eventQueue,
         TapestryMetrics metrics,
@@ -33,7 +34,7 @@ public class PlayerSpawner
         _sessions = sessions;
         _world = world;
         _gameLoop = gameLoop;
-        _gmcpService = gmcpService;
+        _loginHandler = loginHandler;
         _mobAI = mobAI;
         _eventQueue = eventQueue;
         _metrics = metrics;
@@ -100,11 +101,11 @@ public class PlayerSpawner
         session.EnqueueInput("motd");
         session.EnqueueInput("look");
 
-        _gmcpService.SendLoginPhase(connection.Id, "playing");
+        _loginHandler.SendLoginPhase(connection.Id, "playing");
 
         var capturedConnectionId = connection.Id;
         var capturedEntity = entity;
-        _gameLoop.Schedule(() => _gmcpService.SendPostLoginBurst(capturedConnectionId, capturedEntity));
+        _gameLoop.Schedule(() => _loginHandler.TriggerPostLoginBurst(capturedConnectionId, capturedEntity));
 
         connection.OnDisconnected += () =>
         {
