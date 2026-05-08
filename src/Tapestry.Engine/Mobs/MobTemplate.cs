@@ -114,7 +114,7 @@ public class MobTemplate
 
         if (IdleCommands.Count > 0)
         {
-            entity.SetProperty("idle_commands", IdleCommands);
+            entity.SetProperty("idle_commands", IdleCommands.ToArray());
             entity.SetProperty("idle_chance", IdleChance);
             entity.SetProperty("idle_interval", IdleInterval);
         }
@@ -126,7 +126,7 @@ public class MobTemplate
 
         if (BattleCommands.Count > 0)
         {
-            entity.SetProperty("battlecommands", BattleCommands);
+            entity.SetProperty("battlecommands", BattleCommands.ToArray());
         }
 
         return entity;
