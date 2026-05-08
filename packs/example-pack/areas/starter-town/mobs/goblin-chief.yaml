@@ -2,7 +2,7 @@ id: "example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
 tags: [npc, mob, hostile, killable, regen]
-behavior: combatant
+behavior: stationary
 stats:
   strength: 14
   dexterity: 10

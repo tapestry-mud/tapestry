@@ -143,14 +143,16 @@ tapestry.mobs.registerBehavior("aggro", function(mob) {
 
 // Combatant — dispatches battlecommands during combat at configurable intervals.
 // Empty string command = intentional noop (skip ability, auto-attack only).
-tapestry.mobs.registerBehavior("combatant", function(mob) {
+// Driven by mob.ai.tick so any mob with battlecommands uses them regardless of behavior.
+tapestry.events.on("mob.ai.tick", function(event) {
+    var mob = event.data;
+
     if (!tapestry.combat.isInCombat(mob.entityId)) {
         return;
     }
 
     var props = tapestry.mobs.getProperties(mob.entityId);
-    var commands = props.battlecommands;
-    if (!commands || commands.length === 0) {
+    if (!props || !props.battlecommands || props.battlecommands.length === 0) {
         return;
     }
 
@@ -165,6 +167,7 @@ tapestry.mobs.registerBehavior("combatant", function(mob) {
         return;
     }
 
+    var commands = props.battlecommands;
     var cmd = commands[Math.floor(Math.random() * commands.length)];
     if (cmd && cmd.length > 0) {
         tapestry.mobs.command(mob.entityId, cmd);
