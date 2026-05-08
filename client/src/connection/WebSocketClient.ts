@@ -20,17 +20,20 @@ function deriveServerUrl(): string | null {
   return `${wsProtocol}//${host}/ws`
 }
 
-function connect(address: string): void {
-  const url = address.startsWith('ws') ? address : `ws://${address}`
+function connect(address: string, token?: string): void {
+  let url = address.startsWith('ws') ? address : `ws://${address}`
+  if (token) {
+    url += `${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+  }
   useConnectionStore.getState().setServerAddress(address)
   useConnectionStore.getState().setStatus('connecting')
-  useDebugStore.getState().logConnection('connecting', url)
+  useDebugStore.getState().logConnection('connecting', token ? url.replace(/token=[^&]+/, 'token=***') : url)
 
   ws = new WebSocket(url)
 
   ws.onopen = () => {
     reconnectAttempt = 0
-    shouldReconnect = true
+    shouldReconnect = !token
     useConnectionStore.getState().setStatus('connected')
     useConnectionStore.getState().setError(null)
     useDebugStore.getState().logConnection('connected', url)
