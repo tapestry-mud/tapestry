@@ -2,83 +2,75 @@
     name: 'get',
     aliases: ['take'],
     description: 'Pick up an item from the room or a container.',
-    priority: 0,
-    handler: function(player, args) {
-        if (args.length === 0) {
-            player.send('Get what?\r\n');
-            return;
-        }
+    category: 'inventory',
+    roles: ['player', 'mob'],
+    args: {
+        item: { type: 'room_item', required: true, bulk: true },
+        container: { type: 'container', required: false, prepositions: ['from', 'in'] }
+    },
+    handler: function(actor, resolved) {
+        var item = resolved.item;
+        var container = resolved.container;
 
-        var keyword = args[0];
-
-        if ((keyword === 'all' || keyword.indexOf('all.') === 0) && args.length >= 2) {
-            var containerKeyword = args.slice(1).join(' ');
-            var result = tapestry.inventory.getAllFromContainer(player.entityId, containerKeyword);
-            if (!result) {
-                player.send("You don't see that container here.\r\n");
-                return;
-            }
-            if (result.denied) {
-                player.send("You can't take items from that.\r\n");
-                return;
-            }
-            if (!result.items || result.items.length === 0) {
-                player.send("There's nothing in there.\r\n");
-                return;
-            }
-            result.items.forEach(function(r) {
-                player.send('You get ' + r.name + '.\r\n');
-            });
-            player.sendToRoom(player.name + ' gets some items.\r\n');
-            return;
-        }
-
-        if (keyword === 'all' || keyword.indexOf('all.') === 0) {
-            var results = tapestry.inventory.getAll(player.entityId, keyword);
-            if (!results || results.length === 0) {
-                player.send("You don't see anything to pick up.\r\n");
-                return;
-            }
-            results.forEach(function(r) {
-                player.send('You pick up ' + r.name + '.\r\n');
-            });
-            if (results.length > 0) {
-                player.sendToRoom(player.name + ' picks up some items.\r\n');
-            }
-            return;
-        }
-
-        if (args.length >= 2) {
-            var itemKeyword = args[0];
-            var containerKeyword = args.slice(1).join(' ');
-            var result = tapestry.inventory.getFromContainer(player.entityId, itemKeyword, containerKeyword);
-            if (result) {
-                if (result.denied) {
-                    player.send("You can't take items from that.\r\n");
+        if (container) {
+            if (Array.isArray(item)) {
+                var result = tapestry.inventory.getAllFromContainer(actor.entityId, container.keyword);
+                if (!result) {
+                    actor.send("You don't see that container here.\r\n");
                     return;
                 }
-                player.send('You get ' + result.name + '.\r\n');
-                player.sendToRoom(player.name + ' gets something.\r\n');
+                if (result.denied) {
+                    actor.send("You can't take items from that.\r\n");
+                    return;
+                }
+                if (!result.items || result.items.length === 0) {
+                    actor.send("There's nothing in there.\r\n");
+                    return;
+                }
+                result.items.forEach(function(r) {
+                    actor.send('You get ' + r.name + '.\r\n');
+                });
+                actor.sendToRoom(actor.name + ' gets some items.\r\n');
                 return;
             }
+            var single = tapestry.inventory.getFromContainer(actor.entityId, item.keyword, container.keyword);
+            if (!single) {
+                actor.send("You don't see that there.\r\n");
+                return;
+            }
+            if (single.denied) {
+                actor.send("You can't take items from that.\r\n");
+                return;
+            }
+            actor.send('You get ' + single.name + '.\r\n');
+            actor.sendToRoom(actor.name + ' gets something.\r\n');
+            return;
         }
 
-        var found = tapestry.inventory.findInRoom(player.entityId, keyword);
-        if (!found) {
-            player.send("You don't see that here.\r\n");
+        if (Array.isArray(item)) {
+            if (item.length === 0) {
+                actor.send("You don't see anything to pick up.\r\n");
+                return;
+            }
+            item.forEach(function(i) {
+                tapestry.inventory.pickUp(actor.entityId, i.keyword);
+                actor.send('You pick up ' + i.name + '.\r\n');
+            });
+            actor.sendToRoom(actor.name + ' picks up some items.\r\n');
             return;
         }
-        var tags = tapestry.world.getEntityTags(found.id);
+
+        var tags = tapestry.world.getEntityTags(item.id);
         if (tags && tags.indexOf('no_get') !== -1) {
-            player.send("You can't pick that up.\r\n");
+            actor.send("You can't pick that up.\r\n");
             return;
         }
-        var success = tapestry.inventory.pickUp(player.entityId, keyword);
+        var success = tapestry.inventory.pickUp(actor.entityId, item.keyword);
         if (success) {
-            player.send('You pick up ' + found.name + '.\r\n');
-            player.sendToRoom(player.name + ' picks up ' + found.name + '.\r\n');
+            actor.send('You pick up ' + item.name + '.\r\n');
+            actor.sendToRoom(actor.name + ' picks up ' + item.name + '.\r\n');
         } else {
-            player.send("You can't carry that.\r\n");
+            actor.send("You can't carry that.\r\n");
         }
     }
 });
