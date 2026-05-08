@@ -220,6 +220,25 @@ public class GameLoopTests
         secondFired.Should().BeTrue();
     }
 
+    [Fact]
+    public void ProcessInput_SemicolonChain_DispatchesBothCommands()
+    {
+        var (loop, registry, sessions, world) = CreateLoop();
+        var dispatched = new List<string>();
+
+        registry.Register("north", (ctx) => { dispatched.Add("north"); }, packName: "test");
+        registry.Register("east", (ctx) => { dispatched.Add("east"); }, packName: "test");
+
+        var (session, _) = AddPlayer(sessions, world, "test:room");
+        session.EnqueueInput("north;east");
+
+        loop.Tick();
+
+        dispatched.Should().HaveCount(2);
+        dispatched.Should().Contain("north");
+        dispatched.Should().Contain("east");
+    }
+
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
     {
         var registry = new CommandRegistry();

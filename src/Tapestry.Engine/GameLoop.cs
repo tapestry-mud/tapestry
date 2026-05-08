@@ -182,44 +182,52 @@ public class GameLoop
                     session.ReceivedInput = true;
                 }
 
-                var parts = actualInput.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0 && parts[0].Length > 1 && !char.IsLetterOrDigit(parts[0][0]))
+                var parsed = CommandInputParser.Parse(actualInput);
+                foreach (var cmd in parsed)
                 {
-                    var alias = parts[0][0].ToString();
-                    if (_router.Resolve(alias) != null)
-                    {
-                        var remainder = parts[0][1..];
-                        parts = new[] { alias, remainder }.Concat(parts[1..]).ToArray();
-                    }
-                }
-                var ctx = new CommandContext
-                {
-                    PlayerEntityId = session.PlayerEntity.Id,
-                    RawInput = actualInput,
-                    Command = parts[0],
-                    Args = parts.Length > 1 ? parts[1..] : [],
-                    IsChargen = session.Phase == LoginPhase.Creating
-                };
+                    var verb = cmd.Verb;
+                    var args = cmd.Args;
 
-                var handlerSw = Stopwatch.StartNew();
-                using var handlerActivity = TapestryTracing.Source.StartActivity($"Command.{ctx.Command}");
-                handlerActivity?.SetTag("command.name", ctx.Command);
-                handlerActivity?.SetTag("command.entity_id", ctx.PlayerEntityId.ToString());
-                handlerActivity?.SetTag("command.raw_input", ctx.RawInput);
-                try
-                {
-                    _router.Route(ctx);
+                    // Preserve alias expansion: single-char non-alphanumeric prefix that resolves as command
+                    if (verb.Length > 1 && !char.IsLetterOrDigit(verb[0]))
+                    {
+                        var alias = verb[0].ToString();
+                        if (_router.Resolve(alias) != null)
+                        {
+                            args = new[] { verb[1..] }.Concat(args).ToArray();
+                            verb = alias;
+                        }
+                    }
+
+                    var ctx = new CommandContext
+                    {
+                        PlayerEntityId = session.PlayerEntity.Id,
+                        RawInput = actualInput,
+                        Command = verb,
+                        Args = args,
+                        IsChargen = session.Phase == LoginPhase.Creating
+                    };
+
+                    var handlerSw = Stopwatch.StartNew();
+                    using var handlerActivity = TapestryTracing.Source.StartActivity($"Command.{ctx.Command}");
+                    handlerActivity?.SetTag("command.name", ctx.Command);
+                    handlerActivity?.SetTag("command.entity_id", ctx.PlayerEntityId.ToString());
+                    handlerActivity?.SetTag("command.raw_input", ctx.RawInput);
+                    try
+                    {
+                        _router.Route(ctx);
+                    }
+                    catch (Exception ex)
+                    {
+                        _sessions.SendToPlayer(ctx.PlayerEntityId, "An error occurred processing your command.\r\n");
+                        _logger.LogError(ex, "Command error [{Command}] for entity {EntityId}", ctx.Command, ctx.PlayerEntityId);
+                    }
+                    OnCommandProcessed?.Invoke(ctx);
+                    handlerSw.Stop();
+                    handlerActivity?.SetTag("command.duration_ms", handlerSw.Elapsed.TotalMilliseconds);
+                    commandsProcessed++;
+                    _metrics.CommandDuration.Record(handlerSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("command_name", ctx.Command));
                 }
-                catch (Exception ex)
-                {
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, "An error occurred processing your command.\r\n");
-                    _logger.LogError(ex, "Command error [{Command}] for entity {EntityId}", ctx.Command, ctx.PlayerEntityId);
-                }
-                OnCommandProcessed?.Invoke(ctx);
-                handlerSw.Stop();
-                handlerActivity?.SetTag("command.duration_ms", handlerSw.Elapsed.TotalMilliseconds);
-                commandsProcessed++;
-                _metrics.CommandDuration.Record(handlerSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("command_name", ctx.Command));
             }
         }
         cmdSw.Stop();
