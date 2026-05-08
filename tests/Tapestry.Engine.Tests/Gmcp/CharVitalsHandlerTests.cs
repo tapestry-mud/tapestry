@@ -1,6 +1,6 @@
 using FluentAssertions;
 using System.Text.Json;
-using Tapestry.Data;
+using Tapestry.Shared;
 using Tapestry.Engine;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
@@ -30,12 +30,12 @@ public class CharVitalsHandlerTests
         var handler = new CharVitalsHandler(cm, batcher, sessions, world, eb);
 
         var entity = new Entity("player", "TestPlayer");
+        entity.Stats.BaseMaxHp = 100;
         entity.Stats.Hp = 80;
-        entity.Stats.MaxHp = 100;
+        entity.Stats.BaseMaxResource = 50;
         entity.Stats.Resource = 40;
-        entity.Stats.MaxResource = 50;
+        entity.Stats.BaseMaxMovement = 100;
         entity.Stats.Movement = 90;
-        entity.Stats.MaxMovement = 100;
         world.TrackEntity(entity);
 
         var conn = new FakeConnection();

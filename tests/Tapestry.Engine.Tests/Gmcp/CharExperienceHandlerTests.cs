@@ -1,6 +1,6 @@
 using FluentAssertions;
 using System.Text.Json;
-using Tapestry.Data;
+using Tapestry.Shared;
 using Tapestry.Engine;
 using Tapestry.Engine.Progression;
 using Tapestry.Server.Gmcp;

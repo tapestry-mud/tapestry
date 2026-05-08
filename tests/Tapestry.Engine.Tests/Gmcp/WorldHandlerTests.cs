@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Tapestry.Data;
+using Tapestry.Shared;
 using Tapestry.Engine;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
@@ -17,7 +18,7 @@ public class WorldHandlerTests
             _activeIds = new List<string>(activeIds);
         }
 
-        public new IEnumerable<string> GetActiveConnectionIds() => _activeIds;
+        public override IEnumerable<string> GetActiveConnectionIds() => _activeIds;
     }
 
     private record Harness(

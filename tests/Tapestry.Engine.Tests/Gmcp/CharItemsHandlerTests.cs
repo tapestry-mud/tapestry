@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Tapestry.Data;
+using Tapestry.Shared;
 using Tapestry.Engine;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;

@@ -20,5 +20,5 @@ internal class FakeGmcpConnectionManager : IGmcpConnectionManager
     }
 
     public bool SupportsPackage(Guid entityId, string package) => true;
-    public IEnumerable<string> GetActiveConnectionIds() => Enumerable.Empty<string>();
+    public virtual IEnumerable<string> GetActiveConnectionIds() => Enumerable.Empty<string>();
 }
