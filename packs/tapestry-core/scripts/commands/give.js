@@ -65,14 +65,10 @@ tapestry.commands.register({
         }
 
         if (targetPlayer) {
-            var success = tapestry.inventory.give(player.entityId, targetPlayer.id, keyword);
-            if (success) {
-                player.send('You give ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
-                tapestry.world.send(targetPlayer.id, player.name + ' gives you ' + found.name + '.\r\n');
-                player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
-            } else {
-                player.send("You can't give that.\r\n");
-            }
+            player.send('You give ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
+            tapestry.world.send(targetPlayer.id, player.name + ' gives you ' + found.name + '.\r\n');
+            player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
+            tapestry.inventory.give(player.entityId, targetPlayer.id, keyword);
             return;
         }
 
@@ -86,14 +82,9 @@ tapestry.commands.register({
                 player.send(npc.name + " doesn't seem interested in that.\r\n");
                 return;
             }
-            var success = tapestry.inventory.give(player.entityId, npc.id, keyword);
-            if (success) {
-                player.send('You give ' + found.name + ' to ' + npc.name + '.\r\n');
-                player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + npc.name + '.\r\n');
-            } else {
-                player.send("You can't give that.\r\n");
-                return;
-            }
+            player.send('You give ' + found.name + ' to ' + npc.name + '.\r\n');
+            player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + npc.name + '.\r\n');
+            tapestry.inventory.give(player.entityId, npc.id, keyword);
             tapestry.mobs.invokeHook(templateId, 'onGive',
                 { entityId: npc.id, name: npc.name },
                 { entityId: player.entityId, name: player.name, roomId: player.roomId, stats: player.stats },
