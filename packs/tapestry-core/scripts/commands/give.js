@@ -1,98 +1,38 @@
 tapestry.commands.register({
     name: 'give',
     description: 'Give an item to a player or NPC in the room.',
-    priority: 0,
-    handler: function(player, args) {
-        if (!args || args.length < 2) {
-            player.send('Give what to whom?\r\n');
-            return;
-        }
+    category: 'inventory',
+    roles: ['player', 'mob'],
+    args: {
+        item: { type: 'inventory', required: true },
+        target: { type: 'entity', required: true, prepositions: ['to'] }
+    },
+    handler: function(actor, resolved) {
+        var item = resolved.item;
+        var target = resolved.target;
 
-        var keyword = String(args[0]);
+        actor.send('You give ' + item.name + ' to ' + target.name + '.\r\n');
+        tapestry.world.send(target.id, actor.name + ' gives you ' + item.name + '.\r\n');
+        actor.sendToRoom(actor.name + ' gives ' + item.name + ' to ' + target.name + '.\r\n');
+        tapestry.inventory.give(actor.entityId, target.id, item.keyword);
 
-        // Strip optional "to" preposition: "give blade to lan" or "give blade lan"
-        var rest = Array.prototype.slice.call(args, 1);
-        if (rest.length > 0 && String(rest[0]).toLowerCase() === 'to') {
-            rest = Array.prototype.slice.call(rest, 1);
-        }
-        if (rest.length === 0) {
-            player.send('Give what to whom?\r\n');
-            return;
-        }
-        var targetRaw = rest.join(' ').toLowerCase();
+        // Receiver-perspective event
+        tapestry.events.publish('entity.item.received', {
+            itemId: item.id,
+            itemName: item.name,
+            templateId: item.templateId,
+            giverId: actor.entityId,
+            giverName: actor.name
+        });
 
-        // Parse ordinal prefix: "2.lan" -> ordinal=2, name="lan"
-        var targetOrdinal = 1;
-        var targetName = targetRaw;
-        var dotPos = targetRaw.indexOf('.');
-        if (dotPos > 0) {
-            var maybeOrdinal = parseInt(targetRaw.substring(0, dotPos), 10);
-            if (!isNaN(maybeOrdinal) && maybeOrdinal >= 1) {
-                targetOrdinal = maybeOrdinal;
-                targetName = targetRaw.substring(dotPos + 1);
-            }
-        }
-
-        function findNth(entities, name, n) {
-            var count = 0;
-            for (var i = 0; i < entities.length; i++) {
-                if (entities[i].name.toLowerCase().indexOf(name) !== -1) {
-                    count++;
-                    if (count === n) { return entities[i]; }
-                }
-            }
-            return null;
-        }
-
-        var found = tapestry.inventory.findByKeyword(player.entityId, keyword);
-        if (!found) {
-            player.send("You aren't carrying that.\r\n");
-            return;
-        }
-
-        // Players first
-        var players = tapestry.world.getEntitiesInRoom(player.roomId, 'player');
-        var targetPlayer = null;
-        for (var i = 0; i < players.length; i++) {
-            if (players[i].id !== player.entityId) {
-                targetPlayer = findNth(
-                    players.filter(function(p) { return p.id !== player.entityId; }),
-                    targetName,
-                    targetOrdinal
-                );
-                break;
-            }
-        }
-
-        if (targetPlayer) {
-            player.send('You give ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
-            tapestry.world.send(targetPlayer.id, player.name + ' gives you ' + found.name + '.\r\n');
-            player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + targetPlayer.name + '.\r\n');
-            tapestry.inventory.give(player.entityId, targetPlayer.id, keyword);
-            return;
-        }
-
-        // Then NPCs
-        var npcs = tapestry.world.getEntitiesInRoom(player.roomId, 'npc');
-        var npc = findNth(npcs, targetName, targetOrdinal);
-
-        if (npc) {
-            var templateId = tapestry.world.getProperty(npc.id, 'template_id');
-            if (!templateId) {
-                player.send(npc.name + " doesn't seem interested in that.\r\n");
-                return;
-            }
-            player.send('You give ' + found.name + ' to ' + npc.name + '.\r\n');
-            player.sendToRoom(player.name + ' gives ' + found.name + ' to ' + npc.name + '.\r\n');
-            tapestry.inventory.give(player.entityId, npc.id, keyword);
+        // NPC onGive hook
+        var templateId = tapestry.world.getProperty(target.id, 'template_id');
+        if (templateId && target.type === 'npc') {
             tapestry.mobs.invokeHook(templateId, 'onGive',
-                { entityId: npc.id, name: npc.name },
-                { entityId: player.entityId, name: player.name, roomId: player.roomId, stats: player.stats },
-                { entityId: found.id, name: found.name }
+                { entityId: target.id, name: target.name },
+                { entityId: actor.entityId, name: actor.name, roomId: actor.roomId, stats: actor.stats },
+                { entityId: item.id, name: item.name }
             );
-            return;
         }
-
-        player.send("You don't see them here.\r\n");
     }
 });
