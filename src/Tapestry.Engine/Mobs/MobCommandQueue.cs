@@ -6,7 +6,7 @@ namespace Tapestry.Engine.Mobs;
 public class MobCommandQueue
 {
     private readonly World _world;
-    private readonly MobCommandRegistry _registry;
+    private readonly CommandRouter _router;
     private readonly TickTimer _timer;
     private readonly ILogger<MobCommandQueue> _logger;
 
@@ -17,11 +17,11 @@ public class MobCommandQueue
     // Sorted by fire tick. Multiple commands can share the same tick.
     private readonly SortedDictionary<long, List<QueuedCommand>> _queue = new();
 
-    public MobCommandQueue(World world, MobCommandRegistry registry,
+    public MobCommandQueue(World world, CommandRouter router,
         TickTimer timer, ILogger<MobCommandQueue> logger)
     {
         _world = world;
-        _registry = registry;
+        _router = router;
         _timer = timer;
         _logger = logger;
     }
@@ -61,7 +61,11 @@ public class MobCommandQueue
 
                 try
                 {
-                    _registry.Dispatch(cmd.EntityId, cmd.CommandStr);
+                    _router.RouteForMob(
+                        cmd.EntityId,
+                        cmd.CommandStr,
+                        entity.LocationRoomId,
+                        entity.Name);
                 }
                 catch (Exception ex)
                 {
