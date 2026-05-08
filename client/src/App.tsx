@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { ConnectScreen } from './layout/ConnectScreen'
 import { GameLayout } from './layout/GameLayout'
 import { LoginLayout } from './layout/LoginLayout'
+import { LandingPage } from './preauth/LandingPage'
+import { LoginPage } from './preauth/LoginPage'
+import { getClientConfig } from './config/clientConfig'
 import { useConnectionStore } from './stores/connectionStore'
 import { useDebugStore } from './stores/debugStore'
 import { useAffectsStore } from './stores/affectsStore'
@@ -19,6 +22,14 @@ export default function App() {
   const loginPhase = useConnectionStore((s) => s.loginPhase)
   const toggleDebug = useDebugStore((s) => s.toggleOpen)
   const helpDialogKey = useHelpStore((s) => s.dialogKey)
+  const [preAuthEnabled, setPreAuthEnabled] = useState<boolean | null>(null)
+  const [showLogin, setShowLogin] = useState(false)
+
+  useEffect(() => {
+    getClientConfig().then((cfg) => {
+      setPreAuthEnabled(cfg.preAuth.enabled)
+    })
+  }, [])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -50,6 +61,22 @@ export default function App() {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [toggleDebug])
+
+  // Still loading config
+  if (preAuthEnabled === null) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-surface">
+        <div className="text-text-secondary text-sm font-ui">Loading...</div>
+      </div>
+    )
+  }
+
+  if ((status === 'disconnected' || status === 'error') && preAuthEnabled) {
+    if (showLogin) {
+      return <LoginPage onBack={() => { setShowLogin(false) }} />
+    }
+    return <LandingPage onEnter={() => { setShowLogin(true) }} />
+  }
 
   if (status === 'disconnected' || status === 'error') {
     return <ConnectScreen />
