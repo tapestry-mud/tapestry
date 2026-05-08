@@ -76,7 +76,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<LootTableResolver>(),
             sp.GetRequiredService<ItemRegistry>(),
             sp.GetRequiredService<ClassRegistry>(),
-            sp.GetRequiredService<RaceRegistry>()));
+            sp.GetRequiredService<RaceRegistry>(),
+            proficiencyManager: sp.GetRequiredService<ProficiencyManager>()));
         services.AddSingleton<DispositionEvaluator>();
         services.AddSingleton<MobAIManager>();
         services.AddSingleton<MobCommandRegistry>();

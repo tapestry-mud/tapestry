@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Shared;
@@ -534,6 +535,94 @@ public class SpawnManagerTests
         config.Spawns[0].Room.Should().Be("core:training-grounds");
         config.Spawns[0].Mob.Should().Be("core:goblin");
         config.Spawns[0].Count.Should().Be(2);
+    }
+
+    [Fact]
+    public void SpawnMob_WithAbilities_LearnsProficiencyFromEntry()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var abilityRegistry = new AbilityRegistry();
+        var profMgr = new ProficiencyManager(world, abilityRegistry);
+        var manager = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry(),
+            proficiencyManager: profMgr);
+
+        var template = new MobTemplate
+        {
+            Id = "test:goblin",
+            Name = "a goblin",
+            Type = "npc",
+            Abilities = new List<MobAbilityEntry>
+            {
+                new MobAbilityEntry { Id = "lf:fireball", Proficiency = 90 }
+            }
+        };
+        manager.RegisterTemplate(template);
+
+        var entity = manager.SpawnMob("test:goblin", "core:test-room");
+
+        Assert.NotNull(entity);
+        Assert.Equal(90, profMgr.GetProficiency(entity!.Id, "lf:fireball"));
+    }
+
+    [Fact]
+    public void SpawnMob_WithAbilities_UsesDefaultProficiencyWhenNotSet()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var abilityRegistry = new AbilityRegistry();
+        var profMgr = new ProficiencyManager(world, abilityRegistry);
+        var manager = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry(),
+            proficiencyManager: profMgr);
+
+        var template = new MobTemplate
+        {
+            Id = "test:goblin",
+            Name = "a goblin",
+            Type = "npc",
+            Abilities = new List<MobAbilityEntry>
+            {
+                new MobAbilityEntry { Id = "lf:kick" }
+            }
+        };
+        manager.RegisterTemplate(template);
+
+        var entity = manager.SpawnMob("test:goblin", "core:test-room");
+
+        Assert.NotNull(entity);
+        Assert.Equal(85, profMgr.GetProficiency(entity!.Id, "lf:kick"));
+    }
+
+    [Fact]
+    public void SpawnMob_WithAbilities_UsesTemplateProficiencyWhenEntryNotSet()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var abilityRegistry = new AbilityRegistry();
+        var profMgr = new ProficiencyManager(world, abilityRegistry);
+        var manager = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry(),
+            proficiencyManager: profMgr);
+
+        var template = new MobTemplate
+        {
+            Id = "test:goblin",
+            Name = "a goblin",
+            Type = "npc",
+            AbilityProficiency = 50,
+            Abilities = new List<MobAbilityEntry>
+            {
+                new MobAbilityEntry { Id = "lf:kick" }
+            }
+        };
+        manager.RegisterTemplate(template);
+
+        var entity = manager.SpawnMob("test:goblin", "core:test-room");
+
+        Assert.NotNull(entity);
+        Assert.Equal(50, profMgr.GetProficiency(entity!.Id, "lf:kick"));
     }
 
     [Fact]

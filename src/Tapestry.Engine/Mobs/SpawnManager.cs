@@ -1,3 +1,4 @@
+using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
@@ -17,6 +18,7 @@ public class SpawnManager
     private readonly ClassRegistry _classes;
     private readonly RaceRegistry _races;
     private readonly Random _random;
+    private readonly ProficiencyManager? _proficiencyManager;
     private readonly Dictionary<string, MobTemplate> _templates = new();
     private readonly Dictionary<string, LootTable> _lootTables = new();
     private readonly Dictionary<string, AreaSpawnConfig> _areaConfigs = new();
@@ -24,7 +26,7 @@ public class SpawnManager
 
     public SpawnManager(World world, EventBus eventBus, LootTableResolver lootResolver,
                         ItemRegistry itemRegistry, ClassRegistry? classes = null, RaceRegistry? races = null,
-                        Random? random = null)
+                        Random? random = null, ProficiencyManager? proficiencyManager = null)
     {
         _world = world;
         _eventBus = eventBus;
@@ -33,6 +35,7 @@ public class SpawnManager
         _classes = classes ?? new ClassRegistry();
         _races = races ?? new RaceRegistry();
         _random = random ?? Random.Shared;
+        _proficiencyManager = proficiencyManager;
 
         _eventBus.Subscribe("area.tick", OnAreaTick);
     }
@@ -169,6 +172,20 @@ public class SpawnManager
                     ["loot_count"] = lootItemIds.Count
                 }
             });
+        }
+
+        if (_proficiencyManager != null && template.Abilities.Count > 0)
+        {
+            foreach (var abilityEntry in template.Abilities)
+            {
+                if (string.IsNullOrEmpty(abilityEntry.Id))
+                {
+                    continue;
+                }
+
+                var proficiency = abilityEntry.Proficiency ?? template.AbilityProficiency ?? 85;
+                _proficiencyManager.Learn(entity.Id, abilityEntry.Id, proficiency);
+            }
         }
 
         _eventBus.Publish(new GameEvent
