@@ -228,8 +228,9 @@ public class JintRuntimeTests
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance);
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
+        var commandRouter = new CommandRouter(commandRegistry, sessions, world);
         var gameLoop = new GameLoop(
-            new CommandRouter(commandRegistry, sessions, world),
+            commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
@@ -244,7 +245,7 @@ public class JintRuntimeTests
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
         var tickTimer = new TickTimer(10);
-        var mobCommandQueue = new MobCommandQueue(world, mobCommandRegistry, tickTimer, NullLogger<MobCommandQueue>.Instance);
+        var mobCommandQueue = new MobCommandQueue(world, commandRouter, tickTimer, NullLogger<MobCommandQueue>.Instance);
 
         // Create modules
         var modules = new IJintApiModule[]

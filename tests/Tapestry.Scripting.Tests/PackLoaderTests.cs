@@ -183,8 +183,9 @@ public class PackLoaderTests
         var statDisplayNames = new StatDisplayNames();
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
+        var commandRouter = new CommandRouter(commandRegistry, sessions, world);
         var gameLoop = new GameLoop(
-            new CommandRouter(commandRegistry, sessions, world),
+            commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
@@ -195,7 +196,7 @@ public class PackLoaderTests
         var mobsApi = new ApiMobs(world, mobAIManager, spawnManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
         var tickTimer = new TickTimer(10);
-        var mobCommandQueue = new MobCommandQueue(world, mobCommandRegistry, tickTimer, NullLogger<MobCommandQueue>.Instance);
+        var mobCommandQueue = new MobCommandQueue(world, commandRouter, tickTimer, NullLogger<MobCommandQueue>.Instance);
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
         var classRegistry = new ClassRegistry();
         var raceRegistry = new RaceRegistry();

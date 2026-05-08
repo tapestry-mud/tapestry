@@ -1,5 +1,11 @@
 namespace Tapestry.Engine.Mobs;
 
+public class MobAbilityEntry
+{
+    public string Id { get; set; } = "";
+    public int? Proficiency { get; set; }
+}
+
 public class DispositionConditionModel
 {
     public int? MinAlignment { get; set; }
@@ -52,6 +58,9 @@ public class MobTemplate
     public double IdleChance { get; set; } = 0.3;
     public int IdleInterval { get; set; } = 30;
     public string? Script { get; set; }
+    public List<MobAbilityEntry> Abilities { get; set; } = new();
+    public List<string> BattleCommands { get; set; } = new();
+    public int? AbilityProficiency { get; set; }
 
     public Entity CreateEntity()
     {
@@ -113,6 +122,11 @@ public class MobTemplate
         if (!string.IsNullOrEmpty(Script))
         {
             entity.SetProperty("script", Script);
+        }
+
+        if (BattleCommands.Count > 0)
+        {
+            entity.SetProperty("battlecommands", BattleCommands);
         }
 
         return entity;

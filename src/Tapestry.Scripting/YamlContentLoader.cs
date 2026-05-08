@@ -24,6 +24,7 @@ public static class YamlContentLoader
 {
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(UnderscoredNamingConvention.Instance)
+        .WithTypeConverter(new MobAbilityEntryConverter())
         .IgnoreUnmatchedProperties()
         .Build();
 
@@ -69,7 +70,10 @@ public static class YamlContentLoader
             IdleCommands = def.IdleCommands,
             IdleChance = def.IdleChance,
             IdleInterval = def.IdleInterval,
-            Script = def.Script
+            Script = def.Script,
+            Abilities = def.Abilities,
+            BattleCommands = def.BattleCommands,
+            AbilityProficiency = def.AbilityProficiency
         };
 
         if (def.Trains != null)
@@ -450,6 +454,9 @@ public static class YamlContentLoader
         public int IdleInterval { get; set; } = 30;
         public string? Script { get; set; }
         public Dictionary<string, object>? Trains { get; set; }
+        public List<MobAbilityEntry> Abilities { get; set; } = new();
+        public List<string> BattleCommands { get; set; } = new();
+        public int? AbilityProficiency { get; set; }
     }
 
     private class LootInlineModel
