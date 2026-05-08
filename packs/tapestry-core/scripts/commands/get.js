@@ -1,11 +1,11 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'get',
     aliases: ['take'],
     description: 'Pick up an item from the room or a container.',
     category: 'inventory',
     roles: ['player', 'mob'],
     args: {
-        item: { type: 'room_item', required: true, bulk: true },
+        item: { type: 'keyword', required: true },
         container: { type: 'container', required: false, prepositions: ['from', 'in'] }
     },
     handler: function(actor, resolved) {
@@ -13,7 +13,7 @@
         var container = resolved.container;
 
         if (container) {
-            if (Array.isArray(item)) {
+            if (item === 'all') {
                 var result = tapestry.inventory.getAllFromContainer(actor.entityId, container.keyword);
                 if (!result) {
                     actor.send("You don't see that container here.\r\n");
@@ -33,7 +33,7 @@
                 actor.sendToRoom(actor.name + ' gets some items.\r\n');
                 return;
             }
-            var single = tapestry.inventory.getFromContainer(actor.entityId, item.keyword, container.keyword);
+            var single = tapestry.inventory.getFromContainer(actor.entityId, item, container.keyword);
             if (!single) {
                 actor.send("You don't see that there.\r\n");
                 return;
@@ -47,28 +47,34 @@
             return;
         }
 
-        if (Array.isArray(item)) {
-            if (item.length === 0) {
+        if (item === 'all') {
+            var roomItems = tapestry.inventory.findItemsInRoom(actor.entityId);
+            if (!roomItems || roomItems.length === 0) {
                 actor.send("You don't see anything to pick up.\r\n");
                 return;
             }
-            item.forEach(function(i) {
-                tapestry.inventory.pickUp(actor.entityId, i.keyword);
+            roomItems.forEach(function(i) {
+                tapestry.inventory.pickUp(actor.entityId, i.name);
                 actor.send('You pick up ' + i.name + '.\r\n');
             });
             actor.sendToRoom(actor.name + ' picks up some items.\r\n');
             return;
         }
 
-        var tags = tapestry.world.getEntityTags(item.id);
+        var roomItem = tapestry.inventory.findInRoom(actor.entityId, item);
+        if (!roomItem) {
+            actor.send("You don't see that here.\r\n");
+            return;
+        }
+        var tags = tapestry.world.getEntityTags(roomItem.id);
         if (tags && tags.indexOf('no_get') !== -1) {
             actor.send("You can't pick that up.\r\n");
             return;
         }
-        var success = tapestry.inventory.pickUp(actor.entityId, item.keyword);
+        var success = tapestry.inventory.pickUp(actor.entityId, item);
         if (success) {
-            actor.send('You pick up ' + item.name + '.\r\n');
-            actor.sendToRoom(actor.name + ' picks up ' + item.name + '.\r\n');
+            actor.send('You pick up ' + roomItem.name + '.\r\n');
+            actor.sendToRoom(actor.name + ' picks up ' + roomItem.name + '.\r\n');
         } else {
             actor.send("You can't carry that.\r\n");
         }

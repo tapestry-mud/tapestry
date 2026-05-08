@@ -8,9 +8,6 @@
 < You pick up a steel blade.
 < You pick up a torch.
 
-> get all.blade
-< You pick up a steel blade.
-
 > get dagger from chest
 < You get a dagger.
 
