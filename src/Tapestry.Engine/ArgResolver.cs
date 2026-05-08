@@ -251,11 +251,20 @@ public static class ArgResolver
         return (1, token);
     }
 
-    private static Dictionary<string, object?> ToItemObj(Entity e) => new()
+    private static Dictionary<string, object?> ToItemObj(Entity e)
     {
-        ["id"] = e.Id.ToString(),
-        ["name"] = e.Name,
-        ["keyword"] = e.Name.Split(' ').LastOrDefault() ?? e.Name,
-        ["templateId"] = e.GetProperty<string>(CommonProperties.TemplateId)
-    };
+        var nameWords = e.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => w.ToLowerInvariant())
+            .ToHashSet();
+        var keyword = e.Tags.FirstOrDefault(t => nameWords.Contains(t.ToLowerInvariant()))
+            ?? e.Name.Split(' ').LastOrDefault()
+            ?? e.Name;
+        return new Dictionary<string, object?>
+        {
+            ["id"] = e.Id.ToString(),
+            ["name"] = e.Name,
+            ["keyword"] = keyword,
+            ["templateId"] = e.GetProperty<string>(CommonProperties.TemplateId)
+        };
+    }
 }
