@@ -23,6 +23,8 @@ using Tapestry.Server.PreAuth;
 using Tapestry.Scripting.Modules;
 using Tapestry.Contracts;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 // Load config early for Serilog and telemetry setup
 var configPath = args.Length > 0 ? args[0] : "server.yaml";
@@ -169,10 +171,34 @@ if (config.Telemetry.Enabled)
         .Build());
 }
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("auth-strict", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.AddPolicy("auth-light", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
 // WebSocket endpoint for web client connections
 app.UseWebSockets();
+app.UseRateLimiter();
 
 // --- Pre-Auth HTTP Endpoints ---
 
@@ -195,7 +221,7 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
     var exists = nameValid && persistence.PlayerSaveExists(canonical);
 
     return Results.Json(new { exists, nameValid });
-});
+}).RequireRateLimiting("auth-light");
 
 app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceService persistence,
     SessionManager sessions, PreAuthTokenService tokenService, LoginGateRegistry loginGates) =>
@@ -278,7 +304,7 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
         var token = tokenService.Issue(canonical, PreAuthIntent.Create, hash);
         return Results.Json(new { token });
     }
-});
+}).RequireRateLimiting("auth-strict");
 
 // --- WebSocket fallback (runs only when no HTTP route matched) ---
 
