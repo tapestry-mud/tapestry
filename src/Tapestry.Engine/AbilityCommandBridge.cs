@@ -21,6 +21,7 @@ public class AbilityCommandBridge
     private readonly World _world;
     private readonly CombatManager _combat;
     private readonly SessionManager _sessions;
+    private readonly GameLoop _gameLoop;
 
     public AbilityCommandBridge(
         AbilityRegistry abilities,
@@ -28,7 +29,8 @@ public class AbilityCommandBridge
         CommandRegistry commands,
         World world,
         CombatManager combat,
-        SessionManager sessions)
+        SessionManager sessions,
+        GameLoop gameLoop)
     {
         _abilities = abilities;
         _proficiency = proficiency;
@@ -36,6 +38,7 @@ public class AbilityCommandBridge
         _world = world;
         _combat = combat;
         _sessions = sessions;
+        _gameLoop = gameLoop;
     }
 
     public void WireAll()
@@ -101,7 +104,7 @@ public class AbilityCommandBridge
 
         if (targetEntity.Id != player.Id && !_combat.IsInCombat(player.Id))
         {
-            var engaged = _combat.Engage(player, targetEntity);
+            var engaged = _combat.Engage(player, targetEntity, _gameLoop.TickCount);
             if (!engaged)
             {
                 _sessions.SendToPlayer(ctx.PlayerEntityId, "You can't attack that.\r\n");
@@ -206,7 +209,7 @@ public class AbilityCommandBridge
 
         if (targetEntity.Id != entity.Id && !_combat.IsInCombat(entity.Id))
         {
-            var engaged = _combat.Engage(entity, targetEntity);
+            var engaged = _combat.Engage(entity, targetEntity, _gameLoop.TickCount);
             if (!engaged)
             {
                 if (actorCtx.Source == "player")
