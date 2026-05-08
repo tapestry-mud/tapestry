@@ -145,4 +145,48 @@ public class CommandRegistryTests
             Assert.Contains("mob", reg!.Roles);
         }
     }
+
+    [Fact]
+    public void Resolve_WithSource_Mob_ExcludesPlayerOnlyCommands()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("quit", _ => { }, roles: ["player"]);
+            var result = registry.Resolve("quit", "mob");
+            Assert.Null(result);
+        }
+    }
+
+    [Fact]
+    public void Resolve_WithSource_Mob_IncludesMobRoleCommands()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("say", _ => { }, roles: ["player", "mob"]);
+            var result = registry.Resolve("say", "mob");
+            Assert.NotNull(result);
+        }
+    }
+
+    [Fact]
+    public void Resolve_WithSource_Player_ExcludesMobOnlyCommands()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("mobsay", _ => { }, roles: ["mob"]);
+            var result = registry.Resolve("mobsay", "player");
+            Assert.Null(result);
+        }
+    }
+
+    [Fact]
+    public void Resolve_WithSource_Null_ReturnsAllCommands()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("anything", _ => { }, roles: ["mob"]);
+            var result = registry.Resolve("anything", null);
+            Assert.NotNull(result);
+        }
+    }
 }

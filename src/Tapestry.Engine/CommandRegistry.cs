@@ -108,6 +108,29 @@ public class CommandRegistry
         return null;
     }
 
+    public CommandRegistration? Resolve(string keyword, string? source)
+    {
+        {
+            if (source == null) { return Resolve(keyword); }
+            var registration = Resolve(keyword);
+            if (registration == null) { return null; }
+            return MatchesSource(registration, source) ? registration : null;
+        }
+    }
+
+    private static bool MatchesSource(CommandRegistration reg, string source)
+    {
+        {
+            return source switch
+            {
+                "mob" => reg.Roles.Contains("mob", StringComparer.OrdinalIgnoreCase),
+                "player" => reg.Roles.Contains("player", StringComparer.OrdinalIgnoreCase)
+                         || reg.Roles.Contains("admin", StringComparer.OrdinalIgnoreCase),
+                _ => true
+            };
+        }
+    }
+
     public void Unregister(string commandName)
     {
         var key = commandName.ToLower();
