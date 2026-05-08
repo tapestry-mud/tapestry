@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule, EssenceModule>();
         services.AddSingleton<IJintApiModule, StackingModule>();
         services.AddSingleton<IJintApiModule, PacksModule>();
+        services.AddSingleton<IJintApiModule, QuestModule>();
         services.AddSingleton<FlowsModule>();
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FlowsModule>());
 

@@ -22,6 +22,7 @@ using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Help;
+using Tapestry.Engine.Quests;
 using Tapestry.Data;
 
 namespace Tapestry.Engine;
@@ -157,6 +158,13 @@ public static class ServiceCollectionExtensions
                     new CheckWimpyPhase()
                 });
         });
+
+        // Quests
+        services.AddSingleton<QuestConfig>();
+        services.AddSingleton<QuestRegistry>();
+        services.AddSingleton<QuestStateRepository>();
+        services.AddSingleton<QuestService>();
+        services.AddSingleton<QuestObjectiveWatcher>();
 
         // Help
         services.AddSingleton<HelpService>();

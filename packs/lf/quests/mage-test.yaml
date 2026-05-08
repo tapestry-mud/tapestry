@@ -1,0 +1,25 @@
+id: "lf:mage-test"
+name: "The Aes Sedai's Test"
+type: main
+giver: "lf:wisdom-moiraine"
+repeatable: false
+abandonable: false
+prereqs:
+  min_level: 1
+  class: "lf:villager"
+  quests_completed:
+    - "lf:trolloc-hunt"
+stages:
+  - id: "deliver"
+    description: "Bring Moiraine the spirit stone to reveal your potential."
+    objectives:
+      - id: "deliver-stone"
+        type: deliver
+        target: "lf:spirit-stone"
+        npc: "lf:wisdom-moiraine"
+        count: 1
+        description: "Deliver the spirit stone to Moiraine"
+rewards:
+  xp: 500
+  gold: 0
+  class_unlock: "lf:mage"

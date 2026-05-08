@@ -1,0 +1,33 @@
+id: "lf:missing-merchant"
+name: "The Missing Merchant"
+type: side
+giver: "lf:innkeeper"
+repeatable: false
+abandonable: true
+prereqs:
+  min_level: 1
+stages:
+  - id: "find"
+    description: "Investigate the south road and deal with any trouble."
+    objectives:
+      - id: "visit-south-road"
+        type: visit
+        target: "lf:room-south-road"
+        count: 1
+        description: "Search the south road"
+      - id: "kill-bandits"
+        type: kill
+        target: "lf:bandit-scout"
+        count: 3
+        description: "Clear the bandits"
+  - id: "return"
+    description: "Report back to the innkeeper."
+    objectives:
+      - id: "visit-inn"
+        type: visit
+        target: "lf:room-village-inn"
+        count: 1
+        description: "Return to the inn"
+rewards:
+  xp: 150
+  gold: 50

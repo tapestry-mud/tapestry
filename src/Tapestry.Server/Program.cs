@@ -133,6 +133,7 @@ builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.S
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.WorldHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCombatHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CommHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.QuestHandler>();
 builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
 // NOTE: LoginHandler is NOT registered as IGmcpPackageHandler to avoid circular DI:
 // PostLoginOrchestrator -> IEnumerable<IGmcpPackageHandler> -> LoginHandler -> PostLoginOrchestrator
@@ -141,6 +142,7 @@ builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
 // Game modules -- order is boot order
 builder.Services.AddSingleton<IGameModule, ConfigurationModule>();
 builder.Services.AddSingleton<IGameModule, ContentLoadingModule>();
+builder.Services.AddSingleton<IGameModule, QuestStartupModule>();
 builder.Services.AddSingleton<IGameModule, CombatEventModule>();
 builder.Services.AddSingleton<IGameModule, WorldEventModule>();
 builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
