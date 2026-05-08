@@ -20,6 +20,7 @@ public class ServerConfig
     public CombatSection Combat { get; set; } = new();
     public MsspConfig Mssp { get; set; } = new();
     public IdleSection Idle { get; set; } = new();
+    public PreAuthSection PreAuth { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 

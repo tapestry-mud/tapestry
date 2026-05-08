@@ -73,3 +73,7 @@ idle:
     password: 30
     session_takeover: 15
     creating: 300
+
+pre_auth:
+  enabled: false
+  token_expiry_seconds: 60
