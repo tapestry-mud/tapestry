@@ -30,7 +30,8 @@ properties:
 abilities:
   - id: "kick"
     proficiency: 70
-battlecommands:
+battle_commands:
+  - 'emote snarls and winds up for a kick!'
   - "kick"
 equipment:
   - "example-pack:iron-sword"
