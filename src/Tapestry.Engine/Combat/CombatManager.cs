@@ -277,6 +277,8 @@ public class CombatManager
 
     public void HandleEntityDeath(Guid entityId, Guid? killerId)
     {
+        var victim = _world.GetEntity(entityId);
+
         if (killerId.HasValue)
         {
             if (_alignmentManager != null)
@@ -286,7 +288,6 @@ public class CombatManager
             }
 
             var killer = _world.GetEntity(killerId.Value);
-            var victim = _world.GetEntity(entityId);
 
             _eventBus.Publish(new GameEvent
             {
@@ -299,6 +300,24 @@ public class CombatManager
                 {
                     ["killerName"] = killer?.Name,
                     ["victimName"] = victim?.Name
+                }
+            });
+        }
+
+        if (victim != null && victim.HasTag("npc"))
+        {
+            var killerEntity = killerId.HasValue ? _world.GetEntity(killerId.Value) : null;
+            _eventBus.Publish(new GameEvent
+            {
+                Type = "mob.killed",
+                SourceEntityId = killerId,
+                TargetEntityId = entityId,
+                RoomId = victim.LocationRoomId,
+                SourceEntityName = killerEntity?.Name,
+                Data = new Dictionary<string, object?>
+                {
+                    ["templateId"] = victim.GetProperty<string>(CommonProperties.TemplateId),
+                    ["mobName"] = victim.Name,
                 }
             });
         }

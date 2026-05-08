@@ -56,7 +56,11 @@ public class InventoryManager
                 SourceEntityId = entity.Id,
                 TargetEntityId = item.Id,
                 RoomId = entity.LocationRoomId,
-                Data = { ["itemName"] = item.Name }
+                Data =
+                {
+                    ["itemName"] = item.Name,
+                    ["templateId"] = item.GetProperty<string>(CommonProperties.TemplateId)
+                }
             });
         }
 
@@ -115,7 +119,12 @@ public class InventoryManager
                 SourceEntityId = from.Id,
                 TargetEntityId = to.Id,
                 RoomId = from.LocationRoomId,
-                Data = { ["itemId"] = item.Id, ["itemName"] = item.Name }
+                Data =
+                {
+                    ["itemId"] = item.Id,
+                    ["itemName"] = item.Name,
+                    ["templateId"] = item.GetProperty<string>(CommonProperties.TemplateId)
+                }
             });
         }
 
