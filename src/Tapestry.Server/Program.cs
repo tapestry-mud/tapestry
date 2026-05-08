@@ -96,16 +96,41 @@ builder.Services.AddSingleton(sp =>
         });
 });
 
-builder.Services.AddSingleton<GmcpService>();
 builder.Services.AddSingleton<GmcpModuleAdapter>();
 builder.Services.AddSingleton<IGmcpModuleAdapter>(sp => sp.GetRequiredService<GmcpModuleAdapter>());
 builder.Services.AddSingleton<ConnectionHandler>();
+
+// GMCP infrastructure
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.GmcpConnectionManager>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpConnectionManager>(
+    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.GmcpConnectionManager>());
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.DirtyVitalsBatcher>();
+builder.Services.AddSingleton<Tapestry.Contracts.IDirtyVitalsBatcher>(
+    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.DirtyVitalsBatcher>());
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.PostLoginOrchestrator>();
+
+// GMCP package handlers -- registered as both IGmcpPackageHandler (for DI collection) and concrete (for direct injection)
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.DisplayHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharStatusHandler>();
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.CharVitalsHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler>(
+    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.Handlers.CharVitalsHandler>());
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharExperienceHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCommandsHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharEffectsHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharItemsHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.RoomHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.WorldHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCombatHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CommHandler>();
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler>(
+    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.Handlers.LoginHandler>());
 
 // Game modules -- order is boot order
 builder.Services.AddSingleton<IGameModule, ConfigurationModule>();
 builder.Services.AddSingleton<IGameModule, ContentLoadingModule>();
 builder.Services.AddSingleton<IGameModule, CombatEventModule>();
-builder.Services.AddSingleton<IGameModule, GmcpEventModule>();
 builder.Services.AddSingleton<IGameModule, WorldEventModule>();
 builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
 builder.Services.AddSingleton<IGameModule, PersistenceModule>();
