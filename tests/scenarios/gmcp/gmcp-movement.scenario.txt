@@ -1,0 +1,21 @@
+# gmcp-movement
+# Verifies GMCP room packets update correctly on movement.
+
+## Scenario: Moving sends updated Room.Info and Room.Nearby
+- Players: Rye
+
+### Steps
+1. Rye connects and logs in
+2. Wait for post-login burst
+3. Rye: `north`
+4. Assert Rye receives GMCP: `Room.Info` with updated room id
+5. Assert Rye receives GMCP: `Room.Nearby`
+
+## Scenario: Moving in blocked direction sends Room.WrongDir
+- Players: Rye
+
+### Steps
+1. Rye connects and logs in
+2. Rye: `up` (assume no exit up in spawn room)
+3. Assert Rye receives GMCP: `Room.WrongDir`
+4. Assert Rye does NOT receive GMCP: `Room.Info` (room didn't change)

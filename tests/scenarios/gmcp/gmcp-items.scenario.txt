@@ -1,0 +1,28 @@
+# gmcp-items
+# Verifies GMCP inventory and equipment packets update on item interactions.
+
+## Scenario: Picking up an item sends Char.Items
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster connects and logs in
+2. Gamemaster: `drop all` (clear inventory if any)
+3. Gamemaster: `create item core:bread` (or equivalent admin command)
+4. Assert Gamemaster receives GMCP: `Char.Items`
+
+## Scenario: Equipping an item sends both Char.Items and Char.Equipment
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster: `create item core:sword`
+2. Gamemaster: `wear sword`
+3. Assert Gamemaster receives GMCP: `Char.Equipment`
+4. Assert Gamemaster receives GMCP: `Char.Items`
+
+## Scenario: Post-login burst includes inventory and equipment state
+- Players: Rye (character with saved items)
+
+### Steps
+1. Rye connects and logs in
+2. Assert Rye receives GMCP: `Char.Items` (may be empty array if no items)
+3. Assert Rye receives GMCP: `Char.Equipment` (slots present even if empty)

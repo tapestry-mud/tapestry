@@ -1,0 +1,49 @@
+# gmcp-post-login-burst
+# Verifies all GMCP packages arrive in correct order after login.
+# Connect with a GMCP-capable client (telnet + GMCP negotiation).
+
+## Scenario: Post-login burst sends all expected packages
+- Players: Rye
+
+### Steps
+1. Rye connects with GMCP enabled
+2. Assert Rye receives GMCP: `World.Display.Colors`
+3. Assert Rye receives GMCP: `Char.StatusVars`
+4. Assert Rye receives GMCP: `Char.Status`
+5. Assert Rye receives GMCP: `Char.Vitals`
+6. Assert Rye receives GMCP: `Char.Experience`
+7. Assert Rye receives GMCP: `Char.Commands`
+8. Assert Rye receives GMCP: `Char.Effects`
+9. Assert Rye receives GMCP: `Char.Items`
+10. Assert Rye receives GMCP: `Char.Equipment`
+11. Assert Rye receives GMCP: `Room.Nearby`
+12. Assert Rye receives GMCP: `Room.Info`
+13. Assert Rye receives GMCP: `World.Time`
+14. Assert Rye receives GMCP: `World.Weather`
+
+## Scenario: World.Display.Colors arrives before Room.Info (accessibility ordering)
+- Players: Rye
+
+### Steps
+1. Rye connects with GMCP enabled
+2. Record packet sequence
+3. Assert `World.Display.Colors` packet index is less than `Room.Info` packet index
+
+## Scenario: Room.Nearby arrives before Room.Info (accessibility ordering)
+- Players: Rye
+
+### Steps
+1. Rye connects with GMCP enabled
+2. Record packet sequence
+3. Assert `Room.Nearby` packet index is less than `Room.Info` packet index
+
+## Scenario: Login phase signals correct sequence
+- Players: Rye (existing character)
+
+### Steps
+1. Rye connects
+2. Assert Rye receives GMCP: `Char.Login.Phase` with phase="name"
+3. Rye: enters name "Rye"
+4. Assert Rye receives GMCP: `Char.Login.Phase` with phase="password"
+5. Rye: enters password
+6. Assert Rye receives GMCP: `Char.Login.Phase` with phase="playing"

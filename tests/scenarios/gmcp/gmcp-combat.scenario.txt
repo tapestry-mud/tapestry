@@ -1,0 +1,23 @@
+# gmcp-combat
+# Verifies GMCP combat packets update on engage/end.
+
+## Scenario: Engaging combat sends Char.Combat.Target with active=true
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster: `teleport core:test-arena`
+2. Gamemaster: `spawn core:goblin`
+3. Assert Gamemaster sees: `Spawned:`
+4. Gamemaster: `kill goblin`
+5. Assert Gamemaster receives GMCP: `Char.Combat.Target` with active=true
+6. Assert Gamemaster receives GMCP: `Char.Combat.Targets`
+
+## Scenario: Killing target sends Char.Combat.Target with active=false
+- Players: Gamemaster
+
+### Steps
+1. Gamemaster: `teleport core:test-arena`
+2. Gamemaster: `spawn core:goblin`
+3. Gamemaster: `kill goblin`
+4. Wait for combat end
+5. Assert Gamemaster receives GMCP: `Char.Combat.Target` with active=false
