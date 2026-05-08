@@ -2,7 +2,7 @@ id: "example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
 tags: [npc, mob, hostile, killable, rare, regen]
-behavior: stationary
+behavior: combatant
 stats:
   strength: 14
   dexterity: 10
@@ -25,6 +25,13 @@ properties:
   ac_exotic: 2
   wimpy_threshold: 15
   xp_value: 200
+  battle_interval: 3
+  battle_chance: 0.6
+abilities:
+  - id: "kick"
+    proficiency: 70
+battlecommands:
+  - "kick"
 equipment:
   - "example-pack:iron-sword"
   - "example-pack:leather-cap"
