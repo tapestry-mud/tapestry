@@ -71,15 +71,14 @@ export default function App() {
     )
   }
 
-  if ((status === 'disconnected' || status === 'error') && preAuthEnabled) {
+  if (status === 'disconnected' || status === 'error') {
     if (showLogin) {
-      return <LoginPage onBack={() => { setShowLogin(false) }} />
+      if (preAuthEnabled) {
+        return <LoginPage onBack={() => { setShowLogin(false) }} />
+      }
+      return <ConnectScreen />
     }
     return <LandingPage onEnter={() => { setShowLogin(true) }} />
-  }
-
-  if (status === 'disconnected' || status === 'error') {
-    return <ConnectScreen />
   }
   if (loginPhase === 'playing') {
     return (
