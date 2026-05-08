@@ -57,10 +57,10 @@ public class ContentLoadingModule : IGameModule
     {
         _messaging.SetMotd(_config.Server.Motd);
         LoadPacks();
+        _abilityCommandBridge.WireAll();
         _packValidator.Validate();
         _connectionLoader.Load();
         AppendPackCreditsToMotd();
-        _abilityCommandBridge.WireAll();
 
         // Auto-generate help topics for commands with ArgDefinitions.
         // Pack help files (higher loadOrder from LoadPack) override these.
