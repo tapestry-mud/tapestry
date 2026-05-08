@@ -16,6 +16,8 @@ Think Minecraft's relationship to mods: the engine is the canvas, packs are the 
 
 <a href="screenshots/jaeger-tracing.png"><img src="screenshots/jaeger-tracing.png" width="600" alt="Jaeger distributed trace showing GameLoop tick breakdown"></a>
 
+<a href="screenshots/tpm-package-manager.png"><img src="screenshots/tpm-package-manager.png" width="600" alt="TPM package manager CLI showing search, install, list, info, and disable commands"></a>
+
 ## Quick Start
 
 ```bash
