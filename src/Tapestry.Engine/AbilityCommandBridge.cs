@@ -75,7 +75,9 @@ public class AbilityCommandBridge
             description: displayName,
             category: category,
             sourceFile: ability.SourceFile,
-            visibleTo: visibleTo
+            visibleTo: visibleTo,
+            roles: ["player", "mob"],
+            actorHandler: actorCtx => { ExecuteAbilityCommandForActor(actorCtx, abilityId, displayName); }
         );
     }
 
@@ -178,6 +180,96 @@ public class AbilityCommandBridge
 
         var displayName = ability?.ShortName ?? ability?.Name ?? abilityId;
         _sessions.SendToPlayer(player.Id, $"Use {displayName} on whom?\r\n");
+        return null;
+    }
+
+    private void ExecuteAbilityCommandForActor(ActorContext actorCtx, string abilityId, string displayName)
+    {
+        var entity = _world.GetEntity(actorCtx.EntityId);
+        if (entity == null) { return; }
+
+        var proficiency = _proficiency.GetProficiency(entity.Id, abilityId);
+        if (!proficiency.HasValue || proficiency.Value <= 0)
+        {
+            if (actorCtx.Source == "player")
+            {
+                _sessions.SendToPlayer(actorCtx.EntityId, $"You don't know how to {displayName}.\r\n");
+            }
+            return;
+        }
+
+        var targetId = ResolveTargetForActor(actorCtx, entity, abilityId, displayName);
+        if (targetId == null) { return; }
+
+        var targetEntity = _world.GetEntity(targetId.Value);
+        if (targetEntity == null) { return; }
+
+        if (targetEntity.Id != entity.Id && !_combat.IsInCombat(entity.Id))
+        {
+            var engaged = _combat.Engage(entity, targetEntity);
+            if (!engaged)
+            {
+                if (actorCtx.Source == "player")
+                {
+                    _sessions.SendToPlayer(actorCtx.EntityId, "You can't attack that.\r\n");
+                }
+                return;
+            }
+        }
+
+        var queue = entity.GetProperty<List<object>>(AbilityProperties.QueuedActions) ?? new List<object>();
+        queue.Add(new Dictionary<string, object?>
+        {
+            ["abilityId"] = abilityId,
+            ["targetEntityId"] = targetId.Value.ToString()
+        });
+        entity.SetProperty(AbilityProperties.QueuedActions, queue);
+    }
+
+    private Guid? ResolveTargetForActor(ActorContext actorCtx, Entity entity, string abilityId, string displayName)
+    {
+        if (actorCtx.RawArgs.Length > 0)
+        {
+            var raw = string.Join(" ", actorCtx.RawArgs).ToLower();
+
+            if (raw == "self" || raw == "me" || raw == entity.Name.ToLower()) { return entity.Id; }
+
+            var targetName = raw;
+            var targetIndex = 1;
+            var dotPos = raw.IndexOf('.');
+            if (dotPos > 0 && int.TryParse(raw[..dotPos], out var parsedIndex))
+            {
+                targetIndex = parsedIndex;
+                targetName = raw[(dotPos + 1)..];
+            }
+
+            if (actorCtx.RoomId != null)
+            {
+                var matches = _world.GetEntitiesInRoom(actorCtx.RoomId)
+                    .Where(e => e.Id != entity.Id && (e.HasTag("npc") || e.HasTag("player")))
+                    .Where(e => e.Name.ToLower().Contains(targetName))
+                    .ToList();
+                if (matches.Count >= targetIndex) { return matches[targetIndex - 1].Id; }
+            }
+
+            if (_combat.IsInCombat(entity.Id)) { return _combat.GetPrimaryTarget(entity.Id); }
+
+            if (actorCtx.Source == "player")
+            {
+                _sessions.SendToPlayer(actorCtx.EntityId, "You don't see that here.\r\n");
+            }
+            return null;
+        }
+
+        if (_combat.IsInCombat(entity.Id)) { return _combat.GetPrimaryTarget(entity.Id); }
+
+        var ability = _abilities.Get(abilityId);
+        if (ability != null && ability.CanTarget.Contains("self")) { return entity.Id; }
+
+        if (actorCtx.Source == "player")
+        {
+            _sessions.SendToPlayer(actorCtx.EntityId, $"Use {displayName} on whom?\r\n");
+        }
         return null;
     }
 }

@@ -138,6 +138,23 @@ public class AbilityCommandBridgeTests
     }
 
     [Fact]
+    public void WireAll_RegistersAbilityCommandWithMobRole()
+    {
+        var (bridge, commands, abilities, _, _) = Build();
+        var abilityId = "test:fireball";
+        abilities.Register(new AbilityDefinition
+        {
+            Id = abilityId, Name = "Fireball", Type = AbilityType.Active, Category = AbilityCategory.Spell, PackName = "test"
+        });
+
+        bridge.WireAll();
+
+        var reg = commands.Resolve("fireball", "mob");
+        Assert.NotNull(reg);
+        Assert.Contains("mob", reg!.Roles);
+    }
+
+    [Fact]
     public void ResolveTarget_NamedTargetMiss_InCombat_FallsBackToPrimaryTarget()
     {
         var world = new World();
