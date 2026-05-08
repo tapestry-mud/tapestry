@@ -2,34 +2,34 @@
     name: 'say',
     aliases: ["'"],
     description: 'Speak to others in the room.',
-    priority: 0,
-    handler: function(player, args) {
-        var message = args.join(' ');
-        if (!message) {
-            player.send('Say what?\r\n');
-            return;
-        }
-        player.send('You say "<highlight>' + message + '</highlight>"\r\n');
+    category: 'communication',
+    roles: ['player', 'mob'],
+    gmcp: { channel: 'say', prependSender: false },
+    args: {
+        message: { type: 'text', required: true }
+    },
+    handler: function(actor, resolved) {
+        actor.send('You say "<highlight>' + resolved.message + '</highlight>"\r\n');
         tapestry.world.sendToRoomExcept(
-            player.roomId,
-            player.entityId,
-            player.name + ' says "<highlight>' + message + '</highlight>"\r\n'
+            actor.roomId,
+            actor.entityId,
+            actor.name + ' says "<highlight>' + resolved.message + '</highlight>"\r\n'
         );
 
         tapestry.events.publish("communication.message", {
             channel: "say",
-            sender: player.name,
-            senderId: player.entityId,
+            sender: actor.name,
+            senderId: actor.entityId,
             source: "player",
-            text: message,
-            roomId: player.roomId
+            text: resolved.message,
+            roomId: actor.roomId
         });
 
         tapestry.events.publish("player.say", {
-            playerId: player.entityId,
-            playerName: player.name,
-            roomId: player.roomId,
-            text: message
+            playerId: actor.entityId,
+            playerName: actor.name,
+            roomId: actor.roomId,
+            text: resolved.message
         });
     }
 });

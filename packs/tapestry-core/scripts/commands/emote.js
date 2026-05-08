@@ -2,27 +2,27 @@
     name: 'emote',
     aliases: [':'],
     description: 'Perform an emote action.',
-    priority: 0,
-    handler: function(player, args) {
-        var action = args.join(' ');
-        if (!action) {
-            player.send('Emote what?\r\n');
-            return;
-        }
-        player.send(player.name + ' ' + action + '\r\n');
+    category: 'communication',
+    roles: ['player', 'mob'],
+    gmcp: { channel: 'emote', prependSender: false },
+    args: {
+        message: { type: 'text', required: true }
+    },
+    handler: function(actor, resolved) {
+        actor.send(actor.name + ' ' + resolved.message + '\r\n');
         tapestry.world.sendToRoomExcept(
-            player.roomId,
-            player.entityId,
-            player.name + ' ' + action + '\r\n'
+            actor.roomId,
+            actor.entityId,
+            actor.name + ' ' + resolved.message + '\r\n'
         );
 
         tapestry.events.publish("communication.message", {
             channel: "emote",
-            sender: player.name,
-            senderId: player.entityId,
+            sender: actor.name,
+            senderId: actor.entityId,
             source: "player",
-            text: player.name + ' ' + action,
-            roomId: player.roomId
+            text: actor.name + ' ' + resolved.message,
+            roomId: actor.roomId
         });
     }
 });
