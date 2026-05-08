@@ -6,6 +6,7 @@ public class CommandRegistration
 {
     public required string Keyword { get; init; }
     public required Action<CommandContext> Handler { get; init; }
+    public Action<ActorContext>? ActorHandler { get; init; }
     public string[] Aliases { get; init; } = [];
     public int Priority { get; init; }
     public string PackName { get; init; } = "";
@@ -17,6 +18,11 @@ public class CommandRegistration
     /// <summary>Relative path from pack directory. Set automatically by PackLoader; do not supply manually.</summary>
     public string SourceFile { get; init; } = "";
     public Func<Entity, bool>? VisibleTo { get; init; }
+
+    // Role-based access control and argument/GMCP configuration
+    public string[] Roles { get; init; } = ["player"];
+    public Dictionary<string, ArgDefinition>? ArgDefinitions { get; init; }
+    public GmcpConfig? Gmcp { get; init; }
 }
 
 public class CommandRegistry
@@ -33,26 +39,36 @@ public class CommandRegistry
         string description = "",
         string category = "",
         string sourceFile = "",
-        Func<Entity, bool>? visibleTo = null)
+        Func<Entity, bool>? visibleTo = null,
+        string[]? roles = null,
+        Action<ActorContext>? actorHandler = null,
+        Dictionary<string, ArgDefinition>? argDefinitions = null,
+        GmcpConfig? gmcp = null)
     {
-        var registration = new CommandRegistration
         {
-            Keyword = keyword,
-            Handler = handler,
-            Aliases = aliases ?? [],
-            Priority = priority,
-            PackName = packName,
-            RegistrationOrder = _nextOrder++,
-            Description = description,
-            Category = category,
-            SourceFile = sourceFile,
-            VisibleTo = visibleTo
-        };
+            var registration = new CommandRegistration
+            {
+                Keyword = keyword,
+                Handler = handler,
+                ActorHandler = actorHandler,
+                Aliases = aliases ?? [],
+                Priority = priority,
+                PackName = packName,
+                RegistrationOrder = _nextOrder++,
+                Description = description,
+                Category = category,
+                SourceFile = sourceFile,
+                VisibleTo = visibleTo,
+                Roles = roles ?? ["player"],
+                ArgDefinitions = argDefinitions,
+                Gmcp = gmcp
+            };
 
-        AddToMap(keyword, registration);
-        foreach (var alias in registration.Aliases)
-        {
-            AddToMap(alias, registration);
+            AddToMap(keyword, registration);
+            foreach (var alias in registration.Aliases)
+            {
+                AddToMap(alias, registration);
+            }
         }
     }
 

@@ -121,4 +121,28 @@ public class CommandRegistryTests
         // "l" should exact-match the alias
         registry.Resolve("l")!.Handler.Should().Be(lookHandler);
     }
+
+    [Fact]
+    public void Register_WithNoRoles_DefaultsToPlayer()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("test", _ => { });
+            var reg = registry.Resolve("test");
+            Assert.NotNull(reg);
+            Assert.Contains("player", reg!.Roles);
+        }
+    }
+
+    [Fact]
+    public void Register_WithExplicitRoles_StoresRoles()
+    {
+        {
+            var registry = new CommandRegistry();
+            registry.Register("test", _ => { }, roles: ["mob"]);
+            var reg = registry.Resolve("test");
+            Assert.NotNull(reg);
+            Assert.Contains("mob", reg!.Roles);
+        }
+    }
 }
