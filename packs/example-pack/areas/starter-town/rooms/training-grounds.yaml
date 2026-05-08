@@ -14,9 +14,8 @@ properties:
 spawns:
   - mob: "example-pack:goblin"
     count: 2
-    rare:
-      mob: "example-pack:goblin-chief"
-      chance: 0.05
+  - mob: "example-pack:goblin-chief"
+    count: 1
   - mob: "example-pack:test-dummy"
     count: 1
   - mob: "example-pack:warrior-trainer"

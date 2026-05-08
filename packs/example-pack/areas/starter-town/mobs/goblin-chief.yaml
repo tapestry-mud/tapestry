@@ -1,7 +1,7 @@
 id: "example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
-tags: [npc, mob, hostile, killable, rare, regen]
+tags: [npc, mob, hostile, killable, regen]
 behavior: combatant
 stats:
   strength: 14
