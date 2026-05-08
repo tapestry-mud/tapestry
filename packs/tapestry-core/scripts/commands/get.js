@@ -47,14 +47,13 @@ tapestry.commands.register({
             return;
         }
 
-        if (item === 'all') {
-            var roomItems = tapestry.inventory.findItemsInRoom(actor.entityId);
-            if (!roomItems || roomItems.length === 0) {
+        if (item === 'all' || item.indexOf('all.') === 0) {
+            var picked = tapestry.inventory.getAll(actor.entityId, item);
+            if (!picked || picked.length === 0) {
                 actor.send("You don't see anything to pick up.\r\n");
                 return;
             }
-            roomItems.forEach(function(i) {
-                tapestry.inventory.pickUp(actor.entityId, i.name);
+            picked.forEach(function(i) {
                 actor.send('You pick up ' + i.name + '.\r\n');
             });
             actor.sendToRoom(actor.name + ' picks up some items.\r\n');
