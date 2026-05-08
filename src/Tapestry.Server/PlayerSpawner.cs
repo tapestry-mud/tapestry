@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Server.Gmcp.Handlers;
+using Tapestry.Server.Login;
 using Tapestry.Shared;
 
 namespace Tapestry.Server;
@@ -122,5 +124,39 @@ public class PlayerSpawner
         _metrics.ActiveConnections.Add(-1);
 
         CompleteLogin(existing.PlayerEntity, newConnection, preLogin);
+    }
+
+    public PlayerSession CompleteNewCharacter(
+        string name,
+        string hashedPassword,
+        IConnection connection,
+        LoginContext preLogin,
+        FlowEngine? flowEngine)
+    {
+        var entity = LoginFlow.CreateNewPlayerEntity(name);
+        var session = new PlayerSession(connection, entity)
+        {
+            Phase = LoginPhase.Creating,
+            PendingPasswordHash = hashedPassword
+        };
+
+        _sessions.RemovePreLogin(preLogin.ConnectionId);
+        _sessions.Add(session);
+        _metrics.ActiveConnections.Add(1);
+
+        _logger.LogInformation("New player {Name} entering creation flow via pre-auth (entity {Id})", name, entity.Id);
+
+        connection.OnDisconnected += () =>
+        {
+            if (session.Phase == LoginPhase.Creating)
+            {
+                _sessions.Remove(session);
+                _metrics.ActiveConnections.Add(-1);
+                _logger.LogInformation("New player {Name} disconnected mid-creation (pre-auth)", name);
+            }
+        };
+
+        flowEngine?.Trigger(session, "new_player_connect");
+        return session;
     }
 }
