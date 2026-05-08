@@ -142,6 +142,7 @@ builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
 // Game modules -- order is boot order
 builder.Services.AddSingleton<IGameModule, ConfigurationModule>();
 builder.Services.AddSingleton<IGameModule, ContentLoadingModule>();
+builder.Services.AddSingleton<IGameModule, QuestStartupModule>();
 builder.Services.AddSingleton<IGameModule, CombatEventModule>();
 builder.Services.AddSingleton<IGameModule, WorldEventModule>();
 builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
