@@ -197,6 +197,7 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
+        Thread.Sleep(100);
 
         h.GmcpHandler.Sent.Should().Contain(x => x.Package == "Char.Login.Phase");
         var namePhase = h.GmcpHandler.Sent.First(x => x.Package == "Char.Login.Phase");
