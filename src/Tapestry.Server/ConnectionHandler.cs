@@ -5,7 +5,6 @@ using Tapestry.Engine;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
-using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Server.Gmcp.Handlers;
 using Tapestry.Server.Login;
@@ -16,56 +15,44 @@ namespace Tapestry.Server;
 public class ConnectionHandler
 {
     private readonly SessionManager _sessions;
-    private readonly World _world;
-    private readonly SystemEventQueue _eventQueue;
     private readonly TapestryMetrics _metrics;
     private readonly PlayerPersistenceService _persistence;
     private readonly ServerConfig _config;
     private readonly ILogger<ConnectionHandler> _logger;
     private readonly ILogger<LoginFlow> _loginFlowLogger;
-    private readonly ILogger<PlayerSpawner> _spawnerLogger;
     private readonly FlowEngine _flowEngine;
     private readonly ColorRenderer _colorRenderer;
     private readonly LoginGateRegistry _loginGates;
     private readonly IGmcpConnectionManager _connectionManager;
     private readonly LoginHandler _loginHandler;
-    private readonly GameLoop _gameLoop;
-    private readonly MobAIManager _mobAI;
+    private readonly PlayerSpawner _spawner;
 
     public ConnectionHandler(
         SessionManager sessions,
-        World world,
-        SystemEventQueue eventQueue,
         TapestryMetrics metrics,
         PlayerPersistenceService persistence,
         ServerConfig config,
         ILogger<ConnectionHandler> logger,
         ILogger<LoginFlow> loginFlowLogger,
-        ILogger<PlayerSpawner> spawnerLogger,
         FlowEngine flowEngine,
         ColorRenderer colorRenderer,
         LoginGateRegistry loginGates,
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
-        GameLoop gameLoop,
-        MobAIManager mobAI)
+        PlayerSpawner spawner)
     {
         _sessions = sessions;
-        _world = world;
-        _eventQueue = eventQueue;
         _metrics = metrics;
         _persistence = persistence;
         _config = config;
         _logger = logger;
         _loginFlowLogger = loginFlowLogger;
-        _spawnerLogger = spawnerLogger;
         _flowEngine = flowEngine;
         _colorRenderer = colorRenderer;
         _loginGates = loginGates;
         _connectionManager = connectionManager;
         _loginHandler = loginHandler;
-        _gameLoop = gameLoop;
-        _mobAI = mobAI;
+        _spawner = spawner;
         _flowEngine.NewPlayerEntityFactory = LoginFlow.CreateNewPlayerEntity;
         _flowEngine.GmcpSend = (connectionId, package, payload) =>
         {
@@ -87,9 +74,6 @@ public class ConnectionHandler
 
         var adapter = new AsyncConnectionAdapter(connection);
 
-        var spawner = new PlayerSpawner(
-            _sessions, _world, _gameLoop, _loginHandler, _mobAI, _eventQueue, _metrics, _spawnerLogger);
-
         var flow = new LoginFlow(
             adapter, loginContext, _persistence, _sessions, _loginGates, _loginHandler, _config,
             _loginFlowLogger, _metrics, _flowEngine);
@@ -98,7 +82,7 @@ public class ConnectionHandler
         {
             try
             {
-                await flow.RunAsync(spawner);
+                await flow.RunAsync(_spawner);
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)

@@ -37,7 +37,7 @@ public class LoginFlowNameValidationTests
             persistence: null!,
             sessions,
             loginGates: null!,
-            gmcp: null,
+            loginHandler: null,
             config: MakeConfig(),
             logger: NullLogger<LoginFlow>.Instance,
             metrics: null!,

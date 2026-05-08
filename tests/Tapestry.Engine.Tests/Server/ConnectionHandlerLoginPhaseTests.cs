@@ -86,7 +86,6 @@ public class ConnectionHandlerLoginPhaseTests
         ConnectionHandler Handler,
         FakeGmcpHandler GmcpHandler,
         FakeConnection Connection,
-        GmcpService GmcpService,
         FakePlayerStore Store,
         GameLoop GameLoop);
 
@@ -107,21 +106,11 @@ public class ConnectionHandlerLoginPhaseTests
         var eventBus = new EventBus();
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
-        var gmcpService = new GmcpService(
-            sessions, world, eventBus,
-            new GameClock(eventBus, new ServerConfig()),
-            new WeatherService(new AreaRegistry(), new WeatherZoneRegistry(), world, sessions, eventBus, new ServerConfig()),
-            new ProgressionManager(world, eventBus),
-            alignmentManager,
-            new SustenanceConfig(),
-            new CommandRegistry(),
-            new EffectManager(world, eventBus),
-            new CombatManager(world, eventBus),
-            new AbilityRegistry(),
-            new ThemeRegistry(),
-            new RarityRegistry(),
-            new EssenceRegistry(),
-            new SlotRegistry());
+        var connectionManager = new Tapestry.Server.Gmcp.GmcpConnectionManager(sessions);
+        var orchestrator = new Tapestry.Server.Gmcp.PostLoginOrchestrator(
+            Array.Empty<Tapestry.Contracts.IGmcpPackageHandler>());
+        var loginHandler = new Tapestry.Server.Gmcp.Handlers.LoginHandler(
+            connectionManager, sessions, world, eventBus, orchestrator);
         var flowEngine = new FlowEngine(
             new FlowRegistry(),
             sessions,
@@ -154,27 +143,29 @@ public class ConnectionHandlerLoginPhaseTests
             new DispositionEvaluator(world, eventBus, new AlignmentManager(world, eventBus, alignmentConfig)),
             NullLogger<MobAIManager>.Instance);
 
+        var spawner = new PlayerSpawner(
+            sessions, world, gameLoop, loginHandler,
+            mobAI, new SystemEventQueue(), new TapestryMetrics(),
+            NullLogger<PlayerSpawner>.Instance);
+
         var handler = new ConnectionHandler(
             sessions,
-            world,
-            new SystemEventQueue(),
             new TapestryMetrics(),
             persistence,
             config,
             NullLogger<ConnectionHandler>.Instance,
             NullLogger<Tapestry.Server.Login.LoginFlow>.Instance,
-            NullLogger<PlayerSpawner>.Instance,
             flowEngine,
             new ColorRenderer(new ThemeRegistry()),
             new LoginGateRegistry(),
-            gmcpService,
-            gameLoop,
-            mobAI);
+            connectionManager,
+            loginHandler,
+            spawner);
 
         var conn = new FakeConnection();
         var gmcpHandler = new FakeGmcpHandler();
 
-        return new Harness(handler, gmcpHandler, conn, gmcpService, store, gameLoop);
+        return new Harness(handler, gmcpHandler, conn, store, gameLoop);
     }
 
     private static PlayerSaveData MakeSaveData(string name, string password)
