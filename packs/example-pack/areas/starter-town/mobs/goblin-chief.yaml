@@ -30,6 +30,10 @@ properties:
 abilities:
   - id: "kick"
     proficiency: 70
+idle_chance: 0.6
+idle_interval: 20
+idle_commands:
+  - 'say I am going to kick your arse'
 battle_commands:
   - 'emote snarls and winds up for a kick!'
   - "kick"
