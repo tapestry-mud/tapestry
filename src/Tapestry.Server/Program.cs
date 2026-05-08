@@ -132,8 +132,9 @@ builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.S
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCombatHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CommHandler>();
 builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
-builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler>(
-    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.Handlers.LoginHandler>());
+// NOTE: LoginHandler is NOT registered as IGmcpPackageHandler to avoid circular DI:
+// PostLoginOrchestrator -> IEnumerable<IGmcpPackageHandler> -> LoginHandler -> PostLoginOrchestrator
+// LoginHandler.Configure() is called explicitly during bootstrap instead.
 
 // Game modules -- order is boot order
 builder.Services.AddSingleton<IGameModule, ConfigurationModule>();
@@ -172,7 +173,6 @@ var app = builder.Build();
 
 // WebSocket endpoint for web client connections
 app.UseWebSockets();
-app.UseRouting();
 
 // --- Pre-Auth HTTP Endpoints ---
 
@@ -280,9 +280,9 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
     }
 });
 
-// --- WebSocket catch-all (must come after HTTP routes) ---
+// --- WebSocket fallback (runs only when no HTTP route matched) ---
 
-app.Map("/{**catch}", async context =>
+app.MapFallback(async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
@@ -364,6 +364,13 @@ app.Map("/{**catch}", async context =>
 var loginGates = app.Services.GetRequiredService<LoginGateRegistry>();
 loginGates.Register(new ReservedNameGate());
 app.Services.GetRequiredService<GameBootstrapper>().Configure();
+
+// Configure GMCP handlers (event subscriptions, flush callbacks, etc.)
+foreach (var handler in app.Services.GetRequiredService<IEnumerable<IGmcpPackageHandler>>())
+{
+    handler.Configure();
+}
+app.Services.GetRequiredService<Tapestry.Server.Gmcp.Handlers.LoginHandler>().Configure();
 
 Log.Information("Starting {Name}...", config.Server.Name);
 Log.Information("{Name} is running. Telnet: {TelnetPort}, WebSocket: {WsPort}. Ctrl+C to stop.",
