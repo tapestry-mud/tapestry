@@ -238,7 +238,7 @@ public class PackLoaderTests
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, NullLogger<MobsModule>.Instance),
+            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, NullLogger<MobsModule>.Instance),
             new ThemeModule(themeRegistry),
             new DiceModule(),
             new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig),

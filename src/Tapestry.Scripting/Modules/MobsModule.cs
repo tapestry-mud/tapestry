@@ -2,6 +2,7 @@ using Jint.Native;
 using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
 using Tapestry.Scripting.Services;
 using JintEngine = Jint.Engine;
@@ -14,17 +15,20 @@ public class MobsModule : IJintApiModule
     private readonly MobAIManager _mobAIManager;
     private readonly MobCommandRegistry _mobCommandRegistry;
     private readonly MobCommandQueue _mobCommandQueue;
+    private readonly CommandRegistry _commandRegistry;
     private readonly Dictionary<string, JsValue> _mobScriptRegistry = new();
     private readonly ILogger<MobsModule> _logger;
 
     public MobsModule(ApiMobs mobs, MobAIManager mobAIManager,
         MobCommandRegistry mobCommandRegistry, MobCommandQueue mobCommandQueue,
+        CommandRegistry commandRegistry,
         ILogger<MobsModule> logger)
     {
         _mobs = mobs;
         _mobAIManager = mobAIManager;
         _mobCommandRegistry = mobCommandRegistry;
         _mobCommandQueue = mobCommandQueue;
+        _commandRegistry = commandRegistry;
         _logger = logger;
     }
 
@@ -68,6 +72,7 @@ public class MobsModule : IJintApiModule
                     prependSender = prependJs.Type == Types.Boolean && (bool)prependJs.ToObject()!;
                 }
 
+                // Legacy path: keep in MobCommandRegistry for backwards compat
                 _mobCommandRegistry.Register(verb.ToLower(), new MobCommandRegistration
                 {
                     Handler = (mob, text) =>
@@ -83,18 +88,52 @@ public class MobsModule : IJintApiModule
                     GmcpChannel = gmcpChannel,
                     PrependSender = prependSender
                 });
+
+                // Unified path: also register in CommandRegistry with roles: ["mob"]
+                _commandRegistry.Register(
+                    verb.ToLower(),
+                    _ => { },
+                    roles: ["mob"],
+                    actorHandler: actorCtx =>
+                    {
+                        var mobObj = new
+                        {
+                            entityId = actorCtx.EntityId.ToString(),
+                            name = actorCtx.Name,
+                            roomId = actorCtx.RoomId
+                        };
+                        var text = string.Join(" ", actorCtx.RawArgs);
+                        try
+                        {
+                            engine.Invoke(handler, JsValue.FromObject(engine, mobObj), text);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Mob command '{Verb}' dispatch error", verb);
+                        }
+                    }
+                );
             }),
 
             command = new Action<string, string, JsValue>((entityIdStr, commandStr, delayJs) =>
             {
-                if (!Guid.TryParse(entityIdStr, out var entityId))
-                {
-                    return;
-                }
-                var delay = (delayJs != null && delayJs.Type != Types.Undefined && delayJs.Type != Types.Null)
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
+
+                var baseDelay = (delayJs != null && delayJs.Type != Types.Undefined && delayJs.Type != Types.Null)
                     ? (double)delayJs.ToObject()!
                     : 0.0;
-                _mobCommandQueue.Enqueue(entityId, commandStr, delay);
+
+                // Chain support: each semicolon-separated segment queued with 0 additional delay
+                var segments = commandStr.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var segment in segments)
+                {
+                    var trimmed = segment.Trim();
+                    if (!string.IsNullOrEmpty(trimmed))
+                    {
+                        _mobCommandQueue.Enqueue(entityId, trimmed, baseDelay);
+                        baseDelay = 0.0; // subsequent segments chain after the first
+                    }
+                }
             }),
 
             registerScript = new Action<string, JsValue>((templateId, hooks) =>
