@@ -1,0 +1,381 @@
+/* ──────────────────────────────────────────────
+   Pre-auth theme: midnight + gold
+   Scoped under .preauth to avoid polluting game UI
+   ────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ── Theme variables ────────────────────────── */
+
+.preauth {
+  --bg:        #0a1226;
+  --bg-2:      #0d1730;
+  --bg-3:      #11203d;
+  --panel:     #11203d;
+  --panel-2:   #16284a;
+  --line:      #2a3a5e;
+  --line-2:    #1a2848;
+  --ink:       #d8d6cc;
+  --ink-2:     #b6b4a8;
+  --ink-3:     #8a8d94;
+  --ink-4:     #6e7081;
+  --gold:      #f0c872;
+  --gold-hi:   #f5d997;
+  --gold-deep: #8b6e35;
+  --gold-soft: oklch(0.78 0.13 85);
+  --silver:    #d8d6cc;
+  --crit:      #e08a78;
+  --party:     #c8e0a8;
+  --pa-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --pa-sans: 'Inter', system-ui, sans-serif;
+  --pa-serif: 'EB Garamond', Georgia, serif;
+  --pa-display: 'Cinzel', 'Trajan Pro', serif;
+
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(240,200,114,.07), transparent 60%),
+    radial-gradient(ellipse 60% 80% at 50% 100%, rgba(158,196,255,.04), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--pa-serif);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+/* ── Screen-reader only utility ─────────────── */
+
+.pa-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+}
+
+/* ── Stage (page wrapper) ───────────────────── */
+
+.pa-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Card (form container) ──────────────────── */
+
+.pa-card {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 16px 48px -20px rgba(0,0,0,.7);
+  padding: 28px 30px 26px;
+  position: relative;
+}
+
+/* ── Step indicator ─────────────────────────── */
+
+.step-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 22px;
+  font-family: var(--pa-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+
+.step-pip {
+  width: 22px; height: 22px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--ink-3);
+}
+
+.step-pip.active { border-color: var(--gold); color: var(--gold); background: rgba(240,200,114,.08); }
+.step-pip.done { border-color: var(--gold); color: #0f1115; background: var(--gold); }
+.step-line { flex: 1; height: 1px; background: var(--line-2); }
+.step-line.lit { background: var(--gold); }
+.step-label-active { color: var(--ink); letter-spacing: 0.16em; }
+
+/* ── Form heading ───────────────────────────── */
+
+.pa-form-h {
+  font-family: var(--pa-serif); font-style: italic; font-weight: 400;
+  font-size: 26px; line-height: 1.15; margin: 0 0 6px; color: var(--ink);
+}
+
+.pa-form-sub {
+  font-family: var(--pa-mono); font-size: 10px; letter-spacing: 0.18em;
+  color: var(--ink-4); text-transform: uppercase; margin: 0 0 22px;
+}
+
+.pa-form-sub .gold { color: var(--gold); }
+
+/* ── New character badge ────────────────────── */
+
+.pa-new-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--pa-mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--gold);
+  background: rgba(240,200,114,.06); border: 1px solid rgba(240,200,114,.4);
+  padding: 5px 10px; border-radius: 2px; margin-bottom: 14px;
+}
+
+.pa-new-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 6px rgba(240,200,114,.6);
+}
+
+/* ── Input field ────────────────────────────── */
+
+.pa-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+.pa-field-label {
+  font-family: var(--pa-mono); font-size: 10px; letter-spacing: 0.18em;
+  color: var(--ink-3); text-transform: uppercase;
+}
+
+.pa-input-wrap {
+  position: relative; display: flex; align-items: stretch;
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: 3px;
+  transition: border-color .12s;
+}
+
+.pa-input-wrap:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240,200,114,.08);
+}
+
+.pa-input-wrap.error { border-color: var(--crit); }
+.pa-input-wrap.error:focus-within { box-shadow: 0 0 0 3px rgba(224,138,120,.12); }
+
+.pa-input-prompt {
+  display: flex; align-items: center; padding-left: 12px;
+  color: var(--gold); font-family: var(--pa-mono); font-size: 14px;
+  pointer-events: none;
+}
+
+.pa-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--ink); font-family: var(--pa-mono); font-size: 14px;
+  padding: 13px 14px 13px 10px; letter-spacing: 0.04em;
+}
+
+.pa-input::placeholder { color: var(--ink-4); letter-spacing: 0.04em; }
+.pa-input:disabled { color: var(--ink-3); cursor: wait; }
+
+/* ── Error display ──────────────────────────── */
+
+.pa-error-slot {
+  min-height: 18px; font-family: var(--pa-mono); font-size: 11px;
+  color: var(--crit); letter-spacing: 0.04em; margin-top: 4px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.pa-error-slot:empty { visibility: hidden; min-height: 18px; }
+
+.pa-error-icon {
+  width: 14px; height: 14px; border: 1px solid var(--crit); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+
+/* ── Submit button ──────────────────────────── */
+
+.pa-submit {
+  width: 100%; appearance: none;
+  border: 1px solid var(--gold); background: var(--gold); color: #0f1115;
+  font-family: var(--pa-mono); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 14px 16px; border-radius: 3px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  transition: background .12s;
+}
+
+.pa-submit:hover:not(:disabled) { background: oklch(0.84 0.13 85); }
+.pa-submit:active { transform: translateY(1px); }
+
+.pa-submit:disabled {
+  cursor: wait; opacity: 0.65;
+  background: var(--line-2); border-color: var(--line-2); color: var(--ink-3);
+}
+
+.pa-submit:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── Loading dots ───────────────────────────── */
+
+.dots-load { display: inline-flex; gap: 4px; }
+
+.dots-load i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor;
+  animation: pa-bounce 0.9s ease-in-out infinite;
+}
+
+.dots-load i:nth-child(2) { animation-delay: 0.15s; }
+.dots-load i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes pa-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* ── Back link ──────────────────────────────── */
+
+.pa-back-row { display: flex; justify-content: center; margin-top: 18px; }
+
+.pa-back-link {
+  appearance: none; background: transparent; border: none; cursor: pointer;
+  font-family: var(--pa-mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: 6px 10px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+
+.pa-back-link:hover { color: var(--gold); }
+.pa-back-link:disabled { color: var(--ink-4); cursor: wait; }
+.pa-back-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* ── Filigree divider ───────────────────────── */
+
+.pa-fili {
+  display: flex; align-items: center; gap: 14px;
+  color: var(--gold); margin: 4px auto 14px;
+  font-family: var(--pa-display); letter-spacing: 0.4em;
+  font-size: 10px; text-transform: uppercase;
+}
+
+.pa-fili::before, .pa-fili::after {
+  content: ''; flex: 1; height: 1px; width: 60px;
+  background: linear-gradient(90deg, transparent, var(--gold-deep), transparent);
+}
+
+/* ── Login logo ─────────────────────────────── */
+
+.pa-login-logo {
+  width: 360px; max-width: 92%; height: auto;
+  margin: 0 0 6px; display: block;
+  filter: drop-shadow(0 16px 40px rgba(0,0,0,.55));
+}
+
+/* ── Wheel mark (animated SVG) ──────────────── */
+
+.wheel-mark { opacity: 0.92; margin: 18px 0 16px; }
+.wheel-mark .ring-out { animation: pa-spin 90s linear infinite; transform-origin: 50% 50%; }
+.wheel-mark .ring-in  { animation: pa-spin 70s linear infinite reverse; transform-origin: 50% 50%; }
+.wheel-mark .spokes   { animation: pa-spin 220s linear infinite; transform-origin: 50% 50%; }
+
+@keyframes pa-spin { to { transform: rotate(360deg); } }
+
+/* ── Page subtitle ──────────────────────────── */
+
+.pa-page-sub {
+  font-family: var(--pa-serif); font-style: italic; font-size: 15px;
+  color: var(--gold-soft); margin: 0 0 28px; text-align: center;
+}
+
+/* ── Below-card meta (footer) ───────────────── */
+
+.pa-below {
+  margin-top: 22px; text-align: center;
+  font-family: var(--pa-mono); font-size: 10px; letter-spacing: 0.16em;
+  color: var(--ink-4); text-transform: uppercase;
+  display: flex; gap: 18px; justify-content: center; align-items: center;
+}
+
+.pa-below a, .pa-below button {
+  color: var(--ink-3); text-decoration: none; background: none; border: none;
+  cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+
+.pa-below a:hover, .pa-below button:hover { color: var(--gold); }
+
+.pa-below a:focus-visible, .pa-below button:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+
+.pa-below .dot { color: var(--line-2); }
+
+.pa-conn-led {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: oklch(0.7 0.15 145);
+  box-shadow: 0 0 5px oklch(0.7 0.15 145 / .8);
+  display: inline-block;
+}
+
+/* ══════════════════════════════════════════════
+   Landing page
+   ══════════════════════════════════════════════ */
+
+.pa-landing-hero {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; max-width: 680px; margin: 0 auto;
+}
+
+.pa-landing-title {
+  font-family: var(--pa-mono); font-weight: 700; font-size: 28px;
+  letter-spacing: 0.18em; margin: 0 0 8px; color: var(--ink);
+}
+
+.pa-landing-title .slash { color: var(--gold); font-weight: 400; }
+
+.pa-landing-tagline {
+  font-family: var(--pa-serif); font-style: italic; font-size: 20px;
+  color: var(--gold-soft); margin: 0 0 20px;
+}
+
+.pa-landing-lore {
+  font-family: var(--pa-serif); font-size: 16px; line-height: 1.7;
+  color: var(--ink-2); max-width: 520px; margin: 0 0 32px;
+  text-align: center;
+}
+
+.pa-landing-lore::first-letter {
+  font-family: var(--pa-display); font-size: 42px; float: left;
+  line-height: 1; margin: 4px 8px 0 0; color: var(--gold);
+}
+
+.pa-pillars {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  max-width: 680px; margin: 0 0 36px;
+}
+
+@media (max-width: 640px) {
+  .pa-pillars { grid-template-columns: 1fr; }
+}
+
+.pa-pillar {
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 4px; padding: 20px; text-align: left;
+}
+
+.pa-pillar-icon {
+  font-size: 20px; margin-bottom: 10px; display: block;
+}
+
+.pa-pillar h3 {
+  font-family: var(--pa-mono); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink); margin: 0 0 8px;
+}
+
+.pa-pillar p {
+  font-family: var(--pa-serif); font-size: 13px; line-height: 1.6;
+  color: var(--ink-3); margin: 0;
+}
+
+.pa-enter-btn {
+  appearance: none; border: 1px solid var(--gold); background: var(--gold);
+  color: #0f1115; font-family: var(--pa-mono); font-size: 13px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 14px 36px; border-radius: 3px; cursor: pointer;
+  transition: background .12s; margin-bottom: 36px;
+}
+
+.pa-enter-btn:hover { background: oklch(0.84 0.13 85); }
+.pa-enter-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
