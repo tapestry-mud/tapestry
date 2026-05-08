@@ -170,9 +170,9 @@ public class MobDispositionParseTests
         Assert.Contains("say Hear ye!", template.IdleCommands);
 
         var entity = template.CreateEntity();
-        var storedCommands = entity.GetProperty<List<string>>("idle_commands");
+        var storedCommands = entity.GetProperty<string[]>("idle_commands");
         Assert.NotNull(storedCommands);
-        Assert.Equal(2, storedCommands!.Count);
+        Assert.Equal(2, storedCommands!.Length);
     }
 
     [Fact]

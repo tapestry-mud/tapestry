@@ -76,8 +76,8 @@ public class MobTemplateBattleCommandTests
 
         var entity = template.CreateEntity();
 
-        var stored = entity.GetProperty<List<string>>("battlecommands");
+        var stored = entity.GetProperty<string[]>("battlecommands");
         Assert.NotNull(stored);
-        Assert.Equal(2, stored!.Count);
+        Assert.Equal(2, stored!.Length);
     }
 }

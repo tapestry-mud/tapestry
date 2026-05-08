@@ -17,7 +17,8 @@ public class AbilityCommandBridgeTests
         var eventBus = new EventBus();
         var combat = new CombatManager(world, eventBus);
 
-        var bridge = new AbilityCommandBridge(abilities, proficiency, commands, world, combat, sessions);
+        var gameLoop = new GameLoop(null!, null!, null!, null!, null!, null!, null!);
+        var bridge = new AbilityCommandBridge(abilities, proficiency, commands, world, combat, sessions, gameLoop);
         return (bridge, commands, abilities, proficiency, world);
     }
 
@@ -173,7 +174,8 @@ public class AbilityCommandBridgeTests
             Category = AbilityCategory.Skill
         });
 
-        var bridge = new AbilityCommandBridge(abilities, proficiency, commands, world, combat, sessions);
+        var gameLoop = new GameLoop(null!, null!, null!, null!, null!, null!, null!);
+        var bridge = new AbilityCommandBridge(abilities, proficiency, commands, world, combat, sessions, gameLoop);
         bridge.WireAll();
 
         // Set up a room and place player + mob in it
