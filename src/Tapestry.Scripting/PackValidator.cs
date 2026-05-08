@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
@@ -13,17 +14,23 @@ public class PackValidator
     private readonly ItemRegistry _itemRegistry;
     private readonly World _world;
     private readonly ILogger<PackValidator> _logger;
+    private readonly AbilityRegistry _abilityRegistry;
+    private readonly CommandRegistry _commandRegistry;
 
     public PackValidator(
         SpawnManager spawnManager,
         ItemRegistry itemRegistry,
         World world,
-        ILogger<PackValidator> logger)
+        ILogger<PackValidator> logger,
+        AbilityRegistry abilityRegistry,
+        CommandRegistry commandRegistry)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
         _world = world;
         _logger = logger;
+        _abilityRegistry = abilityRegistry;
+        _commandRegistry = commandRegistry;
     }
 
     public void Validate()
@@ -72,6 +79,61 @@ public class PackValidator
                         "Mob {Id} has tag '{Tag}' but shop config (sells list) is missing",
                         template.Id,
                         ShopProperties.ShopTag);
+                    count++;
+                }
+            }
+
+            var battleCommands = template.BattleCommands;
+            var abilities = template.Abilities;
+
+            if (battleCommands.Count > 0 && abilities.Count == 0)
+            {
+                _logger.LogWarning(
+                    "Mob {Id} has battlecommands but no abilities -- commands will fizzle", template.Id);
+                count++;
+            }
+
+            if (battleCommands.Count > 0 && template.Stats.MaxHp == 0)
+            {
+                _logger.LogWarning(
+                    "Mob {Id} has battlecommands but no HP -- mob can't survive combat", template.Id);
+                count++;
+            }
+
+            foreach (var abilityEntry in abilities)
+            {
+                if (string.IsNullOrEmpty(abilityEntry.Id)) { continue; }
+                var def = _abilityRegistry.Get(abilityEntry.Id);
+                if (def == null)
+                {
+                    _logger.LogWarning(
+                        "Mob {Id} references unknown ability {AbilityId}", template.Id, abilityEntry.Id);
+                    count++;
+                    continue;
+                }
+                if (def.Category == AbilityCategory.Spell && template.Stats.MaxResource == 0)
+                {
+                    _logger.LogWarning(
+                        "Mob {Id} has spell {AbilityId} but MaxResource is 0", template.Id, abilityEntry.Id);
+                    count++;
+                }
+                if (def.Category == AbilityCategory.Skill && template.Stats.MaxMovement == 0)
+                {
+                    _logger.LogWarning(
+                        "Mob {Id} has skill {AbilityId} but MaxMovement is 0", template.Id, abilityEntry.Id);
+                    count++;
+                }
+            }
+
+            foreach (var cmd in battleCommands)
+            {
+                if (string.IsNullOrEmpty(cmd)) { continue; }
+                var verb = cmd.Split(' ')[0];
+                if (_commandRegistry.Resolve(verb) == null)
+                {
+                    _logger.LogWarning(
+                        "Mob {Id} battlecommand \"{Cmd}\" has no matching command in registry",
+                        template.Id, verb);
                     count++;
                 }
             }
