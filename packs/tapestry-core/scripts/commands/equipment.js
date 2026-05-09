@@ -1,10 +1,12 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'equipment',
     aliases: ['eq'],
     description: 'Show your equipped items.',
-    priority: 0,
-    handler: function(player, args) {
-        var slots = tapestry.equipment.getSlots(player.entityId);
+    category: 'info',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var slots = tapestry.equipment.getSlots(actor.entityId);
         var emptyText = tapestry.equipment.getEmptyText();
         var contentRows = [{ type: 'empty' }];
 
@@ -45,6 +47,6 @@
                 { separatorAbove: 'minor', rows: contentRows }
             ]
         });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });
