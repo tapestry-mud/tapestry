@@ -4,7 +4,9 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting;
 
@@ -16,6 +18,8 @@ public class PackValidator
     private readonly ILogger<PackValidator> _logger;
     private readonly AbilityRegistry _abilityRegistry;
     private readonly CommandRegistry _commandRegistry;
+    private readonly TagRegistry _tagRegistry;
+    private readonly IPackManifestProvider _manifestProvider;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -23,7 +27,9 @@ public class PackValidator
         World world,
         ILogger<PackValidator> logger,
         AbilityRegistry abilityRegistry,
-        CommandRegistry commandRegistry)
+        CommandRegistry commandRegistry,
+        TagRegistry tagRegistry,
+        IPackManifestProvider manifestProvider)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -31,6 +37,8 @@ public class PackValidator
         _logger = logger;
         _abilityRegistry = abilityRegistry;
         _commandRegistry = commandRegistry;
+        _tagRegistry = tagRegistry;
+        _manifestProvider = manifestProvider;
     }
 
     public void Validate()
@@ -40,6 +48,7 @@ public class PackValidator
         issueCount += ValidateMobs();
         issueCount += ValidateItems();
         issueCount += ValidateRooms();
+        issueCount += ValidateTags();
 
         _logger.LogInformation("Pack validation complete: {Count} issue(s) found", issueCount);
     }
@@ -161,6 +170,70 @@ public class PackValidator
         foreach (var room in _world.AllRooms)
         {
             _ = room;
+        }
+
+        return count;
+    }
+
+    private int ValidateTags()
+    {
+        var count = 0;
+        var manifests = _manifestProvider.LoadedPacks
+            .ToDictionary(m => m.Name, m => m, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var template in _spawnManager.AllTemplates)
+        {
+            count += ValidateEntityTags(template.Id, template.Tags, "mob", manifests);
+        }
+
+        foreach (var template in _itemRegistry.AllTemplates)
+        {
+            count += ValidateEntityTags(template.Id, template.Tags, "item", manifests);
+        }
+
+        foreach (var room in _world.AllRooms)
+        {
+            count += ValidateEntityTags(room.Id, room.Tags, "room", manifests);
+        }
+
+        return count;
+    }
+
+    private int ValidateEntityTags(
+        string entityId,
+        IEnumerable<string> tags,
+        string entityType,
+        Dictionary<string, PackManifest> manifestsByName)
+    {
+        var packName = entityId.Contains(':') ? entityId.Split(':')[0] : null;
+        var lenient = packName != null
+            && manifestsByName.TryGetValue(packName, out var manifest)
+            && manifest.TagValidation == "lenient";
+        var count = 0;
+
+        foreach (var tag in tags)
+        {
+            if (!_tagRegistry.TryResolve(tag, packName, out var entry))
+            {
+                var message = $"Unknown tag '{tag}' on {entityType} '{entityId}'.";
+                if (lenient)
+                {
+                    _logger.LogWarning("{Message}", message);
+                    count++;
+                }
+                else
+                {
+                    throw new InvalidOperationException(message);
+                }
+                continue;
+            }
+
+            if (!entry!.AppliesToType(entityType))
+            {
+                throw new InvalidOperationException(
+                    $"Tag '{tag}' on '{entityId}' is not valid for {entityType} " +
+                    $"(applies to: {string.Join(", ", entry.AppliesTo)}).");
+            }
         }
 
         return count;
