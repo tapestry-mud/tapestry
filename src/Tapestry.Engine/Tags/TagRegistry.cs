@@ -2,23 +2,23 @@ using System.Text.RegularExpressions;
 
 namespace Tapestry.Engine.Tags;
 
-public class TagRegistry
+public sealed class TagRegistry
 {
+    private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
     private readonly Dictionary<string, TagRegistryEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
 
     public void RegisterEngineTag(string name, string description, IEnumerable<string> appliesTo)
     {
         ValidateSnakeCase(name);
         var key = name.ToLowerInvariant();
-        if (_entries.ContainsKey(key))
-        {
-            throw new InvalidOperationException($"Engine tag '{name}' is already registered.");
-        }
-        _entries[key] = new TagRegistryEntry(
+        if (!_entries.TryAdd(key, new TagRegistryEntry(
             name,
             "engine",
             description,
-            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase));
+            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase))))
+        {
+            throw new InvalidOperationException($"Engine tag '{name}' is already registered.");
+        }
     }
 
     public void RegisterPackTag(string packName, string name, string description, IEnumerable<string> appliesTo)
@@ -29,6 +29,10 @@ public class TagRegistry
             throw new InvalidOperationException($"Pack '{packName}' cannot redefine engine tag '{name}'.");
         }
         var fullKey = $"{packName}:{name}".ToLowerInvariant();
+        if (_entries.ContainsKey(fullKey))
+        {
+            throw new InvalidOperationException($"Pack tag '{packName}:{name}' is already registered.");
+        }
         _entries[fullKey] = new TagRegistryEntry(
             name,
             packName,
@@ -66,7 +70,7 @@ public class TagRegistry
                 $"Tag name '{name}' contains hyphens. Use snake_case: '{name.Replace('-', '_')}'.",
                 nameof(name));
         }
-        if (!Regex.IsMatch(name, @"^[a-z][a-z0-9_]*$"))
+        if (!SnakeCasePattern.IsMatch(name))
         {
             throw new ArgumentException(
                 $"Tag name '{name}' must be snake_case (lowercase letters, digits, underscores only).",

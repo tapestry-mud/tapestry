@@ -10,5 +10,5 @@ public sealed record TagRegistryEntry(
     public string FullName => Scope == "engine" ? Name : $"{Scope}:{Name}";
     public bool IsEngineTag => Scope == "engine";
     public bool AppliesToType(string entityType) =>
-        AppliesTo.Contains(entityType, StringComparer.OrdinalIgnoreCase);
+        AppliesTo.Contains(entityType);
 }

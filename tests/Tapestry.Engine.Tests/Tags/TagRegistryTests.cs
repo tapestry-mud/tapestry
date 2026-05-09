@@ -98,6 +98,17 @@ public class TagRegistryTests
     }
 
     [Fact]
+    public void RegisterPackTag_RejectsDuplicateName()
+    {
+        var registry = new TagRegistry();
+        registry.RegisterPackTag("my-pack", "cursed", "desc", ["item"]);
+
+        var act = () => registry.RegisterPackTag("my-pack", "cursed", "desc2", ["item"]);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*my-pack:cursed*already registered*");
+    }
+
+    [Fact]
     public void GetAll_ReturnsAllRegisteredEntries()
     {
         var registry = new TagRegistry();
