@@ -6,6 +6,7 @@ public class ArgDefinition
     public bool Required { get; init; } = true;
     public bool Bulk { get; init; } = false;          // inventory/room_item only
     public string[] Prepositions { get; init; } = []; // tokens to discard before this arg
+    public bool BypassVisibility { get; init; } = false;
 }
 
 public class GmcpConfig
