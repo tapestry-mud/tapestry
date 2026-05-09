@@ -14,76 +14,75 @@ function getHealthTierText(entityId) {
     return "is near death";
 }
 
-function lookAtTarget(actor, keyword) {
-    var item = tapestry.inventory.examineItem(actor.entityId, keyword);
-    if (item) {
-        actor.send('\r\n<highlight>--- ' + item.name + ' ---</highlight>\r\n');
-        if (item.slotDisplay) {
-            actor.send('  Slot: ' + item.slotDisplay + '\r\n');
-        }
-        if (item.weight > 0) {
-            actor.send('  Weight: ' + item.weight + '\r\n');
-        }
-        if (item.rarity) {
-            actor.send('  Rarity: <item.' + item.rarity + '>' + item.rarity + '</item.' + item.rarity + '>\r\n');
-        }
-        if (item.modifiers && item.modifiers.length > 0) {
-            actor.send('  Modifiers:\r\n');
-            item.modifiers.forEach(function(m) {
-                var sign = m.value >= 0 ? '+' : '';
-                actor.send('    ' + sign + m.value + ' ' + m.stat + '\r\n');
-            });
-        }
-        actor.send('<highlight>---' + Array(item.name.length + 3).join('-') + '---</highlight>\r\n');
-        if (item.isContainer) {
-            if (item.contents && item.contents.length > 0) {
-                actor.send(item.name + ' contains:\r\n');
-                item.contents.forEach(function(c) {
-                    actor.send('  ' + c.name + '\r\n');
-                });
-            } else {
-                actor.send(item.name + ' is empty.\r\n');
+function lookAtTarget(actor, resolved) {
+    if (!resolved) { return false; }
+
+    if (resolved.source === 'inventory') {
+        var item = tapestry.inventory.examineItem(actor.entityId, resolved.name);
+        if (item) {
+            actor.send('\r\n<highlight>--- ' + item.name + ' ---</highlight>\r\n');
+            if (item.slotDisplay) { actor.send('  Slot: ' + item.slotDisplay + '\r\n'); }
+            if (item.weight > 0) { actor.send('  Weight: ' + item.weight + '\r\n'); }
+            if (item.rarity) {
+                actor.send('  Rarity: <item.' + item.rarity + '>' + item.rarity + '</item.' + item.rarity + '>\r\n');
             }
+            if (item.modifiers && item.modifiers.length > 0) {
+                actor.send('  Modifiers:\r\n');
+                item.modifiers.forEach(function(m) {
+                    var sign = m.value >= 0 ? '+' : '';
+                    actor.send('    ' + sign + m.value + ' ' + m.stat + '\r\n');
+                });
+            }
+            actor.send('<highlight>---' + Array(item.name.length + 3).join('-') + '---</highlight>\r\n');
+            if (item.isContainer) {
+                if (item.contents && item.contents.length > 0) {
+                    actor.send(item.name + ' contains:\r\n');
+                    item.contents.forEach(function(c) { actor.send('  ' + c.name + '\r\n'); });
+                } else {
+                    actor.send(item.name + ' is empty.\r\n');
+                }
+            }
+            return true;
         }
+    }
+
+    var details = tapestry.world.getEntity(resolved.id);
+    if (!details) { return false; }
+
+    if (resolved.type === 'npc') {
+        actor.send('\r\n<npc>--- ' + details.name + ' ---</npc>\r\n');
+        if (details.properties && details.properties.description) {
+            actor.send('  ' + details.properties.description + '\r\n');
+        }
+        actor.send('<npc>---' + Array(details.name.length + 3).join('-') + '---</npc>\r\n');
+        var healthText = getHealthTierText(resolved.id);
+        if (healthText) { actor.send('  ' + details.name + ' ' + healthText + '.\r\n'); }
         return true;
     }
 
-    var npcs = tapestry.world.getEntitiesInRoom(actor.roomId, "npc");
-    if (npcs && npcs.length > 0) {
-        var lowerKeyword = keyword.toLowerCase();
-        for (var i = 0; i < npcs.length; i++) {
-            if (npcs[i].name.toLowerCase().indexOf(lowerKeyword) >= 0) {
-                var details = tapestry.world.getEntity(npcs[i].id);
-                actor.send('\r\n<npc>--- ' + details.name + ' ---</npc>\r\n');
-                if (details.properties && details.properties.description) {
-                    actor.send('  ' + details.properties.description + '\r\n');
-                }
-                actor.send('<npc>---' + Array(details.name.length + 3).join('-') + '---</npc>\r\n');
-                var healthText = getHealthTierText(npcs[i].id);
-                if (healthText) {
-                    actor.send('  ' + details.name + ' ' + healthText + '.\r\n');
-                }
-                return true;
-            }
-        }
+    if (resolved.type === 'player') {
+        var playerHealth = getHealthTierText(resolved.id);
+        actor.send('\r\n<player>' + details.name + ' is here.</player>\r\n');
+        if (playerHealth) { actor.send('  ' + details.name + ' ' + playerHealth + '.\r\n'); }
+        return true;
     }
 
-    var players = tapestry.world.getEntitiesInRoom(actor.roomId, "player");
-    if (players && players.length > 0) {
-        var lowerKeyword = keyword.toLowerCase();
-        for (var i = 0; i < players.length; i++) {
-            if (players[i].name.toLowerCase().indexOf(lowerKeyword) >= 0) {
-                var healthText = getHealthTierText(players[i].id);
-                actor.send('\r\n<player>' + players[i].name + ' is here.</player>\r\n');
-                if (healthText) {
-                    actor.send('  ' + players[i].name + ' ' + healthText + '.\r\n');
-                }
-                return true;
-            }
+    // item or container in room
+    actor.send('\r\n<highlight>--- ' + details.name + ' ---</highlight>\r\n');
+    if (details.properties && details.properties.description) {
+        actor.send('  ' + details.properties.description + '\r\n');
+    }
+    actor.send('<highlight>---' + Array(details.name.length + 3).join('-') + '---</highlight>\r\n');
+    if (details.type === 'container') {
+        var contents = details.contents || [];
+        if (contents.length > 0) {
+            actor.send(details.name + ' contains:\r\n');
+            contents.forEach(function(c) { actor.send('  ' + c.name + '\r\n'); });
+        } else {
+            actor.send(details.name + ' is empty.\r\n');
         }
     }
-
-    return false;
+    return true;
 }
 
 function showCombatStatusInRoom(actor) {
@@ -144,7 +143,7 @@ tapestry.commands.register({
     category: 'info',
     roles: ['player'],
     args: {
-        target: { type: 'keyword', required: false }
+        target: { type: 'visible', required: false }
     },
     handler: function(actor, resolved) {
         var restState = tapestry.rest.getRestState(actor.entityId);
@@ -162,8 +161,6 @@ tapestry.commands.register({
                 tapestry.respond.suppress(actor.entityId);
             }
 
-            // sendRoomDescription calls ApiMessaging.Send() internally.
-            // suppress is already set, so no auto-feedback for any of these sends.
             tapestry.world.sendRoomDescription(actor.entityId);
 
             var lookRoomId = tapestry.world.getEntityRoomId(actor.entityId);
@@ -210,7 +207,7 @@ tapestry.commands.register({
     category: 'info',
     roles: ['player'],
     args: {
-        target: { type: 'keyword', required: true }
+        target: { type: 'visible', required: true }
     },
     handler: function(actor, resolved) {
         if (!lookAtTarget(actor, resolved.target)) {
