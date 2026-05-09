@@ -94,7 +94,7 @@ public class CombatManagerTests
         var player = CreatePlayer();
         var vendor = new Entity("npc", "blacksmith");
         vendor.AddTag("npc");
-        vendor.AddTag("no-kill");
+        vendor.AddTag("no_kill");
         _room.AddEntity(vendor);
         var result = _combat.Engage(player, vendor);
         Assert.False(result);
@@ -116,7 +116,7 @@ public class CombatManagerTests
     public void Engage_RejectsInNoCombatRoom()
     {
         Setup();
-        _room.AddTag("no-combat");
+        _room.AddTag("safe");
         var player = CreatePlayer();
         var mob = CreateMob();
         var result = _combat.Engage(player, mob);

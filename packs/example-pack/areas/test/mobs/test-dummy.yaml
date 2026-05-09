@@ -1,7 +1,8 @@
 id: "example-pack:test-dummy"
 name: "a training dummy"
 type: "npc"
-tags: [npc, mob, killable]
+tags: [killable]
+keywords: [dummy, training]
 behavior: stationary
 stats:
   strength: 1

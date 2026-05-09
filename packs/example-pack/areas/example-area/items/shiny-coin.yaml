@@ -1,7 +1,8 @@
 id: "example-pack:shiny-coin"
 name: "a shiny coin"
 type: "item:treasure"
-tags: [item, treasure]
+tags: [item]
+keywords: [coin, treasure, shiny]
 properties:
   weight: 0
   rarity: uncommon

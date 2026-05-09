@@ -1,7 +1,9 @@
 id: "example-pack:warrior-trainer"
 name: "a grizzled veteran"
 type: "npc"
-tags: [npc, mob, friendly, skill_trainer]
+tags: [skill_trainer]
+base_disposition: friendly
+keywords: [veteran, warrior, trainer]
 behavior: stationary
 stats:
   strength: 18
@@ -13,8 +15,6 @@ stats:
   max_hp: 120
   max_resource: 20
   max_movement: 80
-disposition:
-  default: neutral
 properties:
   description: "A weathered fighter with scars that tell a hundred stories. He trains those with the will to learn."
 trains:

@@ -1,7 +1,9 @@
 id: "example-pack:blacksmith"
 name: "the village blacksmith"
 type: "npc"
-tags: [npc, vendor, quest, no-kill]
+tags: [vendor, quest, no_kill]
+base_disposition: friendly
+keywords: [blacksmith, smith, vendor]
 behavior: stationary
 stats:
   strength: 16

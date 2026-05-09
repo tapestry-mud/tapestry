@@ -1,7 +1,9 @@
 id: "example-pack:guide"
 name: "the town guide"
 type: "npc"
-tags: [npc, friendly, no-kill]
+tags: [no_kill]
+base_disposition: friendly
+keywords: [guide, greeter]
 behavior: stationary
 script: mobs/guide.js
 idle_chance: 0.6

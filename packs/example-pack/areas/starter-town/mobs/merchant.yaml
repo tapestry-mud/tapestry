@@ -1,7 +1,9 @@
 id: "example-pack:merchant"
 name: "the general store merchant"
 type: "npc"
-tags: [npc, shop, persistent, no-kill]
+tags: [shop, persistent, no_kill]
+base_disposition: friendly
+keywords: [merchant, vendor, shopkeeper]
 behavior: stationary
 stats:
   strength: 10
@@ -13,8 +15,6 @@ stats:
   max_hp: 80
   max_resource: 0
   max_movement: 40
-disposition:
-  default: neutral
 properties:
   description: "A sharp-eyed merchant who sizes you up the moment you walk in. Everything in this shop has a price."
   shop.sells:

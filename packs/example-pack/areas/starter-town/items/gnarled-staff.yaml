@@ -1,7 +1,8 @@
 id: "example-pack:gnarled-staff"
 name: "a gnarled staff"
 type: "item:weapon"
-tags: [item, weapon, staff, gnarled]
+tags: [item]
+keywords: [weapon, staff, gnarled]
 properties:
   slot: wield
   weight: 4

@@ -8,7 +8,7 @@ description: >
   polishes mugs with a practiced hand.
 exits:
   south: "example-pack:town-square"
-tags: [safe, no-combat, no_wander]
+tags: [safe, no_wander]
 properties:
   terrain: indoors
 spawns:

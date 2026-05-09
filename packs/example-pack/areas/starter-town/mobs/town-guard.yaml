@@ -1,7 +1,9 @@
 id: "example-pack:town-guard"
 name: "a town guard"
 type: "npc"
-tags: [npc, no-kill]
+tags: [no_kill]
+base_disposition: friendly
+keywords: [guard, soldier, patrol]
 behavior: patrol
 stats:
   strength: 14

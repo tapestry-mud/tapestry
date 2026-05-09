@@ -71,7 +71,7 @@ public class RoomTests
     {
         var room = new Room("town:square", "Town Square", "A square.");
         room.AddTag("safe");
-        room.AddTag("recall-point");
+        room.AddTag("recall_point");
         room.HasTag("safe").Should().BeTrue();
         room.HasTag("dangerous").Should().BeFalse();
     }

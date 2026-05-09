@@ -1,7 +1,9 @@
 id: "example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
-tags: [npc, mob, hostile, killable, regen]
+tags: [killable, regen]
+base_disposition: hostile
+keywords: [goblin, chief, chieftain, creature]
 behavior: stationary
 stats:
   strength: 14

@@ -130,7 +130,7 @@ tapestry.mobs.registerBehavior("aggro", function(mob) {
     }
 
     var roomTags = tapestry.world.getRoomTags(mob.roomId);
-    if (roomTags && (roomTags.indexOf("safe") >= 0 || roomTags.indexOf("no-combat") >= 0)) {
+    if (roomTags && roomTags.indexOf("safe") >= 0) {
         return;
     }
 

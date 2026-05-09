@@ -46,15 +46,15 @@ public class CombatModule : IJintApiModule
                     return "error";
                 }
 
-                if (target.HasTag("no-kill") || !target.HasTag("killable"))
+                if (target.HasTag("no_kill") || !target.HasTag("killable"))
                 {
-                    return "no-kill";
+                    return "no_kill";
                 }
 
                 if (attacker.LocationRoomId != null)
                 {
                     var room = _world.GetRoom(attacker.LocationRoomId);
-                    if (room != null && (room.HasTag("safe") || room.HasTag("no-combat")))
+                    if (room != null && room.HasTag("safe"))
                     {
                         return "safe-room";
                     }

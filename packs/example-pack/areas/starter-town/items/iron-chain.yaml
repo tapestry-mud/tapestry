@@ -1,7 +1,8 @@
 id: "example-pack:iron-chain"
 name: "an iron chain"
 type: "item:armor"
-tags: [item, armor, chain, iron, neck]
+tags: [item]
+keywords: [armor, chain, iron, neck]
 properties:
   slot: neck
   weight: 3

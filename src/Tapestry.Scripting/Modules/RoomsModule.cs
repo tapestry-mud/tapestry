@@ -38,7 +38,7 @@ public class RoomsModule : IJintApiModule
             {
                 return _world.AllRooms
                     .Where(r => string.Equals(r.GetProperty<string>("source_pack"), packName, StringComparison.OrdinalIgnoreCase))
-                    .Where(r => r.HasTag("entry-point"))
+                    .Where(r => r.HasTag("entry_point"))
                     .Select(room => (object)new
                     {
                         id = room.Id,

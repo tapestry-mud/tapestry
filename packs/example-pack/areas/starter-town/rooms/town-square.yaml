@@ -12,7 +12,7 @@ exits:
   east: "example-pack:general-store"
   west: "example-pack:west-road"
   down: "example-pack:mine-entrance"
-tags: [safe, recall-point, no-combat]
+tags: [safe, recall_point]
 properties:
   terrain: city
 spawns:

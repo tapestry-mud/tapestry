@@ -1,7 +1,8 @@
 id: "example-pack:chieftain-ring"
 name: "a chieftain's ring"
 type: "item:accessory"
-tags: [item, accessory, rare, ring]
+tags: [item]
+keywords: [accessory, ring, chieftain]
 properties:
   slot: finger
   weight: 0

@@ -7,6 +7,6 @@ description: >
   from ever staying empty long.
 exits:
   up: "core:recall"
-tags: [safe, no-combat, no_wander]
+tags: [safe, no_wander]
 properties:
   terrain: indoors

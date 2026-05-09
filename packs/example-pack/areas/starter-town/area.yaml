@@ -5,4 +5,4 @@ area:
   reset_interval: 1800
   occupied_modifier: 3.0
   weather_zone: temperate
-  flags: [city, safe-recall]
+  flags: [city, safe_recall]

@@ -1,7 +1,8 @@
 id: "example-pack:rusty-dagger"
 name: "a rusty dagger"
 type: "item:weapon"
-tags: [item, weapon, dagger, rusty]
+tags: [item]
+keywords: [weapon, dagger, rusty]
 properties:
   slot: wield
   weight: 2

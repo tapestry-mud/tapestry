@@ -6,8 +6,8 @@ tapestry.events.on("entity.vital.depleted", function(event) {
         return;
     }
 
-    // Skip no-kill entities (safety check)
-    if (entity.tags && entity.tags.indexOf("no-kill") >= 0) {
+    // Skip no_kill entities (safety check)
+    if (entity.tags && entity.tags.indexOf("no_kill") >= 0) {
         return;
     }
 

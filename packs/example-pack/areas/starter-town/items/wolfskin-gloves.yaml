@@ -1,7 +1,8 @@
 id: "example-pack:wolfskin-gloves"
 name: "a pair of wolfskin gloves"
 type: "item:armor"
-tags: [item, armor, gloves, wolfskin]
+tags: [item]
+keywords: [armor, gloves, wolfskin]
 properties:
   slot: hands
   weight: 1

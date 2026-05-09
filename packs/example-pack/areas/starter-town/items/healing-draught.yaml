@@ -1,7 +1,8 @@
 id: "example-pack:healing-draught"
 name: "a healing draught"
 type: "item:consumable"
-tags: [item, consumable, potion, draught, healing]
+tags: [item, consumable]
+keywords: [potion, draught, healing]
 properties:
   item_type: potion
   charges: 1

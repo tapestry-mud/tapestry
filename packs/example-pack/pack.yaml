@@ -9,7 +9,6 @@ license: "AGPL-3.0"
 engine_version: ">=3.0.0"
 active: true
 load_order: 10
-tag_validation: lenient  # temporary: remove when Phases 2-7 clean up descriptor/graduated/hyphenated tags
 
 content:
   area_definitions: "areas/**/area.yaml"

@@ -6,7 +6,7 @@ description: >
   center, its water clear and endlessly flowing. This is where all roads lead back.
 exits:
   down: "core:donation-pit"
-tags: [safe, no-combat, no_wander]
+tags: [safe, no_wander]
 properties:
   terrain: indoors
 fixtures:

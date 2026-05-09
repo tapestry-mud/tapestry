@@ -48,7 +48,7 @@ tapestry.commands.register({
         }
 
         var result = tapestry.combat.engage(player.entityId, target.id);
-        if (result === "no-kill") {
+        if (result === "no_kill") {
             player.send("You can't attack " + target.name + ".\r\n");
         } else if (result === "safe-room") {
             player.send("You can't fight here.\r\n");

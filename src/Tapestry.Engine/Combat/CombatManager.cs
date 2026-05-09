@@ -59,7 +59,7 @@ public class CombatManager
             return false;
         }
 
-        if (target.HasTag("no-kill"))
+        if (target.HasTag("no_kill"))
         {
             return false;
         }
@@ -67,7 +67,7 @@ public class CombatManager
         if (attacker.LocationRoomId != null)
         {
             var room = _world.GetRoom(attacker.LocationRoomId);
-            if (room != null && (room.HasTag("safe") || room.HasTag("no-combat")))
+            if (room != null && room.HasTag("safe"))
             {
                 return false;
             }

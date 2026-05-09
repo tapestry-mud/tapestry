@@ -1,4 +1,7 @@
 tags:
+  item:
+    description: "Identifies entity as a pickupable/interactable item"
+    applies_to: [item]
   container:
     description: "Can hold other items via inventory system"
     applies_to: [item]
@@ -50,12 +53,12 @@ tags:
   safe:
     description: "Combat prohibited in this room"
     applies_to: [room]
-  no_combat:
-    description: "Combat prohibited in this room (legacy duplicate of safe -- consolidate in Phase 7)"
-    applies_to: [room]
   no_wander:
     description: "Mobs will not wander into this room"
     applies_to: [room]
   recall_point:
     description: "Valid teleport/recall destination"
+    applies_to: [room]
+  entry_point:
+    description: "Default entry room for new or returning players"
     applies_to: [room]

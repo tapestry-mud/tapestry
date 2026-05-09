@@ -9,7 +9,7 @@ exits:
   north: "example-pack:town-square"
 properties:
   terrain: city
-tags: [safe, safe-recall]
+tags: [safe, safe_recall]
 spawns:
   - mob: "example-pack:guide"
     count: 1

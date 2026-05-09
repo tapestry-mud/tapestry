@@ -159,14 +159,14 @@ public class ConnectionsModuleTests : IDisposable
     public void GetEntryPoints_ReturnsOnlyRoomsWithEntryPointTag()
     {
         var entry = AddRoom("mypack:entry-room");
-        entry.AddTag("entry-point");
+        entry.AddTag("entry_point");
         entry.SetProperty("entry_point_description", "The main gate.");
         entry.SetProperty("entry_point_direction", "east");
 
         var plain = AddRoom("mypack:plain-room");
 
         var otherPack = AddRoom("otherpack:room");
-        otherPack.AddTag("entry-point");
+        otherPack.AddTag("entry_point");
 
         var count = _runtime.Evaluate("tapestry.rooms.getEntryPoints('mypack').length");
         Convert.ToInt32(count).Should().Be(1);
