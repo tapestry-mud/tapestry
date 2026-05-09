@@ -1,17 +1,17 @@
-function renderTree(player, filter) {
-    var classId = tapestry.world.getProperty(player.entityId, 'class') || '';
+function renderTree(actor, filter) {
+    var classId = tapestry.world.getProperty(actor.entityId, 'class') || '';
     if (!classId) {
-        player.send("You have no class.\r\n");
+        actor.send("You have no class.\r\n");
         return;
     }
 
     var classDef = tapestry.classes.get(classId);
     if (!classDef) {
-        player.send("You have no class.\r\n");
+        actor.send("You have no class.\r\n");
         return;
     }
 
-    var currentLevel = tapestry.progression.getLevel(player.entityId, classDef.track);
+    var currentLevel = tapestry.progression.getLevel(actor.entityId, classDef.track);
     var path = classDef.path || [];
 
     var pathIdSet = {};
@@ -26,7 +26,7 @@ function renderTree(player, filter) {
         var def = tapestry.abilities.getDefinition(entry.ability_id);
         if (!def) { continue; }
         if (filter && def.category !== filter) { continue; }
-        var prof = tapestry.abilities.getProficiency(player.entityId, entry.ability_id);
+        var prof = tapestry.abilities.getProficiency(actor.entityId, entry.ability_id);
         if (prof && prof > 0) {
             learned.push({ entry: entry, def: def, prof: prof });
         } else {
@@ -34,7 +34,7 @@ function renderTree(player, filter) {
         }
     }
 
-    var allLearned = tapestry.abilities.getLearnedAbilities(player.entityId);
+    var allLearned = tapestry.abilities.getLearnedAbilities(actor.entityId);
     var alsoLearned = [];
     for (var ai = 0; ai < allLearned.length; ai++) {
         var al = allLearned[ai];
@@ -111,29 +111,40 @@ function renderTree(player, filter) {
     });
 
     var output = tapestry.ui.panel({ sections: sections });
-    player.send('\r\n' + output + '\r\n');
+    actor.send('\r\n' + output + '\r\n');
 }
 
 tapestry.commands.register({
     name: 'tree',
     description: 'Show your class path and learned abilities.',
-    handler: function(player, args) {
-        renderTree(player, null);
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        filter: { type: 'keyword', required: false }
+    },
+    handler: function(actor, resolved) {
+        renderTree(actor, resolved.filter || null);
     }
 });
 
 tapestry.commands.register({
     name: 'skills',
     description: 'Show your learned skills.',
-    handler: function(player, args) {
-        renderTree(player, 'skill');
+    category: 'progression',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        renderTree(actor, 'skill');
     }
 });
 
 tapestry.commands.register({
     name: 'spells',
     description: 'Show your learned spells.',
-    handler: function(player, args) {
-        renderTree(player, 'spell');
+    category: 'progression',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        renderTree(actor, 'spell');
     }
 });
