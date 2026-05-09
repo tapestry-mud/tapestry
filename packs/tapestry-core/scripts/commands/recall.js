@@ -1,17 +1,19 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'recall',
     description: 'Teleport to the recall room.',
-    priority: 0,
-    handler: function(player, args) {
-        var moved = tapestry.world.teleportEntity(player.entityId, 'core:recall');
+    category: 'world',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var moved = tapestry.world.teleportEntity(actor.entityId, 'core:recall');
         if (moved) {
-            player.send('You are surrounded by a brief flash of light...\r\n');
-            tapestry.world.sendRoomDescription(player.entityId);
+            actor.send('You are surrounded by a brief flash of light...\r\n');
+            tapestry.world.sendRoomDescription(actor.entityId);
             tapestry.events.publish('player.teleported', {
-                entityId: player.entityId
+                entityId: actor.entityId
             });
         } else {
-            player.send('You failed to recall.\r\n');
+            actor.send('You failed to recall.\r\n');
         }
     }
 });
