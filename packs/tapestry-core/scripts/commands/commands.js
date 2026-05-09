@@ -2,9 +2,12 @@ tapestry.commands.register({
     name: 'commands',
     aliases: ['cmds'],
     description: 'List commands available to you.',
-    handler: function(player, args) {
-        var filter = args.length > 0 ? args[0].toLowerCase() : null;
-        var entries = tapestry.commands.listForPlayer(player.entityId);
+    category: 'info',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var filter = resolved.rest && resolved.rest.length > 0 ? resolved.rest[0].toLowerCase() : null;
+        var entries = tapestry.commands.listForPlayer(actor.entityId);
 
         var grouped = {};
         for (var i = 0; i < entries.length; i++) {
@@ -16,7 +19,7 @@ tapestry.commands.register({
 
         var categories = Object.keys(grouped).sort();
         if (categories.length === 0) {
-            player.send('No commands match.\r\n');
+            actor.send('No commands match.\r\n');
             return;
         }
 
@@ -26,7 +29,7 @@ tapestry.commands.register({
         }
 
         var output = tapestry.ui.panel({ sections: sections });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });
 
