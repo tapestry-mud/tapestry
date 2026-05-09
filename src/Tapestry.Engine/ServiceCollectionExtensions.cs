@@ -123,6 +123,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<RestConfig>();
         services.AddSingleton<RestService>();
 
+        // Arg resolution
+        services.AddSingleton<VisibilityFilter>();
+        services.AddSingleton<ArgResolver>();
+
         // Doors / Portals / Areas
         services.AddSingleton<DoorService>();
         services.AddSingleton<AreaRegistry>();
