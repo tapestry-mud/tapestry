@@ -1,8 +1,11 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'motd',
     description: 'Display the message of the day.',
+    category: 'info',
+    roles: ['player'],
+    args: {},
     priority: 0,
-    handler: function(player, args) {
-        tapestry.world.sendMotd(player.entityId);
+    handler: function(actor, resolved) {
+        tapestry.world.sendMotd(actor.entityId);
     }
 });
