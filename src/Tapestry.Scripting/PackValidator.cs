@@ -183,7 +183,7 @@ public class PackValidator
 
         foreach (var template in _spawnManager.AllTemplates)
         {
-            count += ValidateEntityTags(template.Id, template.Tags, "mob", manifests);
+            count += ValidateEntityTags(template.Id, template.Tags, template.Type, manifests);
         }
 
         foreach (var template in _itemRegistry.AllTemplates)

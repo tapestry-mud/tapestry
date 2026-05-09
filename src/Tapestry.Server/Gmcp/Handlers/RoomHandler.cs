@@ -131,7 +131,7 @@ public class RoomHandler : IGmcpPackageHandler
     {
         var entities = room.Entities
             .Where(e => e.Id != entity.Id)
-            .Where(e => e.Type is "player" or "npc" or "mob")
+            .Where(e => e.Type is "player" or "npc")
             .Select(e =>
             {
                 var templateId = e.GetProperty<string?>("template_id");

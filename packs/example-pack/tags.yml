@@ -16,10 +16,10 @@ tags:
     applies_to: [item]
   quest:
     description: "NPC is involved in quest interactions"
-    applies_to: [mob]
+    applies_to: [npc]
   vendor:
     description: "NPC offers specialized trade goods (distinct from shop)"
-    applies_to: [mob]
+    applies_to: [npc]
   lair:
     description: "Boss lair room with special spawn rules"
     applies_to: [room]
