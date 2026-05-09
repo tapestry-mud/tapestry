@@ -1,16 +1,18 @@
 tapestry.commands.register({
     name: 'inspect',
-    admin: true,
     description: 'Show detailed stats, equipment, and properties for a target.',
-    priority: 0,
-    handler: function(player, args) {
-        if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
-        if (!args || args.length === 0) {
-            player.send('Usage: inspect [target]\r\n');
+    category: 'admin',
+    roles: ['player'],
+    args: {
+        entity: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        if (!actor.hasTag('admin')) {
+            actor.send('Huh?\r\n');
             return;
         }
 
-        var keyword = args.join(' ').toLowerCase();
+        var keyword = resolved.entity.toLowerCase();
 
         var ordinal = 1;
         var baseKeyword = keyword;
@@ -22,13 +24,13 @@ tapestry.commands.register({
 
         var target = null;
         if (keyword === 'self' || keyword === 'me') {
-            target = { id: player.entityId, name: player.name };
+            target = { id: actor.entityId, name: actor.name };
         } else {
             var players = tapestry.world.getOnlinePlayers();
             var playerCount = 0;
             for (var i = 0; i < players.length; i++) {
                 if (players[i].name.toLowerCase().indexOf(baseKeyword) !== -1 &&
-                    tapestry.world.getEntityRoomId(players[i].id) === player.roomId) {
+                    tapestry.world.getEntityRoomId(players[i].id) === actor.roomId) {
                     playerCount++;
                     if (playerCount === ordinal) {
                         target = { id: players[i].id, name: players[i].name };
@@ -37,7 +39,7 @@ tapestry.commands.register({
                 }
             }
             if (!target) {
-                var npcs = tapestry.world.getEntitiesInRoom(player.roomId, 'npc');
+                var npcs = tapestry.world.getEntitiesInRoom(actor.roomId, 'npc');
                 var npcCount = 0;
                 for (var n = 0; n < npcs.length; n++) {
                     if (npcs[n].name.toLowerCase().indexOf(baseKeyword) !== -1) {
@@ -52,13 +54,13 @@ tapestry.commands.register({
         }
 
         if (!target) {
-            player.send("Nothing named '" + keyword + "' here.\r\n");
+            actor.send("Nothing named '" + keyword + "' here.\r\n");
             return;
         }
 
         var e = tapestry.world.getEntity(target.id);
         if (!e) {
-            player.send("Cannot resolve entity.\r\n");
+            actor.send("Cannot resolve entity.\r\n");
             return;
         }
 
@@ -75,22 +77,24 @@ tapestry.commands.register({
         if (level === '-' && allProps['level'] !== undefined) { level = allProps['level']; }
 
         var s = e.stats || {};
-        player.send('[' + e.name + ']\r\n');
-        player.send('Class: ' + cls + ' | Race: ' + race + ' | Level: ' + level + '\r\n');
-        player.send('Stats:   STR ' + (s.strength||0) +
+        actor.send('[' + e.name + ']\r\n');
+        actor.send('Class: ' + cls + ' | Race: ' + race + ' | Level: ' + level + '\r\n');
+        actor.send('Stats:   STR ' + (s.strength||0) +
                     '  INT ' + (s.intelligence||0) +
                     '  WIS ' + (s.wisdom||0) +
                     '  DEX ' + (s.dexterity||0) +
                     '  CON ' + (s.constitution||0) +
                     '  LUC ' + (s.luck||0) + '\r\n');
-        player.send('Vitals:  HP ' + (s.hp||0) + '/' + (s.max_hp||0) +
+        actor.send('Vitals:  HP ' + (s.hp||0) + '/' + (s.max_hp||0) +
                     '  Resource ' + (s.resource||0) + '/' + (s.max_resource||0) +
                     '  Move ' + (s.movement||0) + '/' + (s.max_movement||0) + '\r\n');
+
         var gold = tapestry.currency.getGold(target.id);
-        player.send('Gold:    ' + gold + '\r\n');
+        actor.send('Gold:    ' + gold + '\r\n');
+
         var hunger = tapestry.consumables.getSustenance(target.id);
         var hungerTier = tapestry.consumables.getSustenanceTier(target.id);
-        player.send('Hunger:  ' + hungerTier + ' (' + hunger + '%)\r\n');
+        actor.send('Hunger:  ' + hungerTier + ' (' + hunger + '%)\r\n');
 
         var profLines = [];
         for (var pk in allProps) {
@@ -101,11 +105,11 @@ tapestry.commands.register({
             }
         }
         if (profLines.length) {
-            player.send('Proficiency:\r\n' + profLines.join('\r\n') + '\r\n');
+            actor.send('Proficiency:\r\n' + profLines.join('\r\n') + '\r\n');
         }
 
         var tags = tapestry.world.getEntityTags ? tapestry.world.getEntityTags(target.id) : [];
-        player.send('Flags:   ' + (tags && tags.length ? tags.join(', ') : '(none)') + '\r\n');
+        actor.send('Flags:   ' + (tags && tags.length ? tags.join(', ') : '(none)') + '\r\n');
 
         var eq = e.equipment || {};
         var eqLines = [];
@@ -114,14 +118,14 @@ tapestry.commands.register({
                 eqLines.push(slot + ': ' + (eq[slot].name || eq[slot]));
             }
         }
-        player.send('Equipment: ' + (eqLines.length ? eqLines.join(', ') : '(none)') + '\r\n');
+        actor.send('Equipment: ' + (eqLines.length ? eqLines.join(', ') : '(none)') + '\r\n');
 
         var inv = e.inventory || [];
         var invNames = [];
         for (var k = 0; k < inv.length; k++) {
             invNames.push(inv[k].name || String(inv[k]));
         }
-        player.send('Inventory: ' + (invNames.length ? invNames.join(', ') : '(none)') + '\r\n');
+        actor.send('Inventory: ' + (invNames.length ? invNames.join(', ') : '(none)') + '\r\n');
 
         var props = e.properties || {};
         var propLines = [];
@@ -130,7 +134,7 @@ tapestry.commands.register({
                 propLines.push(key + ': ' + props[key]);
             }
         }
-        player.send('Properties: ' + (propLines.length ? propLines.join(', ') : '(none)') + '\r\n');
+        actor.send('Properties: ' + (propLines.length ? propLines.join(', ') : '(none)') + '\r\n');
 
         var alignment = tapestry.alignment.get(target.id);
         var bucket = tapestry.alignment.bucket(target.id);
@@ -141,6 +145,6 @@ tapestry.commands.register({
                 return (h.delta > 0 ? '+' : '') + h.delta + ' (' + h.reason + ')';
               }).join(', ')
             : 'none';
-        player.send('Alignment: ' + alignment + ' [' + bucket + '] - last 5: ' + historyStr + '\r\n');
+        actor.send('Alignment: ' + alignment + ' [' + bucket + '] - last 5: ' + historyStr + '\r\n');
     }
 });
