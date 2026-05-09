@@ -26,6 +26,8 @@ tapestry.commands.register({
         if (drinkable) {
             actor.send('You drink from ' + item.name + '.\r\n');
             actor.sendToRoom(actor.name + ' drinks from ' + item.name + '.\r\n');
+            var current = tapestry.consumables.getSustenance(actor.entityId);
+            tapestry.world.setProperty(actor.entityId, 'sustenance', Math.min(100, current + 15));
             return;
         }
 
