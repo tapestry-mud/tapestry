@@ -153,15 +153,15 @@ public class InventoryModuleGiveTests
         var registration = commands.Resolve("give");
         registration.Should().NotBeNull();
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = giverEntity.Id,
+            EntityId = giverEntity.Id,
             RawInput = "give sword mat",
             Command = "give",
-            Args = ["sword", "mat"]
+            RawArgs = ["sword", "mat"]
         };
 
-        registration!.Handler(cmdCtx);
+        registration!.ActorHandler(cmdCtx);
 
         string.Join("", giverConn.SentText).Should().Contain("You give a steel sword to Mat.");
         string.Join("", receiverConn.SentText).Should().Contain("Rand gives you a steel sword.");

@@ -122,15 +122,15 @@ public class JintRuntimeTests
         var registration = ctx.CommandRegistry.Resolve("ping");
         registration.Should().NotBeNull();
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = entity.Id,
+            EntityId = entity.Id,
             RawInput = "ping",
             Command = "ping",
-            Args = []
+            RawArgs = []
         };
 
-        var act = () => registration!.Handler(cmdCtx);
+        var act = () => registration!.ActorHandler(cmdCtx);
         act.Should().NotThrow();
         string.Join("", connection.SentText).Should().Contain("Pong!");
     }
@@ -183,15 +183,15 @@ public class JintRuntimeTests
             });
         ", "test");
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = entity.Id,
+            EntityId = entity.Id,
             RawInput = "teststats",
             Command = "teststats",
-            Args = Array.Empty<string>()
+            RawArgs = Array.Empty<string>()
         };
 
-        ctx.CommandRegistry.Resolve("teststats")!.Handler(cmdCtx);
+        ctx.CommandRegistry.Resolve("teststats")!.ActorHandler(cmdCtx);
         string.Join("", connection.SentText).Should().Contain("STR:20 HP:100/100");
     }
 

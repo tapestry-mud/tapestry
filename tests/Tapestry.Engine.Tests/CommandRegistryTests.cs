@@ -10,11 +10,11 @@ public class CommandRegistryTests
     public void Register_AndResolve()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> handler = (_) => { };
+        Action<ActorContext> handler = (_) => { };
         registry.Register("look", handler, aliases: ["l"], priority: 0, packName: "core");
         registry.Resolve("look").Should().NotBeNull();
         registry.Resolve("l").Should().NotBeNull();
-        registry.Resolve("look")!.Handler.Should().Be(handler);
+        registry.Resolve("look")!.ActorHandler.Should().Be(handler);
     }
 
     [Fact]
@@ -28,18 +28,18 @@ public class CommandRegistryTests
     public void HigherPriority_WinsConflict()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> lowHandler = (_) => { };
-        Action<CommandContext> highHandler = (_) => { };
+        Action<ActorContext> lowHandler = (_) => { };
+        Action<ActorContext> highHandler = (_) => { };
         registry.Register("look", lowHandler, priority: 10, packName: "base");
         registry.Register("look", highHandler, priority: 100, packName: "override");
-        registry.Resolve("look")!.Handler.Should().Be(highHandler);
+        registry.Resolve("look")!.ActorHandler.Should().Be(highHandler);
     }
 
     [Fact]
     public void CaseInsensitive()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> handler = (_) => { };
+        Action<ActorContext> handler = (_) => { };
         registry.Register("Look", handler, packName: "core");
         registry.Resolve("look").Should().NotBeNull();
         registry.Resolve("LOOK").Should().NotBeNull();
@@ -49,7 +49,7 @@ public class CommandRegistryTests
     public void PrefixMatch_SingleCharacter()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> handler = (_) => { };
+        Action<ActorContext> handler = (_) => { };
         registry.Register("north", handler, packName: "core");
 
         registry.Resolve("n").Should().NotBeNull();
@@ -63,25 +63,25 @@ public class CommandRegistryTests
     public void PrefixMatch_ExactMatchWinsOverPrefix()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> nHandler = (_) => { };
-        Action<CommandContext> northHandler = (_) => { };
+        Action<ActorContext> nHandler = (_) => { };
+        Action<ActorContext> northHandler = (_) => { };
         // Register "n" as an explicit command AND "north"
         registry.Register("n", nHandler, packName: "core");
         registry.Register("north", northHandler, packName: "core");
 
         // Exact match "n" should win over prefix match to "north"
-        registry.Resolve("n")!.Handler.Should().Be(nHandler);
+        registry.Resolve("n")!.ActorHandler.Should().Be(nHandler);
         // "no" should prefix match to "north"
-        registry.Resolve("no")!.Handler.Should().Be(northHandler);
+        registry.Resolve("no")!.ActorHandler.Should().Be(northHandler);
     }
 
     [Fact]
     public void PrefixMatch_AmbiguousPrefix_HighestPriorityWins()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> southHandler = (_) => { };
-        Action<CommandContext> sayHandler = (_) => { };
-        Action<CommandContext> scoreHandler = (_) => { };
+        Action<ActorContext> southHandler = (_) => { };
+        Action<ActorContext> sayHandler = (_) => { };
+        Action<ActorContext> scoreHandler = (_) => { };
         // south registered at priority 0 (movement), say at 0, score at 0
         // When all same priority, first registered wins
         registry.Register("south", southHandler, priority: 0, packName: "core");
@@ -91,11 +91,11 @@ public class CommandRegistryTests
         // "s" is ambiguous — south was registered first at same priority
         registry.Resolve("s")!.Keyword.Should().Be("south");
         // "sa" is unambiguous — only "say" starts with "sa"
-        registry.Resolve("sa")!.Handler.Should().Be(sayHandler);
+        registry.Resolve("sa")!.ActorHandler.Should().Be(sayHandler);
         // "sc" is unambiguous — only "score"
-        registry.Resolve("sc")!.Handler.Should().Be(scoreHandler);
+        registry.Resolve("sc")!.ActorHandler.Should().Be(scoreHandler);
         // "so" is unambiguous — only "south"
-        registry.Resolve("so")!.Handler.Should().Be(southHandler);
+        registry.Resolve("so")!.ActorHandler.Should().Be(southHandler);
     }
 
     [Fact]
@@ -112,14 +112,14 @@ public class CommandRegistryTests
     public void PrefixMatch_MatchesKeywordsNotAliases()
     {
         var registry = new CommandRegistry();
-        Action<CommandContext> lookHandler = (_) => { };
+        Action<ActorContext> lookHandler = (_) => { };
         // "l" is an explicit alias for look
         registry.Register("look", lookHandler, aliases: ["l"], packName: "core");
 
         // "lo" should prefix-match "look"
-        registry.Resolve("lo")!.Handler.Should().Be(lookHandler);
+        registry.Resolve("lo")!.ActorHandler.Should().Be(lookHandler);
         // "l" should exact-match the alias
-        registry.Resolve("l")!.Handler.Should().Be(lookHandler);
+        registry.Resolve("l")!.ActorHandler.Should().Be(lookHandler);
     }
 
     [Fact]

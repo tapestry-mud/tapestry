@@ -16,7 +16,7 @@ public class GameLoopTests
 
         registry.Register("say", (ctx) =>
         {
-            receivedArg = string.Join(" ", ctx.Args);
+            receivedArg = string.Join(" ", ctx.RawArgs);
         }, packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
@@ -154,7 +154,7 @@ public class GameLoopTests
 
         registry.Register("say", (ctx) =>
         {
-            receivedArg = string.Join(" ", ctx.Args);
+            receivedArg = string.Join(" ", ctx.RawArgs);
         }, aliases: ["'"], packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");
@@ -173,7 +173,7 @@ public class GameLoopTests
 
         registry.Register("say", (ctx) =>
         {
-            receivedArg = string.Join(" ", ctx.Args);
+            receivedArg = string.Join(" ", ctx.RawArgs);
         }, aliases: ["'"], packName: "test");
 
         var (session, _) = AddPlayer(sessions, world, "test:room");

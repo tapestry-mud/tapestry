@@ -1,7 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Combat;
-using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
 
@@ -201,17 +200,17 @@ public class AbilityCommandBridgeTests
         Assert.Equal(mob.Id, combat.GetPrimaryTarget(player.Id));
 
         // Invoke kick with a target name that doesn't match anyone in the room
-        var ctx = new CommandContext
+        var actorCtx = new ActorContext
         {
-            PlayerEntityId = player.Id,
+            EntityId = player.Id,
             RawInput = "kick goblin",
             Command = "kick",
-            Args = ["goblin"]
+            RawArgs = ["goblin"]
         };
 
         var reg = commands.Resolve("kick");
         Assert.NotNull(reg);
-        reg!.Handler(ctx);
+        reg!.ActorHandler(actorCtx);
 
         // Verify an action was queued targeting the mob (combat fallback)
         var queue = player.GetProperty<List<object>>(AbilityProperties.QueuedActions);

@@ -17,7 +17,7 @@ public class CommandRouterTests
         registry.Register("say", (ctx) =>
         {
             receivedCmd = ctx.Command;
-            receivedArgs = ctx.Args;
+            receivedArgs = ctx.RawArgs;
         }, packName: "core");
         var router = new CommandRouter(registry, sessions, world);
         var ctx = MakeContext("say hello world");
@@ -93,8 +93,7 @@ public class CommandRouterTests
         var sessions = new SessionManager();
         var world = new World();
         var dispatched = false;
-        registry.Register("say", _ => { }, roles: ["player", "mob"],
-            actorHandler: actor => { dispatched = true; });
+        registry.Register("say", actor => { dispatched = true; }, roles: ["player", "mob"]);
 
         var router = new CommandRouter(registry, sessions, world);
 

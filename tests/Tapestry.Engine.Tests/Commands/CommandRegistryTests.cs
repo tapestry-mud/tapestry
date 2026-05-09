@@ -49,7 +49,7 @@ public class CommandRegistryTests
         registry.Register("secret", _ => { handlerCalled = true; }, visibleTo: _ => false);
         var reg = registry.Resolve("secret");
         Assert.NotNull(reg);
-        reg!.Handler(null!);
+        reg!.ActorHandler(null!);
         Assert.True(handlerCalled);
     }
 

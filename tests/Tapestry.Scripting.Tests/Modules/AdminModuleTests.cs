@@ -505,14 +505,14 @@ public class AdminModuleTests
         CreateNpc(world, room, "goblin guard");
         CreateNpc(world, room, "goblin warrior");
 
-        var ctx = new CommandContext
+        var ctx = new ActorContext
         {
-            PlayerEntityId = admin.Id,
+            EntityId = admin.Id,
             RawInput = "inspect goblin",
             Command = "inspect",
-            Args = new[] { "goblin" }
+            RawArgs = new[] { "goblin" }
         };
-        registry.Resolve("inspect")!.Handler(ctx);
+        registry.Resolve("inspect")!.ActorHandler(ctx);
 
         var output = string.Join("", conn.SentText);
         Assert.Contains("goblin guard", output);
@@ -528,14 +528,14 @@ public class AdminModuleTests
         CreateNpc(world, room, "goblin guard");
         CreateNpc(world, room, "goblin warrior");
 
-        var ctx = new CommandContext
+        var ctx = new ActorContext
         {
-            PlayerEntityId = admin.Id,
+            EntityId = admin.Id,
             RawInput = "inspect 1.goblin",
             Command = "inspect",
-            Args = new[] { "1.goblin" }
+            RawArgs = new[] { "1.goblin" }
         };
-        registry.Resolve("inspect")!.Handler(ctx);
+        registry.Resolve("inspect")!.ActorHandler(ctx);
 
         var output = string.Join("", conn.SentText);
         Assert.Contains("goblin guard", output);
@@ -551,14 +551,14 @@ public class AdminModuleTests
         CreateNpc(world, room, "goblin guard");
         CreateNpc(world, room, "goblin warrior");
 
-        var ctx = new CommandContext
+        var ctx = new ActorContext
         {
-            PlayerEntityId = admin.Id,
+            EntityId = admin.Id,
             RawInput = "inspect 2.goblin",
             Command = "inspect",
-            Args = new[] { "2.goblin" }
+            RawArgs = new[] { "2.goblin" }
         };
-        registry.Resolve("inspect")!.Handler(ctx);
+        registry.Resolve("inspect")!.ActorHandler(ctx);
 
         var output = string.Join("", conn.SentText);
         Assert.Contains("goblin warrior", output);
@@ -575,14 +575,14 @@ public class AdminModuleTests
         CreateNpc(world, room, "goblin guard");
         CreateNpc(world, room, "goblin warrior");
 
-        var ctx = new CommandContext
+        var ctx = new ActorContext
         {
-            PlayerEntityId = admin.Id,
+            EntityId = admin.Id,
             RawInput = "inspect 3.goblin",
             Command = "inspect",
-            Args = new[] { "3.goblin" }
+            RawArgs = new[] { "3.goblin" }
         };
-        registry.Resolve("inspect")!.Handler(ctx);
+        registry.Resolve("inspect")!.ActorHandler(ctx);
 
         var output = string.Join("", conn.SentText);
         Assert.Contains("Nothing named", output);
@@ -635,14 +635,14 @@ public class AdminModuleTests
         var registration = commandRegistry.Resolve("link");
         Assert.NotNull(registration);
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = player.Id,
+            EntityId = player.Id,
             RawInput = "link",
             Command = "link",
-            Args = []
+            RawArgs = []
         };
-        registration!.Handler(cmdCtx);
+        registration!.ActorHandler(cmdCtx);
 
         Assert.Contains("Huh?", string.Join("", connection.SentText));
         Assert.DoesNotContain("Starting link wizard", string.Join("", connection.SentText));
@@ -675,14 +675,14 @@ public class AdminModuleTests
         var registration = commandRegistry.Resolve("unlink");
         Assert.NotNull(registration);
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = player.Id,
+            EntityId = player.Id,
             RawInput = "unlink",
             Command = "unlink",
-            Args = []
+            RawArgs = []
         };
-        registration!.Handler(cmdCtx);
+        registration!.ActorHandler(cmdCtx);
 
         Assert.Contains("Huh?", string.Join("", connection.SentText));
         Assert.DoesNotContain("Starting unlink wizard", string.Join("", connection.SentText));
@@ -719,14 +719,14 @@ public class AdminModuleTests
         var registration = commandRegistry.Resolve("connections");
         Assert.NotNull(registration);
 
-        var cmdCtx = new CommandContext
+        var cmdCtx = new ActorContext
         {
-            PlayerEntityId = player.Id,
+            EntityId = player.Id,
             RawInput = "connections",
             Command = "connections",
-            Args = []
+            RawArgs = []
         };
-        registration!.Handler(cmdCtx);
+        registration!.ActorHandler(cmdCtx);
 
         Assert.Contains("Huh?", string.Join("", connection.SentText));
         Assert.DoesNotContain("Connections for", string.Join("", connection.SentText));

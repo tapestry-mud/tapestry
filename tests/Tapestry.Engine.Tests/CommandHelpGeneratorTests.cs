@@ -74,7 +74,7 @@ public class CommandHelpGeneratorTests
         return new CommandRegistration
         {
             Keyword = keyword,
-            Handler = _ => { },
+            ActorHandler = _ => { },
             Description = description,
             Category = "general",
             Roles = ["player"],

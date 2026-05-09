@@ -27,7 +27,7 @@ public class MobCommandQueueTests
         var dispatched = new List<string>();
         commandRegistry.Register(
             "say",
-            handler: ctx => { dispatched.Add(string.Join(" ", ctx.Args)); },
+            actorHandler: ctx => { dispatched.Add(string.Join(" ", ctx.RawArgs)); },
             roles: new[] { "mob" });
 
         var timer = new TickTimer(10);
@@ -45,7 +45,7 @@ public class MobCommandQueueTests
         var (world, entity, router, commandRegistry) = BuildWorld();
         commandRegistry.Register(
             "say",
-            handler: ctx => { },
+            actorHandler: ctx => { },
             roles: new[] { "mob" });
 
         var timer = new TickTimer(10);
@@ -63,7 +63,7 @@ public class MobCommandQueueTests
         var dispatched = new List<string>();
         commandRegistry.Register(
             "say",
-            handler: ctx => { dispatched.Add(string.Join(" ", ctx.Args)); },
+            actorHandler: ctx => { dispatched.Add(string.Join(" ", ctx.RawArgs)); },
             roles: new[] { "mob" });
 
         var timer = new TickTimer(10);
