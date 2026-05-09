@@ -10,6 +10,10 @@ tapestry.events.on("player.say", function(event) {
             continue;
         }
 
+        if (mob.id === data.playerId) {
+            continue;
+        }
+
         if (tapestry.combat.isInCombat(mob.id)) {
             continue;
         }
