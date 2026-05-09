@@ -12,12 +12,17 @@ public class Entity
 
     private readonly Dictionary<string, object?> _properties = new();
     private readonly HashSet<string> _tags = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _keywords = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _roles = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Entity> _contents = new();
     private readonly Dictionary<string, Entity> _equipment = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ITagObserver> _tagObservers = new();
 
     public IReadOnlyList<Entity> Contents => _contents.AsReadOnly();
     public IReadOnlySet<string> Tags => _tags;
+    public IReadOnlySet<string> Keywords => _keywords;
+    public IReadOnlySet<string> Roles => _roles;
+    public Disposition Disposition { get; set; } = Disposition.Neutral;
     public StatBlock Stats { get; } = new();
     public IReadOnlyDictionary<string, Entity> Equipment => _equipment;
 
@@ -106,6 +111,31 @@ public class Entity
     public bool HasTag(string tag)
     {
         return _tags.Contains(tag);
+    }
+
+    public void AddKeyword(string keyword)
+    {
+        _keywords.Add(keyword);
+    }
+
+    public bool HasKeyword(string keyword)
+    {
+        return _keywords.Contains(keyword);
+    }
+
+    public void AddRole(string role)
+    {
+        _roles.Add(role);
+    }
+
+    public bool HasRole(string role)
+    {
+        return _roles.Contains(role);
+    }
+
+    public void RemoveRole(string role)
+    {
+        _roles.Remove(role);
     }
 
     public void RegisterTagObserver(ITagObserver observer)
