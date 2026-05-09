@@ -1,0 +1,20 @@
+# Scenario: quaff command
+# Setup: player has "a healing potion" (item_type: potion) and "a steel blade" (item_type: weapon) in inventory
+
+> quaff potion
+< You quaff a healing potion.
+
+# Room sees the quaff
+# (second client or room listener): Lan quaffs a healing potion.
+
+# Error: not a potion
+> quaff blade
+< You can't quaff that.
+
+# Error: not in inventory
+> quaff elixir
+< You aren't carrying that.
+
+# Error: no argument
+> quaff
+< What item?
