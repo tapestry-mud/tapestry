@@ -16,7 +16,11 @@ public static class TagsFileLoader
         var path = Path.Combine(packDirectory, "tags.yml");
         if (!File.Exists(path)) { return; }
 
-        var yaml = File.ReadAllText(path);
+        string yaml;
+        using (var reader = new System.IO.StreamReader(path, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+        {
+            yaml = reader.ReadToEnd();
+        }
         var model = Deserializer.Deserialize<TagsFileModel>(yaml) ?? new TagsFileModel();
         var isEngine = packName == "tapestry-core";
 
