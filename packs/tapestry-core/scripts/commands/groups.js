@@ -1,11 +1,3 @@
-var directions = ['north', 'south', 'east', 'west', 'up', 'down'];
-
-var opposites = {
-    north: 'the south', south: 'the north',
-    east: 'the west',  west: 'the east',
-    up: 'below',       down: 'above'
-};
-
 function generateGroupId() {
     return 'grp_' + Date.now().toString(36) + '_' + Math.floor(Math.random() * 0xfffff).toString(36);
 }
@@ -70,6 +62,15 @@ function sendToGroup(senderEntityId, message) {
     }
 }
 
+function sendToGroupExcept(selfId, alsoSkipId, message) {
+    var members = getGroupMembers(selfId);
+    for (var i = 0; i < members.length; i++) {
+        if (members[i] !== selfId && members[i] !== alsoSkipId) {
+            tapestry.world.send(members[i], message);
+        }
+    }
+}
+
 function promoteNextLeader(departingLeaderId, remainingMembers) {
     if (!remainingMembers || remainingMembers.length === 0) { return null; }
     var earliest = null;
@@ -96,103 +97,115 @@ function getPlayerName(entityId) {
     return null;
 }
 
-function sendToGroupExcept(selfId, alsoSkipId, message) {
-    var members = getGroupMembers(selfId);
-    for (var i = 0; i < members.length; i++) {
-        if (members[i] !== selfId && members[i] !== alsoSkipId) {
-            tapestry.world.send(members[i], message);
-        }
-    }
+function padRight(str, len) {
+    while (str.length < len) { str = str + ' '; }
+    return str.substring(0, len);
 }
+
+function padLeft(str, len) {
+    while (str.length < len) { str = ' ' + str; }
+    return str;
+}
+
+// -- follow --
 
 tapestry.commands.register({
     name: 'follow',
     description: 'Follow a player or stop following. Usage: follow [player] | follow stop',
     category: 'movement',
-    handler: function(player, args) {
-        if (args.length === 0) {
-            player.send('Follow whom? Usage: follow [player] | follow stop\r\n');
+    roles: ['player'],
+    args: {
+        target: { type: 'keyword', required: false }
+    },
+    handler: function(actor, resolved) {
+        var target = resolved.target;
+
+        if (!target) {
+            actor.send('Follow whom? Usage: follow [player] | follow stop\r\n');
             return;
         }
 
-        if (args[0].toLowerCase() === 'stop') {
-            var leaderId = tapestry.world.getProperty(player.entityId, 'following');
+        if (target.toLowerCase() === 'stop') {
+            var leaderId = tapestry.world.getProperty(actor.entityId, 'following');
             if (!leaderId) {
-                player.send('You are not following anyone.\r\n');
+                actor.send('You are not following anyone.\r\n');
                 return;
             }
-            tapestry.world.setProperty(player.entityId, 'following', null);
+            tapestry.world.setProperty(actor.entityId, 'following', null);
             var leaderName = getPlayerName(leaderId);
             if (leaderName) {
-                player.send('You stop following ' + leaderName + '.\r\n');
-                tapestry.world.send(leaderId, player.name + ' stops following you.\r\n');
+                actor.send('You stop following ' + leaderName + '.\r\n');
+                tapestry.world.send(leaderId, actor.name + ' stops following you.\r\n');
             } else {
-                player.send('You stop following them.\r\n');
+                actor.send('You stop following them.\r\n');
             }
             tapestry.events.publish('follow.ended', {
-                followerId: player.entityId,
+                followerId: actor.entityId,
                 leaderId: leaderId,
                 reason: 'command'
             });
             return;
         }
 
-        var targetName = args[0];
-        if (targetName.toLowerCase() === player.name.toLowerCase()) {
-            player.send('You cannot follow yourself.\r\n');
+        if (target.toLowerCase() === actor.name.toLowerCase()) {
+            actor.send('You cannot follow yourself.\r\n');
             return;
         }
 
-        var target = tapestry.world.findPlayerByName(targetName);
-        if (!target) {
-            player.send(targetName + ' is not online.\r\n');
+        var found = tapestry.world.findPlayerByName(target);
+        if (!found) {
+            actor.send(target + ' is not online.\r\n');
             return;
         }
 
-        if (tapestry.world.getProperty(target.id, 'no_follow')) {
-            player.send(target.name + ' is not accepting followers.\r\n');
+        if (tapestry.world.getProperty(found.id, 'no_follow')) {
+            actor.send(found.name + ' is not accepting followers.\r\n');
             return;
         }
 
-        var currentFollowing = tapestry.world.getProperty(player.entityId, 'following');
-        if (currentFollowing === target.id) {
-            player.send('You are already following ' + target.name + '.\r\n');
+        var currentFollowing = tapestry.world.getProperty(actor.entityId, 'following');
+        if (currentFollowing === found.id) {
+            actor.send('You are already following ' + found.name + '.\r\n');
             return;
         }
 
-        tapestry.world.setProperty(player.entityId, 'following', target.id);
-        player.send('You begin following ' + target.name + '.\r\n');
-        tapestry.world.send(target.id, player.name + ' begins following you.\r\n');
+        tapestry.world.setProperty(actor.entityId, 'following', found.id);
+        actor.send('You begin following ' + found.name + '.\r\n');
+        tapestry.world.send(found.id, actor.name + ' begins following you.\r\n');
         tapestry.events.publish('follow.started', {
-            followerId: player.entityId,
-            leaderId: target.id
+            followerId: actor.entityId,
+            leaderId: found.id
         });
     }
 });
+
+// -- nofollow --
 
 tapestry.commands.register({
     name: 'nofollow',
     description: 'Toggle whether others can follow you. When active, drops current followers.',
     category: 'movement',
-    handler: function(player, args) {
-        var current = tapestry.world.getProperty(player.entityId, 'no_follow');
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var current = tapestry.world.getProperty(actor.entityId, 'no_follow');
         if (current) {
-            tapestry.world.setProperty(player.entityId, 'no_follow', null);
-            player.send('You are now accepting followers.\r\n');
+            tapestry.world.setProperty(actor.entityId, 'no_follow', null);
+            actor.send('You are now accepting followers.\r\n');
         } else {
-            tapestry.world.setProperty(player.entityId, 'no_follow', true);
-            player.send('You are no longer accepting followers.\r\n');
+            tapestry.world.setProperty(actor.entityId, 'no_follow', true);
+            actor.send('You are no longer accepting followers.\r\n');
             var online = tapestry.world.getOnlinePlayers();
             for (var i = 0; i < online.length; i++) {
                 var followerId = online[i].id;
-                if (followerId === player.entityId) { continue; }
-                if (tapestry.world.getProperty(followerId, 'following') === player.entityId) {
+                if (followerId === actor.entityId) { continue; }
+                if (tapestry.world.getProperty(followerId, 'following') === actor.entityId) {
                     tapestry.world.setProperty(followerId, 'following', null);
                     tapestry.world.send(followerId,
-                        player.name + ' is no longer accepting followers.\r\n');
+                        actor.name + ' is no longer accepting followers.\r\n');
                     tapestry.events.publish('follow.ended', {
                         followerId: followerId,
-                        leaderId: player.entityId,
+                        leaderId: actor.entityId,
                         reason: 'nofollow'
                     });
                 }
@@ -200,6 +213,8 @@ tapestry.commands.register({
         }
     }
 });
+
+// -- follow movement event --
 
 tapestry.events.on('player.direction.moved', function(event) {
     var data = event.data || {};
@@ -295,73 +310,82 @@ tapestry.events.on('player.teleported', function(event) {
     clearFollowState(entityId);
 });
 
+// -- group --
+
 tapestry.commands.register({
     name: 'group',
     aliases: ['gr'],
     description: 'Manage your group. Subcommands: invite, accept, decline, leave, kick, promote, disband',
-    category: 'group',
-    handler: function(player, args) {
-        var sub = args[0] ? args[0].toLowerCase() : '';
-        if (sub === 'invite') { handleGroupInvite(player, args.slice(1)); }
-        else if (sub === 'accept') { handleGroupAccept(player); }
-        else if (sub === 'decline') { handleGroupDecline(player); }
-        else if (sub === 'leave') { handleGroupLeave(player); }
-        else if (sub === 'kick') { handleGroupKick(player, args.slice(1)); }
-        else if (sub === 'promote') { handleGroupPromote(player, args.slice(1)); }
-        else if (sub === 'disband') { handleGroupDisband(player); }
-        else { handleGroupList(player); }
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        subcommand: { type: 'keyword', required: false },
+        player: { type: 'keyword', required: false }
+    },
+    handler: function(actor, resolved) {
+        var sub = resolved.subcommand ? resolved.subcommand.toLowerCase() : '';
+        var playerArg = resolved.player ? [resolved.player] : [];
+
+        if (sub === 'invite') { handleGroupInvite(actor, playerArg); }
+        else if (sub === 'accept') { handleGroupAccept(actor); }
+        else if (sub === 'decline') { handleGroupDecline(actor); }
+        else if (sub === 'leave') { handleGroupLeave(actor); }
+        else if (sub === 'kick') { handleGroupKick(actor, playerArg); }
+        else if (sub === 'promote') { handleGroupPromote(actor, playerArg); }
+        else if (sub === 'disband') { handleGroupDisband(actor); }
+        else { handleGroupList(actor); }
     }
 });
 
-function handleGroupInvite(player, args) {
+function handleGroupInvite(actor, args) {
     if (args.length === 0) {
-        player.send('Invite whom?\r\n');
+        actor.send('Invite whom?\r\n');
         return;
     }
     var targetName = args[0];
     var target = tapestry.world.findPlayerByName(targetName);
     if (!target) {
-        player.send(targetName + ' is not online.\r\n');
+        actor.send(targetName + ' is not online.\r\n');
         return;
     }
-    if (target.id === player.entityId) {
-        player.send('You cannot invite yourself.\r\n');
+    if (target.id === actor.entityId) {
+        actor.send('You cannot invite yourself.\r\n');
         return;
     }
     if (isInGroup(target.id)) {
-        player.send(target.name + ' is already in a group.\r\n');
+        actor.send(target.name + ' is already in a group.\r\n');
         return;
     }
     var existingInvite = tapestry.world.getProperty(target.id, 'group_invite_from');
     if (existingInvite) {
-        player.send(target.name + ' already has a pending invitation.\r\n');
+        actor.send(target.name + ' already has a pending invitation.\r\n');
         return;
     }
-    tapestry.world.setProperty(target.id, 'group_invite_from', player.entityId);
+    tapestry.world.setProperty(target.id, 'group_invite_from', actor.entityId);
     tapestry.world.setProperty(target.id, 'group_invite_expires', Date.now() + 60000);
-    player.send('You invite ' + target.name + ' to join your group.\r\n');
+    actor.send('You invite ' + target.name + ' to join your group.\r\n');
     tapestry.world.send(target.id,
-        player.name + ' invites you to join their group. Type \'group accept\' to join.\r\n');
+        actor.name + ' invites you to join their group. Type \'group accept\' to join.\r\n');
 }
 
-function handleGroupAccept(player) {
-    var inviterId = tapestry.world.getProperty(player.entityId, 'group_invite_from');
+function handleGroupAccept(actor) {
+    var inviterId = tapestry.world.getProperty(actor.entityId, 'group_invite_from');
     if (!inviterId) {
-        player.send('You have no pending group invitation.\r\n');
+        actor.send('You have no pending group invitation.\r\n');
         return;
     }
-    var expires = tapestry.world.getProperty(player.entityId, 'group_invite_expires') || 0;
-    tapestry.world.setProperty(player.entityId, 'group_invite_from', null);
-    tapestry.world.setProperty(player.entityId, 'group_invite_expires', null);
+    var expires = tapestry.world.getProperty(actor.entityId, 'group_invite_expires') || 0;
+    tapestry.world.setProperty(actor.entityId, 'group_invite_from', null);
+    tapestry.world.setProperty(actor.entityId, 'group_invite_expires', null);
 
     if (Date.now() > expires) {
-        player.send('That group invitation has expired.\r\n');
+        actor.send('That group invitation has expired.\r\n');
         return;
     }
 
     var inviterName = getPlayerName(inviterId);
     if (!inviterName) {
-        player.send('That player is no longer online.\r\n');
+        actor.send('That player is no longer online.\r\n');
         return;
     }
 
@@ -371,66 +395,66 @@ function handleGroupAccept(player) {
         groupId = generateGroupId();
         addToGroup(inviterId, inviterId, groupId);
     }
-    addToGroup(player.entityId, inviterId, groupId);
+    addToGroup(actor.entityId, inviterId, groupId);
 
-    player.send('You join ' + inviterName + '\'s group.\r\n');
-    tapestry.world.send(inviterId, player.name + ' joins your group.\r\n');
-    sendToGroupExcept(player.entityId, inviterId, player.name + ' joins the group.\r\n');
+    actor.send('You join ' + inviterName + '\'s group.\r\n');
+    tapestry.world.send(inviterId, actor.name + ' joins your group.\r\n');
+    sendToGroupExcept(actor.entityId, inviterId, actor.name + ' joins the group.\r\n');
 
     if (isNewGroup) {
         tapestry.events.publish('group.created', { leaderId: inviterId, groupId: groupId });
     }
     tapestry.events.publish('group.member.joined', {
-        memberId: player.entityId, leaderId: inviterId, groupId: groupId
+        memberId: actor.entityId, leaderId: inviterId, groupId: groupId
     });
 }
 
-function handleGroupDecline(player) {
-    var inviterId = tapestry.world.getProperty(player.entityId, 'group_invite_from');
+function handleGroupDecline(actor) {
+    var inviterId = tapestry.world.getProperty(actor.entityId, 'group_invite_from');
     if (!inviterId) {
-        player.send('You have no pending group invitation.\r\n');
+        actor.send('You have no pending group invitation.\r\n');
         return;
     }
-    tapestry.world.setProperty(player.entityId, 'group_invite_from', null);
-    tapestry.world.setProperty(player.entityId, 'group_invite_expires', null);
-    player.send('You decline the group invitation.\r\n');
+    tapestry.world.setProperty(actor.entityId, 'group_invite_from', null);
+    tapestry.world.setProperty(actor.entityId, 'group_invite_expires', null);
+    actor.send('You decline the group invitation.\r\n');
     var inviterName = getPlayerName(inviterId);
     if (inviterName) {
-        tapestry.world.send(inviterId, player.name + ' declines your group invitation.\r\n');
+        tapestry.world.send(inviterId, actor.name + ' declines your group invitation.\r\n');
     }
 }
 
-function handleGroupLeave(player) {
-    if (!isInGroup(player.entityId)) {
-        player.send('You are not in a group.\r\n');
+function handleGroupLeave(actor) {
+    if (!isInGroup(actor.entityId)) {
+        actor.send('You are not in a group.\r\n');
         return;
     }
-    var members = getGroupMembers(player.entityId);
+    var members = getGroupMembers(actor.entityId);
     var remaining = [];
     for (var i = 0; i < members.length; i++) {
-        if (members[i] !== player.entityId) { remaining.push(members[i]); }
+        if (members[i] !== actor.entityId) { remaining.push(members[i]); }
     }
 
-    var groupId = getGroupId(player.entityId);
-    var wasLeader = isGroupLeader(player.entityId);
-    removeFromGroup(player.entityId);
-    player.send('You leave the group.\r\n');
+    var groupId = getGroupId(actor.entityId);
+    var wasLeader = isGroupLeader(actor.entityId);
+    removeFromGroup(actor.entityId);
+    actor.send('You leave the group.\r\n');
     tapestry.events.publish('group.member.left', {
-        memberId: player.entityId, groupId: groupId, reason: 'leave'
+        memberId: actor.entityId, groupId: groupId, reason: 'leave'
     });
 
     if (remaining.length === 0) { return; }
 
     if (wasLeader) {
-        var newLeaderId = promoteNextLeader(player.entityId, remaining);
+        var newLeaderId = promoteNextLeader(actor.entityId, remaining);
         if (newLeaderId) {
             var newLeaderName = getPlayerName(newLeaderId);
             for (var j = 0; j < remaining.length; j++) {
                 tapestry.world.send(remaining[j],
-                    player.name + ' leaves the group. ' + newLeaderName + ' is now the group leader.\r\n');
+                    actor.name + ' leaves the group. ' + newLeaderName + ' is now the group leader.\r\n');
             }
             tapestry.events.publish('group.member.promoted', {
-                memberId: newLeaderId, oldLeaderId: player.entityId, groupId: groupId
+                memberId: newLeaderId, oldLeaderId: actor.entityId, groupId: groupId
             });
         } else {
             for (var k = 0; k < remaining.length; k++) {
@@ -441,120 +465,120 @@ function handleGroupLeave(player) {
         }
     } else {
         for (var m = 0; m < remaining.length; m++) {
-            tapestry.world.send(remaining[m], player.name + ' leaves the group.\r\n');
+            tapestry.world.send(remaining[m], actor.name + ' leaves the group.\r\n');
         }
     }
 }
 
-function handleGroupKick(player, args) {
-    if (!isInGroup(player.entityId)) {
-        player.send('You are not in a group.\r\n');
+function handleGroupKick(actor, args) {
+    if (!isInGroup(actor.entityId)) {
+        actor.send('You are not in a group.\r\n');
         return;
     }
-    if (!isGroupLeader(player.entityId)) {
-        player.send('Only the group leader can kick members.\r\n');
+    if (!isGroupLeader(actor.entityId)) {
+        actor.send('Only the group leader can kick members.\r\n');
         return;
     }
     if (args.length === 0) {
-        player.send('Kick whom?\r\n');
+        actor.send('Kick whom?\r\n');
         return;
     }
     var targetName = args[0];
     var target = tapestry.world.findPlayerByName(targetName);
     if (!target) {
-        player.send(targetName + ' is not online.\r\n');
+        actor.send(targetName + ' is not online.\r\n');
         return;
     }
-    if (target.id === player.entityId) {
-        player.send('You cannot kick yourself. Use \'group disband\' or \'group leave\'.\r\n');
+    if (target.id === actor.entityId) {
+        actor.send('You cannot kick yourself. Use \'group disband\' or \'group leave\'.\r\n');
         return;
     }
-    if (getGroupId(target.id) !== getGroupId(player.entityId)) {
-        player.send(target.name + ' is not in your group.\r\n');
+    if (getGroupId(target.id) !== getGroupId(actor.entityId)) {
+        actor.send(target.name + ' is not in your group.\r\n');
         return;
     }
     var groupId = getGroupId(target.id);
     removeFromGroup(target.id);
     tapestry.world.send(target.id, 'You have been removed from the group.\r\n');
-    player.send('You remove ' + target.name + ' from the group.\r\n');
-    var members = getGroupMembers(player.entityId);
+    actor.send('You remove ' + target.name + ' from the group.\r\n');
+    var members = getGroupMembers(actor.entityId);
     for (var i = 0; i < members.length; i++) {
         tapestry.world.send(members[i], target.name + ' has been removed from the group.\r\n');
     }
     tapestry.events.publish('group.member.kicked', {
-        memberId: target.id, kickerId: player.entityId, groupId: groupId
+        memberId: target.id, kickerId: actor.entityId, groupId: groupId
     });
 }
 
-function handleGroupPromote(player, args) {
-    if (!isInGroup(player.entityId)) {
-        player.send('You are not in a group.\r\n');
+function handleGroupPromote(actor, args) {
+    if (!isInGroup(actor.entityId)) {
+        actor.send('You are not in a group.\r\n');
         return;
     }
-    if (!isGroupLeader(player.entityId)) {
-        player.send('Only the group leader can promote members.\r\n');
+    if (!isGroupLeader(actor.entityId)) {
+        actor.send('Only the group leader can promote members.\r\n');
         return;
     }
     if (args.length === 0) {
-        player.send('Promote whom?\r\n');
+        actor.send('Promote whom?\r\n');
         return;
     }
     var targetName = args[0];
     var target = tapestry.world.findPlayerByName(targetName);
     if (!target) {
-        player.send(targetName + ' is not online.\r\n');
+        actor.send(targetName + ' is not online.\r\n');
         return;
     }
-    if (getGroupId(target.id) !== getGroupId(player.entityId)) {
-        player.send(target.name + ' is not in your group.\r\n');
+    if (getGroupId(target.id) !== getGroupId(actor.entityId)) {
+        actor.send(target.name + ' is not in your group.\r\n');
         return;
     }
-    var groupId = getGroupId(player.entityId);
-    var members = getGroupMembers(player.entityId);
+    var groupId = getGroupId(actor.entityId);
+    var members = getGroupMembers(actor.entityId);
     for (var i = 0; i < members.length; i++) {
         tapestry.world.setProperty(members[i], 'group_leader', target.id);
     }
-    player.send(target.name + ' is now the group leader.\r\n');
+    actor.send(target.name + ' is now the group leader.\r\n');
     tapestry.world.send(target.id, 'You are now the group leader.\r\n');
     for (var j = 0; j < members.length; j++) {
-        if (members[j] !== player.entityId && members[j] !== target.id) {
+        if (members[j] !== actor.entityId && members[j] !== target.id) {
             tapestry.world.send(members[j], target.name + ' is now the group leader.\r\n');
         }
     }
     tapestry.events.publish('group.member.promoted', {
-        memberId: target.id, oldLeaderId: player.entityId, groupId: groupId
+        memberId: target.id, oldLeaderId: actor.entityId, groupId: groupId
     });
 }
 
-function handleGroupDisband(player) {
-    if (!isInGroup(player.entityId)) {
-        player.send('You are not in a group.\r\n');
+function handleGroupDisband(actor) {
+    if (!isInGroup(actor.entityId)) {
+        actor.send('You are not in a group.\r\n');
         return;
     }
-    if (!isGroupLeader(player.entityId)) {
-        player.send('Only the group leader can disband the group.\r\n');
+    if (!isGroupLeader(actor.entityId)) {
+        actor.send('Only the group leader can disband the group.\r\n');
         return;
     }
-    var groupId = getGroupId(player.entityId);
-    var members = getGroupMembers(player.entityId);
+    var groupId = getGroupId(actor.entityId);
+    var members = getGroupMembers(actor.entityId);
     for (var i = 0; i < members.length; i++) {
         removeFromGroup(members[i]);
-        if (members[i] !== player.entityId) {
+        if (members[i] !== actor.entityId) {
             tapestry.world.send(members[i], 'The group has been disbanded.\r\n');
         }
     }
-    player.send('You disband the group.\r\n');
-    tapestry.events.publish('group.disbanded', { leaderId: player.entityId, groupId: groupId });
+    actor.send('You disband the group.\r\n');
+    tapestry.events.publish('group.disbanded', { leaderId: actor.entityId, groupId: groupId });
 }
 
-function handleGroupList(player) {
-    if (!isInGroup(player.entityId)) {
-        player.send('You are not in a group.\r\n');
+function handleGroupList(actor) {
+    if (!isInGroup(actor.entityId)) {
+        actor.send('You are not in a group.\r\n');
         return;
     }
-    var members = getGroupMembers(player.entityId);
-    var leaderId = getGroupLeaderId(player.entityId);
-    var playerRoom = tapestry.world.getEntityRoomId(player.entityId);
+    var members = getGroupMembers(actor.entityId);
+    var leaderId = getGroupLeaderId(actor.entityId);
+    var playerRoom = tapestry.world.getEntityRoomId(actor.entityId);
     var rows = [];
     for (var i = 0; i < members.length; i++) {
         var memberId = members[i];
@@ -578,38 +602,36 @@ function handleGroupList(player) {
             { separatorAbove: 'minor', rows: rows }
         ]
     });
-    player.send('\r\n' + output + '\r\n');
+    actor.send('\r\n' + output + '\r\n');
 }
+
+// -- gtell --
 
 tapestry.commands.register({
     name: 'gtell',
     aliases: ['gt'],
     description: 'Send a message to your group',
     category: 'communication',
-    handler: function(player, args) {
-        if (!isInGroup(player.entityId)) {
-            player.send('You are not in a group.\r\n');
+    roles: ['player'],
+    args: {
+        message: { type: 'text', required: true }
+    },
+    handler: function(actor, resolved) {
+        if (!isInGroup(actor.entityId)) {
+            actor.send('You are not in a group.\r\n');
             return;
         }
-        var message = args.join(' ');
+        var message = resolved.message;
         if (!message) {
-            player.send('Group tell what?\r\n');
+            actor.send('Group tell what?\r\n');
             return;
         }
-        var formatted = '<group>[Group] ' + player.name + ': "' + message + '"</group>\r\n';
-        sendToGroup(player.entityId, formatted);
+        var formatted = '<group>[Group] ' + actor.name + ': "' + message + '"</group>\r\n';
+        sendToGroup(actor.entityId, formatted);
     }
 });
 
-function padRight(str, len) {
-    while (str.length < len) { str = str + ' '; }
-    return str.substring(0, len);
-}
-
-function padLeft(str, len) {
-    while (str.length < len) { str = ' ' + str; }
-    return str;
-}
+// -- gold split on kill --
 
 tapestry.events.on('combat.kill', function(event) {
     var killerId = event.sourceEntityId;
