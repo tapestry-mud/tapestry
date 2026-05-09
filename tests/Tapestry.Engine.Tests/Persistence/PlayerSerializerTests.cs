@@ -275,4 +275,25 @@ public class PlayerSerializerTests
         var result = _serializer.FromSaveData(dto);
         result.Corpses.Should().BeEmpty();
     }
+
+    [Fact]
+    public void FromSaveData_MigratesLegacyAdminTagToRole()
+    {
+        // Simulate an old save with "admin" in Tags and no Roles field
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "OldAdmin",
+            Type = "player",
+            Location = "limbo:recall",
+            Tags = new List<string> { "regen", "admin" },
+            Roles = null
+        };
+
+        var result = _serializer.FromSaveData(dto);
+
+        result.Entity.HasRole("admin").Should().BeTrue();
+        result.Entity.HasTag("admin").Should().BeFalse();
+        result.Entity.HasTag("regen").Should().BeTrue();
+    }
 }

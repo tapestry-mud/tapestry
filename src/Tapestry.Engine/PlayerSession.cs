@@ -156,7 +156,7 @@ public class SessionManager
     {
         foreach (var session in AllSessions)
         {
-            if (session.PlayerEntity.HasTag(tag))
+            if (session.PlayerEntity.HasRole(tag) || session.PlayerEntity.HasTag(tag))
             {
                 session.Send(text);
             }
