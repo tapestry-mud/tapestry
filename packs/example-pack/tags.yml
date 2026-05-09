@@ -1,0 +1,7 @@
+tags:
+  cursed:
+    description: "Item carries a curse -- must be removed before unequipping"
+    applies_to: [item]
+  lair:
+    description: "Boss lair room with special spawn rules"
+    applies_to: [room]

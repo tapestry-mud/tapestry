@@ -1,0 +1,61 @@
+tags:
+  container:
+    description: "Can hold other items via inventory system"
+    applies_to: [item]
+  fillable:
+    description: "Can hold liquid, filled from fill_source entities"
+    applies_to: [item]
+  fill_source:
+    description: "Provides liquid for filling fillable containers"
+    applies_to: [item]
+  consumable:
+    description: "Destroyed on use (eating, drinking, applying)"
+    applies_to: [item]
+  equippable:
+    description: "Can be worn or wielded in an equipment slot"
+    applies_to: [item]
+  no_get:
+    description: "Cannot be picked up from the ground"
+    applies_to: [item]
+  no_sell:
+    description: "Cannot be sold to shops"
+    applies_to: [item]
+  fixture:
+    description: "Permanent room object, not removable"
+    applies_to: [item]
+  currency:
+    description: "Treated as currency in economic transactions"
+    applies_to: [item]
+  killable:
+    description: "Can be targeted in combat"
+    applies_to: [mob]
+  no_kill:
+    description: "Prevents combat engagement even if killable"
+    applies_to: [mob]
+  no_flee:
+    description: "Prevents fleeing from combat with this mob"
+    applies_to: [mob]
+  persistent:
+    description: "Respawns immediately on death or removal"
+    applies_to: [mob]
+  regen:
+    description: "Eligible for HP/resource/movement regeneration each tick"
+    applies_to: [mob, player]
+  shop:
+    description: "NPC operates as a vendor with shop.sells inventory"
+    applies_to: [mob]
+  skill_trainer:
+    description: "NPC can teach abilities from TrainerConfig"
+    applies_to: [mob]
+  safe:
+    description: "Combat prohibited in this room"
+    applies_to: [room]
+  no_combat:
+    description: "Combat prohibited in this room (legacy duplicate of safe -- consolidate in Phase 7)"
+    applies_to: [room]
+  no_wander:
+    description: "Mobs will not wander into this room"
+    applies_to: [room]
+  recall_point:
+    description: "Valid teleport/recall destination"
+    applies_to: [room]
