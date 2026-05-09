@@ -1,0 +1,34 @@
+# Scenario: wear command
+# Setup: player carries "a leather vest" (slot: body), "an iron helm" (slot: head),
+#        "a wooden shield" (slot: shield), and "a torch" (no slot / not wearable)
+
+# Single item - wear by keyword
+> wear vest
+< You wear a leather vest.
+
+# Single item - displaced equipment (body slot already occupied)
+> wear vest
+< You remove a leather vest.
+< You wear a leather vest.
+
+# Item with no slot - not wearable
+> wear torch
+< You can't wear that.
+
+# Item not in inventory
+> wear emerald
+< You aren't carrying that.
+
+# No argument
+> wear
+< What item?
+
+# Bulk - wear all wearable items
+> wear all
+< You wear a leather vest.
+< You wear an iron helm.
+< You wear a wooden shield.
+
+# Bulk - nothing wearable left (all slots full)
+> wear all
+< Nothing you're carrying can be worn.
