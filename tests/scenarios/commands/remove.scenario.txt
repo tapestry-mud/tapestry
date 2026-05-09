@@ -1,0 +1,39 @@
+# remove
+
+## Scenario: Remove with no argument shows error
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `remove`
+2. Assert Wanderer sees: `What item?`
+
+## Scenario: Remove a worn item by keyword
+- Players: Wanderer
+- Setup: Wanderer wears a leather helmet
+
+### Steps
+1. Wanderer: `remove helmet`
+2. Assert Wanderer sees: `You remove`
+
+## Scenario: Remove all equipped items
+- Players: Wanderer
+- Setup: Wanderer wears a leather helmet and iron boots
+
+### Steps
+1. Wanderer: `remove all`
+2. Assert Wanderer sees: `You remove`
+3. Assert Wanderer does not see: `You aren't wearing anything`
+
+## Scenario: Remove all with nothing equipped
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `remove all`
+2. Assert Wanderer sees: `You aren't wearing anything`
+
+## Scenario: Remove item not equipped
+- Players: Wanderer
+
+### Steps
+1. Wanderer: `remove sword`
+2. Assert Wanderer sees: `You aren't wearing anything there`
