@@ -375,7 +375,7 @@ public class CommandsModule : IJintApiModule
             hasTag = new Func<string, bool>(tag =>
             {
                 var entity = _world.GetEntity(actorCtx.EntityId);
-                return entity?.HasTag(tag) ?? false;
+                return (entity?.HasRole(tag) ?? false) || (entity?.HasTag(tag) ?? false);
             })
         };
 

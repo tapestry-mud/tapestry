@@ -478,7 +478,7 @@ public class AdminModule : IJintApiModule
             entityId = adminId.ToString(),
             name,
             roomId,
-            hasTag = new Func<string, bool>(tag => adminEntity?.HasTag(tag) ?? false),
+            hasTag = new Func<string, bool>(tag => (adminEntity?.HasRole(tag) ?? false) || (adminEntity?.HasTag(tag) ?? false)),
             send = new Action<string>(text => { _messaging.Send(adminId, text); }),
             sendToRoom = new Action<string>(text =>
             {
