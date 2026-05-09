@@ -45,11 +45,11 @@ interface EntityRole {
 function entityRole(entity: Entity): EntityRole {
   if (entity.type === 'player') { return { variant: 'player', label: 'PLAYER' } }
   const tags = entity.tags ?? []
-  if (tags.includes('hostile') || tags.includes('killable')) { return { variant: 'mob', label: 'HOSTILE' } }
+  if (entity.disposition === 'Hostile' || tags.includes('killable')) { return { variant: 'mob', label: 'HOSTILE' } }
   if (tags.includes('shop')) { return { variant: 'npc', label: 'SHOP' } }
   if (tags.includes('skill_trainer')) { return { variant: 'npc', label: 'TRAINER' } }
   if (tags.includes('quest')) { return { variant: 'npc', label: 'QUEST' } }
-  if (tags.includes('friendly')) { return { variant: 'npc', label: 'FRIENDLY' } }
+  if (entity.disposition === 'Friendly') { return { variant: 'npc', label: 'FRIENDLY' } }
   return { variant: 'npc', label: 'NPC' }
 }
 

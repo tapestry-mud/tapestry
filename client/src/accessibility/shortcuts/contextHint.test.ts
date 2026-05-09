@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { buildContextHint } from './contextHint'
 import type { Entity } from '../../types/game'
 
-function mob(name: string, tags: string[]): Entity {
-  return { name, type: 'mob', tags }
+function mob(name: string, tags: string[], disposition?: Entity['disposition']): Entity {
+  return { name, type: 'npc', tags, disposition }
 }
 
 function player(name: string): Entity {
@@ -19,7 +19,7 @@ describe('buildContextHint', () => {
     expect(buildContextHint([player('Gandalf')])).toBe('')
   })
 
-  it('returns empty string for untagged mobs', () => {
+  it('returns empty string for untagged npcs', () => {
     expect(buildContextHint([mob('old grey cat', [])])).toBe('')
   })
 
@@ -36,7 +36,7 @@ describe('buildContextHint', () => {
   })
 
   it('hostile only', () => {
-    expect(buildContextHint([mob('goblin scout', ['hostile'])])).toBe('Hostiles nearby.')
+    expect(buildContextHint([mob('goblin scout', [], 'Hostile')])).toBe('Hostiles nearby.')
   })
 
   it('shop and trainer', () => {
@@ -59,7 +59,7 @@ describe('buildContextHint', () => {
       mob('Grimjaw', ['shop']),
       mob('Elara', ['skill_trainer']),
       mob('Eldric', ['quest']),
-      mob('goblin scout', ['hostile']),
+      mob('goblin scout', [], 'Hostile'),
     ])).toBe('Shop, trainer, quest, and hostiles nearby.')
   })
 

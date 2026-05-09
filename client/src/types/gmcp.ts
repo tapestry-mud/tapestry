@@ -103,10 +103,13 @@ export type RoomInfo = z.infer<typeof RoomInfoSchema>
 export const RoomNearbySchema = z.object({
   entities: z.array(z.object({
     name: z.string(),
-    type: z.enum(['player', 'mob', 'npc']),
+    type: z.enum(['player', 'npc']),
     templateId: z.string().optional(),
     tags: z.array(z.string()).optional(),
     healthTier: z.string().optional(),
+    disposition: z.enum(['Neutral', 'Friendly', 'Hostile']).optional(),
+    roles: z.array(z.string()).optional(),
+    keywords: z.array(z.string()).optional(),
   })),
 })
 export type RoomNearby = z.infer<typeof RoomNearbySchema>

@@ -2,11 +2,12 @@ import type { Entity } from '../../types/game'
 import { useNearbyStore } from '../../stores/nearbyStore'
 import { useAnnounceStore } from '../announceStore'
 
-const TAG_ORDER = ['shop', 'skill_trainer', 'quest', 'hostile'] as const
+const TAG_ORDER = ['shop', 'skill_trainer', 'quest'] as const
 type KnownTag = typeof TAG_ORDER[number]
 
-function getEntityRole(entity: Entity): KnownTag | 'player' | 'creature' {
+function getEntityRole(entity: Entity): KnownTag | 'player' | 'hostile' | 'creature' {
   if (entity.type === 'player') { return 'player' }
+  if (entity.disposition === 'Hostile') { return 'hostile' }
   for (const tag of TAG_ORDER) {
     if (entity.tags?.includes(tag)) { return tag }
   }

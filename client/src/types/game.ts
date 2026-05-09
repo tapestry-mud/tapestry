@@ -35,10 +35,13 @@ export interface Affect {
 
 export interface Entity {
   name: string
-  type: 'player' | 'mob' | 'npc'
+  type: 'player' | 'npc'
   templateId?: string
   tags?: string[]
   healthTier?: string
+  disposition?: 'Neutral' | 'Friendly' | 'Hostile'
+  roles?: string[]
+  keywords?: string[]
 }
 
 export interface Item {

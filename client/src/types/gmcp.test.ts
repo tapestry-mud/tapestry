@@ -152,7 +152,7 @@ describe('RoomNearbySchema', () => {
   it('parses entities list', () => {
     const result = RoomNearbySchema.safeParse({
       entities: [
-        { name: 'Goblin', type: 'mob', templateId: 'goblin_basic' },
+        { name: 'Goblin', type: 'npc', templateId: 'goblin_basic', disposition: 'Hostile' },
         { name: 'Kracus', type: 'player' },
       ],
     })
@@ -164,6 +164,22 @@ describe('RoomNearbySchema', () => {
       entities: [{ name: 'X', type: 'dragon' }],
     })
     expect(result.success).toBe(false)
+  })
+
+  it('rejects deprecated mob type', () => {
+    const result = RoomNearbySchema.safeParse({
+      entities: [{ name: 'Goblin', type: 'mob' }],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('parses entity with disposition and roles', () => {
+    const result = RoomNearbySchema.safeParse({
+      entities: [
+        { name: 'Goblin', type: 'npc', disposition: 'Hostile', roles: ['fighter'], keywords: ['goblin'] },
+      ],
+    })
+    expect(result.success).toBe(true)
   })
 })
 

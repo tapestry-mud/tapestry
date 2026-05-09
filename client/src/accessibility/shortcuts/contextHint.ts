@@ -17,6 +17,9 @@ export function buildContextHint(entities: Entity[]): string {
         break
       }
     }
+    if (entity.disposition === 'Hostile') {
+      present.add('hostile')
+    }
   }
 
   if (present.size === 0) { return '' }

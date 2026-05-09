@@ -71,7 +71,7 @@ describe('Room.Nearby handler', () => {
 
   it('sets entities from valid payload', () => {
     GmcpDispatcher.dispatch('Room.Nearby', {
-      entities: [{ name: 'Goblin', type: 'mob', templateId: 'goblin_basic' }],
+      entities: [{ name: 'Goblin', type: 'npc', templateId: 'goblin_basic', disposition: 'Hostile' }],
     })
     expect(useNearbyStore.getState().entities[0].name).toBe('Goblin')
   })

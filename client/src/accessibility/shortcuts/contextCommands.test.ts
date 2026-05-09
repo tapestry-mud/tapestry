@@ -4,8 +4,8 @@ import { useNearbyStore } from '../../stores/nearbyStore'
 import { useAnnounceStore } from '../announceStore'
 import type { Entity } from '../../types/game'
 
-function mob(name: string, tags: string[], type: Entity['type'] = 'mob'): Entity {
-  return { name, type, tags }
+function mob(name: string, tags: string[], disposition?: Entity['disposition']): Entity {
+  return { name, type: 'npc', tags, disposition }
 }
 
 function player(name: string): Entity {
@@ -41,31 +41,31 @@ describe('buildContextAnnouncement', () => {
   })
 
   it('formats single hostile', () => {
-    expect(buildContextAnnouncement([mob('goblin scout', ['hostile'])])).toBe(
+    expect(buildContextAnnouncement([mob('goblin scout', [], 'Hostile')])).toBe(
       'Hostiles: goblin scout.'
     )
   })
 
   it('counts multiple hostiles of same name', () => {
     expect(buildContextAnnouncement([
-      mob('goblin scout', ['hostile']),
-      mob('goblin scout', ['hostile']),
-      mob('goblin scout', ['hostile']),
+      mob('goblin scout', [], 'Hostile'),
+      mob('goblin scout', [], 'Hostile'),
+      mob('goblin scout', [], 'Hostile'),
     ])).toBe('Hostiles: goblin scout times 3.')
   })
 
   it('lists different hostile names comma-separated', () => {
     expect(buildContextAnnouncement([
-      mob('goblin scout', ['hostile']),
-      mob('orc warrior', ['hostile']),
+      mob('goblin scout', [], 'Hostile'),
+      mob('orc warrior', [], 'Hostile'),
     ])).toBe('Hostiles: goblin scout, orc warrior.')
   })
 
   it('mixes counted and uncounted hostiles', () => {
     expect(buildContextAnnouncement([
-      mob('goblin scout', ['hostile']),
-      mob('goblin scout', ['hostile']),
-      mob('orc warrior', ['hostile']),
+      mob('goblin scout', [], 'Hostile'),
+      mob('goblin scout', [], 'Hostile'),
+      mob('orc warrior', [], 'Hostile'),
     ])).toBe('Hostiles: goblin scout times 2, orc warrior.')
   })
 
@@ -75,7 +75,7 @@ describe('buildContextAnnouncement', () => {
     )
   })
 
-  it('formats untagged mobs as Creatures', () => {
+  it('formats untagged npcs as Creatures', () => {
     expect(buildContextAnnouncement([mob('old grey cat', [])])).toBe(
       'Creatures: old grey cat.'
     )
@@ -86,7 +86,7 @@ describe('buildContextAnnouncement', () => {
       mob('Grimjaw', ['shop']),
       mob('Elara', ['skill_trainer']),
       mob('Eldric', ['quest']),
-      mob('goblin scout', ['hostile']),
+      mob('goblin scout', [], 'Hostile'),
       player('Gandalf'),
       mob('old grey cat', []),
     ])).toBe(
