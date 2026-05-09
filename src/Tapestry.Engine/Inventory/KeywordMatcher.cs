@@ -22,9 +22,9 @@ public static class KeywordMatcher
             return null;
         }
 
-        // Exact tag match first, then prefix match
-        return entities.FirstOrDefault(e => e.HasTag(keyword))
-            ?? entities.FirstOrDefault(e => HasTagPrefix(e, keyword));
+        // Exact keyword match first, then prefix match
+        return entities.FirstOrDefault(e => e.HasKeyword(keyword))
+            ?? entities.FirstOrDefault(e => HasKeywordPrefix(e, keyword));
     }
 
     public static List<Entity> FindAllByKeyword(IEnumerable<Entity> entities, string keyword)
@@ -53,11 +53,11 @@ public static class KeywordMatcher
 
     private static bool MatchesKeyword(Entity entity, string keyword)
     {
-        return entity.HasTag(keyword) || HasTagPrefix(entity, keyword);
+        return entity.HasKeyword(keyword) || HasKeywordPrefix(entity, keyword);
     }
 
-    private static bool HasTagPrefix(Entity entity, string prefix)
+    private static bool HasKeywordPrefix(Entity entity, string prefix)
     {
-        return entity.Tags.Any(t => t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && t.Length > prefix.Length);
+        return entity.Keywords.Any(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && k.Length > prefix.Length);
     }
 }

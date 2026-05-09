@@ -11,8 +11,8 @@ public class KeywordMatcherTests
     public void FindByKeyword_MatchesTag()
     {
         var sword = new Entity("item:weapon", "an iron sword");
-        sword.AddTag("sword");
-        sword.AddTag("iron");
+        sword.AddKeyword("sword");
+        sword.AddKeyword("iron");
 
         var entities = new List<Entity> { sword };
         KeywordMatcher.FindByKeyword(entities, "sword").Should().Be(sword);
@@ -22,7 +22,7 @@ public class KeywordMatcherTests
     public void FindByKeyword_ReturnsNull_WhenNoMatch()
     {
         var sword = new Entity("item:weapon", "an iron sword");
-        sword.AddTag("sword");
+        sword.AddKeyword("sword");
         var entities = new List<Entity> { sword };
         KeywordMatcher.FindByKeyword(entities, "axe").Should().BeNull();
     }
@@ -31,9 +31,9 @@ public class KeywordMatcherTests
     public void FindByKeyword_Ordinal_ReturnsNth()
     {
         var ring1 = new Entity("item:armor", "a gold ring");
-        ring1.AddTag("ring");
+        ring1.AddKeyword("ring");
         var ring2 = new Entity("item:armor", "a silver ring");
-        ring2.AddTag("ring");
+        ring2.AddKeyword("ring");
 
         var entities = new List<Entity> { ring1, ring2 };
         KeywordMatcher.FindByKeyword(entities, "2.ring").Should().Be(ring2);
@@ -43,7 +43,7 @@ public class KeywordMatcherTests
     public void FindByKeyword_Ordinal_OutOfRange_ReturnsNull()
     {
         var ring = new Entity("item:armor", "a gold ring");
-        ring.AddTag("ring");
+        ring.AddKeyword("ring");
         var entities = new List<Entity> { ring };
         KeywordMatcher.FindByKeyword(entities, "3.ring").Should().BeNull();
     }
@@ -52,11 +52,11 @@ public class KeywordMatcherTests
     public void FindAllByKeyword_ReturnsAllMatches()
     {
         var s1 = new Entity("item:weapon", "iron sword");
-        s1.AddTag("sword");
+        s1.AddKeyword("sword");
         var s2 = new Entity("item:weapon", "steel sword");
-        s2.AddTag("sword");
+        s2.AddKeyword("sword");
         var axe = new Entity("item:weapon", "axe");
-        axe.AddTag("axe");
+        axe.AddKeyword("axe");
 
         var entities = new List<Entity> { s1, s2, axe };
         KeywordMatcher.FindAllByKeyword(entities, "sword").Should().HaveCount(2);
@@ -66,20 +66,20 @@ public class KeywordMatcherTests
     public void FindByKeyword_AllDotKeyword_ReturnsAll()
     {
         var s1 = new Entity("item:weapon", "iron sword");
-        s1.AddTag("sword");
+        s1.AddKeyword("sword");
         var s2 = new Entity("item:weapon", "steel sword");
-        s2.AddTag("sword");
+        s2.AddKeyword("sword");
 
         var entities = new List<Entity> { s1, s2 };
         KeywordMatcher.FindAllByKeyword(entities, "all.sword").Should().HaveCount(2);
     }
 
     [Fact]
-    public void FindByKeyword_PrefixMatchesTag()
+    public void FindByKeyword_PrefixMatchesKeyword()
     {
         var helm = new Entity("item:armor", "a leather helm");
-        helm.AddTag("helm");
-        helm.AddTag("leather");
+        helm.AddKeyword("helm");
+        helm.AddKeyword("leather");
 
         var entities = new List<Entity> { helm };
         KeywordMatcher.FindByKeyword(entities, "hel").Should().Be(helm);
@@ -89,10 +89,10 @@ public class KeywordMatcherTests
     public void FindByKeyword_ExactMatchWinsOverPrefix()
     {
         var sword = new Entity("item:weapon", "an iron sword");
-        sword.AddTag("sword");
-        sword.AddTag("iron");
+        sword.AddKeyword("sword");
+        sword.AddKeyword("iron");
         var swordfish = new Entity("item:misc", "a swordfish");
-        swordfish.AddTag("swordfish");
+        swordfish.AddKeyword("swordfish");
 
         var entities = new List<Entity> { swordfish, sword };
         KeywordMatcher.FindByKeyword(entities, "sword").Should().Be(sword);
@@ -102,9 +102,9 @@ public class KeywordMatcherTests
     public void FindByKeyword_All_ReturnsEverything()
     {
         var s1 = new Entity("item:weapon", "sword");
-        s1.AddTag("item");
+        s1.AddKeyword("sword");
         var s2 = new Entity("item:armor", "helm");
-        s2.AddTag("item");
+        s2.AddKeyword("helm");
 
         var entities = new List<Entity> { s1, s2 };
         KeywordMatcher.FindAllByKeyword(entities, "all").Should().HaveCount(2);

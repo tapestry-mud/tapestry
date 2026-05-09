@@ -140,4 +140,29 @@ public class EntityKeywordsRolesDispositionTests
 
         entity.Disposition.Should().Be(Disposition.Neutral);
     }
+
+    [Fact]
+    public void KeywordMatcher_MatchesEntityByKeyword()
+    {
+        var entity = new Entity("item", "a rusty iron dagger");
+        entity.AddKeyword("dagger");
+        entity.AddKeyword("knife");
+        entity.AddKeyword("blade");
+
+        entity.HasKeyword("dagger").Should().BeTrue();
+        entity.HasKeyword("knife").Should().BeTrue();
+        entity.HasKeyword("blade").Should().BeTrue();
+        entity.HasKeyword("sword").Should().BeFalse();
+    }
+
+    [Fact]
+    public void Keywords_DoNotAffectTags()
+    {
+        var entity = new Entity("item", "a rusty iron dagger");
+        entity.AddKeyword("dagger");
+        entity.AddTag("equippable");
+
+        entity.HasTag("dagger").Should().BeFalse();
+        entity.HasKeyword("equippable").Should().BeFalse();
+    }
 }

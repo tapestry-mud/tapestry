@@ -256,7 +256,8 @@ public static class ArgResolver
         var nameWords = e.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w.ToLowerInvariant())
             .ToHashSet();
-        var keyword = e.Tags.FirstOrDefault(t => nameWords.Contains(t.ToLowerInvariant()))
+        var keyword = e.Keywords.FirstOrDefault(k => nameWords.Contains(k.ToLowerInvariant()))
+            ?? e.Keywords.FirstOrDefault()
             ?? e.Name.Split(' ').LastOrDefault()
             ?? e.Name;
         return new Dictionary<string, object?>
