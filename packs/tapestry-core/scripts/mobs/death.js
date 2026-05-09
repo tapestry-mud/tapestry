@@ -20,6 +20,7 @@ tapestry.events.on("entity.vital.depleted", function(event) {
     var corpseId = tapestry.world.createEntity("container", "the corpse of " + mobName);
     tapestry.world.addTag(corpseId, "corpse");
     tapestry.world.addTag(corpseId, "container");
+    tapestry.world.addTag(corpseId, "no_get");
     tapestry.world.setProperty(corpseId, "corpse_decay", corpseDecay);
     tapestry.world.setProperty(corpseId, "corpse_created_tick", tapestry.world.getCurrentTick());
     tapestry.world.setProperty(corpseId, "template_id", templateId);

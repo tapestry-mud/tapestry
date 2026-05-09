@@ -147,6 +147,7 @@ tapestry.events.on("entity.vital.depleted", function(event) {
     tapestry.world.addTag(corpseId, "corpse");
     tapestry.world.addTag(corpseId, "container");
     tapestry.world.addTag(corpseId, "player_corpse");
+    tapestry.world.addTag(corpseId, "no_get");
     tapestry.world.setProperty(corpseId, "owner", entityId);
     tapestry.world.setProperty(corpseId, "corpse_decay", 600);
     tapestry.world.setProperty(corpseId, "corpse_created_tick", tapestry.world.getCurrentTick());
