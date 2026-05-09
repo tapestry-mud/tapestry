@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Tags;
 using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
@@ -72,8 +73,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule, RespondModule>();
 
         // Runtime and loader
+        services.AddSingleton<TagRegistry>();
         services.AddSingleton<JintRuntime>();
         services.AddSingleton<PackLoader>();
+        services.AddSingleton<IPackManifestProvider>(sp => sp.GetRequiredService<PackLoader>());
         services.AddSingleton<PackValidator>();
         services.AddSingleton<ConnectionLoader>(sp =>
         {

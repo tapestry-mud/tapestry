@@ -9,14 +9,16 @@ using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Scripting.Tags;
 using Tapestry.Shared;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace Tapestry.Scripting;
 
-public class PackLoader
+public class PackLoader : IPackManifestProvider
 {
     private readonly World _world;
     private readonly SlotRegistry _slotRegistry;
@@ -29,16 +31,18 @@ public class PackLoader
     private readonly AreaRegistry _areaRegistry;
     private readonly WeatherZoneRegistry _weatherZoneRegistry;
     private readonly HelpService _helpService;
+    private readonly TagRegistry _tagRegistry;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
     public List<PackManifest> LoadedPacks { get; } = new();
+    IReadOnlyList<PackManifest> IPackManifestProvider.LoadedPacks => LoadedPacks;
 
     public PackLoader(World world, SlotRegistry slotRegistry, JintRuntime runtime,
                      ThemeRegistry theme, SpawnManager spawnManager, ItemRegistry itemRegistry,
                      ILogger<PackLoader> logger, PackContext packContext,
                      AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
-                     HelpService helpService)
+                     HelpService helpService, TagRegistry tagRegistry)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -51,6 +55,7 @@ public class PackLoader
         _areaRegistry = areaRegistry;
         _weatherZoneRegistry = weatherZoneRegistry;
         _helpService = helpService;
+        _tagRegistry = tagRegistry;
     }
 
     public PackManifest Load(string packDirectory)
@@ -73,6 +78,8 @@ public class PackLoader
 
         _logger.LogInformation("Loading pack: {Name} v{Version}", manifest.Name, manifest.Version);
         LoadedPacks.Add(manifest);
+
+        TagsFileLoader.LoadIntoRegistry(packDirectory, manifest.Name, _tagRegistry);
 
         if (!string.IsNullOrEmpty(manifest.Content.WeatherZones))
         {

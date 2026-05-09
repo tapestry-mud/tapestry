@@ -19,6 +19,7 @@ using Tapestry.Engine.Progression;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Sustenance;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Engine.Ui;
 using Tapestry.Scripting;
@@ -111,6 +112,22 @@ public class PackLoaderTests
     }
 
     [Fact]
+    public void LoadPack_PopulatesTagRegistry_WithOwnPackTags()
+    {
+        var tagRegistry = new TagRegistry();
+        var (_, _, _, loader) = CreateLoaderDepsWithSpawn(tagRegistry);
+
+        loader.Load(ExamplePackPath());
+
+        // example-pack's own tags are in the registry (cursed, lair from tags.yml)
+        tagRegistry.IsKnown("cursed", "example-pack").Should().BeTrue();
+        tagRegistry.IsKnown("lair", "example-pack").Should().BeTrue();
+
+        // Engine tags are NOT present -- tapestry-core was not loaded
+        tagRegistry.IsKnown("killable", null).Should().BeFalse();
+    }
+
+    [Fact]
     public void LoadPack_ThrowsOnDuplicateId()
     {
         var dir = Path.Combine(Path.GetTempPath(), "tapestry-dup-" + Guid.NewGuid().ToString("N")[..8]);
@@ -160,7 +177,7 @@ public class PackLoaderTests
         }
     }
 
-    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader) CreateLoaderDepsWithSpawn()
+    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null)
     {
         var world = new World();
         var eventBus = new EventBus();
@@ -270,8 +287,9 @@ public class PackLoaderTests
 
         var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance);
         var helpService = new Tapestry.Engine.Help.HelpService();
+        tagRegistry ??= new TagRegistry();
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
-            NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService);
+            NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry);
 
         return (world, itemRegistry, spawnManager, loader);
     }

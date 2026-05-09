@@ -14,6 +14,7 @@ public class PackManifest
     public bool Active { get; set; } = true;
     public Dictionary<string, string> Dependencies { get; set; } = new();
     public int LoadOrder { get; set; } = 100;
+    public string TagValidation { get; set; } = "strict";
     public PackContentPaths Content { get; set; } = new();
 }
 
