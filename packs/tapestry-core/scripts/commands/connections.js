@@ -2,24 +2,35 @@ tapestry.commands.register({
     name: 'connections',
     aliases: [],
     description: 'List connections for this room or all rooms.',
+    category: 'admin',
+    roles: ['player'],
+    args: {},
     priority: 10,
-    handler: function(player, args) {
-        if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
-        if (args[0] === 'all') {
+    handler: function(actor, resolved) {
+        if (!actor.hasTag('admin')) {
+            actor.send('Huh?\r\n');
+            return;
+        }
+
+        if (resolved[0] === 'all') {
             var all = tapestry.connections.getAll();
             if (all.length === 0) {
-                player.send("No connections on this server.\r\n");
+                actor.send('No connections on this server.\r\n');
                 return;
             }
-            all.forEach(function(c) { player.send(formatConnection(c) + "\r\n"); });
+            all.forEach(function(c) {
+                actor.send(formatConnection(c) + '\r\n');
+            });
         } else {
-            var conns = tapestry.connections.getForRoom(player.roomId);
+            var conns = tapestry.connections.getForRoom(actor.roomId);
             if (conns.length === 0) {
-                player.send("No connections for this room.\r\n");
+                actor.send('No connections for this room.\r\n');
                 return;
             }
-            player.send("Connections for " + player.roomId + ":\r\n");
-            conns.forEach(function(c) { player.send("  " + formatConnection(c) + "\r\n"); });
+            actor.send('Connections for ' + actor.roomId + ':\r\n');
+            conns.forEach(function(c) {
+                actor.send('  ' + formatConnection(c) + '\r\n');
+            });
         }
     }
 });
@@ -27,5 +38,5 @@ tapestry.commands.register({
 function formatConnection(c) {
     var fromLabel = c.from.type === 'direction' ? c.from.direction : 'enter ' + c.from.keyword;
     var toLabel = c.to.type === 'one-way' ? 'one-way' : (c.to.type === 'direction' ? c.to.direction : c.to.keyword + ' back');
-    return fromLabel + " --> " + c.to.room + " (" + toLabel + ")";
+    return fromLabel + ' --> ' + c.to.room + ' (' + toLabel + ')';
 }
