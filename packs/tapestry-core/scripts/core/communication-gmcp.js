@@ -3,6 +3,9 @@ tapestry.events.on("communication.message", function(event) {
     var recipients = [];
 
     if (data.channel === "say" || data.channel === "emote") {
+        if (!data.roomId) {
+            return;
+        }
         recipients = tapestry.world.getEntitiesInRoom(data.roomId, "player");
     } else if (data.channel === "tell" || data.channel === "whisper") {
         if (data.targetId) {
