@@ -2,6 +2,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Tags;
 using Tapestry.Scripting.Services;
 using JintEngine = Jint.Engine;
 
@@ -17,8 +18,9 @@ public class WorldModule : IJintApiModule
     private readonly RaceRegistry _raceRegistry;
     private readonly MobAIManager _mobAIManager;
     private readonly IGmcpModuleAdapter _gmcp;
+    private readonly TagRegistry _tagRegistry;
 
-    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp)
+    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry)
     {
         _messaging = messaging;
         _worldOps = worldOps;
@@ -28,6 +30,7 @@ public class WorldModule : IJintApiModule
         _raceRegistry = raceRegistry;
         _mobAIManager = mobAIManager;
         _gmcp = gmcp;
+        _tagRegistry = tagRegistry;
     }
 
     public string Namespace => "world";
@@ -136,6 +139,79 @@ public class WorldModule : IJintApiModule
                 return entity?.Id.ToString();
             }),
             findPlayerByName = new Func<string, object?>(_worldOps.FindPlayerByName),
+            removeTag = new Action<string, string>((entityIdStr, tag) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
+                var entity = _world.GetEntity(entityId);
+                if (entity != null)
+                {
+                    entity.RemoveTag(tag);
+                }
+            }),
+            getEntitiesByTag = new Func<string, object[]>(tag =>
+            {
+                var entities = _world.GetEntitiesByTag(tag);
+                return entities.Select(e => new
+                {
+                    id = e.Id.ToString(),
+                    name = e.Name,
+                    type = e.Type
+                }).ToArray();
+            }),
+            getEntityKeywords = new Func<string, string[]>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return Array.Empty<string>(); }
+                var e = _world.GetEntity(entityId);
+                return e == null ? Array.Empty<string>() : e.Keywords.ToArray();
+            }),
+            getEntityRoles = new Func<string, string[]>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return Array.Empty<string>(); }
+                var e = _world.GetEntity(entityId);
+                return e == null ? Array.Empty<string>() : e.Roles.ToArray();
+            }),
+            getEntityDisposition = new Func<string, string?>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return null; }
+                var e = _world.GetEntity(entityId);
+                return e?.Disposition.ToString().ToLower();
+            }),
+            getEntityType = new Func<string, string?>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return null; }
+                var e = _world.GetEntity(entityId);
+                return e?.Type;
+            }),
+            getTagRegistry = new Func<object[]>(() =>
+            {
+                return _tagRegistry.GetAll()
+                    .Select(e => new
+                    {
+                        name = e.Name,
+                        scope = e.Scope,
+                        description = e.Description,
+                        appliesTo = e.AppliesTo.ToArray(),
+                        fullName = e.FullName,
+                        isEngine = e.IsEngineTag
+                    })
+                    .ToArray();
+            }),
+            isTagKnown = new Func<string, string?, bool>((tag, packContext) =>
+            {
+                return _tagRegistry.IsKnown(tag, packContext);
+            }),
+            getAllEntities = new Func<object[]>(() =>
+            {
+                return _world.GetAllTrackedEntities()
+                    .Select(e => new
+                    {
+                        id = e.Id.ToString(),
+                        name = e.Name,
+                        type = e.Type,
+                        tags = e.Tags.ToArray()
+                    })
+                    .ToArray();
+            }),
             buildInfo = new Func<object>(() => new
             {
                 engineSha = Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev",

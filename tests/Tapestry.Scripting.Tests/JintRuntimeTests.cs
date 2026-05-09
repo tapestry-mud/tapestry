@@ -12,6 +12,7 @@ using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Stats;
+using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
@@ -253,7 +254,7 @@ public class JintRuntimeTests
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
-            new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter()),
+            new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
