@@ -205,10 +205,10 @@ public class PackLoaderTests
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
-        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
+        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
-        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService);
+        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
         var stats = new ApiStats(world, statDisplayNames);
         var mobsApi = new ApiMobs(world, mobAIManager, spawnManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
@@ -246,7 +246,7 @@ public class PackLoaderTests
 
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry()),

@@ -9,10 +9,14 @@ socials.forEach(function(social) {
         name: social.name,
         category: 'social',
         description: social.no_target,
-        handler: function(player, args) {
-            var target = args.length > 0 ? args[0] : null;
+        args: {
+            target: { type: 'visible', required: false }
+        },
+        handler: function(player, resolved) {
             var gender = tapestry.world.getProperty(player.entityId, 'gender');
             var reflexive = gender === 'male' ? 'himself' : gender === 'female' ? 'herself' : 'themselves';
+
+            var target = resolved.target;
 
             if (!target) {
                 player.send(social.no_target.replace('$n', 'You') + '\r\n');
@@ -24,7 +28,7 @@ socials.forEach(function(social) {
                 return;
             }
 
-            if (target === 'self') {
+            if (target.id === player.entityId) {
                 player.send(social.self.replace('$n', 'You').replace('$mself', reflexive) + '\r\n');
                 tapestry.world.sendToRoomExcept(
                     player.roomId,
@@ -34,31 +38,14 @@ socials.forEach(function(social) {
                 return;
             }
 
-            var entities = tapestry.world.getEntitiesInRoom(player.roomId, 'npc').concat(
-                tapestry.world.getEntitiesInRoom(player.roomId, 'player')
-            );
-            var found = null;
-            var lowerTarget = target.toLowerCase();
-            for (var i = 0; i < entities.length; i++) {
-                if (entities[i].name.toLowerCase().indexOf(lowerTarget) !== -1) {
-                    found = entities[i];
-                    break;
-                }
-            }
-
-            if (!found) {
-                player.send("They aren't here.\r\n");
-                return;
-            }
-
-            player.send(social.targeted.replace('$n', 'You').replace(/\$N/g, found.name) + '\r\n');
+            player.send(social.targeted.replace('$n', 'You').replace(/\$N/g, target.name) + '\r\n');
             tapestry.world.sendToRoomExceptMany(
                 player.roomId,
-                [player.entityId, found.id],
-                social.targeted_room.replace(/\$n/g, player.name).replace(/\$N/g, found.name) + '\r\n'
+                [player.entityId, target.id],
+                social.targeted_room.replace(/\$n/g, player.name).replace(/\$N/g, target.name) + '\r\n'
             );
             tapestry.world.send(
-                found.id,
+                target.id,
                 social.targeted_victim.replace(/\$n/g, player.name) + '\r\n'
             );
         }

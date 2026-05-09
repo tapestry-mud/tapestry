@@ -21,6 +21,7 @@ public class CommandsModule : IJintApiModule
     private readonly ILogger<CommandsModule> _logger;
     private readonly CommandResponseContext _responseContext;
     private readonly EventBus _eventBus;
+    private readonly ArgResolver _argResolver;
 
     private readonly List<string> _undescribedCommands = new();
 
@@ -32,7 +33,8 @@ public class CommandsModule : IJintApiModule
         World world,
         ILogger<CommandsModule> logger,
         CommandResponseContext responseContext,
-        EventBus eventBus)
+        EventBus eventBus,
+        ArgResolver argResolver)
     {
         _commandRegistry = commandRegistry;
         _messaging = messaging;
@@ -42,6 +44,7 @@ public class CommandsModule : IJintApiModule
         _logger = logger;
         _responseContext = responseContext;
         _eventBus = eventBus;
+        _argResolver = argResolver;
     }
 
     public string Namespace => "commands";
@@ -106,7 +109,10 @@ public class CommandsModule : IJintApiModule
             }
         }
 
-        return new ArgDefinition { Type = type, Required = required, Bulk = bulk, Prepositions = prepositions };
+        var bypassVal = defObj.Get("bypass_visibility");
+        var bypassVisibility = bypassVal.Type == Types.Boolean && (bool)bypassVal.ToObject()!;
+
+        return new ArgDefinition { Type = type, Required = required, Bulk = bulk, Prepositions = prepositions, BypassVisibility = bypassVisibility };
     }
 
     private void RegisterCommand(JintEngine engine, JsValue definition)
@@ -337,8 +343,8 @@ public class CommandsModule : IJintApiModule
             string? sendErrorMsg = null;
             Action<string>? sendError = isMob ? null : msg => { sendErrorMsg = msg; };
 
-            var (success, resolved, _) = ArgResolver.Resolve(
-                actorCtx, argDefs, actorCtx.RawArgs, _world, sendError);
+            var (success, resolved, _) = _argResolver.Resolve(
+                actorCtx, argDefs, actorCtx.RawArgs, sendError);
 
             if (!success)
             {

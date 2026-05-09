@@ -209,13 +209,13 @@ tapestry.commands.register({
     name: "cast",
     description: 'Cast a spell.',
     aliases: ["c"],
-    handler: function(player, args) {
-        if (args.length === 0) {
-            player.send("Cast what?\r\n");
-            return;
-        }
+    args: {
+        spell_and_target: { type: 'text', required: true }
+    },
+    handler: function(player, resolved) {
+        var fullInput = resolved.spell_and_target;
+        var args = fullInput.split(' ').filter(function(t) { return t.length > 0; });
 
-        // Try to match the spell name — supports multi-word and prefix matching
         var match = resolveSpellName(player.entityId, args);
         if (!match) {
             player.send("You don't know that spell.\r\n");
@@ -225,39 +225,30 @@ tapestry.commands.register({
         var spellId = match.id;
         var remainingArgs = args.slice(match.wordsConsumed);
 
-        // Check can_target to decide self-targeting behavior
         var spellDef = tapestry.abilities.getDefinition(spellId);
         var canTarget = (spellDef && spellDef.can_target) ? spellDef.can_target : [];
         var canSelfTarget = false;
         for (var i = 0; i < canTarget.length; i++) {
-            if (canTarget[i] === "self") {
-                canSelfTarget = true;
-                break;
-            }
+            if (canTarget[i] === "self") { canSelfTarget = true; break; }
         }
 
-        // Determine target
         var targetId = null;
         if (remainingArgs.length > 0) {
-            var targetName = remainingArgs.join(" ");
-            targetId = findCastTarget(player, targetName);
-            if (!targetId) {
+            var token = remainingArgs.join(" ");
+            var resolvedTarget = tapestry.args.resolve(player.entityId, token, 'entity');
+            if (!resolvedTarget) {
                 player.send("You don't see that here.\r\n");
                 return;
             }
+            targetId = resolvedTarget.id;
         } else if (tapestry.combat.isInCombat(player.entityId)) {
             var canTargetEnemy = false;
             for (var j = 0; j < canTarget.length; j++) {
-                if (canTarget[j] === "npc") {
-                    canTargetEnemy = true;
-                    break;
-                }
+                if (canTarget[j] === "npc") { canTargetEnemy = true; break; }
             }
             if (canTargetEnemy) {
                 var combatants = tapestry.combat.getCombatants(player.entityId);
-                if (combatants.length > 0) {
-                    targetId = combatants[0];
-                }
+                if (combatants.length > 0) { targetId = combatants[0]; }
             }
         }
 
@@ -271,7 +262,6 @@ tapestry.commands.register({
             }
         }
 
-        // If targeting someone else and not in combat, engage
         if (targetId !== player.entityId && !tapestry.combat.isInCombat(player.entityId)) {
             var result = tapestry.combat.engage(player.entityId, targetId);
             if (result !== "ok") {

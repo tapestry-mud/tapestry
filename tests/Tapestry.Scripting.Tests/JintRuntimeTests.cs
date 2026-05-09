@@ -236,10 +236,10 @@ public class JintRuntimeTests
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         // Create service classes
-        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
+        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
-        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService);
+        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
         var stats = new ApiStats(world, statDisplayNames);
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
         var mobs = new ApiMobs(world, mobAIManager, spawnManager);
@@ -251,7 +251,7 @@ public class JintRuntimeTests
         // Create modules
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry()),

@@ -10,18 +10,21 @@ public class ApiMessaging
     private readonly SessionManager _sessions;
     private readonly IGmcpModuleAdapter _gmcp;
     private readonly CommandResponseContext _responseContext;
+    private readonly VisibilityFilter _visibility;
     private string _motd = "";
 
     public ApiMessaging(
         World world,
         SessionManager sessions,
         IGmcpModuleAdapter gmcp,
-        CommandResponseContext responseContext)
+        CommandResponseContext responseContext,
+        VisibilityFilter visibility)
     {
         _world = world;
         _sessions = sessions;
         _gmcp = gmcp;
         _responseContext = responseContext;
+        _visibility = visibility;
     }
 
     public void SetMotd(string motd)
@@ -159,8 +162,10 @@ public class ApiMessaging
             lines.Add($"<direction>[Exits: {string.Join(" ", exits)}]</direction>");
         }
 
+        var visibleEntities = _visibility.GetVisibleEntities(room, entity).ToList();
+
         // Show items on the ground
-        var items = room.Entities
+        var items = visibleEntities
             .Where(e => e.HasTag("item") && e.Container == null)
             .ToList();
         foreach (var item in items)
@@ -169,7 +174,7 @@ public class ApiMessaging
         }
 
         // Show NPCs
-        var npcs = room.Entities
+        var npcs = visibleEntities
             .Where(e => e.Type == "npc")
             .ToList();
         foreach (var npc in npcs)
@@ -178,7 +183,7 @@ public class ApiMessaging
         }
 
         // Show corpses (corpse is a tag, not a type -- entities are type "container")
-        var corpses = room.Entities
+        var corpses = visibleEntities
             .Where(e => e.HasTag("corpse"))
             .ToList();
         foreach (var corpse in corpses)
@@ -187,7 +192,7 @@ public class ApiMessaging
         }
 
         // Show other players
-        var others = room.Entities
+        var others = visibleEntities
             .Where(e => e.Type == "player" && e.Id != entityId)
             .Select(e => e.Name)
             .ToList();

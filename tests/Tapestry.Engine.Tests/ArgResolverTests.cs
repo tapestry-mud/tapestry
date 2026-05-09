@@ -1,3 +1,5 @@
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Shared;
 using Xunit;
@@ -6,115 +8,130 @@ namespace Tapestry.Engine.Tests;
 
 public class ArgResolverTests
 {
-    [Fact]
-    public void Resolve_Keyword_ReturnsRawToken()
+    private static ArgResolver MakeResolver()
     {
         var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
+        var visibility = new VisibilityFilter();
+        var eventBus = new EventBus();
+        var doors = new DoorService(world, eventBus);
+        var logger = NullLogger<ArgResolver>.Instance;
+        return new ArgResolver(world, visibility, doors, logger);
+    }
+
+    private static ActorContext MakeActor(Guid entityId, string? roomId = null)
+    {
+        return new ActorContext
         {
-            ["stat"] = new ArgDefinition { Type = "keyword", Required = true }
+            EntityId = entityId,
+            RoomId = roomId
         };
+    }
 
-        var (success, resolved, _) = ArgResolver.Resolve(actor, argDefs, ["strength"], world, null);
+    // ── MatchesInput ──────────────────────────────────────────────────────
 
-        Assert.True(success);
-        Assert.Equal("strength", resolved["stat"]);
+    [Fact]
+    public void MatchesInput_ByKeyword_ReturnsTrue()
+    {
+        var entity = new Entity("npc", "A green goblin");
+        entity.AddKeyword("goblin");
+
+        ArgResolver.MatchesInput(entity, "goblin").Should().BeTrue();
     }
 
     [Fact]
-    public void Resolve_Number_ParsesInteger()
+    public void MatchesInput_ByNameSubstring_ReturnsTrue()
     {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["amount"] = new ArgDefinition { Type = "number", Required = true }
-        };
+        var entity = new Entity("item", "A large iron shield");
 
-        var (success, resolved, _) = ArgResolver.Resolve(actor, argDefs, ["50"], world, null);
-
-        Assert.True(success);
-        Assert.Equal(50, resolved["amount"]);
+        ArgResolver.MatchesInput(entity, "large").Should().BeTrue();
     }
 
     [Fact]
-    public void Resolve_Number_InvalidInput_ReturnsFail()
+    public void MatchesInput_NoMatch_ReturnsFalse()
     {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["amount"] = new ArgDefinition { Type = "number", Required = true }
-        };
+        var entity = new Entity("npc", "A green goblin");
+        entity.AddKeyword("goblin");
 
-        var (success, _, _) = ArgResolver.Resolve(actor, argDefs, ["notanumber"], world, null);
+        ArgResolver.MatchesInput(entity, "dragon").Should().BeFalse();
+    }
 
-        Assert.False(success);
+    // ── ResolveToken: number ──────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveNumber_ValidInt_ReturnsSuccess()
+    {
+        var resolver = MakeResolver();
+        var actor = MakeActor(Guid.NewGuid());
+        var def = new ArgDefinition { Type = "number", Required = true };
+
+        var (success, value, error) = resolver.ResolveToken(actor, "amount", def, "42");
+
+        success.Should().BeTrue();
+        value.Should().Be(42);
+        error.Should().BeNull();
     }
 
     [Fact]
-    public void Resolve_Text_ConsumesAllRemainingTokens()
+    public void ResolveNumber_Invalid_ReturnsFail()
     {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["message"] = new ArgDefinition { Type = "text", Required = true }
-        };
+        var resolver = MakeResolver();
+        var actor = MakeActor(Guid.NewGuid());
+        var def = new ArgDefinition { Type = "number", Required = true };
 
-        var (success, resolved, _) = ArgResolver.Resolve(actor, argDefs, ["hello", "world", "!"], world, null);
+        var (success, value, error) = resolver.ResolveToken(actor, "amount", def, "goblin");
 
-        Assert.True(success);
-        Assert.Equal("hello world !", resolved["message"]);
+        success.Should().BeFalse();
+        value.Should().BeNull();
+        error.Should().NotBeNullOrEmpty();
+    }
+
+    // ── RegisterPackType ──────────────────────────────────────────────────
+
+    [Fact]
+    public void RegisterPackType_EngineType_IsIgnored()
+    {
+        var resolver = MakeResolver();
+        var actor = MakeActor(Guid.NewGuid());
+        var def = new ArgDefinition { Type = "keyword", Required = true };
+
+        // Attempt to override the engine "keyword" type with a handler that always fails
+        resolver.RegisterPackType("keyword", (_, _, _) => (false, null, "overridden"));
+
+        // The engine handler should still win -- keyword passthrough returns success
+        var (success, value, error) = resolver.ResolveToken(actor, "word", def, "sword");
+
+        success.Should().BeTrue();
+        value.Should().Be("sword");
     }
 
     [Fact]
-    public void Resolve_Prepositions_StrippedBeforeArg()
+    public void RegisterPackType_Custom_IsInvoked()
     {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["item"] = new ArgDefinition { Type = "keyword", Required = true },
-            ["target"] = new ArgDefinition { Type = "keyword", Required = true, Prepositions = ["to"] }
-        };
+        var resolver = MakeResolver();
+        var actor = MakeActor(Guid.NewGuid());
+        var def = new ArgDefinition { Type = "recipe", Required = true };
 
-        var (success, resolved, _) = ArgResolver.Resolve(actor, argDefs, ["blade", "to", "lan"], world, null);
+        resolver.RegisterPackType("recipe", (_, _, token) => (true, $"recipe:{token}", null));
 
-        Assert.True(success);
-        Assert.Equal("blade", resolved["item"]);
-        Assert.Equal("lan", resolved["target"]);
+        var (success, value, error) = resolver.ResolveToken(actor, "item", def, "bread");
+
+        success.Should().BeTrue();
+        value.Should().Be("recipe:bread");
     }
 
-    [Fact]
-    public void Resolve_OptionalArg_MissingInput_ReturnsNullForArg()
-    {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["target"] = new ArgDefinition { Type = "keyword", Required = false }
-        };
-
-        var (success, resolved, _) = ArgResolver.Resolve(actor, argDefs, [], world, null);
-
-        Assert.True(success);
-        Assert.Null(resolved["target"]);
-    }
+    // ── ResolveToken: unknown type fallback ───────────────────────────────
 
     [Fact]
-    public void Resolve_RequiredArg_MissingInput_ReturnsFail()
+    public void ResolveToken_UnknownType_FallsBackToKeyword()
     {
-        var world = new World();
-        var actor = new ActorContext { EntityId = Guid.NewGuid(), Source = "player" };
-        var argDefs = new Dictionary<string, ArgDefinition>
-        {
-            ["item"] = new ArgDefinition { Type = "keyword", Required = true }
-        };
+        var resolver = MakeResolver();
+        var actor = MakeActor(Guid.NewGuid());
+        var def = new ArgDefinition { Type = "totally_unknown_type", Required = false };
 
-        var (success, _, _) = ArgResolver.Resolve(actor, argDefs, [], world, null);
+        var (success, value, error) = resolver.ResolveToken(actor, "thing", def, "widget");
 
-        Assert.False(success);
+        success.Should().BeTrue();
+        value.Should().Be("widget");
+        error.Should().BeNull();
     }
 }

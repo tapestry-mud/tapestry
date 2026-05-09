@@ -4,26 +4,14 @@ tapestry.commands.register({
     category: 'world',
     roles: ['player', 'mob'],
     args: {
-        target: { type: 'keyword', required: true }
+        target: { type: 'door', required: true }
     },
     handler: function(actor, resolved) {
-        var input = resolved.target;
-
         var roomId = tapestry.world.getEntityRoomId(actor.entityId);
         if (!roomId) { return; }
 
-        var dirStr = tapestry.doors.resolveTarget(roomId, input);
-
-        if (!dirStr) {
-            actor.send("You don't see that here, or it's ambiguous. Try specifying a direction or ordinal (e.g., 2.door).\r\n");
-            return;
-        }
-
-        var door = tapestry.doors.getDoor(roomId, dirStr);
-        if (!door) {
-            actor.send("There's no door that way.\r\n");
-            return;
-        }
+        var door = resolved.target.door;
+        var dirStr = resolved.target.direction;
 
         if (!door.isClosed) {
             actor.send('That is already open.\r\n');

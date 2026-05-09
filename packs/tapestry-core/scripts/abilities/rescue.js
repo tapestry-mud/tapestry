@@ -19,15 +19,13 @@ tapestry.commands.register({
         var prof = tapestry.abilities.getProficiency(entity.entityId, "rescue");
         return !!prof && prof > 0;
     },
-    handler: function(player, args) {
+    args: {
+        target: { type: 'player', required: true }
+    },
+    handler: function(player, resolved) {
         var prof = tapestry.abilities.getProficiency(player.entityId, "rescue");
         if (!prof || prof <= 0) {
             player.send("You don't know how to Rescue.\r\n");
-            return;
-        }
-
-        if (!args || args.length === 0) {
-            player.send("Rescue whom?\r\n");
             return;
         }
 
@@ -37,21 +35,7 @@ tapestry.commands.register({
             return;
         }
 
-        var targetName = args[0].toLowerCase();
-        var playersInRoom = tapestry.world.getEntitiesInRoom(player.roomId, "player");
-        var target = null;
-        for (var i = 0; i < playersInRoom.length; i++) {
-            if (playersInRoom[i].name.toLowerCase().indexOf(targetName) === 0 &&
-                playersInRoom[i].id !== player.entityId) {
-                target = playersInRoom[i];
-                break;
-            }
-        }
-
-        if (!target) {
-            player.send("You don't see that person here.\r\n");
-            return;
-        }
+        var target = resolved.target;
 
         var rescuerGroupId = tapestry.world.getProperty(player.entityId, "group_id");
         var targetGroupId = tapestry.world.getProperty(target.id, "group_id");
