@@ -2,47 +2,43 @@ tapestry.commands.register({
     name: 'sac',
     aliases: ['sacrifice'],
     description: 'Sacrifice a corpse to remove it from the world.',
-    priority: 0,
-    handler: function(player, args) {
-        if (args.length === 0) {
-            player.send('Sacrifice what?\r\n');
+    category: 'inventory',
+    roles: ['player'],
+    args: {
+        item: { type: 'room_item', required: true }
+    },
+    handler: function(actor, resolved) {
+        var item = resolved.item;
+
+        if (!tapestry.world.hasTag(item.id, 'corpse')) {
+            actor.send("You can only sacrifice corpses.\r\n");
             return;
         }
 
-        var keyword = args.join(' ');
-        var found = tapestry.inventory.findInRoom(player.entityId, keyword);
-        if (!found) {
-            player.send("You don't see that here.\r\n");
-            return;
-        }
-
-        if (!tapestry.world.hasTag(found.id, 'corpse')) {
-            player.send("You can only sacrifice corpses.\r\n");
-            return;
-        }
-
-        if (tapestry.world.hasTag(found.id, 'player_corpse')) {
-            var contents = tapestry.inventory.getContents(found.id);
+        if (tapestry.world.hasTag(item.id, 'player_corpse')) {
+            var contents = tapestry.inventory.getContents(item.id);
             if (contents.length > 0) {
-                player.send("You cannot sacrifice a player corpse that still has belongings in it.\r\n");
+                actor.send("You cannot sacrifice a player corpse that still has belongings in it.\r\n");
                 return;
             }
         }
 
-        var corpseName = found.name;
-        var isPlayerCorpse = tapestry.world.hasTag(found.id, 'player_corpse');
-        var corpseEntity = tapestry.world.getEntity(found.id);
-        var level = corpseEntity && corpseEntity.properties ? (corpseEntity.properties.level || 0) : 0;
+        var isPlayerCorpse = tapestry.world.hasTag(item.id, 'player_corpse');
+        var corpseEntity = tapestry.world.getEntity(item.id);
+        var level = 0;
+        if (corpseEntity && corpseEntity.properties) {
+            level = corpseEntity.properties.level || 0;
+        }
 
-        destroyWithContents(found.id);
+        destroyWithContents(item.id);
 
-        player.send('You sacrifice ' + corpseName + ' to the heavens.\r\n');
-        player.sendToRoom(player.name + ' sacrifices ' + corpseName + ' to the heavens.\r\n');
+        actor.send('You sacrifice ' + item.name + ' to the heavens.\r\n');
+        actor.sendToRoom(actor.name + ' sacrifices ' + item.name + ' to the heavens.\r\n');
 
         if (!isPlayerCorpse && level > 0) {
-            tapestry.currency.addGold(player.entityId, level, "sac");
+            tapestry.currency.addGold(actor.entityId, level, "sac");
             var coinWord = level === 1 ? 'coin' : 'coins';
-            player.send('The heavens reward you with ' + level + ' gold ' + coinWord + '.\r\n');
+            actor.send('The heavens reward you with ' + level + ' gold ' + coinWord + '.\r\n');
         }
     }
 });

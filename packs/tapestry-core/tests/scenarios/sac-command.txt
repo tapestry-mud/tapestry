@@ -1,0 +1,37 @@
+# Scenario: sac command
+# Setup: room contains "the corpse of a goblin" (tagged: corpse, level: 3),
+#        "the corpse of Lan" (tagged: corpse, player_corpse, empty),
+#        "a steel blade" (no corpse tag)
+
+# Basic sacrifice - mob corpse with gold reward
+> sac corpse
+< You sacrifice the corpse of a goblin to the heavens.
+< The heavens reward you with 3 gold coins.
+
+# Error: not a corpse
+> sac blade
+< You can only sacrifice corpses.
+
+# Error: nothing specified (resolver handles this)
+> sac
+< What item?
+
+# Error: item not in room
+> sac dragon
+< You don't see that here.
+
+# Sacrifice player corpse (no gold reward)
+> sacrifice corpse
+< You sacrifice the corpse of Lan to the heavens.
+
+# Player corpse with belongings cannot be sacrificed
+# Setup: "the corpse of Lan" (tagged: corpse, player_corpse, contains "a ruby ring")
+> sac corpse
+< You cannot sacrifice a player corpse that still has belongings in it.
+
+# Room echo
+# (room listener): Lan sacrifices the corpse of a goblin to the heavens.
+
+# Alias works the same
+> sacrifice goblin
+< You sacrifice the corpse of a goblin to the heavens.
