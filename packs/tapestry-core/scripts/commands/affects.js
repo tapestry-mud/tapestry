@@ -1,6 +1,6 @@
 tapestry.commands.register({
     name: 'affects',
-    aliases: ['aff'],
+    aliases: ['aff', 'effects'],
     description: 'Show active effects on your character',
     category: 'info',
     roles: ['player'],
