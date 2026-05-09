@@ -4,29 +4,54 @@
 
 tapestry.commands.register({
     name: 'shop',
-    description: 'Interact with a shop. Subcommands: list, buy, sell, value.',
+    aliases: ['list'],
+    description: 'List items for sale at a shop.',
     category: 'progression',
     roles: ['player'],
     args: {
-        subcommand: { type: 'keyword', required: false },
-        item: { type: 'keyword', required: false }
+        filter: { type: 'keyword', required: false }
     },
     handler: function(actor, resolved) {
-        var sub = resolved.subcommand ? resolved.subcommand.toLowerCase() : 'list';
-        var item = resolved.item || null;
+        handleList(actor, resolved.filter || null);
+    }
+});
 
-        if (sub === 'list') {
-            handleList(actor, item);
-        } else if (sub === 'buy') {
-            handleBuy(actor, item);
-        } else if (sub === 'sell') {
-            handleSell(actor, item);
-        } else if (sub === 'value') {
-            handleValue(actor, item);
-        } else {
-            // Treat unknown subcommand as an item keyword with implicit 'list'
-            handleList(actor, sub);
-        }
+tapestry.commands.register({
+    name: 'buy',
+    description: 'Buy an item from a shop.',
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        item: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        handleBuy(actor, resolved.item);
+    }
+});
+
+tapestry.commands.register({
+    name: 'sell',
+    description: 'Sell an item to a shop.',
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        item: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        handleSell(actor, resolved.item);
+    }
+});
+
+tapestry.commands.register({
+    name: 'value',
+    description: 'Check what a shop would pay or charge for an item.',
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        item: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        handleValue(actor, resolved.item);
     }
 });
 
