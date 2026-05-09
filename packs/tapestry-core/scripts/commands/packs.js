@@ -1,7 +1,10 @@
 tapestry.commands.register({
     name: 'packs',
     description: 'Show loaded content packs and credits',
-    handler: function(player, args) {
+    category: 'admin',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
         var loaded = tapestry.packs.list();
 
         var rows = [{ type: 'title', left: 'Loaded Content Packs' }];
@@ -29,6 +32,6 @@ tapestry.commands.register({
         }
 
         var output = tapestry.ui.panel({ sections: [{ rows: rows }] });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });
