@@ -1,5 +1,4 @@
 import { useDebugStore } from '../stores/debugStore'
-import { useCharStore } from '../stores/charStore'
 import { GmcpLog } from './GmcpLog'
 import { TextLog } from './TextLog'
 import { StateInspector } from './StateInspector'
@@ -16,9 +15,7 @@ const TABS: { id: DebugTab; label: string }[] = [
 
 export function DebugDrawer() {
   const { isOpen, activeTab, setTab, commandLog } = useDebugStore()
-  const isAdmin = useCharStore((s) => s.isAdmin)
-
-  if (!isOpen || !isAdmin) { return null }
+  if (!isOpen) { return null }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-64 bg-surface-overlay border-t-2 border-accent flex flex-col z-40">
