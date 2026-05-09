@@ -49,7 +49,7 @@ public class DispositionEvaluator
         var def = mob.GetProperty<DispositionDefinition>("disposition");
         if (def == null) { return; }
 
-        var reaction = mob.HasTag("hostile") ? "hostile" : EvaluateRules(def, player);
+        var reaction = mob.Disposition == Disposition.Hostile ? "hostile" : EvaluateRules(def, player);
 
         if (aggroOnly)
         {

@@ -19,7 +19,7 @@ public class DispositionTests
     }
 
     [Fact]
-    public void HostileTag_BypassesDisposition_FiresAggro()
+    public void HostileDisposition_BypassesRules_FiresAggro()
     {
         var sp = BuildProvider();
         var world = sp.GetRequiredService<World>();
@@ -30,7 +30,7 @@ public class DispositionTests
 
         var mob = new Entity("npc", "Elf");
         mob.AddTag("npc");
-        mob.AddTag("hostile");
+        mob.Disposition = Disposition.Hostile;
         mob.SetProperty("disposition", new DispositionDefinition { Default = "neutral" });
         world.TrackEntity(mob);
 
@@ -39,7 +39,7 @@ public class DispositionTests
         world.TrackEntity(player);
 
         evaluator.EvaluateForMob(mob, player);
-        // hostile tag fires mob.aggro directly — Engage is idempotent for already-in-combat mobs
+        // Disposition.Hostile bypasses rules and fires mob.aggro — Engage is idempotent for already-in-combat mobs
         Assert.Single(published);
     }
 
