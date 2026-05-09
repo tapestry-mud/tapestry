@@ -9,6 +9,7 @@ license: "AGPL-3.0"
 engine_version: ">=3.0.0"
 active: true
 load_order: 0
+tag_validation: lenient  # temporary: remove when core tags are migrated to tag registry
 
 content:
   weather_zones: "areas/weather_zones.yaml"
