@@ -40,21 +40,21 @@ public sealed class TagRegistry
             new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase));
     }
 
-    public bool TryResolve(string tag, string? currentPack, out TagRegistryEntry? entry)
+    public bool TryResolve(string tag, string? currentPack, out TagRegistryEntry entry)
     {
-        if (_entries.TryGetValue(tag, out entry))
+        if (_entries.TryGetValue(tag, out entry!))
         {
             return true;
         }
         if (currentPack != null && !tag.Contains(':'))
         {
             var prefixed = $"{currentPack}:{tag}".ToLowerInvariant();
-            if (_entries.TryGetValue(prefixed, out entry))
+            if (_entries.TryGetValue(prefixed, out entry!))
             {
                 return true;
             }
         }
-        entry = null;
+        entry = null!;
         return false;
     }
 

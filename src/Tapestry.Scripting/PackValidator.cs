@@ -205,7 +205,15 @@ public class PackValidator
         string entityType,
         Dictionary<string, PackManifest> manifestsByName)
     {
-        var packName = entityId.Contains(':') ? entityId.Split(':')[0] : null;
+        var packName = entityId.Contains(':') ? entityId.Split(':', 2)[0] : null;
+
+        if (packName != null && !manifestsByName.ContainsKey(packName))
+        {
+            _logger.LogWarning(
+                "Entity '{EntityId}' belongs to pack '{PackName}' which has no loaded manifest; defaulting to strict validation",
+                entityId, packName);
+        }
+
         var lenient = packName != null
             && manifestsByName.TryGetValue(packName, out var manifest)
             && manifest.TagValidation == "lenient";
@@ -228,7 +236,7 @@ public class PackValidator
                 continue;
             }
 
-            if (!entry!.AppliesToType(entityType))
+            if (!entry.AppliesToType(entityType))
             {
                 throw new InvalidOperationException(
                     $"Tag '{tag}' on '{entityId}' is not valid for {entityType} " +

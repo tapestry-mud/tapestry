@@ -64,7 +64,7 @@ public class TagsFileLoaderTests
             registry.IsKnown("my-pack:cursed", null).Should().BeTrue();
             registry.IsKnown("cursed", null).Should().BeFalse();
             registry.TryResolve("cursed", "my-pack", out var entry);
-            entry!.Scope.Should().Be("my-pack");
+            entry.Scope.Should().Be("my-pack");
             entry.FullName.Should().Be("my-pack:cursed");
         }
         finally { Directory.Delete(dir, true); }
@@ -104,7 +104,7 @@ public class TagsFileLoaderTests
             TagsFileLoader.LoadIntoRegistry(dir, "tapestry-core", registry);
 
             registry.TryResolve("regen", null, out var entry);
-            entry!.AppliesTo.Should().Contain("mob");
+            entry.AppliesTo.Should().Contain("mob");
             entry.AppliesTo.Should().Contain("player");
         }
         finally { Directory.Delete(dir, true); }

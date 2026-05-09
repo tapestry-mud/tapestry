@@ -14,7 +14,7 @@ public class TagRegistryTests
         var found = registry.TryResolve("killable", currentPack: null, out var entry);
 
         found.Should().BeTrue();
-        entry!.Name.Should().Be("killable");
+        entry.Name.Should().Be("killable");
         entry.Scope.Should().Be("engine");
         entry.FullName.Should().Be("killable");
         entry.IsEngineTag.Should().BeTrue();
@@ -81,7 +81,7 @@ public class TagRegistryTests
         registry.RegisterEngineTag("shop", "NPC vendor", ["mob"]);
 
         registry.TryResolve("shop", currentPack: "my-pack", out var entry).Should().BeTrue();
-        entry!.Scope.Should().Be("engine");
+        entry.Scope.Should().Be("engine");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class TagRegistryTests
         registry.RegisterPackTag("my-pack", "cursed", "Cursed", ["item"]);
 
         registry.TryResolve("my-pack:cursed", currentPack: null, out var entry).Should().BeTrue();
-        entry!.Name.Should().Be("cursed");
+        entry.Name.Should().Be("cursed");
         entry.Scope.Should().Be("my-pack");
         entry.FullName.Should().Be("my-pack:cursed");
         entry.IsEngineTag.Should().BeFalse();
