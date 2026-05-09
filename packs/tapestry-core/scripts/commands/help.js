@@ -2,18 +2,23 @@ tapestry.commands.register({
     name: 'help',
     aliases: ['?'],
     description: 'Browse or search help topics.',
+    category: 'info',
     priority: 100,
-    handler: function(player, args) {
-        tapestry.respond.suppress(player.entityId);
+    roles: ['player'],
+    args: {
+        topic: { type: 'keyword', required: false }
+    },
+    handler: function(actor, resolved) {
+        tapestry.respond.suppress(actor.entityId);
 
-        var helpId = player.isChargen ? null : player.entityId;
-        var term = args ? String(args).trim() : '';
+        var helpId = actor.isChargen ? null : actor.entityId;
+        var term = resolved.topic ? String(resolved.topic).trim() : '';
 
         if (!term) {
             var cats = helpId ? tapestry.help.categories(helpId) : tapestry.help.categories();
 
             if (cats.length === 0) {
-                player.send('No help topics available.\r\n');
+                actor.send('No help topics available.\r\n');
                 return;
             }
 
@@ -31,8 +36,8 @@ tapestry.commands.register({
                 });
             }
             lines.push('\r\nType help [topic] for details.\r\n');
-            player.send(lines.join(''));
-            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+            actor.send(lines.join(''));
+            tapestry.gmcp.send(actor.entityId, 'Response.Help', {
                 status: 'multiple',
                 term: '',
                 matches: matches
@@ -43,21 +48,21 @@ tapestry.commands.register({
         var result = helpId ? tapestry.help.query(helpId, term) : tapestry.help.query(term);
 
         if (result.status === 'ok') {
-            player.send(tapestry.ui.help(result));
-            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+            actor.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(actor.entityId, 'Response.Help', {
                 status: 'ok',
                 topic: result.topic
             });
         } else if (result.status === 'multiple') {
-            player.send(tapestry.ui.help(result));
-            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+            actor.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(actor.entityId, 'Response.Help', {
                 status: 'multiple',
                 term: result.term,
                 matches: result.matches
             });
         } else {
-            player.send(tapestry.ui.help(result));
-            tapestry.gmcp.send(player.entityId, 'Response.Help', {
+            actor.send(tapestry.ui.help(result));
+            tapestry.gmcp.send(actor.entityId, 'Response.Help', {
                 status: 'no_match',
                 term: result.term
             });
