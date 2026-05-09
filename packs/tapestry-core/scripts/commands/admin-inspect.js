@@ -2,61 +2,12 @@ tapestry.commands.register({
     name: 'inspect',
     description: 'Show detailed stats, equipment, and properties for a target.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
-        entity: { type: 'keyword', required: true }
+        entity: { type: 'visible', required: true, bypass_visibility: true }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasTag('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
-
-        var keyword = resolved.entity.toLowerCase();
-
-        var ordinal = 1;
-        var baseKeyword = keyword;
-        var ordinalMatch = keyword.match(/^(\d+)\.(.+)$/);
-        if (ordinalMatch) {
-            ordinal = parseInt(ordinalMatch[1], 10);
-            baseKeyword = ordinalMatch[2];
-        }
-
-        var target = null;
-        if (keyword === 'self' || keyword === 'me') {
-            target = { id: actor.entityId, name: actor.name };
-        } else {
-            var players = tapestry.world.getOnlinePlayers();
-            var playerCount = 0;
-            for (var i = 0; i < players.length; i++) {
-                if (players[i].name.toLowerCase().indexOf(baseKeyword) !== -1 &&
-                    tapestry.world.getEntityRoomId(players[i].id) === actor.roomId) {
-                    playerCount++;
-                    if (playerCount === ordinal) {
-                        target = { id: players[i].id, name: players[i].name };
-                        break;
-                    }
-                }
-            }
-            if (!target) {
-                var npcs = tapestry.world.getEntitiesInRoom(actor.roomId, 'npc');
-                var npcCount = 0;
-                for (var n = 0; n < npcs.length; n++) {
-                    if (npcs[n].name.toLowerCase().indexOf(baseKeyword) !== -1) {
-                        npcCount++;
-                        if (npcCount === ordinal) {
-                            target = { id: npcs[n].id, name: npcs[n].name };
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!target) {
-            actor.send("Nothing named '" + keyword + "' here.\r\n");
-            return;
-        }
+        var target = resolved.entity;
 
         var e = tapestry.world.getEntity(target.id);
         if (!e) {

@@ -109,7 +109,10 @@ public class CommandsModule : IJintApiModule
             }
         }
 
-        return new ArgDefinition { Type = type, Required = required, Bulk = bulk, Prepositions = prepositions };
+        var bypassVal = defObj.Get("bypass_visibility");
+        var bypassVisibility = bypassVal.Type == Types.Boolean && (bool)bypassVal.ToObject()!;
+
+        return new ArgDefinition { Type = type, Required = required, Bulk = bulk, Prepositions = prepositions, BypassVisibility = bypassVisibility };
     }
 
     private void RegisterCommand(JintEngine engine, JsValue definition)

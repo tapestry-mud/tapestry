@@ -33,62 +33,10 @@ tapestry.commands.register({
 });
 
 function resolveEntityInRoom(actor, keyword) {
-    if (!keyword) {
-        return null;
-    }
-    var kw = keyword.toLowerCase();
-
-    var ordinal = 1;
-    var baseKw = kw;
-    var ordMatch = kw.match(/^(\d+)\.(.+)$/);
-    if (ordMatch) {
-        ordinal = parseInt(ordMatch[1], 10);
-        baseKw = ordMatch[2];
-    }
-
-    // Check self
-    if (baseKw === 'self' || baseKw === 'me') {
-        return { id: actor.entityId, name: actor.name };
-    }
-
-    // Check players in room
-    var players = tapestry.world.getOnlinePlayers();
-    var count = 0;
-    for (var i = 0; i < players.length; i++) {
-        if (players[i].name.toLowerCase().indexOf(baseKw) !== -1 &&
-            tapestry.world.getEntityRoomId(players[i].id) === actor.roomId) {
-            count++;
-            if (count === ordinal) {
-                return { id: players[i].id, name: players[i].name };
-            }
-        }
-    }
-
-    // Check NPCs in room
-    var npcs = tapestry.world.getEntitiesInRoom(actor.roomId, 'npc');
-    var npcCount = 0;
-    for (var n = 0; n < npcs.length; n++) {
-        if (npcs[n].name.toLowerCase().indexOf(baseKw) !== -1) {
-            npcCount++;
-            if (npcCount === ordinal) {
-                return { id: npcs[n].id, name: npcs[n].name };
-            }
-        }
-    }
-
-    // Check items in room
-    var items = tapestry.world.getEntitiesInRoom(actor.roomId, 'item');
-    var itemCount = 0;
-    for (var j = 0; j < items.length; j++) {
-        if (items[j].name.toLowerCase().indexOf(baseKw) !== -1) {
-            itemCount++;
-            if (itemCount === ordinal) {
-                return { id: items[j].id, name: items[j].name };
-            }
-        }
-    }
-
-    return null;
+    if (!keyword) { return null; }
+    var resolved = tapestry.args.resolve(actor.entityId, keyword, 'visible');
+    if (!resolved) { return null; }
+    return { id: resolved.id, name: resolved.name };
 }
 
 function tagsListCmd(actor, args) {
