@@ -15,14 +15,14 @@ function resolveStatName(input) {
 
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-function renderTrainList(player) {
-    var trains = tapestry.training.getTrainsAvailable(player.entityId);
-    var raceId = tapestry.world.getProperty(player.entityId, 'race') || '';
+function renderTrainList(actor) {
+    var trains = tapestry.training.getTrainsAvailable(actor.entityId);
+    var raceId = tapestry.world.getProperty(actor.entityId, 'race') || '';
 
     var rows = [];
     for (var i = 0; i < ALL_STATS.length; i++) {
         var s = ALL_STATS[i];
-        var statObj = tapestry.stats.get(player.entityId);
+        var statObj = tapestry.stats.get(actor.entityId);
         var current = statObj ? (statObj[s] || 0) : 0;
         var cap = tapestry.races.getStatCap ? tapestry.races.getStatCap(raceId, s) : 25;
         rows.push({
@@ -46,18 +46,25 @@ function renderTrainList(player) {
         { separatorAbove: 'major', rows: [{ type: 'footer', content: 'train [stat] to spend a train.' }] }
     ];
 
-    player.send('\r\n' + tapestry.ui.panel({ sections: sections }) + '\r\n');
+    actor.send('\r\n' + tapestry.ui.panel({ sections: sections }) + '\r\n');
 }
 
 tapestry.commands.register({
     name: 'train',
     description: 'Spend a train to raise a stat.',
-    handler: function(player, args) {
-        if (args.length === 0) {
-            var trainsAvail = tapestry.training.getTrainsAvailable(player.entityId);
-            var statsObj = tapestry.stats.get(player.entityId);
+    category: 'progression',
+    roles: ['player'],
+    args: {
+        stat: { type: 'keyword', required: false }
+    },
+    handler: function(actor, resolved) {
+        var statInput = resolved.stat;
 
-            tapestry.gmcp.send(player.entityId, 'Response.Training.Train', {
+        if (!statInput) {
+            var trainsAvail = tapestry.training.getTrainsAvailable(actor.entityId);
+            var statsObj = tapestry.stats.get(actor.entityId);
+
+            tapestry.gmcp.send(actor.entityId, 'Response.Training.Train', {
                 status: 'ok',
                 trainsRemaining: trainsAvail,
                 stats: statsObj ? {
@@ -70,24 +77,24 @@ tapestry.commands.register({
                 } : null
             });
 
-            tapestry.respond.suppress(player.entityId);
-            renderTrainList(player);
+            tapestry.respond.suppress(actor.entityId);
+            renderTrainList(actor);
             return;
         }
 
-        var statName = resolveStatName(args[0]);
+        var statName = resolveStatName(statInput);
         if (!statName) {
-            player.send('That is not a valid stat. (str, int, wis, dex, con, luck)\r\n');
+            actor.send('That is not a valid stat. (str, int, wis, dex, con, luck)\r\n');
             return;
         }
 
-        var result = tapestry.training.trainStat(player.entityId, statName);
+        var result = tapestry.training.trainStat(actor.entityId, statName);
 
-        var statsAfter = tapestry.stats.get(player.entityId);
-        tapestry.gmcp.send(player.entityId, 'Response.Training.Train', {
+        var statsAfter = tapestry.stats.get(actor.entityId);
+        tapestry.gmcp.send(actor.entityId, 'Response.Training.Train', {
             status: result.kind === 'ok' ? 'ok' : 'error',
             message: result.message,
-            trainsRemaining: tapestry.training.getTrainsAvailable(player.entityId),
+            trainsRemaining: tapestry.training.getTrainsAvailable(actor.entityId),
             stats: result.kind === 'ok' && statsAfter ? {
                 str: statsAfter.strength,
                 int: statsAfter.intelligence,
@@ -98,7 +105,7 @@ tapestry.commands.register({
             } : undefined
         });
 
-        tapestry.respond.suppress(player.entityId);
-        player.send(result.message + '\r\n');
+        tapestry.respond.suppress(actor.entityId);
+        actor.send(result.message + '\r\n');
     }
 });
