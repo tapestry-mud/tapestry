@@ -48,7 +48,7 @@ public class MobTemplate
     public string Type { get; set; } = "npc";
     public List<string> Tags { get; set; } = new();
     public List<string> Keywords { get; set; } = new();
-    public Tapestry.Engine.Disposition BaseDisposition { get; set; } = Tapestry.Engine.Disposition.Neutral;
+    public Disposition BaseDisposition { get; set; } = Tapestry.Engine.Disposition.Neutral;
     public string Behavior { get; set; } = "stationary";
     public MobTemplateStats Stats { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();

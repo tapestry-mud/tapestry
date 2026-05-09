@@ -79,7 +79,10 @@ public static class YamlContentLoader
 
         if (!string.IsNullOrEmpty(def.BaseDisposition))
         {
-            template.BaseDisposition = Enum.Parse<Disposition>(def.BaseDisposition, ignoreCase: true);
+            if (Enum.TryParse<Disposition>(def.BaseDisposition, ignoreCase: true, out var disp))
+            {
+                template.BaseDisposition = disp;
+            }
         }
 
         if (def.Trains != null)
