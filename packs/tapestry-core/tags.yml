@@ -31,25 +31,25 @@ tags:
     applies_to: [item]
   killable:
     description: "Can be targeted in combat"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   no_kill:
     description: "Prevents combat engagement even if killable"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   no_flee:
     description: "Prevents fleeing from combat with this mob"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   persistent:
     description: "Respawns immediately on death or removal"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   regen:
     description: "Eligible for HP/resource/movement regeneration each tick"
-    applies_to: [mob, player]
+    applies_to: [mob, npc, player]
   shop:
     description: "NPC operates as a vendor with shop.sells inventory"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   skill_trainer:
     description: "NPC can teach abilities from TrainerConfig"
-    applies_to: [mob]
+    applies_to: [mob, npc]
   safe:
     description: "Combat prohibited in this room"
     applies_to: [room]
