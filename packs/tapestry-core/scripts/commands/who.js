@@ -1,8 +1,11 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'who',
     description: 'List players currently online.',
+    category: 'info',
+    roles: ['player'],
+    args: {},
     priority: 0,
-    handler: function(player, args) {
+    handler: function(actor, resolved) {
         var players = tapestry.world.getOnlinePlayers();
         var contentRows = [{ type: 'empty' }];
         players.forEach(function(p) {
@@ -15,6 +18,6 @@
                 { separatorAbove: 'minor', rows: contentRows }
             ]
         });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });
