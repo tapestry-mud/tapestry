@@ -1,0 +1,27 @@
+# Scenario: wield command
+# Setup: player has "a steel blade" in inventory
+
+> wield blade
+< You wield a steel blade.
+
+# Room sees the wield
+# (second client or room listener): Lan wields a steel blade.
+
+# Error: not in inventory
+> wield torch
+< You aren't carrying that.
+
+# Error: no argument
+> wield
+< What item?
+
+# Displaced item: player already wielding "a rusty dagger"
+# Setup: player has "a steel blade" in inventory, "a rusty dagger" equipped in wield slot
+> wield blade
+< You remove a rusty dagger.
+< You wield a steel blade.
+
+# Error: item can't be wielded (e.g. a potion)
+# Setup: player has "a red potion" in inventory
+> wield potion
+< You can't wield that.
