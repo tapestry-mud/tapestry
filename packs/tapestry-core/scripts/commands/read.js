@@ -1,45 +1,49 @@
 tapestry.commands.register({
     name: 'read',
-    description: 'Read a sign, letter, book, or other written item',
-    category: 'information',
-    handler: function(player, args) {
-        if (args.length === 0) {
-            player.send('Read what?\r\n');
-            return;
-        }
+    description: 'Read a sign, letter, book, or other written item.',
+    category: 'inventory',
+    roles: ['player'],
+    args: {
+        item: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        var keyword = resolved.item.toLowerCase();
 
-        var keyword = args[0].toLowerCase();
-
-        // Check room for readable items first
-        var roomItems = tapestry.world.getEntitiesInRoom(player.roomId, 'readable');
-        for (var i = 0; i < roomItems.length; i++) {
-            if (roomItems[i].name.toLowerCase().indexOf(keyword) !== -1) {
-                var text = tapestry.world.getProperty(roomItems[i].id, 'text');
-                if (text) {
-                    player.send(text + '\r\n');
+        // Check room for readable items first (signs, plaques, etc.)
+        var roomItem = tapestry.inventory.findInRoom(actor.entityId, keyword);
+        if (roomItem) {
+            var roomTags = tapestry.world.getEntityTags(roomItem.id);
+            if (roomTags && roomTags.indexOf('readable') !== -1) {
+                var roomText = tapestry.world.getProperty(roomItem.id, 'text');
+                if (roomText) {
+                    actor.send(roomText + '\r\n');
                 } else {
-                    player.send('There is nothing written there.\r\n');
+                    actor.send('There is nothing written there.\r\n');
                 }
                 return;
             }
         }
 
-        // Check player inventory for readable items
-        var carried = tapestry.inventory.findByKeyword(player.entityId, keyword);
+        // Check player inventory for readable items (letters, books, scrolls)
+        var carried = tapestry.inventory.findByKeyword(actor.entityId, keyword);
         if (carried) {
-            var tags = tapestry.world.getEntityTags ? tapestry.world.getEntityTags(carried.id) : null;
-            var isReadable = tags && tags.indexOf('readable') !== -1;
-            if (isReadable) {
-                var text = tapestry.world.getProperty(carried.id, 'text');
-                if (text) {
-                    player.send(text + '\r\n');
+            var invTags = tapestry.world.getEntityTags(carried.id);
+            if (invTags && invTags.indexOf('readable') !== -1) {
+                var invText = tapestry.world.getProperty(carried.id, 'text');
+                if (invText) {
+                    actor.send(invText + '\r\n');
                 } else {
-                    player.send('There is nothing written there.\r\n');
+                    actor.send('There is nothing written there.\r\n');
                 }
                 return;
             }
         }
 
-        player.send("You don't see that here.\r\n");
+        // Found something but it's not readable, or found nothing at all
+        if (roomItem || carried) {
+            actor.send("There's nothing written on that.\r\n");
+        } else {
+            actor.send("You don't see that here.\r\n");
+        }
     }
 });

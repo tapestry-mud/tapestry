@@ -1,0 +1,24 @@
+# Scenario: read command
+# Setup: room has "a wooden sign" (tags: readable, no_get; text: "Welcome to Midgaard!")
+# Setup: player has "a dusty scroll" (tags: readable; text: "The ancient words glow faintly.") in inventory
+# Setup: player has "a steel blade" (tags: weapon) in inventory
+
+# Read a readable item in the room
+> read sign
+< Welcome to Midgaard!
+
+# Read a readable item in inventory
+> read scroll
+< The ancient words glow faintly.
+
+# Error: item exists but is not readable
+> read blade
+< There's nothing written on that.
+
+# Error: item not found anywhere
+> read tablet
+< You don't see that here.
+
+# Error: no argument
+> read
+< What item?
