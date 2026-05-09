@@ -1,42 +1,37 @@
 tapestry.commands.register({
     name: 'tell',
     aliases: ['t'],
-    description: 'Send a private message to a player',
-    category: 'communication',
-    handler: function(player, args) {
-        if (args.length < 2) {
-            player.send('Usage: tell [player] [message]\r\n');
+    description: 'Send a private message to a player.',
+    category: 'social',
+    roles: ['player'],
+    args: {
+        target: { type: 'player', required: true },
+        message: { type: 'text', required: true }
+    },
+    handler: function(actor, resolved) {
+        var target = resolved.target;
+        var message = resolved.message;
+
+        if (tapestry.world.getProperty(actor.entityId, 'notell')) {
+            actor.send('You cannot send tells right now.\r\n');
             return;
         }
 
-        if (tapestry.world.getProperty(player.entityId, 'notell')) {
-            player.send('You cannot send tells right now.\r\n');
-            return;
-        }
-
-        if (tapestry.world.getProperty(player.entityId, 'nochannels')) {
-            player.send('You cannot use channels right now.\r\n');
-            return;
-        }
-
-        var targetName = args[0];
-        var target = tapestry.world.findPlayerByName(targetName);
-        if (!target) {
-            player.send(targetName + ' is not online.\r\n');
+        if (tapestry.world.getProperty(actor.entityId, 'nochannels')) {
+            actor.send('You cannot use channels right now.\r\n');
             return;
         }
 
         if (tapestry.world.getProperty(target.id, 'notell')) {
-            player.send(target.name + ' is not accepting tells right now.\r\n');
+            actor.send(target.name + ' is not accepting tells right now.\r\n');
             return;
         }
 
-        var message = args.slice(1).join(' ');
-        player.send('<tell>You tell ' + target.name + ': "' + message + '"</tell>\r\n');
-        tapestry.world.send(target.id, '<tell>' + player.name + ' tells you: "' + message + '"</tell>\r\n');
-        tapestry.gmcp.send(target.id, 'Comm.Channel', { channel: 'tell', sender: player.name, text: message });
+        actor.send('<tell>You tell ' + target.name + ': "' + message + '"</tell>\r\n');
+        tapestry.world.send(target.id, '<tell>' + actor.name + ' tells you: "' + message + '"</tell>\r\n');
+        tapestry.gmcp.send(target.id, 'Comm.Channel', { channel: 'tell', sender: actor.name, text: message });
 
-        tapestry.world.setProperty(target.id, 'lastTellFrom', player.entityId);
-        tapestry.world.setProperty(player.entityId, 'lastTellTo', target.id);
+        tapestry.world.setProperty(target.id, 'lastTellFrom', actor.entityId);
+        tapestry.world.setProperty(actor.entityId, 'lastTellTo', target.id);
     }
 });
