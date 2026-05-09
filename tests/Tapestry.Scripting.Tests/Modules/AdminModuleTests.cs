@@ -508,6 +508,7 @@ public class AdminModuleTests
         var ctx = new ActorContext
         {
             EntityId = admin.Id,
+            RoomId = room.Id,
             RawInput = "inspect goblin",
             Command = "inspect",
             RawArgs = new[] { "goblin" }
@@ -531,6 +532,7 @@ public class AdminModuleTests
         var ctx = new ActorContext
         {
             EntityId = admin.Id,
+            RoomId = room.Id,
             RawInput = "inspect 1.goblin",
             Command = "inspect",
             RawArgs = new[] { "1.goblin" }
@@ -554,6 +556,7 @@ public class AdminModuleTests
         var ctx = new ActorContext
         {
             EntityId = admin.Id,
+            RoomId = room.Id,
             RawInput = "inspect 2.goblin",
             Command = "inspect",
             RawArgs = new[] { "2.goblin" }
@@ -578,6 +581,7 @@ public class AdminModuleTests
         var ctx = new ActorContext
         {
             EntityId = admin.Id,
+            RoomId = room.Id,
             RawInput = "inspect 3.goblin",
             Command = "inspect",
             RawArgs = new[] { "3.goblin" }
@@ -585,7 +589,7 @@ public class AdminModuleTests
         registry.Resolve("inspect")!.ActorHandler(ctx);
 
         var output = string.Join("", conn.SentText);
-        Assert.Contains("Nothing named", output);
+        Assert.Contains("You don't see that here", output);
     }
 
     [Fact]
