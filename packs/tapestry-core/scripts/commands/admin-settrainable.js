@@ -1,16 +1,31 @@
 tapestry.commands.register({
     name: 'settrainable',
-    admin: true,
-    description: 'Runtime debug: toggle a stat in/out of the trainable list.',
-    handler: function(player, args) {
-        if (!player.hasTag('admin')) { player.send('Huh?\r\n'); return; }
-        if (args.length < 2) {
-            player.send('Usage: settrainable [stat] <true|false>\r\n');
+    description: 'Admin: toggle a stat in or out of the trainable list.',
+    category: 'admin',
+    roles: ['player'],
+    args: {
+        entity: { type: 'keyword', required: true },
+        ability: { type: 'keyword', required: true },
+        flag: { type: 'keyword', required: true }
+    },
+    handler: function(actor, resolved) {
+        if (!actor.hasTag('admin')) {
+            actor.send('Huh?\r\n');
             return;
         }
-        var stat = args[0].toLowerCase();
-        var enabled = args[1].toLowerCase() === 'true';
-        tapestry.training.setTrainable(stat, enabled);
-        player.send((enabled ? 'Enabled' : 'Disabled') + ' training for ' + stat + '.\r\n');
+
+        var entityName = resolved.entity;
+        var abilityId = resolved.ability.toLowerCase();
+        var flagStr = resolved.flag.toLowerCase();
+
+        if (flagStr !== 'true' && flagStr !== 'false') {
+            actor.send('Flag must be true or false.\r\n');
+            return;
+        }
+
+        var enabled = flagStr === 'true';
+
+        tapestry.training.setTrainable(abilityId, enabled);
+        actor.send((enabled ? 'Enabled' : 'Disabled') + ' training for ' + abilityId + ' (scope: ' + entityName + ').\r\n');
     }
 });
