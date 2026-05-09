@@ -4,13 +4,14 @@ tapestry.commands.register({
     name: 'hello',
     aliases: ['hi'],
     description: 'Greet the world',
-    handler: function(player, args) {
-        var target = args.trim() || 'world';
-        player.send('Hello, ' + target + '!\r\n');
-        tapestry.world.sendToRoomExcept(
-            player.roomId,
-            player.entityId,
-            player.name + ' says hello to ' + target + '.\r\n'
-        );
+    category: 'social',
+    roles: ['player'],
+    args: {
+        target: { type: 'text', required: false }
+    },
+    handler: function(actor, resolved) {
+        var target = resolved.target || 'world';
+        actor.send('Hello, ' + target + '!\r\n');
+        actor.sendToRoom(actor.name + ' says hello to ' + target + '.\r\n');
     }
 });
