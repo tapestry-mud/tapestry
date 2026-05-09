@@ -166,7 +166,12 @@ function tagsAddCmd(actor, args) {
         }
     }
 
-    var known = tapestry.world.isTagKnown(tag, null);
+    var templateId = tapestry.world.getEntity(target.id)?.templateId;
+    var packContext = null;
+    if (templateId && templateId.indexOf(':') > 0) {
+        packContext = templateId.substring(0, templateId.indexOf(':'));
+    }
+    var known = tapestry.world.isTagKnown(tag, packContext);
     if (!known && !force) {
         actor.send("Tag '" + tag + "' is not in the registry. Use --force to add anyway.\r\n");
         return;
@@ -279,9 +284,13 @@ function tagsValidateCmd(actor) {
     for (var i = 0; i < allEntities.length; i++) {
         var e = allEntities[i];
         if (!e.tags) { continue; }
+        var packContext = null;
+        if (e.templateId && e.templateId.indexOf(':') > 0) {
+            packContext = e.templateId.substring(0, e.templateId.indexOf(':'));
+        }
         for (var t = 0; t < e.tags.length; t++) {
             var tag = e.tags[t];
-            if (!tapestry.world.isTagKnown(tag, null)) {
+            if (!tapestry.world.isTagKnown(tag, packContext)) {
                 issues.push({
                     entity: e.name,
                     type: e.type,

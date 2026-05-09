@@ -62,3 +62,12 @@ tags:
   entry_point:
     description: "Default entry room for new or returning players"
     applies_to: [room]
+  alignment_good:
+    description: "Entity's alignment is in the good range"
+    applies_to: [npc, player]
+  alignment_neutral:
+    description: "Entity's alignment is in the neutral range"
+    applies_to: [npc, player]
+  alignment_evil:
+    description: "Entity's alignment is in the evil range"
+    applies_to: [npc, player]

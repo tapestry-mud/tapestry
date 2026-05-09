@@ -208,7 +208,8 @@ public class WorldModule : IJintApiModule
                         id = e.Id.ToString(),
                         name = e.Name,
                         type = e.Type,
-                        tags = e.Tags.ToArray()
+                        tags = e.Tags.ToArray(),
+                        templateId = e.TryGetProperty<string>("template_id", out var tid) ? tid : null
                     })
                     .ToArray();
             }),
