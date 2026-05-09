@@ -2,8 +2,11 @@ tapestry.commands.register({
     name: 'version',
     aliases: ['ver'],
     description: 'Show engine and pack version info.',
+    category: 'info',
+    roles: ['player'],
     priority: 0,
-    handler: function(player, args) {
+    args: {},
+    handler: function(actor, resolved) {
         var info = tapestry.world.buildInfo();
         var shortSha = info.engineSha.length > 7 ? info.engineSha.substring(0, 7) : info.engineSha;
         var packs = tapestry.packs.list();
@@ -38,6 +41,6 @@ tapestry.commands.register({
             { separatorAbove: 'minor', rows: rows }
         ];
 
-        player.send('\r\n' + tapestry.ui.panel({ sections: sections }) + '\r\n');
+        actor.send('\r\n' + tapestry.ui.panel({ sections: sections }) + '\r\n');
     }
 });
