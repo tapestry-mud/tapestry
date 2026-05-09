@@ -3,50 +3,17 @@ tapestry.commands.register({
     name: "kill",
     aliases: ["attack"],
     description: "Attack a target to initiate combat.",
-    handler: function(player, args) {
+    args: {
+        target: { type: 'npc', required: true }
+    },
+    handler: function(player, resolved) {
         var restState = tapestry.rest.getRestState(player.entityId);
         if (restState === 'resting' || restState === 'sleeping') {
             player.send("You can't attack while " + restState + ". Type 'wake' to stand up.\r\n");
             return;
         }
-        if (!args || args.length === 0) {
-            player.send("Kill what?\r\n");
-            return;
-        }
 
-        var raw = args.join(" ").toLowerCase();
-        var entities = tapestry.world.getEntitiesInRoom(player.roomId, "npc");
-        if (!entities || entities.length === 0) {
-            player.send("There is nothing here to fight.\r\n");
-            return;
-        }
-
-        // Parse optional index prefix: "2.goblin" targets the second goblin
-        var targetKeyword = raw;
-        var targetIndex = 1;
-        var dotPos = raw.indexOf('.');
-        if (dotPos > 0) {
-            var maybeIndex = parseInt(raw.substring(0, dotPos), 10);
-            if (!isNaN(maybeIndex)) {
-                targetIndex = maybeIndex;
-                targetKeyword = raw.substring(dotPos + 1);
-            }
-        }
-
-        var matches = [];
-        for (var i = 0; i < entities.length; i++) {
-            var e = entities[i];
-            if (e.name.toLowerCase().indexOf(targetKeyword) >= 0) {
-                matches.push(e);
-            }
-        }
-        var target = targetIndex <= matches.length ? matches[targetIndex - 1] : null;
-
-        if (!target) {
-            player.send("You don't see '" + targetKeyword + "' here.\r\n");
-            return;
-        }
-
+        var target = resolved.target;
         var result = tapestry.combat.engage(player.entityId, target.id);
         if (result === "no_kill") {
             player.send("You can't attack " + target.name + ".\r\n");
@@ -108,33 +75,11 @@ tapestry.commands.register({
     name: "consider",
     aliases: ["con"],
     description: "Assess how dangerous a target is compared to you.",
-    handler: function(player, args) {
-        if (!args || args.length === 0) {
-            player.send("Consider what?\r\n");
-            return;
-        }
-
-        var targetKeyword = args.join(" ").toLowerCase();
-        var entities = tapestry.world.getEntitiesInRoom(player.roomId, "npc");
-        if (!entities || entities.length === 0) {
-            player.send("There is nothing here.\r\n");
-            return;
-        }
-
-        var target = null;
-        for (var i = 0; i < entities.length; i++) {
-            var e = entities[i];
-            if (e.name.toLowerCase().indexOf(targetKeyword) >= 0) {
-                target = e;
-                break;
-            }
-        }
-
-        if (!target) {
-            player.send("You don't see '" + targetKeyword + "' here.\r\n");
-            return;
-        }
-
+    args: {
+        target: { type: 'npc', required: true }
+    },
+    handler: function(player, resolved) {
+        var target = resolved.target;
         var playerLevel = tapestry.world.getProperty(player.entityId, "level") || 1;
         var targetLevel = tapestry.world.getProperty(target.id, "level") || 1;
         var delta = playerLevel - targetLevel;
