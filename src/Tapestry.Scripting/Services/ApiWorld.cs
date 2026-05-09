@@ -14,9 +14,11 @@ public class ApiWorld
     private readonly AlignmentManager _alignmentManager;
     private readonly ApiMessaging _messaging;
     private readonly DoorService _doorService;
+    private readonly VisibilityFilter _visibility;
 
     public ApiWorld(World world, EventBus eventBus, SessionManager sessions, MobAIManager mobAIManager,
-                    AlignmentManager alignmentManager, ApiMessaging messaging, DoorService doorService)
+                    AlignmentManager alignmentManager, ApiMessaging messaging, DoorService doorService,
+                    VisibilityFilter visibility)
     {
         _world = world;
         _eventBus = eventBus;
@@ -25,6 +27,7 @@ public class ApiWorld
         _alignmentManager = alignmentManager;
         _messaging = messaging;
         _doorService = doorService;
+        _visibility = visibility;
     }
 
     // --- Movement ---
@@ -267,6 +270,31 @@ public class ApiWorld
         return room.Entities
             .Where(e => string.Equals(e.Type, tag, StringComparison.OrdinalIgnoreCase) || e.HasTag(tag))
             .Select(e => (object)new { id = e.Id.ToString(), name = e.Name, type = e.Type })
+            .ToArray();
+    }
+
+    public object[] GetVisibleEntities(string roomId, string observerEntityId)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null)
+        {
+            return Array.Empty<object>();
+        }
+
+        Entity? observer = null;
+        if (Guid.TryParse(observerEntityId, out var obsId))
+        {
+            observer = _world.GetEntity(obsId);
+        }
+
+        return _visibility.GetVisibleEntities(room, observer)
+            .Select(e => (object)new
+            {
+                id = e.Id.ToString(),
+                name = e.Name,
+                type = e.Type,
+                tags = e.Tags.ToArray()
+            })
             .ToArray();
     }
 

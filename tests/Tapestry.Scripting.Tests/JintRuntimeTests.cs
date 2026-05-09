@@ -239,7 +239,7 @@ public class JintRuntimeTests
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
-        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService);
+        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
         var stats = new ApiStats(world, statDisplayNames);
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
         var mobs = new ApiMobs(world, mobAIManager, spawnManager);

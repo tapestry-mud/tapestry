@@ -66,6 +66,10 @@ public class WorldModule : IJintApiModule
             sameArea = new Func<string, string, bool>(_worldOps.SameArea),
             getExitTarget = new Func<string, string, string?>(_worldOps.GetExitTarget),
             getEntitiesInRoom = new Func<string, string, object[]>(_worldOps.GetEntitiesInRoomByTag),
+            getVisibleEntities = new Func<string, string, object[]>((roomId, observerEntityId) =>
+            {
+                return _worldOps.GetVisibleEntities(roomId, observerEntityId);
+            }),
             getEntity = new Func<string, object?>(_worldOps.GetEntityDetails),
             createEntity = new Func<string, string, string?>(_worldOps.CreateEntity),
             addTag = new Action<string, string>(_worldOps.AddEntityTag),
