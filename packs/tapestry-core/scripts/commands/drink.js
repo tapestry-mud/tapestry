@@ -21,9 +21,9 @@ tapestry.commands.register({
             return;
         }
 
-        // Room fixtures (fountains, wells) use drink_container type
-        var entityType = tapestry.world.getProperty(item.id, 'type');
-        if (entityType === 'drink_container') {
+        // Room fixtures (fountains, wells) have drinkable property
+        var drinkable = tapestry.world.getProperty(item.id, 'drinkable');
+        if (drinkable) {
             actor.send('You drink from ' + item.name + '.\r\n');
             actor.sendToRoom(actor.name + ' drinks from ' + item.name + '.\r\n');
             return;

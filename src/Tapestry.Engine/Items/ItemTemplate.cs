@@ -24,7 +24,7 @@ public class ItemTemplate
         foreach (var (key, val) in Properties)
         {
             if (key == "room_id") { continue; }
-            entity.SetProperty(key, val);
+            entity.SetProperty(key, NormalizeValue(val));
         }
 
         entity.SetProperty(CommonProperties.TemplateId, Id);
@@ -40,6 +40,20 @@ public class ItemTemplate
         entity.SetProperty(InventoryProperties.Modifiers, statModifiers);
 
         return entity;
+    }
+
+    private static object? NormalizeValue(object? val)
+    {
+        if (val is Dictionary<object, object> untypedDict)
+        {
+            var normalized = new Dictionary<string, object?>();
+            foreach (var kvp in untypedDict)
+            {
+                normalized[kvp.Key?.ToString() ?? ""] = NormalizeValue(kvp.Value);
+            }
+            return normalized;
+        }
+        return val;
     }
 
     public class ModifierEntry
