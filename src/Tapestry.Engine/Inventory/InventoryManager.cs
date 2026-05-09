@@ -203,14 +203,19 @@ public class InventoryManager
 
     public (bool Success, string? FailReason) FillItem(Entity actor, Entity target, Entity source)
     {
-        var rawMaxCharges = target.GetProperty<object>(ConsumableProperties.MaxCharges);
-        if (rawMaxCharges == null)
+        if (!target.TryGetProperty<object>(ConsumableProperties.MaxCharges, out var rawMaxCharges)
+            || rawMaxCharges == null)
         {
             return (false, "not_fillable");
         }
         var maxCharges = Convert.ToInt32(rawMaxCharges);
 
         var fillSource = source.GetProperty<string?>(ContainerProperties.FillSource);
+        if (string.IsNullOrEmpty(fillSource))
+        {
+            // Fall back to tag-based source type if property missing
+            fillSource = source.HasTag("fill_source") ? "water" : null;
+        }
         if (fillSource == null)
         {
             return (false, "no_fill_source");
