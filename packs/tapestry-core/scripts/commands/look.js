@@ -108,28 +108,22 @@ function buildRoomLookPayload(actor) {
 
     var roomName = tapestry.world.getRoomName(roomId) || '';
     var roomDesc = tapestry.world.getRoomDescription(roomId) || '';
-
-    // getRoomExits takes entityId (not roomId)
     var exits = tapestry.world.getRoomExits(actor.entityId);
 
-    // getEntitiesInRoom takes (roomId, tag)
-    var npcs = tapestry.world.getEntitiesInRoom(roomId, 'npc');
-    var otherPlayers = tapestry.world.getEntitiesInRoom(roomId, 'player');
-    var groundItems = tapestry.world.getEntitiesInRoom(roomId, 'item');
+    var all = tapestry.world.getVisibleEntities(roomId, actor.entityId);
 
     var entities = [];
-    for (var i = 0; i < npcs.length; i++) {
-        entities.push({ name: npcs[i].name, type: 'npc', tags: [] });
-    }
-    for (var j = 0; j < otherPlayers.length; j++) {
-        if (otherPlayers[j].id !== actor.entityId) {
-            entities.push({ name: otherPlayers[j].name, type: 'player', tags: [] });
-        }
-    }
-
     var items = [];
-    for (var k = 0; k < groundItems.length; k++) {
-        items.push({ name: groundItems[k].name, quantity: 1 });
+
+    for (var i = 0; i < all.length; i++) {
+        var e = all[i];
+        if (e.type === 'npc') {
+            entities.push({ name: e.name, type: 'npc', tags: e.tags || [] });
+        } else if (e.type === 'player' && e.id !== actor.entityId) {
+            entities.push({ name: e.name, type: 'player', tags: e.tags || [] });
+        } else if (e.type === 'item' || e.type === 'container') {
+            items.push({ name: e.name, quantity: 1 });
+        }
     }
 
     return {
