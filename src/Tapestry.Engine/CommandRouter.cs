@@ -29,14 +29,7 @@ public class CommandRouter
             return;
         }
 
-        if (registration.ActorHandler != null)
-        {
-            registration.ActorHandler(BuildPlayerActorContext(ctx));
-        }
-        else
-        {
-            registration.Handler(ctx);
-        }
+        registration.ActorHandler(BuildPlayerActorContext(ctx));
     }
 
     public void RouteForMob(Guid entityId, string commandStr, string? roomId, string name)
@@ -67,21 +60,7 @@ public class CommandRouter
             RawArgs = args
         };
 
-        if (registration.ActorHandler != null)
-        {
-            registration.ActorHandler(actorCtx);
-        }
-        else
-        {
-            var legacyCtx = new CommandContext
-            {
-                PlayerEntityId = entityId,
-                RawInput = commandStr,
-                Command = verb,
-                Args = args
-            };
-            registration.Handler(legacyCtx);
-        }
+        registration.ActorHandler(actorCtx);
     }
 
     public CommandRegistration? Resolve(string keyword)

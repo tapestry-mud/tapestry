@@ -38,11 +38,11 @@ public class PersistenceModule : IGameModule
     {
         _commandRegistry.Register("save", (ctx) =>
         {
-            var session = _sessions.GetByEntityId(ctx.PlayerEntityId);
+            var session = _sessions.GetByEntityId(ctx.EntityId);
             if (session != null)
             {
                 _ = _persistence.SavePlayer(session);
-                _sessions.SendToPlayer(ctx.PlayerEntityId, "Character saved.\r\n");
+                _sessions.SendToPlayer(ctx.EntityId, "Character saved.\r\n");
             }
         }, priority: 100, packName: "core",
            description: "Save your character to disk.",
@@ -50,18 +50,18 @@ public class PersistenceModule : IGameModule
 
         _commandRegistry.Register("resetpassword", (ctx) =>
         {
-            var session = _sessions.GetByEntityId(ctx.PlayerEntityId);
+            var session = _sessions.GetByEntityId(ctx.EntityId);
             if (session == null)
             {
                 return;
             }
 
-            if (ctx.Args.Length == 0)
+            if (ctx.RawArgs.Length == 0)
             {
                 var room = _world.GetRoom(session.PlayerEntity.LocationRoomId ?? "");
                 if (room == null || !room.HasTag("safe"))
                 {
-                    _sessions.SendToPlayer(ctx.PlayerEntityId,
+                    _sessions.SendToPlayer(ctx.EntityId,
                         "You must be in a safe area to reset your password.\r\n");
                     return;
                 }
@@ -69,7 +69,7 @@ public class PersistenceModule : IGameModule
                 session.InputMode = InputMode.Prompt;
                 _loginHandler.SendLoginPhase(session.Connection.Id, "password");
                 session.Connection.SuppressEcho();
-                _sessions.SendToPlayer(ctx.PlayerEntityId, "Enter current password:\r\n");
+                _sessions.SendToPlayer(ctx.EntityId, "Enter current password:\r\n");
 
                 void ExitPrompt(string message)
                 {
@@ -77,7 +77,7 @@ public class PersistenceModule : IGameModule
                     _loginHandler.SendLoginPhase(session.Connection.Id, "playing");
                     session.InputMode = InputMode.Normal;
                     session.PromptHandler = null;
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, message + "\r\n");
+                    _sessions.SendToPlayer(ctx.EntityId, message + "\r\n");
                 }
 
                 session.PromptHandler = (currentPw) =>
@@ -122,19 +122,19 @@ public class PersistenceModule : IGameModule
                 return;
             }
 
-            if (ctx.Args.Length == 2)
+            if (ctx.RawArgs.Length == 2)
             {
                 if (!session.PlayerEntity.HasTag("admin"))
                 {
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, "You don't have permission to do that.\r\n");
+                    _sessions.SendToPlayer(ctx.EntityId, "You don't have permission to do that.\r\n");
                     return;
                 }
 
-                var targetName = ctx.Args[0];
-                var newPassword = ctx.Args[1];
+                var targetName = ctx.RawArgs[0];
+                var newPassword = ctx.RawArgs[1];
                 if (newPassword.Length < _config.Persistence.PasswordMinLength)
                 {
-                    _sessions.SendToPlayer(ctx.PlayerEntityId,
+                    _sessions.SendToPlayer(ctx.EntityId,
                         $"Password must be at least {_config.Persistence.PasswordMinLength} characters.\r\n");
                     return;
                 }
@@ -154,13 +154,13 @@ public class PersistenceModule : IGameModule
                     var data = _persistence.LoadPlayer(targetName).GetAwaiter().GetResult();
                     if (data == null)
                     {
-                        _sessions.SendToPlayer(ctx.PlayerEntityId, "Player not found.\r\n");
+                        _sessions.SendToPlayer(ctx.EntityId, "Player not found.\r\n");
                         return;
                     }
                     _ = _persistence.SaveNewPlayer(data.Entity, hash);
                 }
 
-                _sessions.SendToPlayer(ctx.PlayerEntityId,
+                _sessions.SendToPlayer(ctx.EntityId,
                     $"Password reset for {targetName}.\r\n");
             }
         }, priority: 100, packName: "core",

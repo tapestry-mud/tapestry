@@ -5,8 +5,7 @@ namespace Tapestry.Engine;
 public class CommandRegistration
 {
     public required string Keyword { get; init; }
-    public required Action<CommandContext> Handler { get; init; }
-    public Action<ActorContext>? ActorHandler { get; init; }
+    public required Action<ActorContext> ActorHandler { get; init; }
     public string[] Aliases { get; init; } = [];
     public int Priority { get; init; }
     public string PackName { get; init; } = "";
@@ -32,7 +31,7 @@ public class CommandRegistry
 
     public void Register(
         string keyword,
-        Action<CommandContext> handler,
+        Action<ActorContext> actorHandler,
         string[]? aliases = null,
         int priority = 0,
         string packName = "",
@@ -41,7 +40,6 @@ public class CommandRegistry
         string sourceFile = "",
         Func<Entity, bool>? visibleTo = null,
         string[]? roles = null,
-        Action<ActorContext>? actorHandler = null,
         Dictionary<string, ArgDefinition>? argDefinitions = null,
         GmcpConfig? gmcp = null)
     {
@@ -49,7 +47,6 @@ public class CommandRegistry
             var registration = new CommandRegistration
             {
                 Keyword = keyword,
-                Handler = handler,
                 ActorHandler = actorHandler,
                 Aliases = aliases ?? [],
                 Priority = priority,

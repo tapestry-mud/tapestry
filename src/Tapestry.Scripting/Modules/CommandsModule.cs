@@ -245,14 +245,9 @@ public class CommandsModule : IJintApiModule
         var capturedArgDefs = argDefinitions;
         var capturedGmcp = gmcpConfig;
 
-        Action<ActorContext> actorHandler = actorCtx =>
-        {
-            InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp);
-        };
-
         _commandRegistry.Register(
             name,
-            ctx => { InvokeCommandHandler(engine, handler, ctx); },
+            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp); },
             aliases,
             priority,
             packName,
@@ -261,7 +256,6 @@ public class CommandsModule : IJintApiModule
             sourceFile,
             visibleTo,
             roles: roles,
-            actorHandler: actorHandler,
             argDefinitions: argDefinitions,
             gmcp: gmcpConfig
         );
@@ -322,45 +316,6 @@ public class CommandsModule : IJintApiModule
         var dotIndex = fileName.LastIndexOf('.');
         var stem = dotIndex >= 0 ? fileName[..dotIndex] : fileName;
         return string.IsNullOrEmpty(stem) ? "misc" : stem.ToLower();
-    }
-
-    private void InvokeCommandHandler(JintEngine engine, JsValue handler, CommandContext ctx)
-    {
-        var name = _worldOps.GetEntityName(ctx.PlayerEntityId.ToString()) ?? "Unknown";
-        var roomId = _worldOps.GetEntityRoomId(ctx.PlayerEntityId.ToString()) ?? "";
-        var statsObj = _stats.GetEntityStats(ctx.PlayerEntityId.ToString());
-
-        var playerObj = new
-        {
-            entityId = ctx.PlayerEntityId.ToString(),
-            name = name,
-            roomId = roomId,
-            previousRoomId = roomId,
-            stats = statsObj,
-            isChargen = ctx.IsChargen,
-            hasTag = new Func<string, bool>(tag =>
-            {
-                var entity = _world.GetEntity(ctx.PlayerEntityId);
-                return entity?.HasTag(tag) ?? false;
-            }),
-            send = new Action<string>(text => { _messaging.Send(ctx.PlayerEntityId, text); }),
-            sendToRoom = new Action<string>(text =>
-            {
-                if (!string.IsNullOrEmpty(roomId))
-                {
-                    _messaging.SendToRoomExcept(roomId, ctx.PlayerEntityId.ToString(), text);
-                }
-            })
-        };
-
-        try
-        {
-            engine.Invoke(handler, null, new object[] { playerObj, ctx.Args });
-        }
-        finally
-        {
-            _responseContext.Reset(ctx.PlayerEntityId);
-        }
     }
 
     private void InvokeActorHandler(

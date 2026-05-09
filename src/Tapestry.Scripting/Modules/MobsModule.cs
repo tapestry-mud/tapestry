@@ -92,9 +92,7 @@ public class MobsModule : IJintApiModule
                 // Unified path: also register in CommandRegistry with roles: ["mob"]
                 _commandRegistry.Register(
                     verb.ToLower(),
-                    _ => { },
-                    roles: ["mob"],
-                    actorHandler: actorCtx =>
+                    actorCtx =>
                     {
                         var mobObj = new
                         {
@@ -111,7 +109,8 @@ public class MobsModule : IJintApiModule
                         {
                             _logger.LogError(ex, "Mob command '{Verb}' dispatch error", verb);
                         }
-                    }
+                    },
+                    roles: ["mob"]
                 );
             }),
 

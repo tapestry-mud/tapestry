@@ -71,7 +71,7 @@ public class AbilityCommandBridge
 
         _commands.Register(
             keyword,
-            ctx => { ExecuteAbilityCommand(ctx, abilityId, displayName); },
+            actorCtx => { ExecuteAbilityCommandForActor(actorCtx, abilityId, displayName); },
             aliases: aliases,
             priority: 0,
             packName: ability.PackName,
@@ -79,116 +79,8 @@ public class AbilityCommandBridge
             category: category,
             sourceFile: ability.SourceFile,
             visibleTo: visibleTo,
-            roles: ["player", "mob"],
-            actorHandler: actorCtx => { ExecuteAbilityCommandForActor(actorCtx, abilityId, displayName); }
+            roles: ["player", "mob"]
         );
-    }
-
-    private void ExecuteAbilityCommand(CommandContext ctx, string abilityId, string displayName)
-    {
-        var player = _world.GetEntity(ctx.PlayerEntityId);
-        if (player == null) { return; }
-
-        var proficiency = _proficiency.GetProficiency(player.Id, abilityId);
-        if (!proficiency.HasValue || proficiency.Value <= 0)
-        {
-            _sessions.SendToPlayer(ctx.PlayerEntityId, $"You don't know how to {displayName}.\r\n");
-            return;
-        }
-
-        var targetId = ResolveTarget(player, abilityId, ctx.Args);
-        if (targetId == null) { return; }
-
-        var targetEntity = _world.GetEntity(targetId.Value);
-        if (targetEntity == null) { return; }
-
-        if (targetEntity.Id != player.Id && !_combat.IsInCombat(player.Id))
-        {
-            if (_combat.HasFleeCooldown(player.Id, _gameLoop.TickCount))
-            {
-                _sessions.SendToPlayer(ctx.PlayerEntityId, "You're too winded from fleeing to attack right now.\r\n");
-                return;
-            }
-            var engaged = _combat.Engage(player, targetEntity, _gameLoop.TickCount);
-            if (!engaged)
-            {
-                _sessions.SendToPlayer(ctx.PlayerEntityId, "You can't attack that.\r\n");
-                return;
-            }
-        }
-
-        var queue = player.GetProperty<List<object>>(AbilityProperties.QueuedActions) ?? new List<object>();
-        queue.Add(new Dictionary<string, object?>
-        {
-            ["abilityId"] = abilityId,
-            ["targetEntityId"] = targetId.Value.ToString()
-        });
-        player.SetProperty(AbilityProperties.QueuedActions, queue);
-    }
-
-    private Guid? ResolveTarget(Entity player, string abilityId, string[] args)
-    {
-        if (player.LocationRoomId == null)
-        {
-            _sessions.SendToPlayer(player.Id, "You can't use abilities here.\r\n");
-            return null;
-        }
-
-        var ability = _abilities.Get(abilityId);
-
-        if (args.Length > 0)
-        {
-            var raw = string.Join(" ", args).ToLower();
-
-            // self-keywords and player's own name always resolve to self
-            if (raw == "self" || raw == "me" || raw == player.Name.ToLower())
-            {
-                return player.Id;
-            }
-
-            // Parse optional index prefix: "2.goblin" targets the second goblin
-            var targetName = raw;
-            var targetIndex = 1;
-            var dotPos = raw.IndexOf('.');
-            if (dotPos > 0 && int.TryParse(raw[..dotPos], out var parsedIndex))
-            {
-                targetIndex = parsedIndex;
-                targetName = raw[(dotPos + 1)..];
-            }
-
-            var matches = _world.GetEntitiesInRoom(player.LocationRoomId)
-                .Where(e => e.Id != player.Id && (e.HasTag("npc") || e.HasTag("player")))
-                .Where(e => e.Name.ToLower().Contains(targetName))
-                .OrderByDescending(e => e.HasTag("killable") || e.Type == "player" ? 1 : 0)
-                .ToList();
-
-            if (matches.Count >= targetIndex)
-            {
-                return matches[targetIndex - 1].Id;
-            }
-
-            // Named target not found — fall back to combat target if in combat
-            if (_combat.IsInCombat(player.Id))
-            {
-                return _combat.GetPrimaryTarget(player.Id);
-            }
-            _sessions.SendToPlayer(player.Id, "You don't see that here.\r\n");
-            return null;
-        }
-
-        if (_combat.IsInCombat(player.Id))
-        {
-            return _combat.GetPrimaryTarget(player.Id);
-        }
-
-        if (ability != null && ability.CanTarget.Contains("self"))
-        {
-            return player.Id;
-        }
-
-        var displayName = ability?.ShortName ?? ability?.Name ?? abilityId;
-        _sessions.SendToPlayer(player.Id, $"Use {displayName} on whom?\r\n");
-        return null;
     }
 
     private void ExecuteAbilityCommandForActor(ActorContext actorCtx, string abilityId, string displayName)
