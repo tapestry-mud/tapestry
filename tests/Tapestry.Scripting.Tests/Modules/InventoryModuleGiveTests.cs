@@ -43,7 +43,7 @@ public class InventoryModuleGiveTests
 
         var sword = new Entity("item:weapon", "a steel sword");
         sword.AddTag("item");
-        sword.AddTag("sword");
+        sword.AddKeyword("sword");
         giver.AddToContents(sword);
         world.TrackEntity(sword);
 
@@ -92,28 +92,28 @@ public class InventoryModuleGiveTests
 
         var giverConn = new FakeConnection();
         var giverEntity = new Entity("player", "Rand");
-        giverEntity.AddTag("player");
+        // Type "player" is sufficient -- no tag needed after type graduation
         room.AddEntity(giverEntity);
         world.TrackEntity(giverEntity);
         sessions.Add(new PlayerSession(giverConn, giverEntity));
 
         var receiverConn = new FakeConnection();
         var receiverEntity = new Entity("player", "Mat");
-        receiverEntity.AddTag("player");
+        // Type "player" is sufficient -- no tag needed after type graduation
         room.AddEntity(receiverEntity);
         world.TrackEntity(receiverEntity);
         sessions.Add(new PlayerSession(receiverConn, receiverEntity));
 
         var bystanderConn = new FakeConnection();
         var bystanderEntity = new Entity("player", "Perrin");
-        bystanderEntity.AddTag("player");
+        // Type "player" is sufficient -- no tag needed after type graduation
         room.AddEntity(bystanderEntity);
         world.TrackEntity(bystanderEntity);
         sessions.Add(new PlayerSession(bystanderConn, bystanderEntity));
 
         var sword = new Entity("item:weapon", "a steel sword");
         sword.AddTag("item");
-        sword.AddTag("sword");
+        sword.AddKeyword("sword");
         giverEntity.AddToContents(sword);
         world.TrackEntity(sword);
 

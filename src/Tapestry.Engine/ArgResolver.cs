@@ -147,7 +147,7 @@ public static class ArgResolver
         {
             var keyword = token.Length > 4 ? token[4..] : null;
             var bulk = room.Entities
-                .Where(e => !e.HasTag("player") && !e.HasTag("npc"))
+                .Where(e => e.Type != "player" && e.Type != "npc")
                 .Where(e => keyword == null || e.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 .Select(ToItemObj)
                 .ToArray();
@@ -156,7 +156,7 @@ public static class ArgResolver
 
         var (ordinal, name) = ParseOrdinal(token);
         var match = room.Entities
-            .Where(e => !e.HasTag("player") && !e.HasTag("npc"))
+            .Where(e => e.Type != "player" && e.Type != "npc")
             .Where(e => e.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
             .Skip(ordinal - 1)
             .FirstOrDefault();
@@ -182,7 +182,7 @@ public static class ArgResolver
 
         var match = room.Entities
             .Where(e => e.Id != actor.EntityId)
-            .Where(e => (includeNpcs && e.HasTag("npc")) || (includePlayers && e.HasTag("player")))
+            .Where(e => (includeNpcs && e.Type == "npc") || (includePlayers && e.Type == "player"))
             .Where(e => e.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
             .Skip(ordinal - 1)
             .FirstOrDefault();
@@ -196,7 +196,7 @@ public static class ArgResolver
         {
             ["id"] = match.Id.ToString(),
             ["name"] = match.Name,
-            ["type"] = match.HasTag("npc") ? "npc" : "player"
+            ["type"] = match.Type == "npc" ? "npc" : "player"
         }, null);
     }
 

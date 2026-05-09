@@ -173,6 +173,11 @@ public class World : ITagObserver
         return ImmutableHashSet<Entity>.Empty;
     }
 
+    public IEnumerable<Entity> GetEntitiesByType(string type)
+    {
+        return _entities.Values.Where(e => string.Equals(e.Type, type, StringComparison.OrdinalIgnoreCase));
+    }
+
     public IEnumerable<Entity> GetEntitiesInRoom(string roomId)
     {
         var room = GetRoom(roomId);

@@ -159,7 +159,7 @@ public class TickHandlerModule : IGameModule
 
         _gameLoop.RegisterTickHandler("sustenance-drain", _sustenanceConfig.DrainCadence, () =>
         {
-            foreach (var entity in _world.GetEntitiesByTag("player"))
+            foreach (var entity in _world.GetEntitiesByType("player"))
             {
                 var current = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
                     ? sustenanceVal

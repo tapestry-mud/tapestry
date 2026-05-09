@@ -375,7 +375,6 @@ public partial class LoginFlow
     public static Entity CreateNewPlayerEntity(string name)
     {
         var entity = new Entity("player", name);
-        entity.AddTag("player");
         entity.AddTag("regen");
         entity.Stats.BaseStrength = 10;
         entity.Stats.BaseIntelligence = 10;

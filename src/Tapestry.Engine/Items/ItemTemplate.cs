@@ -19,7 +19,10 @@ public class ItemTemplate
 
         foreach (var tag in Tags)
         {
-            entity.AddTag(tag);
+            if (!string.Equals(tag, entity.Type, StringComparison.OrdinalIgnoreCase))
+            {
+                entity.AddTag(tag);
+            }
         }
 
         foreach (var keyword in Keywords)

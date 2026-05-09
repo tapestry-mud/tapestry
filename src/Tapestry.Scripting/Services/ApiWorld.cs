@@ -128,12 +128,12 @@ public class ApiWorld
                 }
             });
 
-            if (entity.HasTag("player") && entity.LocationRoomId != null)
+            if (entity.Type == "player" && entity.LocationRoomId != null)
             {
                 _mobAIManager.OnPlayerEnteredRoom(entity.LocationRoomId, entityId);
             }
 
-            if (entity.HasTag("npc") && entity.HasProperty("disposition") && entity.LocationRoomId != null)
+            if (entity.Type == "npc" && entity.HasProperty("disposition") && entity.LocationRoomId != null)
             {
                 _mobAIManager.OnMobEnteredRoom(entity, entity.LocationRoomId);
             }

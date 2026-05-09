@@ -98,7 +98,7 @@ public class MobAIManager
         _currentTick++;
         _dispositionEvaluator.ClearCache();
 
-        foreach (var entity in _world.GetEntitiesByTag("npc"))
+        foreach (var entity in _world.GetEntitiesByType("npc"))
         {
             if (entity.LocationRoomId == null)
             {
@@ -158,7 +158,7 @@ public class MobAIManager
                 var room = _world.GetRoom(entity.LocationRoomId);
                 if (room != null)
                 {
-                    foreach (var player in room.Entities.Where(e => e.HasTag("player")).ToList())
+                    foreach (var player in room.Entities.Where(e => e.Type == "player").ToList())
                     {
                         _dispositionEvaluator.EvaluateForMob(entity, player);
                     }
@@ -187,7 +187,7 @@ public class MobAIManager
     {
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
-        foreach (var player in room.Entities.Where(e => e.HasTag("player")).ToList())
+        foreach (var player in room.Entities.Where(e => e.Type == "player").ToList())
         {
             _dispositionEvaluator.EvaluateForMob(mob, player, aggroOnly: false);
         }

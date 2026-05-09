@@ -170,14 +170,14 @@ public class ApiMessaging
 
         // Show NPCs
         var npcs = room.Entities
-            .Where(e => e.HasTag("npc"))
+            .Where(e => e.Type == "npc")
             .ToList();
         foreach (var npc in npcs)
         {
             lines.Add($"<npc>{npc.Name} is here.</npc>");
         }
 
-        // Show corpses
+        // Show corpses (corpse is a tag, not a type -- entities are type "container")
         var corpses = room.Entities
             .Where(e => e.HasTag("corpse"))
             .ToList();
@@ -188,7 +188,7 @@ public class ApiMessaging
 
         // Show other players
         var others = room.Entities
-            .Where(e => e.HasTag("player") && e.Id != entityId)
+            .Where(e => e.Type == "player" && e.Id != entityId)
             .Select(e => e.Name)
             .ToList();
         foreach (var other in others)

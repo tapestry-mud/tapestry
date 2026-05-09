@@ -606,7 +606,7 @@ public class AdminModule : IJintApiModule
         var results = new List<(Guid Id, string Name)>();
         foreach (var entity in room.Entities)
         {
-            if (!entity.HasTag("npc")) { continue; }
+            if (entity.Type != "npc") { continue; }
             if (MatchesName(entity.Name, kwLower))
             {
                 results.Add((entity.Id, entity.Name));

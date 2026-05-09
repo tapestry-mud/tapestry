@@ -61,7 +61,8 @@ public class SpawnManagerTests
         Assert.NotNull(entity);
         Assert.Equal("a goblin", entity.Name);
         Assert.Equal("core:test-room", entity.LocationRoomId);
-        Assert.True(entity.HasTag("npc"));
+        Assert.Equal("npc", entity.Type); // type graduated out of tags
+        Assert.False(entity.HasTag("npc")); // type no longer duplicated as tag
         Assert.True(entity.HasTag("mob"));
         var room = world.GetRoom("core:test-room");
         Assert.Contains(entity, room!.Entities);

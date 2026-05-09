@@ -88,7 +88,7 @@ public class MobTemplateTests
 
         Assert.Equal("npc", entity.Type);
         Assert.Equal("a goblin", entity.Name);
-        Assert.True(entity.HasTag("npc"));
+        Assert.False(entity.HasTag("npc")); // type graduated out of tags
         Assert.True(entity.HasTag("mob"));
         Assert.True(entity.HasTag("hostile"));
         Assert.Equal(8, entity.Stats.BaseStrength);

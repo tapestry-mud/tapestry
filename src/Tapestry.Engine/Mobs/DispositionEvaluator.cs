@@ -80,12 +80,12 @@ public class DispositionEvaluator
     public void EvaluateRoom(string roomId, Guid playerId, bool aggroOnly = false)
     {
         var player = _world.GetEntity(playerId);
-        if (player == null || !player.HasTag("player")) { return; }
+        if (player == null || player.Type != "player") { return; }
 
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
 
-        foreach (var entity in room.Entities.Where(e => e.HasTag("npc") && e.HasProperty("disposition")).ToList())
+        foreach (var entity in room.Entities.Where(e => e.Type == "npc" && e.HasProperty("disposition")).ToList())
         {
             EvaluateForMob(entity, player, aggroOnly);
         }

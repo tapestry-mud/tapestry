@@ -215,7 +215,7 @@ public class MobAIManagerTests
     }
 
     [Fact]
-    public void Tick_NpcWithNoTag_IsNotDispatched()
+    public void Tick_NonNpcType_IsNotDispatched()
     {
         var world = new World();
         var room = new Room("zone:room1", "Room", "Test.");
@@ -232,12 +232,12 @@ public class MobAIManagerTests
         ai.RegisterBehavior("patrol", ctx => { dispatched.Add(ctx.Name); });
         ai.ActivateArea("zone");
 
-        var npc = new Entity("npc", "Goblin");
-        // No "npc" tag added - not in tag index
-        npc.SetProperty("behavior", "patrol");
-        npc.LocationRoomId = "zone:room1";
-        room.AddEntity(npc);
-        world.TrackEntity(npc);
+        // Entity with non-npc type should not be dispatched by MobAIManager
+        var item = new Entity("item", "Sword");
+        item.SetProperty("behavior", "patrol");
+        item.LocationRoomId = "zone:room1";
+        room.AddEntity(item);
+        world.TrackEntity(item);
         world.SwapTagBuffers();
 
         ai.Tick();

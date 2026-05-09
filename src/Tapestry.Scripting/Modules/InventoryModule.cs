@@ -421,7 +421,7 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var player = room.Entities
-                    .Where(e => e.HasTag("player") && e.Id != eid)
+                    .Where(e => e.Type == "player" && e.Id != eid)
                     .FirstOrDefault(e => e.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase));
 
                 if (player == null)

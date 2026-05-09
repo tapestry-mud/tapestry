@@ -304,7 +304,7 @@ public class CombatManager
             });
         }
 
-        if (victim != null && victim.HasTag("npc"))
+        if (victim != null && victim.Type == "npc")
         {
             var killerEntity = killerId.HasValue ? _world.GetEntity(killerId.Value) : null;
             _eventBus.Publish(new GameEvent
