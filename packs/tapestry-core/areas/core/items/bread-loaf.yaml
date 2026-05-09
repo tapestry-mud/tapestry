@@ -1,0 +1,15 @@
+id: "core:bread-loaf"
+name: "a loaf of fresh bread"
+type: "item:food"
+tags: [item, food, bread, loaf, fresh]
+properties:
+  item_type: food
+  sustenance_value: 100
+  charges: 3
+  max_charges: 3
+  destroy_on_empty: true
+  weight: 1
+  rarity: common
+  description: "A round loaf of dark bread, still warm from the oven."
+  value: 1
+modifiers: []
