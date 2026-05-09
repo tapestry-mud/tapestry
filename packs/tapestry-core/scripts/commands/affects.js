@@ -2,11 +2,14 @@ tapestry.commands.register({
     name: 'affects',
     aliases: ['aff'],
     description: 'Show active effects on your character',
-    handler: function(player, args) {
-        var active = tapestry.effects.getActive(player.entityId);
+    category: 'info',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var active = tapestry.effects.getActive(actor.entityId);
 
         if (!active || active.length === 0) {
-            var output = tapestry.ui.panel({
+            var emptyOutput = tapestry.ui.panel({
                 sections: [{
                     rows: [
                         { type: 'title', left: 'Active Effects' },
@@ -14,7 +17,7 @@ tapestry.commands.register({
                     ]
                 }]
             });
-            player.send('\r\n' + output + '\r\n');
+            actor.send('\r\n' + emptyOutput + '\r\n');
             return;
         }
 
@@ -53,6 +56,6 @@ tapestry.commands.register({
         }
 
         var output = tapestry.ui.panel({ sections: [{ rows: rows }] });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });

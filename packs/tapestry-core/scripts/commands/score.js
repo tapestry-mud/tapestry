@@ -1,20 +1,22 @@
-﻿tapestry.commands.register({
+tapestry.commands.register({
     name: 'score',
     description: 'Display your character stats and status.',
-    priority: 0,
-    handler: function(player, args) {
-        var s = player.stats;
+    category: 'info',
+    roles: ['player'],
+    args: {},
+    handler: function(actor, resolved) {
+        var s = actor.stats;
 
         // --- Build GMCP payload from the same data the renderer will use ---
-        var race = tapestry.world.getProperty(player.entityId, 'race') || '';
-        var charClass = tapestry.world.getProperty(player.entityId, 'class') || '';
+        var race = tapestry.world.getProperty(actor.entityId, 'race') || '';
+        var charClass = tapestry.world.getProperty(actor.entityId, 'class') || '';
 
         var allTracks = tapestry.progression.getTracks();
         var xpTracks = [];
         var primaryLevel = 0;
         if (allTracks && allTracks.length > 0) {
             for (var gi = 0; gi < allTracks.length; gi++) {
-                var gInfo = tapestry.progression.getInfo(player.entityId, allTracks[gi].name);
+                var gInfo = tapestry.progression.getInfo(actor.entityId, allTracks[gi].name);
                 if (!gInfo) { continue; }
                 if (gi === 0) { primaryLevel = gInfo.level; }
                 xpTracks.push({
@@ -26,14 +28,14 @@
             }
         }
 
-        var goldAmount = tapestry.currency.getGold(player.entityId);
-        var alignmentValue = tapestry.alignment.get(player.entityId);
-        var alignmentLabel = tapestry.alignment.bucket(player.entityId);
-        var hungerLabel = tapestry.consumables.getSustenanceTier(player.entityId);
+        var goldAmount = tapestry.currency.getGold(actor.entityId);
+        var alignmentValue = tapestry.alignment.get(actor.entityId);
+        var alignmentLabel = tapestry.alignment.bucket(actor.entityId);
+        var hungerLabel = tapestry.consumables.getSustenanceTier(actor.entityId);
 
-        tapestry.gmcp.send(player.entityId, 'Response.Char.Score', {
+        tapestry.gmcp.send(actor.entityId, 'Response.Char.Score', {
             status: 'ok',
-            name: player.name,
+            name: actor.name,
             race: race,
             class: charClass,
             level: primaryLevel,
@@ -57,7 +59,7 @@
             xpTracks: xpTracks
         });
 
-        tapestry.respond.suppress(player.entityId);
+        tapestry.respond.suppress(actor.entityId);
 
         // --- existing rendering continues below, using the existing local vars ---
         var hpName = tapestry.stats.getDisplayName('hp');
@@ -65,7 +67,7 @@
         var movName = tapestry.stats.getDisplayName('movement');
 
         var identitySection = {
-            rows: [{ type: 'title', left: player.name }]
+            rows: [{ type: 'title', left: actor.name }]
         };
 
         var tracks = tapestry.progression.getTracks();
@@ -73,7 +75,7 @@
         if (tracks && tracks.length > 0) {
             var profRows = [];
             for (var t = 0; t < tracks.length; t++) {
-                var info = tapestry.progression.getInfo(player.entityId, tracks[t].name);
+                var info = tapestry.progression.getInfo(actor.entityId, tracks[t].name);
                 if (!info) { continue; }
                 var pct = 0;
                 if (info.xpToNext > 0) {
@@ -127,8 +129,8 @@
             ]
         };
 
-        var alignment = tapestry.alignment.get(player.entityId);
-        var bucket = tapestry.alignment.bucket(player.entityId);
+        var alignment = tapestry.alignment.get(actor.entityId);
+        var bucket = tapestry.alignment.bucket(actor.entityId);
         var attribSection = {
             separatorAbove: 'minor',
             rows: [
@@ -146,14 +148,14 @@
             ]
         };
 
-        var gold = tapestry.currency.getGold(player.entityId);
+        var gold = tapestry.currency.getGold(actor.entityId);
         var goldSection = {
             separatorAbove: 'minor',
             rows: [{ type: 'text', content: '  Gold: ' + gold }]
         };
 
-        var susValue = tapestry.consumables.getSustenance(player.entityId);
-        var susTier = tapestry.consumables.getSustenanceTier(player.entityId);
+        var susValue = tapestry.consumables.getSustenance(actor.entityId);
+        var susTier = tapestry.consumables.getSustenanceTier(actor.entityId);
         var susPct = Math.floor(susValue);
         var susSection = {
             separatorAbove: 'minor',
@@ -168,6 +170,6 @@
         sections.push(goldSection);
 
         var output = tapestry.ui.panel({ sections: sections });
-        player.send('\r\n' + output + '\r\n');
+        actor.send('\r\n' + output + '\r\n');
     }
 });
