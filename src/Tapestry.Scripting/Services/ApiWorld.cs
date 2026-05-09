@@ -265,7 +265,7 @@ public class ApiWorld
         }
 
         return room.Entities
-            .Where(e => e.HasTag(tag))
+            .Where(e => string.Equals(e.Type, tag, StringComparison.OrdinalIgnoreCase) || e.HasTag(tag))
             .Select(e => (object)new { id = e.Id.ToString(), name = e.Name, type = e.Type })
             .ToArray();
     }
