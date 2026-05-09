@@ -9,7 +9,7 @@ public class ApiMessagingTests
 {
     private static ApiMessaging CreateMessaging(World world, SessionManager sessions)
     {
-        return new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
+        return new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
     }
 
     [Fact]

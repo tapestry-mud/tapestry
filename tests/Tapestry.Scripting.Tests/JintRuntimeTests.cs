@@ -236,7 +236,7 @@ public class JintRuntimeTests
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         // Create service classes
-        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext());
+        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
