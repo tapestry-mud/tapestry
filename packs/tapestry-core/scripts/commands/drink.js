@@ -1,17 +1,38 @@
 tapestry.commands.register({
     name: 'drink',
-    description: 'Drink from an item in your inventory.',
+    description: 'Drink from a container in your inventory or a source in the room.',
     category: 'inventory',
     roles: ['player'],
     args: {
-        item: { type: 'inventory', required: true }
+        item: { type: 'keyword', required: true }
     },
     handler: function(actor, resolved) {
-        var item = resolved.item;
+        var keyword = resolved.item;
 
+        // Search inventory first, then room
+        var item = tapestry.inventory.findByKeyword(actor.entityId, keyword);
+        var fromRoom = false;
+        if (!item) {
+            item = tapestry.inventory.findInRoom(actor.entityId, keyword);
+            fromRoom = true;
+        }
+        if (!item) {
+            actor.send("You don't see that here.\r\n");
+            return;
+        }
+
+        // Room fixtures (fountains, wells) use drink_container type
+        var entityType = tapestry.world.getProperty(item.id, 'type');
+        if (entityType === 'drink_container') {
+            actor.send('You drink from ' + item.name + '.\r\n');
+            actor.sendToRoom(actor.name + ' drinks from ' + item.name + '.\r\n');
+            return;
+        }
+
+        // Inventory drinks use item_type check
         var itemType = tapestry.world.getProperty(item.id, 'item_type');
         if (itemType !== 'drink') {
-            actor.send("You can't drink that.\r\n");
+            actor.send("You can't drink from that.\r\n");
             return;
         }
 
@@ -28,7 +49,7 @@ tapestry.commands.register({
         } else if (result && result.reason === 'nocharges') {
             actor.send("It's empty.\r\n");
         } else {
-            actor.send("You can't drink that.\r\n");
+            actor.send("You can't drink from that.\r\n");
         }
     }
 });
