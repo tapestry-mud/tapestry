@@ -4,24 +4,11 @@ tapestry.commands.register({
     category: 'inventory',
     roles: ['player'],
     args: {
-        item: { type: 'keyword', required: true }
+        item: { type: 'findable', required: true }
     },
     handler: function(actor, resolved) {
-        var keyword = resolved.item;
+        var item = resolved.item;
 
-        // Search inventory first, then room
-        var item = tapestry.inventory.findByKeyword(actor.entityId, keyword);
-        var fromRoom = false;
-        if (!item) {
-            item = tapestry.inventory.findInRoom(actor.entityId, keyword);
-            fromRoom = true;
-        }
-        if (!item) {
-            actor.send("You don't see that here.\r\n");
-            return;
-        }
-
-        // Room fixtures (fountains, wells) have drinkable property
         var drinkable = tapestry.world.getProperty(item.id, 'drinkable');
         if (drinkable) {
             actor.send('You drink from ' + item.name + '.\r\n');
@@ -31,7 +18,6 @@ tapestry.commands.register({
             return;
         }
 
-        // Inventory drinks use item_type check
         var itemType = tapestry.world.getProperty(item.id, 'item_type');
         if (itemType !== 'drink') {
             actor.send("You can't drink from that.\r\n");
