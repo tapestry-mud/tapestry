@@ -1,0 +1,48 @@
+# Scenario: put command
+# Setup: player carries "a steel blade", "a torch", and "a dagger"; "a leather chest" container in room; "a pouch" container in inventory
+
+# Single item into room container
+> put blade in chest
+< You put a steel blade in a leather chest.
+
+# Single item with preposition stripped
+> put torch chest
+< You put a torch in a leather chest.
+
+# Single item into inventory container
+> put dagger in pouch
+< You put a dagger in a pouch.
+
+# Bulk: put all in container
+> put all in chest
+< You put a steel blade in a leather chest.
+< You put a torch in a leather chest.
+< You put a dagger in a leather chest.
+
+# Bulk: put all.keyword in container
+> put all.blade in chest
+< You put a steel blade in a leather chest.
+
+# Error: item not in inventory
+> put emerald in chest
+< You aren't carrying that.
+
+# Error: container not found
+> put blade in barrel
+< You don't see that container here.
+
+# Error: container is full
+> put blade in chest
+< a leather chest is full.
+
+# Error: not a container
+> put blade in torch
+< You don't see that container here.
+
+# Error: too heavy
+> put blade in chest
+< That would be too heavy for a leather chest.
+
+# Error: containers in containers
+> put blade in chest
+< You can't put containers in containers.
