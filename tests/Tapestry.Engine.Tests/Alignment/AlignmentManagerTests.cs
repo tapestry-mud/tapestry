@@ -28,10 +28,22 @@ public class AlignmentManagerTests
         return (mgr, world, eventBus, published);
     }
 
+    private static readonly HashSet<string> _roleTags = new() { "admin", "builder" };
+
     private Entity AddEntity(World world, params string[] tags)
     {
         var e = new Entity("player", "Tester");
-        foreach (var t in tags) { e.AddTag(t); }
+        foreach (var t in tags)
+        {
+            if (_roleTags.Contains(t))
+            {
+                e.AddRole(t);
+            }
+            else
+            {
+                e.AddTag(t);
+            }
+        }
         world.TrackEntity(e);
         return e;
     }

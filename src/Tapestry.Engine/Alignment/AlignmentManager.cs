@@ -62,7 +62,7 @@ public class AlignmentManager
     {
         var entity = _world.GetEntity(entityId);
         if (entity == null) { return; }
-        if (entity.HasTag("admin")) { return; }
+        if (entity.HasRole("admin")) { return; }
 
         var eventData = new Dictionary<string, object?>
         {

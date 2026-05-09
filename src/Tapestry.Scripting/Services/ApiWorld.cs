@@ -57,7 +57,7 @@ public class ApiWorld
                 if (exit != null)
                 {
                     var targetRoom = _world.GetRoom(exit.TargetRoomId);
-                    if (targetRoom?.AlignmentRange != null && !entity.HasTag("admin"))
+                    if (targetRoom?.AlignmentRange != null && !entity.HasRole("admin"))
                     {
                         var alignment = _alignmentManager.Get(entityId);
                         if (!targetRoom.AlignmentRange.Allows(alignment))

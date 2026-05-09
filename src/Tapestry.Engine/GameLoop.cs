@@ -300,7 +300,7 @@ public class GameLoop
         {
             foreach (var session in sessions.AllSessions)
             {
-                if (session.PlayerEntity.HasTag(adminTag)) { continue; }
+                if (session.PlayerEntity.HasRole(adminTag)) { continue; }
 
                 var idleTicks = _tickCount - session.LastInputTick;
 

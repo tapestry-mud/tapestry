@@ -67,7 +67,7 @@ public class AlignmentRoomGateTests
 
         var admin = new Entity("player", "Admin");
         admin.AddTag("player");
-        admin.AddTag("admin");
+        admin.AddRole("admin");
         world.TrackEntity(admin);
         from.AddEntity(admin);
         alignmentMgr.Set(admin.Id, 0, "init");

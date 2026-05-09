@@ -11,6 +11,7 @@ public class PlayerSaveData
     public string Type { get; set; } = "player";
     public string Location { get; set; } = "";
     public List<string> Tags { get; set; } = new();
+    public List<string>? Roles { get; set; }
     public StatsSaveData Stats { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();
     public Dictionary<string, string> Equipment { get; set; } = new();

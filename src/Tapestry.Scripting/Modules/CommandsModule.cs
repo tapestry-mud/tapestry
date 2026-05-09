@@ -207,7 +207,7 @@ public class CommandsModule : IJintApiModule
                     "Command '{Name}' has both admin: true and visibleTo -- admin: true wins, visibleTo ignored.",
                     name);
             }
-            visibleTo = entity => entity.HasTag("admin");
+            visibleTo = entity => entity.HasRole("admin");
         }
         else
         {
@@ -222,7 +222,7 @@ public class CommandsModule : IJintApiModule
                         var playerObj = new
                         {
                             entityId = entity.Id.ToString(),
-                            hasTag = new Func<string, bool>(tag => entity.HasTag(tag))
+                            hasTag = new Func<string, bool>(tag => entity.HasRole(tag) || entity.HasTag(tag))
                         };
                         // JintEngine is not thread-safe; visibleTo predicates share the singleton engine.
                         var result = engine.Invoke(fn, null, new object[] { playerObj });

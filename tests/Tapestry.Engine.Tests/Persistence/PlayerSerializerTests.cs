@@ -97,13 +97,13 @@ public class PlayerSerializerTests
     {
         var player = CreateTestPlayer();
         player.AddTag("player");
-        player.AddTag("admin");
+        player.AddRole("admin");
 
         var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Tags.Should().Contain("player");
-        result.Entity.Tags.Should().Contain("admin");
+        result.Entity.Roles.Should().Contain("admin");
     }
 
     [Fact]

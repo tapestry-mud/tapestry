@@ -124,7 +124,7 @@ public class PersistenceModule : IGameModule
 
             if (ctx.RawArgs.Length == 2)
             {
-                if (!session.PlayerEntity.HasTag("admin"))
+                if (!session.PlayerEntity.HasRole("admin"))
                 {
                     _sessions.SendToPlayer(ctx.EntityId, "You don't have permission to do that.\r\n");
                     return;

@@ -35,6 +35,7 @@ public class PlayerSerializer
             Location = player.LocationRoomId ?? "",
             PasswordHash = passwordHash,
             Tags = player.Tags.ToList(),
+            Roles = player.Roles.ToList(),
             Stats = SerializeStats(player.Stats),
             Properties = SerializeProperties(player.GetAllProperties()),
             Equipment = SerializeEquipment(player.Equipment),
@@ -65,6 +66,23 @@ public class PlayerSerializer
         foreach (var tag in data.Tags ?? new List<string>())
         {
             entity.AddTag(tag);
+        }
+
+        // Roles -- restore from saved roles field
+        foreach (var role in data.Roles ?? new List<string>())
+        {
+            entity.AddRole(role);
+        }
+
+        // Migration: promote legacy role tags to Entity.Roles
+        var roleTags = new[] { "admin", "builder" };
+        foreach (var roleTag in roleTags)
+        {
+            if (entity.HasTag(roleTag))
+            {
+                entity.RemoveTag(roleTag);
+                entity.AddRole(roleTag);
+            }
         }
 
         // Stats

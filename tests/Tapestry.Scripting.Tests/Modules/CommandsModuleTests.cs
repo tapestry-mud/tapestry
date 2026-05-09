@@ -77,7 +77,7 @@ public class CommandsModuleTests
         Assert.NotNull(reg!.VisibleTo);
 
         var adminEntity = new Entity("player", "Admin");
-        adminEntity.AddTag("admin");
+        adminEntity.AddRole("admin");
         Assert.True(reg.VisibleTo!(adminEntity));
 
         var normalEntity = new Entity("player", "Wanderer");
@@ -166,7 +166,7 @@ public class CommandsModuleTests
     {
         var (rt, registry, world) = BuildRuntime();
         var adminPlayer = new Entity("player", "Admin");
-        adminPlayer.AddTag("admin");
+        adminPlayer.AddRole("admin");
         world.TrackEntity(adminPlayer);
 
         rt.Execute(@"

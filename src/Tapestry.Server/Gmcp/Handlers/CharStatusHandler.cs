@@ -107,7 +107,7 @@ public class CharStatusHandler : IGmcpPackageHandler
             gold,
             hungerTier,
             hungerValue,
-            isAdmin = entity.HasTag("admin"),
+            isAdmin = entity.HasRole("admin"),
         };
     }
 }
