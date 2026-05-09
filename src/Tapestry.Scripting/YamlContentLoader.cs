@@ -59,6 +59,7 @@ public static class YamlContentLoader
             Name = def.Name,
             Type = def.Type,
             Tags = def.Tags,
+            Keywords = def.Keywords,
             Behavior = def.Behavior,
             Stats = def.Stats,
             Properties = def.Properties,
@@ -75,6 +76,11 @@ public static class YamlContentLoader
             BattleCommands = def.BattleCommands,
             AbilityProficiency = def.AbilityProficiency
         };
+
+        if (!string.IsNullOrEmpty(def.BaseDisposition))
+        {
+            template.BaseDisposition = Enum.Parse<Disposition>(def.BaseDisposition, ignoreCase: true);
+        }
 
         if (def.Trains != null)
         {
@@ -351,6 +357,7 @@ public static class YamlContentLoader
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
         public List<string> Tags { get; set; } = new();
+        public List<string> Keywords { get; set; } = new();
         public Dictionary<string, object> Properties { get; set; } = new();
         public List<ModifierDef> Modifiers { get; set; } = new();
     }
@@ -440,6 +447,8 @@ public static class YamlContentLoader
         public string Name { get; set; } = "";
         public string Type { get; set; } = "npc";
         public List<string> Tags { get; set; } = new();
+        public List<string> Keywords { get; set; } = new();
+        public string? BaseDisposition { get; set; }
         public string Behavior { get; set; } = "stationary";
         public MobTemplateStats Stats { get; set; } = new();
         public Dictionary<string, object?> Properties { get; set; } = new();

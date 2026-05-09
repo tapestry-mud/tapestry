@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Tapestry.Engine.Items;
+using Tapestry.Engine.Mobs;
 
 namespace Tapestry.Engine.Tests;
 
@@ -81,5 +83,61 @@ public class EntityKeywordsRolesDispositionTests
         entity.Disposition = Disposition.Hostile;
 
         entity.Disposition.Should().Be(Disposition.Hostile);
+    }
+
+    [Fact]
+    public void ItemTemplate_CreateEntity_AppliesKeywords()
+    {
+        var template = new ItemTemplate
+        {
+            Id = "test:sword",
+            Name = "a rusty sword",
+            Type = "item",
+            Tags = ["equippable"],
+            Keywords = ["sword", "rusty", "blade"]
+        };
+
+        var entity = template.CreateEntity();
+
+        entity.HasKeyword("sword").Should().BeTrue();
+        entity.HasKeyword("blade").Should().BeTrue();
+        entity.HasTag("equippable").Should().BeTrue();
+        entity.HasKeyword("equippable").Should().BeFalse();
+    }
+
+    [Fact]
+    public void MobTemplate_CreateEntity_AppliesKeywordsAndDisposition()
+    {
+        var template = new MobTemplate
+        {
+            Id = "test:goblin",
+            Name = "a goblin",
+            Type = "mob",
+            Tags = ["killable"],
+            Keywords = ["goblin", "creature"],
+            BaseDisposition = Disposition.Hostile
+        };
+
+        var entity = template.CreateEntity();
+
+        entity.HasKeyword("goblin").Should().BeTrue();
+        entity.HasKeyword("creature").Should().BeTrue();
+        entity.Disposition.Should().Be(Disposition.Hostile);
+        entity.HasTag("killable").Should().BeTrue();
+    }
+
+    [Fact]
+    public void MobTemplate_Disposition_DefaultsToNeutral()
+    {
+        var template = new MobTemplate
+        {
+            Id = "test:guard",
+            Name = "a guard",
+            Type = "npc"
+        };
+
+        var entity = template.CreateEntity();
+
+        entity.Disposition.Should().Be(Disposition.Neutral);
     }
 }

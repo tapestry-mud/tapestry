@@ -1,3 +1,5 @@
+using Tapestry.Engine;
+
 namespace Tapestry.Engine.Mobs;
 
 public class MobAbilityEntry
@@ -45,6 +47,8 @@ public class MobTemplate
     public string Name { get; set; } = "";
     public string Type { get; set; } = "npc";
     public List<string> Tags { get; set; } = new();
+    public List<string> Keywords { get; set; } = new();
+    public Tapestry.Engine.Disposition BaseDisposition { get; set; } = Tapestry.Engine.Disposition.Neutral;
     public string Behavior { get; set; } = "stationary";
     public MobTemplateStats Stats { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();
@@ -70,6 +74,13 @@ public class MobTemplate
         {
             entity.AddTag(tag);
         }
+
+        foreach (var keyword in Keywords)
+        {
+            entity.AddKeyword(keyword);
+        }
+
+        entity.Disposition = BaseDisposition;
 
         entity.Stats.BaseStrength = Stats.Strength;
         entity.Stats.BaseIntelligence = Stats.Intelligence;

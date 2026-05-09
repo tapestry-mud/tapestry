@@ -213,6 +213,7 @@ public class PackLoader : IPackManifestProvider
                 Name = itemDef.Name,
                 Type = itemDef.Type,
                 Tags = new List<string>(itemDef.Tags),
+                Keywords = new List<string>(itemDef.Keywords),
                 Properties = itemDef.Properties.ToDictionary(kv => kv.Key, kv => (object?)kv.Value),
                 Modifiers = itemDef.Modifiers.Select(m => new ItemTemplate.ModifierEntry
                 {

@@ -9,6 +9,7 @@ public class ItemTemplate
     public string Name { get; set; } = "";
     public string Type { get; set; } = "";
     public List<string> Tags { get; set; } = new();
+    public List<string> Keywords { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();
     public List<ModifierEntry> Modifiers { get; set; } = new();
 
@@ -19,6 +20,11 @@ public class ItemTemplate
         foreach (var tag in Tags)
         {
             entity.AddTag(tag);
+        }
+
+        foreach (var keyword in Keywords)
+        {
+            entity.AddKeyword(keyword);
         }
 
         foreach (var (key, val) in Properties)
