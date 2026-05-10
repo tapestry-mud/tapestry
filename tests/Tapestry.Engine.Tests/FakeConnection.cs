@@ -7,6 +7,7 @@ internal class FakeConnection : IConnection
     public string Id { get; }
     public bool IsConnected { get; private set; } = true;
     public bool SupportsAnsi { get; init; } = false;
+    public string? RemoteAddress { get; init; }
     public List<string> SentLines { get; } = new();
     public bool EchoSuppressed { get; private set; }
 

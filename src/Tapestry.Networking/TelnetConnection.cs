@@ -25,6 +25,8 @@ public class TelnetConnection : IConnection
     public string Id { get; } = Guid.NewGuid().ToString();
     public bool IsConnected => _client.Connected;
     public bool SupportsAnsi => Capabilities.ColorSupport != ColorSupport.None;
+    public string? RemoteAddress { get; }
+
     public ClientCapabilities Capabilities { get; private set; } = ClientCapabilities.Default;
     public TelnetProtocolRouter? Router { get; private set; }
 
@@ -38,6 +40,7 @@ public class TelnetConnection : IConnection
         _client.NoDelay = true;
         _stream = client.GetStream();
         _logger = logger;
+        RemoteAddress = client.Client.RemoteEndPoint?.ToString()?.Split(':')[0];
     }
 
     public NetworkStream GetStream() => _stream;

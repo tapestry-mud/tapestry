@@ -7,6 +7,7 @@ internal class FakeConnection : IConnection
     public string Id { get; } = Guid.NewGuid().ToString();
     public bool IsConnected { get; private set; } = true;
     public bool SupportsAnsi { get; init; } = false;
+    public string? RemoteAddress { get; init; }
     public List<string> SentText { get; } = new();
     public event Action<string>? OnInput;
     public event Action? OnDisconnected;

@@ -324,7 +324,10 @@ app.MapFallback(async context =>
     var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
     var wsLogger = loggerFactory.CreateLogger<WebSocketConnection>();
 
-    var connection = new WebSocketConnection(ws, wsLogger);
+    var connection = new WebSocketConnection(ws, wsLogger)
+    {
+        RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
+    };
     wsLogger.LogInformation("New WebSocket connection: {Id} from {Remote}",
         connection.Id, context.Connection.RemoteIpAddress);
 

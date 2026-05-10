@@ -5,6 +5,7 @@ public interface IConnection
     string Id { get; }
     bool IsConnected { get; }
     bool SupportsAnsi { get; }
+    string? RemoteAddress { get; }
     void SendText(string text);
     void SendLine(string text);
     void ClearScreen();

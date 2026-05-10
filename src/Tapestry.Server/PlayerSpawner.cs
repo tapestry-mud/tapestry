@@ -70,6 +70,11 @@ public class PlayerSpawner
 
         _world.TrackEntity(entity);
 
+        if (connection.RemoteAddress != null)
+        {
+            entity.SetProperty("last_ip", connection.RemoteAddress);
+        }
+
         var session = new PlayerSession(connection, entity);
         session.Phase = LoginPhase.Playing;
 

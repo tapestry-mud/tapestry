@@ -25,6 +25,7 @@ public class WebSocketConnection : IConnection
     public string Id { get; } = Guid.NewGuid().ToString();
     public bool IsConnected => _socket.State == WebSocketState.Open;
     public bool SupportsAnsi => true;
+    public string? RemoteAddress { get; init; }
     public WebSocketGmcpHandler GmcpHandler => _gmcpHandler;
 
     public event Action<string>? OnInput;

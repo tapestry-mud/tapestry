@@ -303,7 +303,23 @@ public class ApiWorld
     public object[] GetOnlinePlayers()
     {
         return _sessions.AllSessions
-            .Select(s => (object)new { id = s.PlayerEntity.Id.ToString(), name = s.PlayerEntity.Name })
+            .Where(s => s.Phase == LoginPhase.Playing)
+            .Select(s =>
+            {
+                var e = s.PlayerEntity;
+                return (object)new
+                {
+                    id = e.Id.ToString(),
+                    name = e.Name,
+                    race = e.GetProperty<string>("race") ?? "",
+                    charClass = e.GetProperty<string>("class") ?? "",
+                    roles = e.Roles.ToArray(),
+                    roomId = e.LocationRoomId ?? "",
+                    connectedAt = s.ConnectedAt.ToString("o"),
+                    lastInputTick = s.LastInputTick,
+                    connectionId = s.Connection.Id
+                };
+            })
             .ToArray();
     }
 
