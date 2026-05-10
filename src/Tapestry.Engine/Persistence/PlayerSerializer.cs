@@ -95,6 +95,11 @@ public class PlayerSerializer
                 item.AddTag(tag);
             }
 
+            foreach (var keyword in itemData.Keywords ?? new List<string>())
+            {
+                item.AddKeyword(keyword);
+            }
+
             DeserializeProperties(item, itemData.Properties ?? new Dictionary<string, object?>());
 
             itemDict[itemId] = item;
@@ -269,6 +274,7 @@ public class PlayerSerializer
             Type = item.Type,
             Container = containerId,
             Tags = item.Tags.ToList(),
+            Keywords = item.Keywords.ToList(),
             Properties = SerializeProperties(item.GetAllProperties())
         };
     }

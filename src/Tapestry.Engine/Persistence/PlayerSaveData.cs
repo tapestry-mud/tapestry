@@ -61,6 +61,7 @@ public class ItemSaveData
     public string Type { get; set; } = "";
     public string? Container { get; set; }
     public List<string> Tags { get; set; } = new();
+    public List<string> Keywords { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();
 }
 
