@@ -77,7 +77,7 @@ public class LoginFlowNameValidationTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runTask);
 
-        conn.SentLines.Should().Contain(l => l.Contains("Names must be 2-20 letters only."));
+        conn.SentLines.Should().Contain(l => l.Contains("Names must be 2-12 letters only."));
     }
 
     [Fact]
@@ -95,6 +95,6 @@ public class LoginFlowNameValidationTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runTask);
 
-        conn.SentLines.Should().Contain(l => l.Contains("Names must be 2-20 letters only."));
+        conn.SentLines.Should().Contain(l => l.Contains("Names must be 2-12 letters only."));
     }
 }

@@ -28,7 +28,7 @@ public partial class LoginFlow
     private const string NamePrompt = "What will your name be, this turn of the Wheel?";
     private const string NameGmcpPrompt = "Type the name you will go by for this turn of the Wheel";
 
-    [GeneratedRegex(@"^[a-zA-Z]{2,20}$")]
+    [GeneratedRegex(@"^[a-zA-Z]{2,12}$")]
     private static partial Regex NamePattern();
 
     public LoginFlow(
@@ -104,7 +104,7 @@ public partial class LoginFlow
 
             if (!NamePattern().IsMatch(trimmed))
             {
-                _adapter.SendLine("Names must be 2-20 letters only.");
+                _adapter.SendLine("Names must be 2-12 letters only.");
                 _adapter.SendLine(NamePrompt);
                 SendGmcpPrompt(NameGmcpPrompt);
                 continue;

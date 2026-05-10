@@ -56,7 +56,7 @@ tapestry.commands.register({
                 { content: '<subtle>Name</subtle>', width: 14 },
                 { content: '<subtle>Lv</subtle>', width: 7 },
                 { content: '<subtle>Race/Class</subtle>', width: 22 },
-                { content: '<subtle>Idle</subtle>', width: 'fill' }
+                { content: '<subtle>Idle</subtle> ', width: 'fill', align: 'right' }
             ]}
         ];
 
@@ -69,6 +69,7 @@ tapestry.commands.register({
             var cls = capitalize(stripPack(p.charClass));
             var badge = getRoleBadge(p.roles);
             var idle = formatIdleTicks(currentTick, p.lastInputTick);
+            var idleDisplay = idle ? idle + ' ' : '';
 
             rows.push({
                 type: 'cell', cells: [
@@ -76,7 +77,7 @@ tapestry.commands.register({
                     { content: ' ' + p.name, width: 14 },
                     { content: 'Lv ' + level, width: 7 },
                     { content: race + ' ' + cls, width: 22 },
-                    { content: idle, width: 'fill' }
+                    { content: idleDisplay, width: 'fill', align: 'right' }
                 ]
             });
 
