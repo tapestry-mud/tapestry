@@ -50,15 +50,17 @@ tapestry.commands.register({
         var isAdmin = actor.hasRole('admin');
         var currentTick = tapestry.world.getCurrentTick();
 
-        var headerRows = [
-            { type: 'cell', cells: [
-                { content: '', width: 11 },
-                { content: '<subtle>Name</subtle>', width: 14 },
-                { content: '<subtle>Lv</subtle>', width: 7 },
-                { content: '<subtle>Race/Class</subtle>', width: 22 },
-                { content: '<subtle>Idle</subtle> ', width: 'fill', align: 'right' }
-            ]}
+        var headerCells = [
+            { content: '', width: 11 },
+            { content: '<subtle>Name</subtle>', width: 14 },
+            { content: '<subtle>Lv</subtle>', width: 7 },
+            { content: '<subtle>Race/Class</subtle>', width: 22 }
         ];
+        if (isAdmin) {
+            headerCells.push({ content: '<subtle>IP</subtle>', width: 17 });
+        }
+        headerCells.push({ content: '<subtle>Idle</subtle> ', width: 'fill', align: 'right' });
+        var headerRows = [{ type: 'cell', cells: headerCells }];
 
         var rows = [{ type: 'empty' }];
 
@@ -71,30 +73,18 @@ tapestry.commands.register({
             var idle = formatIdleTicks(currentTick, p.lastInputTick);
             var idleDisplay = idle ? idle + ' ' : '';
 
-            rows.push({
-                type: 'cell', cells: [
-                    { content: badge, width: 11, align: 'right' },
-                    { content: ' ' + p.name, width: 14 },
-                    { content: 'Lv ' + level, width: 7 },
-                    { content: race + ' ' + cls, width: 22 },
-                    { content: idleDisplay, width: 'fill', align: 'right' }
-                ]
-            });
-
+            var rowCells = [
+                { content: badge, width: 11, align: 'right' },
+                { content: ' ' + p.name, width: 14 },
+                { content: 'Lv ' + level, width: 7 },
+                { content: race + ' ' + cls, width: 22 }
+            ];
             if (isAdmin) {
-                var ip = tapestry.world.getProperty(p.id, 'last_ip') || '?';
-                var roomName = tapestry.world.getRoomName(p.roomId) || '?';
-                var connPrefix = p.connectionId.substring(0, 8) + '...';
-
-                rows.push({
-                    type: 'cell', cells: [
-                        { content: '  <subtle>' + roomName + '</subtle>', width: 25 },
-                        { content: '<subtle>' + (p.roomId || '?') + '</subtle>', width: 25 },
-                        { content: '<subtle>' + ip + '</subtle>', width: 17 },
-                        { content: '<subtle>' + connPrefix + '</subtle>', width: 'fill' }
-                    ]
-                });
+                var ip = tapestry.world.getProperty(p.id, 'last_ip') || '';
+                rowCells.push({ content: '<subtle>' + ip + '</subtle>', width: 17 });
             }
+            rowCells.push({ content: idleDisplay, width: 'fill', align: 'right' });
+            rows.push({ type: 'cell', cells: rowCells });
         }
 
         rows.push({ type: 'empty' });

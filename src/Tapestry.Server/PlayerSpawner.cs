@@ -122,6 +122,11 @@ public class PlayerSpawner
         FlowEngine? flowEngine)
     {
         var entity = LoginFlow.CreateNewPlayerEntity(name);
+        if (connection.RemoteAddress != null)
+        {
+            entity.SetProperty("last_ip", connection.RemoteAddress);
+        }
+
         var session = new PlayerSession(connection, entity)
         {
             Phase = LoginPhase.Creating,

@@ -289,6 +289,11 @@ public partial class LoginFlow
         var hash = BCrypt.Net.BCrypt.HashPassword(password);
 
         var entity = CreateNewPlayerEntity(name);
+        if (_context.Connection.RemoteAddress != null)
+        {
+            entity.SetProperty("last_ip", _context.Connection.RemoteAddress);
+        }
+
         var session = new PlayerSession(_context.Connection, entity)
         {
             Phase = LoginPhase.Creating,
