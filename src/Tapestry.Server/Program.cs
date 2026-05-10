@@ -216,7 +216,7 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
         return Results.Json(new { exists = false, nameValid = false });
     }
 
-    var nameValid = System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,20}$");
+    var nameValid = System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,12}$");
     var canonical = nameValid
         ? char.ToUpper(name[0]) + name[1..].ToLower()
         : name;
