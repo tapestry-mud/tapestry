@@ -1,11 +1,10 @@
 id: "example-pack:wooden-chest"
 name: "a wooden chest"
 type: "item"
-tags: [container]
+tags: [container, fixture, no_get]
 keywords: [chest, wooden]
 properties:
   container_capacity: 20
-  fixed: true
   weight: 50
   rarity: common
   value: 25

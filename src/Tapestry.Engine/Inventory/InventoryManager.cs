@@ -22,7 +22,7 @@ public class InventoryManager
 
     public bool PickUp(Entity entity, Entity item, bool silent = false)
     {
-        if (ReadBool(item, ContainerProperties.Fixed)) { return false; }
+        if (item.HasTag("fixture") || item.HasTag("no_get")) { return false; }
 
         // Weight check
         var maxWeight = entity.GetProperty<int>(InventoryProperties.MaxCarryWeight);
@@ -139,7 +139,6 @@ public class InventoryManager
             return (false, "not_container");
         }
 
-        var isFixed = ReadBool(container, ContainerProperties.Fixed);
         var isPublic = ReadBool(container, ContainerProperties.Public);
         var isInActorInventory = actor.Contents.Contains(container);
         var isInRoom = container.Container == null

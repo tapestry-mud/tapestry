@@ -4,7 +4,6 @@ type: "item"
 tags: [fixture, fill_source, no_get]
 keywords: [fountain, stone]
 properties:
-  fixed: true
   fill_source: water
   drinkable: true
   weight: 999
