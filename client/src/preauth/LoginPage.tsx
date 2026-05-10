@@ -65,7 +65,7 @@ function NameStep({ onAdvance }: { onAdvance: (name: string, kind: 'returning' |
       }
       const data = await res.json()
       if (!data.nameValid) {
-        throw new Error('Names must be 2-20 letters only.')
+        throw new Error(data.error ?? 'Invalid name.')
       }
       if (data.exists) {
         onAdvance(trimmed, 'returning')
