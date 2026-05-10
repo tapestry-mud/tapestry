@@ -33,8 +33,8 @@ function formatIdleTicks(currentTick, lastInputTick) {
 
 function getRoleBadge(roles) {
     if (!roles) { return ''; }
-    if (roles.indexOf('admin') >= 0) { return '<subtle>[Admin]</subtle> '; }
-    if (roles.indexOf('builder') >= 0) { return '<subtle>[Builder]</subtle> '; }
+    if (roles.indexOf('admin') >= 0) { return '<subtle>[Admin]</subtle>'; }
+    if (roles.indexOf('builder') >= 0) { return '<subtle>[Builder]</subtle>'; }
     return '';
 }
 
@@ -52,7 +52,8 @@ tapestry.commands.register({
 
         var headerRows = [
             { type: 'cell', cells: [
-                { content: '  <subtle>Name</subtle>', width: 22 },
+                { content: '', width: 11 },
+                { content: '<subtle>Name</subtle>', width: 14 },
                 { content: '<subtle>Lv</subtle>', width: 7 },
                 { content: '<subtle>Race/Class</subtle>', width: 22 },
                 { content: '<subtle>Idle</subtle>', width: 'fill' }
@@ -71,7 +72,8 @@ tapestry.commands.register({
 
             rows.push({
                 type: 'cell', cells: [
-                    { content: '  ' + badge + p.name, width: 22 },
+                    { content: badge, width: 11, align: 'right' },
+                    { content: ' ' + p.name, width: 14 },
                     { content: 'Lv ' + level, width: 7 },
                     { content: race + ' ' + cls, width: 22 },
                     { content: idle, width: 'fill' }
