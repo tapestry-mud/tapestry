@@ -211,22 +211,13 @@ app.MapGet("/config", () =>
 
 app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =>
 {
-    if (string.IsNullOrWhiteSpace(name))
+    var (valid, error) = NameValidator.Validate(name);
+    if (!valid)
     {
-        return Results.Json(new { exists = false, nameValid = false, error = "Please enter a name." });
+        return Results.Json(new { exists = false, nameValid = false, error });
     }
 
-    if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,12}$"))
-    {
-        return Results.Json(new { exists = false, nameValid = false, error = "Names must be 2-12 letters only." });
-    }
-
-    if (name.Equals("Bela", StringComparison.OrdinalIgnoreCase))
-    {
-        return Results.Json(new { exists = false, nameValid = false, error = "The great mare of legend cannot be replaced. Choose another name." });
-    }
-
-    var canonical = char.ToUpper(name[0]) + name[1..].ToLower();
+    var canonical = NameValidator.Canonicalize(name);
     var exists = persistence.PlayerSaveExists(canonical);
 
     return Results.Json(new { exists, nameValid = true, error = (string?)null });
@@ -243,13 +234,14 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
     }
 
     var name = body.Name.Trim();
-    if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,20}$"))
+    var (nameValid, nameError) = NameValidator.Validate(name);
+    if (!nameValid)
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = "Names must be 2-20 letters only" });
+        return Results.Json(new { error = nameError });
     }
 
-    var canonical = char.ToUpper(name[0]) + name[1..].ToLower();
+    var canonical = NameValidator.Canonicalize(name);
     var exists = persistence.PlayerSaveExists(canonical);
 
     if (exists)

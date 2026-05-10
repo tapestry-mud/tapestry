@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
@@ -11,7 +10,7 @@ using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Login;
 
-public partial class LoginFlow
+public class LoginFlow
 {
     private readonly AsyncConnectionAdapter _adapter;
     private readonly LoginContext _context;
@@ -28,8 +27,6 @@ public partial class LoginFlow
     private const string NamePrompt = "What will your name be, this turn of the Wheel?";
     private const string NameGmcpPrompt = "Type the name you will go by for this turn of the Wheel";
 
-    [GeneratedRegex(@"^[a-zA-Z]{2,12}$")]
-    private static partial Regex NamePattern();
 
     public LoginFlow(
         AsyncConnectionAdapter adapter,
@@ -95,22 +92,16 @@ public partial class LoginFlow
             var raw = await _adapter.ReadLineAsync(ct);
             var trimmed = raw.Trim();
 
-            if (string.IsNullOrWhiteSpace(trimmed))
+            var (nameValid, nameError) = NameValidator.Validate(trimmed);
+            if (!nameValid)
             {
-                _adapter.SendLine("Please enter a name.");
-                SendGmcpPrompt(NameGmcpPrompt);
-                continue;
-            }
-
-            if (!NamePattern().IsMatch(trimmed))
-            {
-                _adapter.SendLine("Names must be 2-12 letters only.");
+                _adapter.SendLine(nameError!);
                 _adapter.SendLine(NamePrompt);
                 SendGmcpPrompt(NameGmcpPrompt);
                 continue;
             }
 
-            var name = char.ToUpper(trimmed[0]) + trimmed[1..].ToLower();
+            var name = NameValidator.Canonicalize(trimmed);
 
             if (_persistence != null && _persistence.PlayerSaveExists(name))
             {
