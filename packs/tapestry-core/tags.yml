@@ -32,6 +32,9 @@ tags:
   drinkable:
     description: "Can be drunk from directly (fountains, wells)"
     applies_to: [item]
+  emits_light:
+    description: "Emits light, improving visibility in dark rooms"
+    applies_to: [item]
   no_kill:
     description: "Prevents combat engagement"
     applies_to: [npc]

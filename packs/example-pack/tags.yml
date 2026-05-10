@@ -11,9 +11,6 @@ tags:
   drink:
     description: "Item is a drinkable beverage or liquid container"
     applies_to: [item]
-  light:
-    description: "Item provides illumination when equipped"
-    applies_to: [item]
   quest:
     description: "NPC is involved in quest interactions"
     applies_to: [npc]
