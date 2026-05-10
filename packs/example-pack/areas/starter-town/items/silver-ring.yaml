@@ -1,7 +1,7 @@
 id: "example-pack:silver-ring"
 name: "a silver ring"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, ring, silver]
 properties:
   slot: finger

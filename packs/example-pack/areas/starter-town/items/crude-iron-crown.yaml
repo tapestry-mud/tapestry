@@ -1,7 +1,7 @@
 id: "example-pack:crude-iron-crown"
 name: "a crude iron crown"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, crown, iron, crude]
 properties:
   slot: head

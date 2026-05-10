@@ -1,4 +1,5 @@
 // src/Tapestry.Engine/Mobs/DispositionEvaluator.cs
+using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Shared;
 
@@ -80,12 +81,12 @@ public class DispositionEvaluator
     public void EvaluateRoom(string roomId, Guid playerId, bool aggroOnly = false)
     {
         var player = _world.GetEntity(playerId);
-        if (player == null || player.Type != "player") { return; }
+        if (player == null || player.Type != EntityTypes.Player) { return; }
 
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
 
-        foreach (var entity in room.Entities.Where(e => e.Type == "npc" && e.HasProperty("disposition")).ToList())
+        foreach (var entity in room.Entities.Where(e => e.Type == EntityTypes.Npc && e.HasProperty("disposition")).ToList())
         {
             EvaluateForMob(entity, player, aggroOnly);
         }

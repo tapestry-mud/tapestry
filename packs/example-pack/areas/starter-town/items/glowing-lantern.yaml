@@ -1,7 +1,7 @@
 id: "example-pack:glowing-lantern"
 name: "a glowing lantern"
-type: "item:light"
-tags: [item, light]
+type: "item"
+tags: [light]
 keywords: [lantern, glowing]
 properties:
   slot: light

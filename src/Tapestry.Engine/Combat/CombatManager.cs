@@ -1,4 +1,5 @@
 // src/Tapestry.Engine/Combat/CombatManager.cs
+using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Effects;
@@ -54,7 +55,7 @@ public class CombatManager
     public bool Engage(Entity attacker, Entity target, long currentTick = 0)
     {
         // Players are always engageable by mobs; "killable" guards quest NPCs and merchants.
-        if (!target.HasTag("killable") && target.Type != "player")
+        if (!target.HasTag("killable") && target.Type != EntityTypes.Player)
         {
             return false;
         }
@@ -304,7 +305,7 @@ public class CombatManager
             });
         }
 
-        if (victim != null && victim.Type == "npc")
+        if (victim != null && victim.Type == EntityTypes.Npc)
         {
             var killerEntity = killerId.HasValue ? _world.GetEntity(killerId.Value) : null;
             _eventBus.Publish(new GameEvent

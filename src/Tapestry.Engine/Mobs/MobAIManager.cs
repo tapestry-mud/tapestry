@@ -1,5 +1,6 @@
 // src/Tapestry.Engine/Mobs/MobAIManager.cs
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Shared;
@@ -158,7 +159,7 @@ public class MobAIManager
                 var room = _world.GetRoom(entity.LocationRoomId);
                 if (room != null)
                 {
-                    foreach (var player in room.Entities.Where(e => e.Type == "player").ToList())
+                    foreach (var player in room.Entities.Where(e => e.Type == EntityTypes.Player).ToList())
                     {
                         _dispositionEvaluator.EvaluateForMob(entity, player);
                     }
@@ -187,7 +188,7 @@ public class MobAIManager
     {
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
-        foreach (var player in room.Entities.Where(e => e.Type == "player").ToList())
+        foreach (var player in room.Entities.Where(e => e.Type == EntityTypes.Player).ToList())
         {
             _dispositionEvaluator.EvaluateForMob(mob, player, aggroOnly: false);
         }

@@ -53,7 +53,7 @@ public class InventoryModule : IJintApiModule
                     return false;
                 }
 
-                var floorItems = room.Entities.Where(e => (e.HasTag("item") || e.HasTag("container")) && e.Container == null);
+                var floorItems = room.Entities.Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null);
                 var item = KeywordMatcher.FindByKeyword(floorItems, keyword);
                 if (item == null)
                 {
@@ -126,7 +126,7 @@ public class InventoryModule : IJintApiModule
                     return null;
                 }
 
-                var floorItems = room.Entities.Where(e => (e.HasTag("item") || e.HasTag("container")) && e.Container == null);
+                var floorItems = room.Entities.Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null);
                 var item = KeywordMatcher.FindByKeyword(floorItems, keyword);
                 if (item == null)
                 {
@@ -230,7 +230,7 @@ public class InventoryModule : IJintApiModule
                     var room = _world.GetRoom(entity.LocationRoomId);
                     if (room != null)
                     {
-                        var floorItems = room.Entities.Where(e => (e.HasTag("item") || e.HasTag("container")) && e.Container == null);
+                        var floorItems = room.Entities.Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null);
                         item = KeywordMatcher.FindByKeyword(floorItems, keyword);
                         if (item != null)
                         {
@@ -244,7 +244,7 @@ public class InventoryModule : IJintApiModule
                     return null;
                 }
 
-                var isContainer = item.HasTag("container");
+                var isContainer = item.Type == EntityTypes.Container;
                 object[]? contents = null;
                 if (isContainer)
                 {
@@ -305,7 +305,7 @@ public class InventoryModule : IJintApiModule
                 }
 
                 return room.Entities
-                    .Where(e => (e.HasTag("item") || e.HasTag("container")) && e.Container == null)
+                    .Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null)
                     .Select(i => (object)new { id = i.Id.ToString(), name = i.Name })
                     .ToArray();
             }),
@@ -330,7 +330,7 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var floorItems = room.Entities
-                    .Where(e => (e.HasTag("item") || e.HasTag("container")) && e.Container == null && !e.HasTag("no_get"))
+                    .Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null && !e.HasTag("no_get"))
                     .ToList();
                 var matches = KeywordMatcher.FindAllByKeyword(floorItems, keyword);
 
@@ -421,7 +421,7 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var player = room.Entities
-                    .Where(e => e.Type == "player" && e.Id != eid)
+                    .Where(e => e.Type == EntityTypes.Player && e.Id != eid)
                     .FirstOrDefault(e => e.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase));
 
                 if (player == null)
@@ -456,14 +456,14 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.HasTag("container")), containerKeyword);
+                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
 
                 if (container == null && entity.LocationRoomId != null)
                 {
                     var room = _world.GetRoom(entity.LocationRoomId);
                     if (room != null)
                     {
-                        var roomContainers = room.Entities.Where(e => e.HasTag("container") && e.Container == null);
+                        var roomContainers = room.Entities.Where(e => e.Type == EntityTypes.Container && e.Container == null);
                         container = KeywordMatcher.FindByKeyword(roomContainers, containerKeyword);
                     }
                 }
@@ -497,14 +497,14 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.HasTag("container")), containerKeyword);
+                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
 
                 if (container == null && entity.LocationRoomId != null)
                 {
                     var room = _world.GetRoom(entity.LocationRoomId);
                     if (room != null)
                     {
-                        var roomContainers = room.Entities.Where(e => e.HasTag("container") && e.Container == null);
+                        var roomContainers = room.Entities.Where(e => e.Type == EntityTypes.Container && e.Container == null);
                         container = KeywordMatcher.FindByKeyword(roomContainers, containerKeyword);
                     }
                 }
@@ -553,14 +553,14 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.HasTag("container")), containerKeyword);
+                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
 
                 if (container == null && entity.LocationRoomId != null)
                 {
                     var room = _world.GetRoom(entity.LocationRoomId);
                     if (room != null)
                     {
-                        var roomContainers = room.Entities.Where(e => e.HasTag("container") && e.Container == null);
+                        var roomContainers = room.Entities.Where(e => e.Type == EntityTypes.Container && e.Container == null);
                         container = KeywordMatcher.FindByKeyword(roomContainers, containerKeyword);
                     }
                 }
@@ -603,10 +603,10 @@ public class InventoryModule : IJintApiModule
 
                 var room = actor.LocationRoomId != null ? _world.GetRoom(actor.LocationRoomId) : null;
 
-                var item = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => !e.HasTag("container")), itemKeyword);
+                var item = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => e.Type != EntityTypes.Container), itemKeyword);
                 if (item == null)
                 {
-                    var isContainer = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => e.HasTag("container")), itemKeyword) != null;
+                    var isContainer = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => e.Type == EntityTypes.Container), itemKeyword) != null;
                     var itemReason = isContainer ? "is_container" : "item_not_found";
                     return new { success = false, reason = itemReason, itemName = (string?)null, containerName = (string?)null };
                 }
@@ -619,11 +619,11 @@ public class InventoryModule : IJintApiModule
                 }
                 else
                 {
-                    container = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => e.HasTag("container")), containerKeyword);
+                    container = KeywordMatcher.FindByKeyword(actor.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
                     if (container == null && room != null)
                     {
                         container = KeywordMatcher.FindByKeyword(
-                            room.Entities.Where(e => e.HasTag("container") && e.Container == null), containerKeyword);
+                            room.Entities.Where(e => e.Type == EntityTypes.Container && e.Container == null), containerKeyword);
                     }
                 }
                 if (container == null) { return new { success = false, reason = "container_not_found", itemName = (string?)null, containerName = (string?)null }; }
@@ -652,14 +652,14 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.HasTag("container")), containerKeyword);
+                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
 
                 if (container == null && entity.LocationRoomId != null)
                 {
                     var room = _world.GetRoom(entity.LocationRoomId);
                     if (room != null)
                     {
-                        var roomContainers = room.Entities.Where(e => e.HasTag("container") && e.Container == null);
+                        var roomContainers = room.Entities.Where(e => e.Type == EntityTypes.Container && e.Container == null);
                         container = KeywordMatcher.FindByKeyword(roomContainers, containerKeyword);
                     }
                 }
@@ -683,7 +683,7 @@ public class InventoryModule : IJintApiModule
                     return new { denied = true, items = Array.Empty<object>() };
                 }
 
-                var items = entity.Contents.Where(e => !e.HasTag("container")).ToList();
+                var items = entity.Contents.Where(e => e.Type != EntityTypes.Container).ToList();
                 var placed = new List<object>();
                 var stopReason = (string?)null;
                 foreach (var item in items)

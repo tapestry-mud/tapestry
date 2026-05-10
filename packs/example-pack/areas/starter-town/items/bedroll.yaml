@@ -1,7 +1,7 @@
 id: "example-pack:bedroll"
 name: "a bedroll"
-type: "item:furniture"
-tags: [item, furniture]
+type: "item"
+tags: [furniture]
 keywords: [bedroll, roll, bed]
 properties:
   rest_bonus: 1

@@ -1,7 +1,7 @@
 id: "example-pack:leather-boots"
 name: "a pair of leather boots"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, boots, leather]
 properties:
   slot: feet

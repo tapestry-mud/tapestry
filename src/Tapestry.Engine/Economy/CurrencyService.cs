@@ -1,3 +1,4 @@
+using Tapestry.Engine;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Economy;
@@ -15,7 +16,7 @@ public class CurrencyService
 
     public bool TryAutoConvert(Entity destination, Entity item)
     {
-        if (destination.Type != "player")
+        if (destination.Type != EntityTypes.Player)
         {
             return false;
         }

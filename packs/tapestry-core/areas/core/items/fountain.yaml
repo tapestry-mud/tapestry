@@ -1,7 +1,7 @@
 id: "core:fountain"
 name: "a stone fountain"
-type: "item:fixture"
-tags: [item, fixture, fill_source, no_get]
+type: "item"
+tags: [fixture, fill_source, no_get]
 keywords: [fountain, stone]
 properties:
   description: "A weathered stone fountain, its basin worn smooth by years of use. Clear water wells up endlessly from somewhere deep below."

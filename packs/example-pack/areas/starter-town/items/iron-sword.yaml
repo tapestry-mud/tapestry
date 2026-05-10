@@ -1,7 +1,7 @@
 id: "example-pack:iron-sword"
 name: "an iron sword"
-type: "item:weapon"
-tags: [item]
+type: "item"
+tags: []
 keywords: [weapon, sword, iron]
 properties:
   slot: wield

@@ -151,7 +151,7 @@ public class AbilityCommandBridge
             if (actorCtx.RoomId != null)
             {
                 var matches = _world.GetEntitiesInRoom(actorCtx.RoomId)
-                    .Where(e => e.Id != entity.Id && (e.Type == "npc" || e.Type == "player"))
+                    .Where(e => e.Id != entity.Id && (e.Type == EntityTypes.Npc || e.Type == EntityTypes.Player))
                     .Where(e => e.Name.ToLower().Contains(targetName))
                     .ToList();
                 if (matches.Count >= targetIndex) { return matches[targetIndex - 1].Id; }

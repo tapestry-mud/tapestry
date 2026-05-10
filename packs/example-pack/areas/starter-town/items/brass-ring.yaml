@@ -1,7 +1,7 @@
 id: "example-pack:brass-ring"
 name: "a tarnished brass ring"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, ring, brass]
 properties:
   slot: finger

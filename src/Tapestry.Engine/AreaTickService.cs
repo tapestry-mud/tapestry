@@ -62,7 +62,7 @@ public class AreaTickService
     {
         return _world.AllRooms
             .Where(r => string.Equals(r.Area, areaId, StringComparison.OrdinalIgnoreCase))
-            .Sum(r => r.Entities.Count(e => e.Type == "player"));
+            .Sum(r => r.Entities.Count(e => e.Type == EntityTypes.Player));
     }
 
     public void SetResetInterval(string areaId, int ticks)

@@ -1,7 +1,7 @@
 id: "example-pack:traveler-cloak"
 name: "a traveler's cloak"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, cloak, traveler]
 properties:
   slot: cloak

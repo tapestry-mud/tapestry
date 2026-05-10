@@ -1,7 +1,7 @@
 id: "example-pack:wooden-shield"
 name: "a wooden shield"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, shield, wooden]
 properties:
   slot: shield

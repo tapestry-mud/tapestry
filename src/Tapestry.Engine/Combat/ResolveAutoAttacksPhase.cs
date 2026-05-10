@@ -1,3 +1,4 @@
+using Tapestry.Engine;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Shared;
 
@@ -11,7 +12,7 @@ public class ResolveAutoAttacksPhase : ICombatPhase
     public void Execute(PulseContext context)
     {
         var combatants = context.CombatManager.GetCombatants()
-            .OrderBy(e => e.Type == "player" ? 0 : 1)
+            .OrderBy(e => e.Type == EntityTypes.Player ? 0 : 1)
             .ToList();
 
         foreach (var attacker in combatants)

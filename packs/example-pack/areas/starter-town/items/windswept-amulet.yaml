@@ -1,7 +1,7 @@
 id: "example-pack:windswept-amulet"
 name: "a windswept amulet"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, amulet, windswept]
 properties:
   slot: neck

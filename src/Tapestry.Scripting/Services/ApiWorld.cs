@@ -131,12 +131,12 @@ public class ApiWorld
                 }
             });
 
-            if (entity.Type == "player" && entity.LocationRoomId != null)
+            if (entity.Type == EntityTypes.Player && entity.LocationRoomId != null)
             {
                 _mobAIManager.OnPlayerEnteredRoom(entity.LocationRoomId, entityId);
             }
 
-            if (entity.Type == "npc" && entity.HasProperty("disposition") && entity.LocationRoomId != null)
+            if (entity.Type == EntityTypes.Npc && entity.HasProperty("disposition") && entity.LocationRoomId != null)
             {
                 _mobAIManager.OnMobEnteredRoom(entity, entity.LocationRoomId);
             }
@@ -464,15 +464,15 @@ public class ApiWorld
         var toRemove = new List<Entity>();
         foreach (var entity in room.Entities)
         {
-            if (filter == "all" && entity.Type != "player")
+            if (filter == "all" && entity.Type != EntityTypes.Player)
             {
                 toRemove.Add(entity);
             }
-            else if (filter == "npc" && entity.Type == "npc")
+            else if (filter == "npc" && entity.Type == EntityTypes.Npc)
             {
                 toRemove.Add(entity);
             }
-            else if (filter == "item" && entity.Type == "item")
+            else if (filter == "item" && entity.Type == EntityTypes.Item)
             {
                 toRemove.Add(entity);
             }

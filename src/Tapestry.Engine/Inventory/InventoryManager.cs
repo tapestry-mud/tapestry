@@ -1,4 +1,5 @@
 // src/Tapestry.Engine/Inventory/InventoryManager.cs
+using Tapestry.Engine;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Containers;
 using Tapestry.Engine.Economy;
@@ -133,7 +134,7 @@ public class InventoryManager
 
     public (bool Success, string? FailReason) PutInContainer(Entity actor, Entity item, Entity container)
     {
-        if (!container.HasTag("container"))
+        if (container.Type != EntityTypes.Container)
         {
             return (false, "not_container");
         }

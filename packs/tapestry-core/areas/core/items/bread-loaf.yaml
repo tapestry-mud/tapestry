@@ -1,7 +1,7 @@
 id: "core:bread-loaf"
 name: "a loaf of fresh bread"
-type: "item:food"
-tags: [item, consumable]
+type: "item"
+tags: [consumable]
 keywords: [food, bread, loaf, fresh]
 properties:
   item_type: food

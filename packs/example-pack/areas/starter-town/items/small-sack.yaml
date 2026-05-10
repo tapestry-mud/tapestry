@@ -1,7 +1,7 @@
 id: "example-pack:small-sack"
 name: "a small sack"
-type: "item:container"
-tags: [item, container]
+type: "item"
+tags: [container]
 keywords: [sack, bag]
 properties:
   container_capacity: 10

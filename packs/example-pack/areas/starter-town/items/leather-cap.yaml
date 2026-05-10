@@ -1,7 +1,7 @@
 id: "example-pack:leather-cap"
 name: "a leather cap"
-type: "item:armor"
-tags: [item]
+type: "item"
+tags: []
 keywords: [armor, cap, leather]
 properties:
   slot: head

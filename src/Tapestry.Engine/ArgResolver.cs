@@ -194,8 +194,8 @@ public class ArgResolver
 
         var actorEntity = _world.GetEntity(actor.EntityId);
         var candidates = def.BypassVisibility
-            ? room.Entities.Where(e => e.Type != "player" && e.Type != "npc")
-            : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.Type != "player" && e.Type != "npc");
+            ? room.Entities.Where(e => e.Type != EntityTypes.Player && e.Type != EntityTypes.Npc)
+            : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.Type != EntityTypes.Player && e.Type != EntityTypes.Npc);
 
         if (def.Bulk && (token == "all" || token.StartsWith("all.", StringComparison.OrdinalIgnoreCase)))
         {
@@ -239,7 +239,7 @@ public class ArgResolver
 
         var match = candidates
             .Where(e => e.Id != actor.EntityId)
-            .Where(e => (includeNpcs && e.Type == "npc") || (includePlayers && e.Type == "player"))
+            .Where(e => (includeNpcs && e.Type == EntityTypes.Npc) || (includePlayers && e.Type == EntityTypes.Player))
             .Where(e => MatchesInput(e, name))
             .Skip(ordinal - 1)
             .FirstOrDefault();
@@ -265,7 +265,7 @@ public class ArgResolver
         if (actorEntity != null)
         {
             var invMatch = actorEntity.Contents
-                .Where(e => e.HasTag("container"))
+                .Where(e => e.Type == EntityTypes.Container)
                 .Where(e => MatchesInput(e, name))
                 .Skip(ordinal - 1)
                 .FirstOrDefault();
@@ -281,8 +281,8 @@ public class ArgResolver
             if (room != null)
             {
                 var candidates = def.BypassVisibility
-                    ? room.Entities.Where(e => e.HasTag("container"))
-                    : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.HasTag("container"));
+                    ? room.Entities.Where(e => e.Type == EntityTypes.Container)
+                    : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.Type == EntityTypes.Container);
 
                 var roomMatch = candidates
                     .Where(e => MatchesInput(e, name))
@@ -369,8 +369,8 @@ public class ArgResolver
             if (room != null)
             {
                 var candidates = def.BypassVisibility
-                    ? room.Entities.Where(e => e.Type != "player" && e.Type != "npc")
-                    : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.Type != "player" && e.Type != "npc");
+                    ? room.Entities.Where(e => e.Type != EntityTypes.Player && e.Type != EntityTypes.Npc)
+                    : _visibility.GetVisibleEntities(room, actorEntity).Where(e => e.Type != EntityTypes.Player && e.Type != EntityTypes.Npc);
 
                 var roomMatch = candidates
                     .Where(e => MatchesInput(e, name))

@@ -1,7 +1,7 @@
 id: "example-pack:wooden-chest"
 name: "a wooden chest"
-type: "item:container"
-tags: [item, container]
+type: "item"
+tags: [container]
 keywords: [chest, wooden]
 properties:
   container_capacity: 20

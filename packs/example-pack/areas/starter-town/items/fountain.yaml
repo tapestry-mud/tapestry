@@ -1,7 +1,7 @@
 id: "example-pack:fountain"
 name: "a stone fountain"
-type: "item:fixture"
-tags: [item, fixture, fill_source, no_get]
+type: "item"
+tags: [fixture, fill_source, no_get]
 keywords: [fountain, stone]
 properties:
   fixed: true

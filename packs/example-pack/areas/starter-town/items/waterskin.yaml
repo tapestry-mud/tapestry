@@ -1,7 +1,7 @@
 id: "example-pack:waterskin"
 name: "a leather waterskin"
-type: "item:drink"
-tags: [item, drink, fillable]
+type: "item"
+tags: [drink, fillable]
 keywords: [waterskin, skin, leather]
 properties:
   item_type: drink

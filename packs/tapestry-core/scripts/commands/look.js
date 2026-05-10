@@ -74,7 +74,7 @@ function lookAtTarget(actor, resolved) {
     }
     actor.send('<highlight>---' + Array(details.name.length + 3).join('-') + '---</highlight>\r\n');
     if (details.type === 'container') {
-        var contents = details.contents || [];
+        var contents = details.inventory || [];
         if (contents.length > 0) {
             actor.send(details.name + ' contains:\r\n');
             contents.forEach(function(c) { actor.send('  ' + c.name + '\r\n'); });
@@ -120,7 +120,7 @@ function buildRoomLookPayload(actor) {
             entities.push({ name: e.name, type: 'npc', tags: e.tags || [] });
         } else if (e.type === 'player' && e.id !== actor.entityId) {
             entities.push({ name: e.name, type: 'player', tags: e.tags || [] });
-        } else if (e.type === 'item' || e.type === 'container') {
+        } else if (e.type === 'item' || e.type.startsWith('item:') || e.type === 'container') {
             items.push({ name: e.name, quantity: 1 });
         }
     }

@@ -166,7 +166,7 @@ public class ApiMessaging
 
         // Show items on the ground
         var items = visibleEntities
-            .Where(e => e.HasTag("item") && e.Container == null)
+            .Where(e => e.Type == EntityTypes.Item && e.Container == null)
             .ToList();
         foreach (var item in items)
         {
@@ -175,7 +175,7 @@ public class ApiMessaging
 
         // Show NPCs
         var npcs = visibleEntities
-            .Where(e => e.Type == "npc")
+            .Where(e => e.Type == EntityTypes.Npc)
             .ToList();
         foreach (var npc in npcs)
         {
@@ -193,7 +193,7 @@ public class ApiMessaging
 
         // Show other players
         var others = visibleEntities
-            .Where(e => e.Type == "player" && e.Id != entityId)
+            .Where(e => e.Type == EntityTypes.Player && e.Id != entityId)
             .Select(e => e.Name)
             .ToList();
         foreach (var other in others)
