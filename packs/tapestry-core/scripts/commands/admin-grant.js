@@ -2,17 +2,13 @@ tapestry.commands.register({
     name: 'grant',
     description: 'Admin: award progression or trains to a player, npc, or item.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         entity: { type: 'keyword', required: true },
         ability: { type: 'keyword', required: true },
         value: { type: 'text', required: false }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasRole('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
 
         var entityKind = resolved.entity.toLowerCase();
         var abilityType = resolved.ability.toLowerCase();

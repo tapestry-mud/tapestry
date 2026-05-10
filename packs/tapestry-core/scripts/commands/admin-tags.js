@@ -3,7 +3,6 @@ tapestry.commands.register({
     description: 'Inspect and manage tags, keywords, roles, and the tag registry.',
     category: 'admin',
     admin: true,
-    roles: ['player'],
     handler: function(actor, rawArgs) {
         var sub = (rawArgs && rawArgs.length > 0) ? rawArgs[0].toLowerCase() : '';
         var rest = rawArgs ? rawArgs.slice(1) : [];

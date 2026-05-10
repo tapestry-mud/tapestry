@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'purge',
     description: 'Remove NPCs, items, or all entities from your room.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         filter: { type: 'keyword', required: false }
     },

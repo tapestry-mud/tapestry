@@ -74,6 +74,7 @@ public class WorldModule : IJintApiModule
             createEntity = new Func<string, string, string?>(_worldOps.CreateEntity),
             addTag = new Action<string, string>(_worldOps.AddEntityTag),
             hasTag = new Func<string, string, bool>(_worldOps.HasEntityTag),
+            hasRole = new Func<string, string, bool>(_worldOps.HasEntityRole),
             send = new Action<string, string>((entityIdStr, text) =>
             {
                 if (Guid.TryParse(entityIdStr, out var entityId))

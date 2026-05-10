@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'setclass',
     description: 'Assign a class to a player and grant their level-1 abilities.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         entity: { type: 'keyword', required: true },
         classId: { type: 'keyword', required: true }

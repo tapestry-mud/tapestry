@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'forget',
     description: 'Remove an ability from an entity.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         entity: { type: 'keyword', required: true },
         ability: { type: 'keyword', required: true }

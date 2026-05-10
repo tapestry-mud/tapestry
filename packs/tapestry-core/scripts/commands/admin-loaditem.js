@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'loaditem',
     description: 'Add an item from a template ID to your inventory.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         templateId: { type: 'keyword', required: true }
     },

@@ -29,6 +29,16 @@ public class CommandRouter
             return;
         }
 
+        if (registration.Roles.Contains("admin", StringComparer.OrdinalIgnoreCase))
+        {
+            var entity = _world.GetEntity(ctx.PlayerEntityId);
+            if (entity == null || !entity.HasRole("admin"))
+            {
+                _sessions.SendToPlayer(ctx.PlayerEntityId, "Huh?\r\n");
+                return;
+            }
+        }
+
         registration.ActorHandler(BuildPlayerActorContext(ctx));
     }
 

@@ -396,6 +396,17 @@ public class ApiWorld
         return entity?.HasTag(tag) ?? false;
     }
 
+    public bool HasEntityRole(string entityIdStr, string role)
+    {
+        if (!Guid.TryParse(entityIdStr, out var entityId))
+        {
+            return false;
+        }
+
+        var entity = _world.GetEntity(entityId);
+        return entity?.HasRole(role) ?? false;
+    }
+
     public void SetEntityProperty(string entityIdStr, string key, object? value)
     {
         if (!Guid.TryParse(entityIdStr, out var entityId))

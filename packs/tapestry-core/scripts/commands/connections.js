@@ -3,14 +3,10 @@ tapestry.commands.register({
     aliases: [],
     description: 'List connections for this room or all rooms.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {},
     priority: 10,
     handler: function(actor, resolved) {
-        if (!actor.hasRole('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
 
         if (resolved[0] === 'all') {
             var all = tapestry.connections.getAll();

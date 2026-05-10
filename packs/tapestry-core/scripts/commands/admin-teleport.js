@@ -3,16 +3,12 @@ tapestry.commands.register({
     aliases: ['tp'],
     description: 'Teleport a player to a room.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         player: { type: 'keyword', required: true },
         roomId: { type: 'keyword', required: true }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasRole('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
 
         var playerName = resolved.player;
         var roomId = resolved.roomId;

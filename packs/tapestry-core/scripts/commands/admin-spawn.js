@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'spawn',
     description: 'Spawn a mob from a template ID into your room.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         templateId: { type: 'keyword', required: true }
     },

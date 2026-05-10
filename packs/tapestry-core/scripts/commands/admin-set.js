@@ -191,18 +191,13 @@ tapestry.commands.register({
     name: 'set',
     description: 'Admin: modify player/npc/item fields.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         entity: { type: 'keyword', required: true },
         property: { type: 'keyword', required: true },
         value: { type: 'text', required: true }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasRole('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
-
         var entityKind = resolved.entity.toLowerCase();
         var property = resolved.property.toLowerCase();
         var value = resolved.value;

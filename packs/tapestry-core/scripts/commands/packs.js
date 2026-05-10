@@ -2,7 +2,7 @@ tapestry.commands.register({
     name: 'packs',
     description: 'Show loaded content packs and credits',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {},
     handler: function(actor, resolved) {
         var loaded = tapestry.packs.list();

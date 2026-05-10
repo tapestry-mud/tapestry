@@ -2,17 +2,13 @@ tapestry.commands.register({
     name: 'settrainable',
     description: 'Admin: toggle a stat in or out of the trainable list.',
     category: 'admin',
-    roles: ['player'],
+    admin: true,
     args: {
         entity: { type: 'keyword', required: true },
         ability: { type: 'keyword', required: true },
         flag: { type: 'keyword', required: true }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasRole('admin')) {
-            actor.send('Huh?\r\n');
-            return;
-        }
 
         var entityName = resolved.entity;
         var abilityId = resolved.ability.toLowerCase();
