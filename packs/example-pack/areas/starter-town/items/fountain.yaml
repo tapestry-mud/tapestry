@@ -5,5 +5,4 @@ tags: [fixture, fill_source, no_get, drinkable]
 keywords: [fountain, stone]
 properties:
   fill_source: water
-  weight: 999
 modifiers: []
