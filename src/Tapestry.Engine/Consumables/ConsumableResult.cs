@@ -4,7 +4,7 @@ public enum ConsumeReason
 {
     Success,
     ItemNotFound,
-    WrongItemType,
+    WrongConsumeMethod,
     NoCharges,
     Cancelled
 }
@@ -14,7 +14,7 @@ public record ConsumableResult(
     ConsumeReason Reason,
     string? ItemId = null,
     string? ItemName = null,
-    string? ItemType = null,
+    string? ConsumeMethod = null,
     int SustenanceValue = 0,
     string? EffectId = null,
     int EffectDuration = 0,

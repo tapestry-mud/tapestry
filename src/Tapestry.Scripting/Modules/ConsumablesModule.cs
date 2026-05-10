@@ -36,7 +36,7 @@ public class ConsumablesModule : IJintApiModule
                     reason = result.Reason.ToString().ToLower(),
                     itemId = result.ItemId,
                     itemName = result.ItemName,
-                    itemType = result.ItemType,
+                    consumeMethod = result.ConsumeMethod,
                     sustenanceValue = result.SustenanceValue,
                     effectId = result.EffectId,
                     effectDuration = result.EffectDuration,

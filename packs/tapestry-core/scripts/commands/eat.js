@@ -9,8 +9,8 @@ tapestry.commands.register({
     handler: function(actor, resolved) {
         var item = resolved.item;
 
-        var itemType = tapestry.world.getProperty(item.id, 'item_type');
-        if (itemType !== 'food') {
+        var consumeMethod = tapestry.world.getProperty(item.id, 'consume_method');
+        if (consumeMethod !== 'eat') {
             actor.send("You can't eat that.\r\n");
             return;
         }

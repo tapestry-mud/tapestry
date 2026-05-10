@@ -11,8 +11,8 @@ tapestry.commands.register({
         var item = resolved.item;
         var target = resolved.target;
 
-        var itemType = tapestry.world.getProperty(item.id, 'item_type');
-        if (itemType !== 'scroll') {
+        var consumeMethod = tapestry.world.getProperty(item.id, 'consume_method');
+        if (consumeMethod !== 'recite') {
             actor.send("You can't recite that.\r\n");
             return;
         }

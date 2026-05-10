@@ -44,7 +44,7 @@ public class ConsumableService
             return new ConsumableResult(false, ConsumeReason.NoCharges);
         }
 
-        var itemType = item.GetProperty<string?>(ConsumableProperties.ItemType);
+        var consumeMethod = item.GetProperty<string?>(ConsumableProperties.ConsumeMethod);
 
         var consumingEvent = new GameEvent
         {
@@ -55,7 +55,7 @@ public class ConsumableService
             {
                 ["entityId"] = entityId.ToString(),
                 ["itemId"] = itemId.ToString(),
-                ["itemType"] = itemType
+                ["consumeMethod"] = consumeMethod
             }
         };
         _eventBus.Publish(consumingEvent);
@@ -109,7 +109,7 @@ public class ConsumableService
                 ["entityId"] = entityId.ToString(),
                 ["itemId"] = itemId.ToString(),
                 ["itemName"] = itemName,
-                ["itemType"] = itemType,
+                ["consumeMethod"] = consumeMethod,
                 ["effectId"] = effectId,
                 ["effectDuration"] = effectDuration,
                 ["effectData"] = effectData,
@@ -118,7 +118,7 @@ public class ConsumableService
         });
 
         return new ConsumableResult(true, ConsumeReason.Success,
-            itemId.ToString(), itemName, itemType, sustenanceValue,
+            itemId.ToString(), itemName, consumeMethod, sustenanceValue,
             effectId, effectDuration, effectData);
     }
 }

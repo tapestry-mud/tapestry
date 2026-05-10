@@ -18,8 +18,8 @@ tapestry.commands.register({
             return;
         }
 
-        var itemType = tapestry.world.getProperty(item.id, 'item_type');
-        if (itemType !== 'drink') {
+        var consumeMethod = tapestry.world.getProperty(item.id, 'consume_method');
+        if (consumeMethod !== 'drink') {
             actor.send("You can't drink from that.\r\n");
             return;
         }

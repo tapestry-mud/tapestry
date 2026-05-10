@@ -4,7 +4,7 @@ type: "item"
 tags: [consumable]
 keywords: [food, bread, loaf, fresh]
 properties:
-  item_type: food
+  consume_method: eat
   sustenance_value: 100
   charges: 3
   max_charges: 3

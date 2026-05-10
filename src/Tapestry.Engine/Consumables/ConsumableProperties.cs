@@ -4,7 +4,7 @@ namespace Tapestry.Engine.Consumables;
 
 public static class ConsumableProperties
 {
-    public const string ItemType = "item_type";
+    public const string ConsumeMethod = "consume_method";
     public const string SustenanceValue = "sustenance_value";
     public const string EffectId = "effect_id";
     public const string EffectDuration = "effect_duration";
@@ -15,7 +15,7 @@ public static class ConsumableProperties
 
     public static void Register(PropertyTypeRegistry registry)
     {
-        registry.Register(ItemType, typeof(string));
+        registry.Register(ConsumeMethod, typeof(string));
         registry.Register(SustenanceValue, typeof(int));
         registry.Register(EffectId, typeof(string));
         registry.Register(EffectDuration, typeof(int));

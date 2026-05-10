@@ -4,7 +4,7 @@ type: "item"
 tags: [drink, fillable]
 keywords: [waterskin, skin, leather]
 properties:
-  item_type: drink
+  consume_method: drink
   sustenance_value: 15
   charges: 8
   max_charges: 8

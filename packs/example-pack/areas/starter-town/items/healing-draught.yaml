@@ -4,7 +4,7 @@ type: "item"
 tags: [consumable]
 keywords: [potion, draught, healing]
 properties:
-  item_type: potion
+  consume_method: quaff
   charges: 1
   max_charges: 1
   destroy_on_empty: true
