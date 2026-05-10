@@ -17,7 +17,6 @@ public class PlayerSaveData
     public Dictionary<string, string> Equipment { get; set; } = new();
     public List<string> Inventory { get; set; } = new();
     public List<ItemSaveData> Items { get; set; } = new();
-    public List<CorpseSaveData> Corpses { get; set; } = new();
 }
 
 public class StatsSaveData
@@ -65,12 +64,3 @@ public class ItemSaveData
     public Dictionary<string, object?> Properties { get; set; } = new();
 }
 
-public class CorpseSaveData
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Location { get; set; } = "";
-    public List<string> Tags { get; set; } = new();
-    public Dictionary<string, object?> Properties { get; set; } = new();
-    public List<string> Contents { get; set; } = new();
-}

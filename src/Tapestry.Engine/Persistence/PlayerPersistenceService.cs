@@ -55,9 +55,7 @@ public class PlayerPersistenceService
         var hash = _passwordHashes.GetValueOrDefault(entity.Id, "");
 
         var allItems = CollectPlayerItems(entity);
-        var corpses = CollectPlayerCorpses(entity);
-
-        var dto = _serializer.ToSaveData(entity, hash, allItems, corpses);
+        var dto = _serializer.ToSaveData(entity, hash, allItems);
 
         await _store.SaveAsync(dto);
     }
@@ -106,8 +104,7 @@ public class PlayerPersistenceService
                 var entity = session.PlayerEntity;
                 var hash = _passwordHashes.GetValueOrDefault(entity.Id, "");
                 var allItems = CollectPlayerItems(entity);
-                var corpses = CollectPlayerCorpses(entity);
-                snapshots.Add(_serializer.ToSaveData(entity, hash, allItems, corpses));
+                snapshots.Add(_serializer.ToSaveData(entity, hash, allItems));
             }
             catch (Exception ex)
             {
@@ -147,7 +144,7 @@ public class PlayerPersistenceService
     {
         _passwordHashes[entity.Id] = passwordHash;
         var allItems = CollectPlayerItems(entity);
-        var dto = _serializer.ToSaveData(entity, passwordHash, allItems, new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(entity, passwordHash, allItems);
         await _store.SaveAsync(dto);
     }
 
@@ -174,24 +171,4 @@ public class PlayerPersistenceService
         }
     }
 
-    private List<(Entity Corpse, List<Entity> Items)> CollectPlayerCorpses(Entity player)
-    {
-        var corpses = new List<(Entity, List<Entity>)>();
-
-        foreach (var room in _world.AllRooms)
-        {
-            foreach (var entity in room.Entities)
-            {
-                if (entity.HasTag("player_corpse") &&
-                    entity.Name == "corpse of " + player.Name)
-                {
-                    var corpseItems = new List<Entity>();
-                    CollectItemsRecursive(entity.Contents, corpseItems);
-                    corpses.Add((entity, corpseItems));
-                }
-            }
-        }
-
-        return corpses;
-    }
 }

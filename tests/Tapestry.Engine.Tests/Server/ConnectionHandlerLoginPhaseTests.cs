@@ -178,7 +178,7 @@ public class ConnectionHandlerLoginPhaseTests
         entity.LocationRoomId = "core:town-square";
         var hash = BCrypt.Net.BCrypt.HashPassword(password);
 
-        return serializer.ToSaveData(entity, hash, new List<Entity>(), new List<(Entity, List<Entity>)>());
+        return serializer.ToSaveData(entity, hash, new List<Entity>());
     }
 
     // ---- Tests: existing player login ----

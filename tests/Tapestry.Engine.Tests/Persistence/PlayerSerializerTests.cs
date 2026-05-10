@@ -27,7 +27,7 @@ public class PlayerSerializerTests
     public void RoundTrip_PreservesBasicFields()
     {
         var player = CreateTestPlayer();
-        var dto = _serializer.ToSaveData(player, "hash123", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "hash123", new List<Entity>());
 
         dto.Id.Should().Be(player.Id.ToString());
         dto.Name.Should().Be("Krakus");
@@ -49,7 +49,7 @@ public class PlayerSerializerTests
         player.Stats.BaseMaxHp = 100;
         player.Stats.Hp = 75;
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Stats.BaseStrength.Should().Be(18);
@@ -66,7 +66,7 @@ public class PlayerSerializerTests
         player.Stats.AddModifier(new StatModifier("ring_of_power", StatType.Strength, 5));
         player.Stats.AddModifier(new StatModifier("blessing", StatType.MaxHp, 20));
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Stats.Modifiers.Should().HaveCount(2);
@@ -85,7 +85,7 @@ public class PlayerSerializerTests
         player.SetProperty(CommonProperties.RegenHp, 5);
         player.SetProperty(CommonProperties.TemplateId, "warrior_base");
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.GetProperty<int>(CommonProperties.RegenHp).Should().Be(5);
@@ -99,7 +99,7 @@ public class PlayerSerializerTests
         player.AddTag("player");
         player.AddRole("admin");
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Tags.Should().Contain("player");
@@ -115,7 +115,7 @@ public class PlayerSerializerTests
         player.AddToContents(sword);
 
         var allItems = new List<Entity> { sword };
-        var dto = _serializer.ToSaveData(player, "h", allItems, new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().HaveCount(1);
@@ -133,7 +133,7 @@ public class PlayerSerializerTests
         player.SetEquipment("weapon", weapon);
 
         var allItems = new List<Entity> { weapon };
-        var dto = _serializer.ToSaveData(player, "h", allItems, new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Equipment.Should().ContainKey("weapon");
@@ -152,7 +152,7 @@ public class PlayerSerializerTests
         player.AddToContents(bag);
 
         var allItems = new List<Entity> { bag, potion };
-        var dto = _serializer.ToSaveData(player, "h", allItems, new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().HaveCount(1);
@@ -164,41 +164,11 @@ public class PlayerSerializerTests
     }
 
     [Fact]
-    public void RoundTrip_PreservesCorpses()
-    {
-        var player = CreateTestPlayer();
-        var corpse = new Entity("corpse", "corpse of Goblin");
-        corpse.LocationRoomId = "forest:clearing";
-        corpse.AddTag("corpse");
-        corpse.SetProperty(CommonProperties.CorpseDecay, 10);
-        var loot = new Entity("item", "Gold Coin");
-        corpse.AddToContents(loot);
-
-        var corpses = new List<(Entity Corpse, List<Entity> Items)>
-        {
-            (corpse, new List<Entity> { loot })
-        };
-
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), corpses);
-        var result = _serializer.FromSaveData(dto);
-
-        result.Corpses.Should().HaveCount(1);
-        var (restoredCorpse, restoredItems) = result.Corpses[0];
-        restoredCorpse.Id.Should().Be(corpse.Id);
-        restoredCorpse.Name.Should().Be("corpse of Goblin");
-        restoredCorpse.LocationRoomId.Should().Be("forest:clearing");
-        restoredCorpse.Tags.Should().Contain("corpse");
-        restoredCorpse.GetProperty<int>(CommonProperties.CorpseDecay).Should().Be(10);
-        restoredItems.Should().HaveCount(1);
-        restoredItems[0].Name.Should().Be("Gold Coin");
-    }
-
-    [Fact]
     public void RoundTrip_EmptyInventory_NoEquipment()
     {
         var player = CreateTestPlayer();
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().BeEmpty();
@@ -212,7 +182,7 @@ public class PlayerSerializerTests
         var player = CreateTestPlayer();
         player.SetProperty("custom_flag", true);
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>(), new List<(Entity, List<Entity>)>());
+        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
 
         // Unknown property should be serialized as tagged dict
         dto.Properties["custom_flag"].Should().BeOfType<Dictionary<string, object?>>();
@@ -258,22 +228,6 @@ public class PlayerSerializerTests
         var result = _serializer.FromSaveData(dto);
         result.Entity.Name.Should().Be("TestPlayer");
         result.Entity.LocationRoomId.Should().Be("limbo:recall");
-    }
-
-    [Fact]
-    public void Deserialize_MissingCorpsesSection_ReturnsEmptyList()
-    {
-        var dto = new PlayerSaveData
-        {
-            Id = Guid.NewGuid().ToString(),
-            Name = "TestPlayer",
-            Type = "player",
-            Location = "limbo:recall",
-            Corpses = null!
-        };
-
-        var result = _serializer.FromSaveData(dto);
-        result.Corpses.Should().BeEmpty();
     }
 
     [Fact]

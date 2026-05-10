@@ -45,23 +45,6 @@ public class PlayerSpawner
 
     public void RestoreWorldObjects(PlayerLoadResult data)
     {
-        foreach (var (corpse, corpseItems) in data.Corpses)
-        {
-            if (corpse.LocationRoomId != null)
-            {
-                var corpseRoom = _world.GetRoom(corpse.LocationRoomId);
-                if (corpseRoom != null)
-                {
-                    corpseRoom.AddEntity(corpse);
-                    _world.TrackEntity(corpse);
-                    foreach (var item in corpseItems)
-                    {
-                        _world.TrackEntity(item);
-                    }
-                }
-            }
-        }
-
         foreach (var item in data.AllItems)
         {
             _world.TrackEntity(item);

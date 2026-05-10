@@ -7,7 +7,6 @@ public class PlayerLoadResult
 {
     public required Entity Entity { get; init; }
     public required string PasswordHash { get; init; }
-    public required List<(Entity Corpse, List<Entity> Items)> Corpses { get; init; }
     public required List<Entity> AllItems { get; init; }
 }
 
@@ -23,10 +22,9 @@ public class PlayerSerializer
     public PlayerSaveData ToSaveData(
         Entity player,
         string passwordHash,
-        List<Entity> allItems,
-        List<(Entity Corpse, List<Entity> Items)> corpses)
+        List<Entity> allItems)
     {
-        var dto = new PlayerSaveData
+        return new PlayerSaveData
         {
             Version = 1,
             Id = player.Id.ToString(),
@@ -40,20 +38,8 @@ public class PlayerSerializer
             Properties = SerializeProperties(player.GetAllProperties()),
             Equipment = SerializeEquipment(player.Equipment),
             Inventory = player.Contents.Select(e => e.Id.ToString()).ToList(),
-            Items = allItems.Select(i => SerializeItem(i, player)).ToList(),
-            Corpses = SerializeCorpses(corpses)
+            Items = allItems.Select(i => SerializeItem(i, player)).ToList()
         };
-
-        // Add corpse items to the flat item list
-        foreach (var (_, items) in corpses)
-        {
-            foreach (var item in items)
-            {
-                dto.Items.Add(SerializeItem(item, null));
-            }
-        }
-
-        return dto;
     }
 
     public PlayerLoadResult FromSaveData(PlayerSaveData data)
@@ -138,39 +124,10 @@ public class PlayerSerializer
             }
         }
 
-        // Rebuild corpses
-        var corpseList = new List<(Entity Corpse, List<Entity> Items)>();
-        foreach (var corpseData in data.Corpses ?? new List<CorpseSaveData>())
-        {
-            var corpseId = Guid.Parse(corpseData.Id);
-            var corpse = new Entity("corpse", corpseData.Name, corpseId);
-            corpse.LocationRoomId = string.IsNullOrEmpty(corpseData.Location) ? null : corpseData.Location;
-
-            foreach (var tag in corpseData.Tags ?? new List<string>())
-            {
-                corpse.AddTag(tag);
-            }
-
-            DeserializeProperties(corpse, corpseData.Properties ?? new Dictionary<string, object?>());
-
-            var corpseItems = new List<Entity>();
-            foreach (var contentIdStr in corpseData.Contents ?? new List<string>())
-            {
-                if (Guid.TryParse(contentIdStr, out var contentId) && itemDict.TryGetValue(contentId, out var item))
-                {
-                    corpse.AddToContents(item);
-                    corpseItems.Add(item);
-                }
-            }
-
-            corpseList.Add((corpse, corpseItems));
-        }
-
         return new PlayerLoadResult
         {
             Entity = entity,
             PasswordHash = data.PasswordHash,
-            Corpses = corpseList,
             AllItems = allItems
         };
     }
@@ -279,18 +236,6 @@ public class PlayerSerializer
         };
     }
 
-    private List<CorpseSaveData> SerializeCorpses(List<(Entity Corpse, List<Entity> Items)> corpses)
-    {
-        return corpses.Select(c => new CorpseSaveData
-        {
-            Id = c.Corpse.Id.ToString(),
-            Name = c.Corpse.Name,
-            Location = c.Corpse.LocationRoomId ?? "",
-            Tags = c.Corpse.Tags.ToList(),
-            Properties = SerializeProperties(c.Corpse.GetAllProperties()),
-            Contents = c.Items.Select(i => i.Id.ToString()).ToList()
-        }).ToList();
-    }
 
     // --- Deserialization helpers ---
 
