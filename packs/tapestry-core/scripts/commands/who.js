@@ -21,18 +21,6 @@ function getHighestLevel(entityId) {
     return highest;
 }
 
-function formatDuration(isoString) {
-    var then = new Date(isoString);
-    var now = new Date();
-    var secs = Math.floor((now.getTime() - then.getTime()) / 1000);
-    if (secs < 60) { return secs + 's'; }
-    var mins = Math.floor(secs / 60);
-    if (mins < 60) { return mins + 'm'; }
-    var hours = Math.floor(mins / 60);
-    mins = mins % 60;
-    return hours + 'h' + (mins > 0 ? mins + 'm' : '');
-}
-
 function formatIdleTicks(currentTick, lastInputTick) {
     var idleTicks = currentTick - lastInputTick;
     var secs = Math.floor(idleTicks / 10);
@@ -41,6 +29,13 @@ function formatIdleTicks(currentTick, lastInputTick) {
     var mins = Math.floor(secs / 60);
     if (mins < 60) { return mins + 'm'; }
     return Math.floor(mins / 60) + 'h';
+}
+
+function getRoleBadge(roles) {
+    if (!roles) { return ''; }
+    if (roles.indexOf('admin') >= 0) { return '<subtle>[Admin]</subtle> '; }
+    if (roles.indexOf('builder') >= 0) { return '<subtle>[Builder]</subtle> '; }
+    return '';
 }
 
 tapestry.commands.register({
@@ -55,6 +50,15 @@ tapestry.commands.register({
         var isAdmin = actor.hasRole('admin');
         var currentTick = tapestry.world.getCurrentTick();
 
+        var headerRows = [
+            { type: 'cell', cells: [
+                { content: '  <subtle>Name</subtle>', width: 22 },
+                { content: '<subtle>Lv</subtle>', width: 7 },
+                { content: '<subtle>Race/Class</subtle>', width: 22 },
+                { content: '<subtle>Idle</subtle>', width: 'fill' }
+            ]}
+        ];
+
         var rows = [{ type: 'empty' }];
 
         for (var i = 0; i < players.length; i++) {
@@ -62,44 +66,29 @@ tapestry.commands.register({
             var level = getHighestLevel(p.id);
             var race = capitalize(stripPack(p.race));
             var cls = capitalize(stripPack(p.charClass));
-            var badge = '';
-            if (p.roles && p.roles.indexOf('admin') >= 0) {
-                badge = ' <subtle>[Admin]</subtle>';
-            }
+            var badge = getRoleBadge(p.roles);
+            var idle = formatIdleTicks(currentTick, p.lastInputTick);
 
-            var nameCol = '  ' + p.name + badge;
-            var infoCol = race + ' ' + cls;
-            var levelCol = 'Lv ' + level;
+            rows.push({
+                type: 'cell', cells: [
+                    { content: '  ' + badge + p.name, width: 22 },
+                    { content: 'Lv ' + level, width: 7 },
+                    { content: race + ' ' + cls, width: 22 },
+                    { content: idle, width: 'fill' }
+                ]
+            });
 
             if (isAdmin) {
-                var idle = formatIdleTicks(currentTick, p.lastInputTick);
-                var connTime = formatDuration(p.connectedAt);
-                var connPrefix = p.connectionId.substring(0, 8);
                 var ip = tapestry.world.getProperty(p.id, 'last_ip') || '?';
-                var roomName = tapestry.world.getRoomName(p.roomId) || p.roomId || '?';
+                var roomName = tapestry.world.getRoomName(p.roomId) || '?';
+                var connPrefix = p.connectionId.substring(0, 8) + '...';
 
                 rows.push({
                     type: 'cell', cells: [
-                        { content: nameCol, width: 22 },
-                        { content: infoCol, width: 20 },
-                        { content: levelCol, width: 6 },
-                        { content: idle, width: 5, align: 'right' },
-                        { content: connTime, width: 6, align: 'right' },
-                        { content: connPrefix, width: 10 },
-                        { content: ip, width: 'fill' }
-                    ]
-                });
-                rows.push({
-                    type: 'cell', cells: [
-                        { content: '    <subtle>' + roomName + '</subtle>', width: 'fill' }
-                    ]
-                });
-            } else {
-                rows.push({
-                    type: 'cell', cells: [
-                        { content: nameCol, width: 28 },
-                        { content: infoCol, width: 22 },
-                        { content: levelCol, width: 'fill' }
+                        { content: '  <subtle>' + roomName + '</subtle>', width: 25 },
+                        { content: '<subtle>' + (p.roomId || '?') + '</subtle>', width: 25 },
+                        { content: '<subtle>' + ip + '</subtle>', width: 17 },
+                        { content: '<subtle>' + connPrefix + '</subtle>', width: 'fill' }
                     ]
                 });
             }
@@ -107,27 +96,15 @@ tapestry.commands.register({
 
         rows.push({ type: 'empty' });
 
-        var headerRight = players.length + ' online';
-        var sections = [
-            { rows: [{ type: 'title', left: 'Players Online', right: headerRight }] },
-            { separatorAbove: 'minor', rows: rows }
-        ];
-
-        if (isAdmin) {
-            sections[0].rows.push({
-                type: 'cell', cells: [
-                    { content: '  <subtle>Name</subtle>', width: 22 },
-                    { content: '<subtle>Race/Class</subtle>', width: 20 },
-                    { content: '<subtle>Lv</subtle>', width: 6 },
-                    { content: '<subtle>Idle</subtle>', width: 5, align: 'right' },
-                    { content: '<subtle>Conn</subtle>', width: 6, align: 'right' },
-                    { content: '<subtle>Session</subtle>', width: 10 },
-                    { content: '<subtle>IP</subtle>', width: 'fill' }
-                ]
-            });
-        }
-
-        var output = tapestry.ui.panel({ sections: sections });
+        var output = tapestry.ui.panel({
+            sections: [
+                { rows: headerRows },
+                { separatorAbove: 'minor', rows: rows },
+                { separatorAbove: 'minor', rows: [
+                    { type: 'footer', content: 'Players Online: ' + players.length }
+                ]}
+            ]
+        });
         actor.send('\r\n' + output + '\r\n');
     }
 });
