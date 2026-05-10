@@ -117,9 +117,16 @@ public class SessionManager
 
     public void Add(PlayerSession session)
     {
+        var name = session.PlayerEntity.Name.ToLowerInvariant();
+        if (_byPlayerName.TryGetValue(name, out var stale) &&
+            stale.Connection.Id != session.Connection.Id)
+        {
+            _byConnectionId.TryRemove(stale.Connection.Id, out _);
+        }
+
         _byConnectionId[session.Connection.Id] = session;
         _byEntityId[session.PlayerEntity.Id] = session;
-        _byPlayerName[session.PlayerEntity.Name.ToLowerInvariant()] = session;
+        _byPlayerName[name] = session;
     }
 
     public void Remove(PlayerSession session)
