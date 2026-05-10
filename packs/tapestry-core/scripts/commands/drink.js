@@ -9,7 +9,7 @@ tapestry.commands.register({
     handler: function(actor, resolved) {
         var item = resolved.item;
 
-        var drinkable = tapestry.world.getProperty(item.id, 'drinkable');
+        var drinkable = tapestry.world.hasTag(item.id, 'drinkable');
         if (drinkable) {
             actor.send('You drink from ' + item.name + '.\r\n');
             actor.sendToRoom(actor.name + ' drinks from ' + item.name + '.\r\n');

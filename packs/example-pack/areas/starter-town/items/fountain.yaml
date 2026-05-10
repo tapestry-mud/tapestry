@@ -1,10 +1,9 @@
 id: "example-pack:fountain"
 name: "a stone fountain"
 type: "item"
-tags: [fixture, fill_source, no_get]
+tags: [fixture, fill_source, no_get, drinkable]
 keywords: [fountain, stone]
 properties:
   fill_source: water
-  drinkable: true
   weight: 999
 modifiers: []
