@@ -379,10 +379,15 @@ public class CommandsModule : IJintApiModule
                     _messaging.SendToRoomExcept(roomId, actorCtx.EntityId.ToString(), text);
                 }
             }),
+            hasRole = new Func<string, bool>(role =>
+            {
+                var entity = _world.GetEntity(actorCtx.EntityId);
+                return entity?.HasRole(role) ?? false;
+            }),
             hasTag = new Func<string, bool>(tag =>
             {
                 var entity = _world.GetEntity(actorCtx.EntityId);
-                return (entity?.HasRole(tag) ?? false) || (entity?.HasTag(tag) ?? false);
+                return entity?.HasTag(tag) ?? false;
             })
         };
 

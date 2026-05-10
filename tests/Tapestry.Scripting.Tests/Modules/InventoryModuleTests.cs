@@ -31,13 +31,11 @@ public class InventoryModuleTests
         room.AddEntity(player);
         world.TrackEntity(player);
 
-        var sword = new Entity("item:weapon", "a sword");
-        sword.AddTag("item");
+        var sword = new Entity("item", "a sword");
         room.AddEntity(sword);
         world.TrackEntity(sword);
 
-        var statue = new Entity("item:decoration", "a stone statue");
-        statue.AddTag("item");
+        var statue = new Entity("item", "a stone statue");
         statue.AddTag("no_get");
         room.AddEntity(statue);
         world.TrackEntity(statue);
@@ -65,8 +63,7 @@ public class InventoryModuleTests
         room.AddEntity(player);
         world.TrackEntity(player);
 
-        var fixture = new Entity("item:fixture", "a heavy anvil");
-        fixture.AddTag("item");
+        var fixture = new Entity("item", "a heavy anvil");
         fixture.AddTag("no_get");
         room.AddEntity(fixture);
         world.TrackEntity(fixture);
