@@ -24,8 +24,8 @@ public class LoginFlow
     private readonly FlowEngine? _flowEngine;
     private readonly object _nameReservationLock = new();
 
-    private const string NamePrompt = "What will your name be, this turn of the Wheel?";
-    private const string NameGmcpPrompt = "Type the name you will go by for this turn of the Wheel";
+    private const string NamePrompt = "Speak your name into the loom.";
+    private const string NameGmcpPrompt = "Type your name into the loom";
 
 
     public LoginFlow(
@@ -129,6 +129,8 @@ public class LoginFlow
     private async Task<bool> HandleExistingPlayerAsync(string name, PlayerSpawner spawner)
     {
         SetPhase(LoginPhase.Password);
+        _adapter.SendLine("");
+        _adapter.SendLine("Welcome back, " + name + ".");
         _adapter.SuppressEcho();
         _adapter.SendLine("Password:");
         SendGmcpPrompt("Enter your password");
@@ -219,9 +221,13 @@ public class LoginFlow
         }
 
         SetPhase(LoginPhase.Password);
+        _adapter.SendLine("");
+        _adapter.SendLine("Welcome, " + name + ".");
+        _adapter.SendLine("Bind a new thread to the loom.");
+        _adapter.SendLine("");
         _adapter.SuppressEcho();
-        _adapter.SendLine("New character! Choose a password:");
-        SendGmcpPrompt("Choose a password for your new character");
+        _adapter.SendLine("Choose a password:");
+        SendGmcpPrompt("Choose a password");
 
         var creationAttempts = 0;
         string? password = null;
@@ -245,12 +251,12 @@ public class LoginFlow
                 }
                 _adapter.SendLine($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
                 _adapter.SendLine("Choose a password:");
-                SendGmcpPrompt("Choose a password:");
+                SendGmcpPrompt("Choose a password");
                 continue;
             }
 
             _adapter.SendLine("Confirm password:");
-            SendGmcpPrompt("Confirm your password");
+            SendGmcpPrompt("Confirm password");
 
             var confirmInput = await _adapter.ReadLineAsync(ct);
             _adapter.SendLine("");
