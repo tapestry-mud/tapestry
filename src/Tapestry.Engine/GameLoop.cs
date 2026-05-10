@@ -326,7 +326,10 @@ public class GameLoop
     {
         RegisterTickHandler("regen", regenIntervalTicks, () =>
         {
-            foreach (var entity in world.GetEntitiesByTag("regen"))
+            var regenCandidates = world.GetEntitiesByType("player")
+                .Concat(world.GetEntitiesByType("npc"))
+                .Where(e => !e.HasTag("no_regen"));
+            foreach (var entity in regenCandidates)
             {
                 var sustenanceMultiplier = 1.0;
                 if (sustenanceConfig != null)

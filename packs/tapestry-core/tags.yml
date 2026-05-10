@@ -38,9 +38,9 @@ tags:
   persistent:
     description: "Respawns immediately on death or removal"
     applies_to: [npc]
-  regen:
-    description: "Eligible for HP/resource/movement regeneration each tick"
-    applies_to: [mob, npc, player]
+  no_regen:
+    description: "Exempt from HP/resource/movement regeneration"
+    applies_to: [mob, player]
   shop:
     description: "NPC operates as a vendor with shop.sells inventory"
     applies_to: [npc]

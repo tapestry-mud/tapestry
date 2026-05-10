@@ -1,7 +1,7 @@
 players:
   - name: Admin
     password: password
-    tags: [regen]
+    tags: []
     roles: [admin]
     stats:
       strength: 18

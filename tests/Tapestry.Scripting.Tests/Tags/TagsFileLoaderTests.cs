@@ -94,8 +94,8 @@ public class TagsFileLoaderTests
     {
         var dir = MakeTempDir("tapestry-core", """
             tags:
-              regen:
-                description: "Eligible for regeneration"
+              no_regen:
+                description: "Exempt from regeneration"
                 applies_to: [mob, player]
             """);
         try
@@ -103,7 +103,7 @@ public class TagsFileLoaderTests
             var registry = new TagRegistry();
             TagsFileLoader.LoadIntoRegistry(dir, "core", registry);
 
-            registry.TryResolve("regen", null, out var entry);
+            registry.TryResolve("no_regen", null, out var entry);
             entry.AppliesTo.Should().Contain("mob");
             entry.AppliesTo.Should().Contain("player");
         }

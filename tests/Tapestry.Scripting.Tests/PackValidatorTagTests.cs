@@ -28,7 +28,7 @@ public class PackValidatorTagTests
         r.RegisterEngineTag("no_kill", "Can be targeted", ["npc"]);
         r.RegisterEngineTag("equippable", "Can be equipped", ["item"]);
         r.RegisterEngineTag("safe", "No combat in room", ["room"]);
-        r.RegisterEngineTag("regen", "Eligible for regen", ["npc", "player"]);
+        r.RegisterEngineTag("no_regen", "Exempt from regen", ["npc", "player"]);
         return r;
     }
 

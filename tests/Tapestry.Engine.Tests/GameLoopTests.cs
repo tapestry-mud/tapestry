@@ -65,7 +65,6 @@ public class GameLoopTests
         var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var entity = new Entity("player", "Test");
-        entity.AddTag("regen");
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.BaseMaxResource = 50;
         entity.Stats.BaseMaxMovement = 80;
@@ -82,7 +81,6 @@ public class GameLoopTests
         room.AddEntity(entity);
         world.AddRoom(room);
         world.TrackEntity(entity);
-        world.SwapTagBuffers();
 
         gameLoop.Tick();
 
@@ -101,7 +99,6 @@ public class GameLoopTests
         var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         var entity = new Entity("player", "Test");
-        entity.AddTag("regen");
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.Hp = 98;
         entity.SetProperty("regen_hp", 5);
@@ -112,7 +109,6 @@ public class GameLoopTests
         room.AddEntity(entity);
         world.AddRoom(room);
         world.TrackEntity(entity);
-        world.SwapTagBuffers();
 
         gameLoop.Tick();
 

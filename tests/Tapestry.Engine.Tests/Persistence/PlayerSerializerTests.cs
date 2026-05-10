@@ -285,7 +285,7 @@ public class PlayerSerializerTests
             Name = "OldAdmin",
             Type = "player",
             Location = "limbo:recall",
-            Tags = new List<string> { "regen", "admin" },
+            Tags = new List<string> { "veteran", "admin" },
             Roles = null
         };
 
@@ -293,6 +293,6 @@ public class PlayerSerializerTests
 
         result.Entity.HasRole("admin").Should().BeFalse();
         result.Entity.HasTag("admin").Should().BeTrue();
-        result.Entity.HasTag("regen").Should().BeTrue();
+        result.Entity.HasTag("veteran").Should().BeTrue();
     }
 }
