@@ -496,8 +496,17 @@ public class InventoryModule : IJintApiModule
                     return null;
                 }
 
-                var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
+                Entity? container = null;
+                if (Guid.TryParse(containerKeyword, out var containerGuid))
+                {
+                    container = _world.GetEntity(containerGuid);
+                }
+
+                if (container == null)
+                {
+                    container = KeywordMatcher.FindByKeyword(
+                        entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
+                }
 
                 if (container == null && entity.LocationRoomId != null)
                 {
@@ -552,8 +561,17 @@ public class InventoryModule : IJintApiModule
                     return null;
                 }
 
-                var container = KeywordMatcher.FindByKeyword(
-                    entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
+                Entity? container = null;
+                if (Guid.TryParse(containerKeyword, out var containerGuid))
+                {
+                    container = _world.GetEntity(containerGuid);
+                }
+
+                if (container == null)
+                {
+                    container = KeywordMatcher.FindByKeyword(
+                        entity.Contents.Where(e => e.Type == EntityTypes.Container), containerKeyword);
+                }
 
                 if (container == null && entity.LocationRoomId != null)
                 {

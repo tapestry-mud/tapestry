@@ -14,7 +14,7 @@ tapestry.commands.register({
 
         if (container) {
             if (item === 'all') {
-                var result = tapestry.inventory.getAllFromContainer(actor.entityId, container.keyword);
+                var result = tapestry.inventory.getAllFromContainer(actor.entityId, container.id);
                 if (!result) {
                     actor.send("You don't see that container here.\r\n");
                     return;
@@ -33,7 +33,7 @@ tapestry.commands.register({
                 actor.sendToRoom(actor.name + ' gets some items.\r\n');
                 return;
             }
-            var single = tapestry.inventory.getFromContainer(actor.entityId, item, container.keyword);
+            var single = tapestry.inventory.getFromContainer(actor.entityId, item, container.id);
             if (!single) {
                 actor.send("You don't see that there.\r\n");
                 return;
