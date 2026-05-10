@@ -47,9 +47,17 @@ public class Entity
 
     public T? GetProperty<T>(string key)
     {
-        if (_properties.TryGetValue(key, out var value) && value is T typed)
+        if (_properties.TryGetValue(key, out var value))
         {
-            return typed;
+            if (value is T typed)
+            {
+                return typed;
+            }
+
+            if (typeof(T) == typeof(List<string>) && value is List<object> objList)
+            {
+                return (T)(object)objList.OfType<string>().ToList();
+            }
         }
         return default;
     }
