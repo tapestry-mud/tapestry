@@ -213,16 +213,18 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
 {
     if (string.IsNullOrWhiteSpace(name))
     {
-        return Results.Json(new { exists = false, nameValid = false });
+        return Results.Json(new { exists = false, nameValid = false, error = "Please enter a name." });
     }
 
-    var nameValid = System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,12}$");
-    var canonical = nameValid
-        ? char.ToUpper(name[0]) + name[1..].ToLower()
-        : name;
-    var exists = nameValid && persistence.PlayerSaveExists(canonical);
+    if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z]{2,12}$"))
+    {
+        return Results.Json(new { exists = false, nameValid = false, error = "Names must be 2-12 letters only." });
+    }
 
-    return Results.Json(new { exists, nameValid });
+    var canonical = char.ToUpper(name[0]) + name[1..].ToLower();
+    var exists = persistence.PlayerSaveExists(canonical);
+
+    return Results.Json(new { exists, nameValid = true, error = (string?)null });
 }).RequireRateLimiting("auth-light");
 
 app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceService persistence,
