@@ -15,6 +15,7 @@ public class TelnetConnection : IConnection
     private readonly ILogger _logger;
     private readonly StringBuilder _inputBuffer = new();
     private bool _echoEnabled = true;
+    private bool _disconnectFired;
 
     // Subneg state machine fields
     private bool _inSubneg;
@@ -152,6 +153,9 @@ public class TelnetConnection : IConnection
 
     public void Disconnect(string reason)
     {
+        if (_disconnectFired) { return; }
+        _disconnectFired = true;
+
         _logger.LogInformation("Connection {Id} disconnected: {Reason}", Id, reason);
         try { _client.Close(); }
         catch { }

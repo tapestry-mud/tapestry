@@ -300,6 +300,15 @@ public class GameLoop
         {
             foreach (var session in sessions.AllSessions)
             {
+                if (!session.Connection.IsConnected)
+                {
+                    eventQueue.Enqueue(new DisconnectEvent(
+                        Guid.Parse(session.Connection.Id),
+                        session.PlayerEntity.Id,
+                        "dead connection"));
+                    continue;
+                }
+
                 if (session.PlayerEntity.HasRole(adminTag)) { continue; }
 
                 var idleTicks = _tickCount - session.LastInputTick;

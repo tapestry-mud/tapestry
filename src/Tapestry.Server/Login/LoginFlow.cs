@@ -295,6 +295,16 @@ public partial class LoginFlow
             PendingPasswordHash = hash
         };
 
+        _context.Connection.OnDisconnected += () =>
+        {
+            if (session.Phase == LoginPhase.Creating)
+            {
+                _sessions.Remove(session);
+                _metrics.ActiveConnections.Add(-1);
+                _logger.LogInformation("New player {Name} disconnected mid-creation", name);
+            }
+        };
+
         bool reserved;
         lock (_nameReservationLock)
         {
@@ -317,16 +327,6 @@ public partial class LoginFlow
         _logger.LogInformation("New player {Name} entering creation flow (entity {Id})", name, entity.Id);
 
         session.CancelPreLoginTimeout = () => _context.PhaseCts.Cancel();
-
-        _context.Connection.OnDisconnected += () =>
-        {
-            if (session.Phase == LoginPhase.Creating)
-            {
-                _sessions.Remove(session);
-                _metrics.ActiveConnections.Add(-1);
-                _logger.LogInformation("New player {Name} disconnected mid-creation", name);
-            }
-        };
 
         SetPhase(LoginPhase.Creating);
         _flowEngine?.Trigger(session, "new_player_connect");

@@ -73,6 +73,12 @@ public class PlayerSpawner
         var session = new PlayerSession(connection, entity);
         session.Phase = LoginPhase.Playing;
 
+        connection.OnDisconnected += () =>
+        {
+            _eventQueue.Enqueue(new DisconnectEvent(
+                Guid.Parse(connection.Id), entity.Id, "connection closed"));
+        };
+
         _sessions.RemovePreLogin(preLogin.ConnectionId);
         _sessions.Add(session);
         _metrics.ActiveConnections.Add(1);
@@ -91,12 +97,6 @@ public class PlayerSpawner
         var capturedConnectionId = connection.Id;
         var capturedEntity = entity;
         _gameLoop.Schedule(() => _loginHandler.TriggerPostLoginBurst(capturedConnectionId, capturedEntity));
-
-        connection.OnDisconnected += () =>
-        {
-            _eventQueue.Enqueue(new DisconnectEvent(
-                Guid.Parse(connection.Id), entity.Id, "connection closed"));
-        };
     }
 
     public void TakeOverSession(PlayerSession existing, IConnection newConnection, LoginContext preLogin)
@@ -123,12 +123,6 @@ public class PlayerSpawner
             PendingPasswordHash = hashedPassword
         };
 
-        _sessions.RemovePreLogin(preLogin.ConnectionId);
-        _sessions.Add(session);
-        _metrics.ActiveConnections.Add(1);
-
-        _logger.LogInformation("New player {Name} entering creation flow via pre-auth (entity {Id})", name, entity.Id);
-
         connection.OnDisconnected += () =>
         {
             if (session.Phase == LoginPhase.Creating)
@@ -138,6 +132,12 @@ public class PlayerSpawner
                 _logger.LogInformation("New player {Name} disconnected mid-creation (pre-auth)", name);
             }
         };
+
+        _sessions.RemovePreLogin(preLogin.ConnectionId);
+        _sessions.Add(session);
+        _metrics.ActiveConnections.Add(1);
+
+        _logger.LogInformation("New player {Name} entering creation flow via pre-auth (entity {Id})", name, entity.Id);
 
         flowEngine?.Trigger(session, "new_player_connect");
         return session;
