@@ -113,7 +113,7 @@ public class EntityKeywordsRolesDispositionTests
             Id = "test:goblin",
             Name = "a goblin",
             Type = "mob",
-            Tags = ["killable"],
+            Tags = [],
             Keywords = ["goblin", "creature"],
             BaseDisposition = Disposition.Hostile
         };
@@ -123,7 +123,7 @@ public class EntityKeywordsRolesDispositionTests
         entity.HasKeyword("goblin").Should().BeTrue();
         entity.HasKeyword("creature").Should().BeTrue();
         entity.Disposition.Should().Be(Disposition.Hostile);
-        entity.HasTag("killable").Should().BeTrue();
+        entity.Disposition.Should().Be(Disposition.Hostile);
     }
 
     [Fact]

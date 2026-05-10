@@ -74,17 +74,6 @@ public class PlayerSerializer
             entity.AddRole(role);
         }
 
-        // Migration: promote legacy role tags to Entity.Roles
-        var roleTags = new[] { "admin", "builder" };
-        foreach (var roleTag in roleTags)
-        {
-            if (entity.HasTag(roleTag))
-            {
-                entity.RemoveTag(roleTag);
-                entity.AddRole(roleTag);
-            }
-        }
-
         // Stats
         DeserializeStats(entity.Stats, data.Stats ?? new StatsSaveData());
 

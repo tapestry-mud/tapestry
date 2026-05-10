@@ -48,7 +48,6 @@ public class EventPayloadTests
     {
         var entity = new Entity("npc", name);
         entity.AddTag("npc");
-        entity.AddTag("killable");
         entity.Stats.BaseMaxHp = 40;
         entity.Stats.Hp = 40;
         entity.Stats.BaseStrength = 8;

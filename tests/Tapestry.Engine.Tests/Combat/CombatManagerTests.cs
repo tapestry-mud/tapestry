@@ -39,7 +39,6 @@ public class CombatManagerTests
     {
         var entity = new Entity("npc", name);
         entity.AddTag("npc");
-        entity.AddTag("killable");
         entity.Stats.BaseMaxHp = hp;
         entity.Stats.Hp = hp;
         entity.Stats.BaseStrength = 8;

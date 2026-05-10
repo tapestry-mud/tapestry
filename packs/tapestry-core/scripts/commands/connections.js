@@ -7,7 +7,7 @@ tapestry.commands.register({
     args: {},
     priority: 10,
     handler: function(actor, resolved) {
-        if (!actor.hasTag('admin')) {
+        if (!actor.hasRole('admin')) {
             actor.send('Huh?\r\n');
             return;
         }

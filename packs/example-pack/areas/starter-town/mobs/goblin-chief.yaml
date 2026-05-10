@@ -1,7 +1,7 @@
 id: "example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
-tags: [killable, regen]
+tags: []
 base_disposition: hostile
 keywords: [goblin, chief, chieftain, creature]
 behavior: stationary

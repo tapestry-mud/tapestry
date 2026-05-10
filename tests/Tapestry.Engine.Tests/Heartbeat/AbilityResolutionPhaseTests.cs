@@ -55,7 +55,6 @@ public class AbilityResolutionPhaseTests
         var entity = new Entity("npc", name);
         entity.Stats.BaseMaxHp = hp;
         entity.Stats.Hp = hp;
-        entity.AddTag("killable");
         _room.AddEntity(entity);
         _world.TrackEntity(entity);
         return entity;

@@ -277,9 +277,8 @@ public class PlayerSerializerTests
     }
 
     [Fact]
-    public void FromSaveData_MigratesLegacyAdminTagToRole()
+    public void FromSaveData_AdminTagIsNotPromotedToRole()
     {
-        // Simulate an old save with "admin" in Tags and no Roles field
         var dto = new PlayerSaveData
         {
             Id = Guid.NewGuid().ToString(),
@@ -292,8 +291,8 @@ public class PlayerSerializerTests
 
         var result = _serializer.FromSaveData(dto);
 
-        result.Entity.HasRole("admin").Should().BeTrue();
-        result.Entity.HasTag("admin").Should().BeFalse();
+        result.Entity.HasRole("admin").Should().BeFalse();
+        result.Entity.HasTag("admin").Should().BeTrue();
         result.Entity.HasTag("regen").Should().BeTrue();
     }
 }

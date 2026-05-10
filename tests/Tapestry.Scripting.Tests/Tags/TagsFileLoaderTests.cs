@@ -11,7 +11,7 @@ public class TagsFileLoaderTests
     {
         var dir = MakeTempDir("tapestry-core", """
             tags:
-              killable:
+              hostile:
                 description: "Can be targeted in combat"
                 applies_to: [mob]
               shop:
@@ -23,7 +23,7 @@ public class TagsFileLoaderTests
             var registry = new TagRegistry();
             TagsFileLoader.LoadIntoRegistry(dir, "core", registry);
 
-            registry.IsKnown("killable", null).Should().BeTrue();
+            registry.IsKnown("hostile", null).Should().BeTrue();
             registry.IsKnown("shop", null).Should().BeTrue();
             registry.GetAll().Should().HaveCount(2);
             registry.GetAll().Should().OnlyContain(e => e.IsEngineTag);

@@ -81,17 +81,13 @@ public class PlayerInitModule : IGameModule
                 }
 
                 var entity = new Entity("player", seed.Name);
-                var roleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "admin", "builder" };
                 foreach (var tag in seed.Tags)
                 {
-                    if (roleNames.Contains(tag))
-                    {
-                        entity.AddRole(tag);
-                    }
-                    else
-                    {
-                        entity.AddTag(tag);
-                    }
+                    entity.AddTag(tag);
+                }
+                foreach (var role in seed.Roles)
+                {
+                    entity.AddRole(role);
                 }
                 entity.Stats.BaseStrength = seed.Stats.Strength;
                 entity.Stats.BaseIntelligence = seed.Stats.Intelligence;
@@ -153,6 +149,7 @@ public class PlayerInitModule : IGameModule
         public string Name { get; set; } = "";
         public string Password { get; set; } = "";
         public List<string> Tags { get; set; } = new();
+        public List<string> Roles { get; set; } = new();
         public string? PlayerClass { get; set; }
         public string? PlayerRace { get; set; }
         public SeedPlayerStats Stats { get; set; } = new();

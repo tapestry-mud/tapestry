@@ -54,12 +54,6 @@ public class CombatManager
 
     public bool Engage(Entity attacker, Entity target, long currentTick = 0)
     {
-        // Players are always engageable by mobs; "killable" guards quest NPCs and merchants.
-        if (!target.HasTag("killable") && target.Type != EntityTypes.Player)
-        {
-            return false;
-        }
-
         if (target.HasTag("no_kill"))
         {
             return false;

@@ -9,14 +9,14 @@ public class TagRegistryTests
     public void RegisterEngineTag_StoresEntry()
     {
         var registry = new TagRegistry();
-        registry.RegisterEngineTag("killable", "Can be targeted in combat", ["mob"]);
+        registry.RegisterEngineTag("hostile", "Can be targeted in combat", ["mob"]);
 
-        var found = registry.TryResolve("killable", currentPack: null, out var entry);
+        var found = registry.TryResolve("hostile", currentPack: null, out var entry);
 
         found.Should().BeTrue();
-        entry.Name.Should().Be("killable");
+        entry.Name.Should().Be("hostile");
         entry.Scope.Should().Be("engine");
-        entry.FullName.Should().Be("killable");
+        entry.FullName.Should().Be("hostile");
         entry.IsEngineTag.Should().BeTrue();
         entry.AppliesTo.Should().Contain("mob");
     }
@@ -45,11 +45,11 @@ public class TagRegistryTests
     public void RegisterEngineTag_RejectsDuplicateName()
     {
         var registry = new TagRegistry();
-        registry.RegisterEngineTag("killable", "desc", ["mob"]);
+        registry.RegisterEngineTag("hostile", "desc", ["mob"]);
 
-        var act = () => registry.RegisterEngineTag("killable", "desc2", ["mob"]);
+        var act = () => registry.RegisterEngineTag("hostile", "desc2", ["mob"]);
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("*killable*already registered*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*hostile*already registered*");
     }
 
     [Fact]
@@ -67,11 +67,11 @@ public class TagRegistryTests
     public void RegisterPackTag_CannotRedefineEngineTag()
     {
         var registry = new TagRegistry();
-        registry.RegisterEngineTag("killable", "desc", ["mob"]);
+        registry.RegisterEngineTag("hostile", "desc", ["mob"]);
 
-        var act = () => registry.RegisterPackTag("my-pack", "killable", "override", ["item"]);
+        var act = () => registry.RegisterPackTag("my-pack", "hostile", "override", ["item"]);
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("*cannot redefine*killable*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*cannot redefine*hostile*");
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class TagRegistryTests
     public void GetAll_ReturnsAllRegisteredEntries()
     {
         var registry = new TagRegistry();
-        registry.RegisterEngineTag("killable", "desc", ["mob"]);
+        registry.RegisterEngineTag("hostile", "desc", ["mob"]);
         registry.RegisterEngineTag("shop", "desc", ["mob"]);
         registry.RegisterPackTag("my-pack", "cursed", "desc", ["item"]);
 

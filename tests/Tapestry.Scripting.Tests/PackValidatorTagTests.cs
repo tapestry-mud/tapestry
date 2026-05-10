@@ -25,7 +25,7 @@ public class PackValidatorTagTests
     private static TagRegistry BaseRegistry()
     {
         var r = new TagRegistry();
-        r.RegisterEngineTag("killable", "Can be targeted", ["npc"]);
+        r.RegisterEngineTag("no_kill", "Can be targeted", ["npc"]);
         r.RegisterEngineTag("equippable", "Can be equipped", ["item"]);
         r.RegisterEngineTag("safe", "No combat in room", ["room"]);
         r.RegisterEngineTag("regen", "Eligible for regen", ["npc", "player"]);
@@ -57,7 +57,7 @@ public class PackValidatorTagTests
         var manifests = new FakeManifestProvider();
         manifests.Add("my-pack");
         var (validator, spawnManager, _, _) = CreateValidator(BaseRegistry(), manifests);
-        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["killable"] };
+        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["no_kill"] };
         spawnManager.RegisterTemplate(mob);
 
         var act = () => validator.Validate();
@@ -71,7 +71,7 @@ public class PackValidatorTagTests
         var manifests = new FakeManifestProvider();
         manifests.Add("my-pack", lenient: false);
         var (validator, spawnManager, _, _) = CreateValidator(BaseRegistry(), manifests);
-        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["killable", "typo_tag"] };
+        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["no_kill", "typo_tag"] };
         spawnManager.RegisterTemplate(mob);
 
         var act = () => validator.Validate();
@@ -85,7 +85,7 @@ public class PackValidatorTagTests
         var manifests = new FakeManifestProvider();
         manifests.Add("my-pack", lenient: true);
         var (validator, spawnManager, _, _) = CreateValidator(BaseRegistry(), manifests);
-        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["killable", "unknown_tag"] };
+        var mob = new MobTemplate { Id = "my-pack:guard", Type = "npc", Tags = ["no_kill", "unknown_tag"] };
         spawnManager.RegisterTemplate(mob);
 
         var act = () => validator.Validate();
@@ -146,8 +146,8 @@ public class PackValidatorTagTests
         var registry = BaseRegistry();
         var (validator, spawnManager, _, _) = CreateValidator(registry, manifests);
 
-        var strictMob = new MobTemplate { Id = "strict-pack:guard", Type = "npc", Tags = ["killable", "unknown_tag"] };
-        var lenientMob = new MobTemplate { Id = "lenient-pack:guide", Type = "npc", Tags = ["killable", "unknown_tag"] };
+        var strictMob = new MobTemplate { Id = "strict-pack:guard", Type = "npc", Tags = ["no_kill", "unknown_tag"] };
+        var lenientMob = new MobTemplate { Id = "lenient-pack:guide", Type = "npc", Tags = ["no_kill", "unknown_tag"] };
         spawnManager.RegisterTemplate(strictMob);
         spawnManager.RegisterTemplate(lenientMob);
 

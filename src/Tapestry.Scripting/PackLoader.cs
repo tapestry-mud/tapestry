@@ -324,12 +324,6 @@ public class PackLoader : IPackManifestProvider
                 template.Properties.Remove("shop");
             }
 
-            if (template.Tags.Contains(ShopProperties.ShopTag)
-                && !template.Properties.ContainsKey("killable"))
-            {
-                template.Properties["killable"] = false;
-            }
-
             if (lootTable != null)
             {
                 _spawnManager.RegisterLootTable(lootTable);

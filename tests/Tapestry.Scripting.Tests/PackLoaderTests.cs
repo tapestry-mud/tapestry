@@ -124,7 +124,7 @@ public class PackLoaderTests
         tagRegistry.IsKnown("lair", "example-pack").Should().BeTrue();
 
         // Engine tags are NOT present -- tapestry-core was not loaded
-        tagRegistry.IsKnown("killable", null).Should().BeFalse();
+        tagRegistry.IsKnown("no_kill", null).Should().BeFalse();
     }
 
     [Fact]

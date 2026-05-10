@@ -29,11 +29,8 @@ tags:
   currency:
     description: "Treated as currency in economic transactions"
     applies_to: [item]
-  killable:
-    description: "Can be targeted in combat"
-    applies_to: [npc]
   no_kill:
-    description: "Prevents combat engagement even if killable"
+    description: "Prevents combat engagement"
     applies_to: [npc]
   no_flee:
     description: "Prevents fleeing from combat with this mob"

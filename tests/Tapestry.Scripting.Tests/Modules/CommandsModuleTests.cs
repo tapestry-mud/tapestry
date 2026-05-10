@@ -102,18 +102,18 @@ public class CommandsModuleTests
     }
 
     [Fact]
-    public void PlayerObject_HasTag_ReturnsTrueWhenTagPresent()
+    public void PlayerObject_HasRole_ReturnsTrueWhenRolePresent()
     {
         var (rt, registry, world) = BuildRuntime();
         var entity = new Entity("player", "Tester");
-        entity.AddTag("admin");
+        entity.AddRole("admin");
         world.TrackEntity(entity);
 
         rt.Execute($@"
             tapestry.commands.register({{
                 name: 'tagtest',
                 visibleTo: function(player) {{
-                    return player.hasTag('admin');
+                    return player.hasRole('admin');
                 }},
                 handler: function(player, args) {{}}
             }});

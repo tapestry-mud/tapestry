@@ -13,7 +13,7 @@ public class MobTemplateTests
             Id = "core:goblin",
             Name = "a goblin",
             Type = "npc",
-            Tags = new List<string> { "npc", "mob", "hostile", "killable" },
+            Tags = new List<string> { "npc", "mob", "hostile" },
             Behavior = "wander",
             Stats = new MobTemplateStats
             {

@@ -2,8 +2,9 @@ players:
   - name: Gamemaster
     password: testpass123
     tags:
-      - admin
       - regen
+    roles:
+      - admin
     stats:
       strength: 10
       intelligence: 10

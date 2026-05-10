@@ -187,7 +187,6 @@ public class AbilityCommandBridgeTests
         room.AddEntity(player);
 
         var mob = new Entity("npc", "Orc");
-        mob.AddTag("killable");
         mob.LocationRoomId = room.Id;
         world.TrackEntity(mob);
         room.AddEntity(mob);

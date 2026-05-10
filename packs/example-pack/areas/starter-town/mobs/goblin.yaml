@@ -1,7 +1,7 @@
 id: "example-pack:goblin"
 name: "a goblin"
 type: "npc"
-tags: [killable, regen]
+tags: []
 base_disposition: hostile
 keywords: [goblin, creature]
 behavior: wander

@@ -53,14 +53,14 @@ public class TypeGraduationTests
             Id = "test:guard",
             Name = "a guard",
             Type = "npc",
-            Tags = ["npc", "killable"]
+            Tags = ["npc", "no_kill"]
         };
 
         var entity = template.CreateEntity();
 
         entity.Type.Should().Be("npc");
         entity.HasTag("npc").Should().BeFalse("type tags should not be duplicated into the tag set");
-        entity.HasTag("killable").Should().BeTrue();
+        entity.HasTag("no_kill").Should().BeTrue();
     }
 
     [Fact]

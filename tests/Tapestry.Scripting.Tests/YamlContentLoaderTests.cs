@@ -91,7 +91,7 @@ public class YamlContentLoaderTests
             id: "core:test-dummy"
             name: "a training dummy"
             type: "npc"
-            tags: [npc, mob, killable]
+            tags: [npc, mob]
             behavior: stationary
             stats:
               strength: 1
@@ -122,7 +122,7 @@ public class YamlContentLoaderTests
             id: "core:goblin"
             name: "a goblin"
             type: "npc"
-            tags: [npc, mob, hostile, killable]
+            tags: [npc, mob, hostile]
             behavior: wander
             stats:
               strength: 8

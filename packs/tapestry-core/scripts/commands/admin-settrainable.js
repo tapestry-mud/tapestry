@@ -9,7 +9,7 @@ tapestry.commands.register({
         flag: { type: 'keyword', required: true }
     },
     handler: function(actor, resolved) {
-        if (!actor.hasTag('admin')) {
+        if (!actor.hasRole('admin')) {
             actor.send('Huh?\r\n');
             return;
         }

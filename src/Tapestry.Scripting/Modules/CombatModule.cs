@@ -46,7 +46,7 @@ public class CombatModule : IJintApiModule
                     return "error";
                 }
 
-                if (target.HasTag("no_kill") || !target.HasTag("killable"))
+                if (target.HasTag("no_kill"))
                 {
                     return "no_kill";
                 }
