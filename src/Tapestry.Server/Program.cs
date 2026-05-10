@@ -221,6 +221,11 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
         return Results.Json(new { exists = false, nameValid = false, error = "Names must be 2-12 letters only." });
     }
 
+    if (name.Equals("Bela", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.Json(new { exists = false, nameValid = false, error = "The great mare of legend cannot be replaced. Choose another name." });
+    }
+
     var canonical = char.ToUpper(name[0]) + name[1..].ToLower();
     var exists = persistence.PlayerSaveExists(canonical);
 
