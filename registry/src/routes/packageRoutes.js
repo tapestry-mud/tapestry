@@ -87,7 +87,12 @@ function createPackageRoutes(db, dataDir, metrics) {
     `).all(like, like);
 
     const results = rows.map(row => {
-      const manifest = JSON.parse(row.manifest);
+      let manifest;
+      try {
+        manifest = JSON.parse(row.manifest);
+      } catch (_) {
+        manifest = {};
+      }
       return {
         name: `@${row.scope}/${row.name}`,
         version: row.version,
