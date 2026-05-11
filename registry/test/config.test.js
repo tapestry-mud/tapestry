@@ -1,14 +1,18 @@
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const yaml = require('js-yaml');
 const { loadConfig, getLimitsForScope } = require('../src/config');
 
 let tmpDir;
-beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-config-')); });
-afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-config-'));
+});
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 function writeConfig(obj) {
-  const yaml = require('js-yaml');
   const file = path.join(tmpDir, 'registry-config.yaml');
   fs.writeFileSync(file, yaml.dump(obj));
   return file;
