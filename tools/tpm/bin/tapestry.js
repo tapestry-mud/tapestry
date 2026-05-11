@@ -8,7 +8,7 @@ const { createPack } = require('../src/commands/create-pack');
 const program = new Command();
 
 program
-    .name('tpm')
+    .name('tapestry')
     .description('Tapestry Package Manager')
     .version('0.1.0');
 

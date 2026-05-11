@@ -1,9 +1,9 @@
 {
-  "name": "tpm",
+  "name": "tapestry",
   "version": "0.1.0",
   "description": "Tapestry Package Manager",
   "bin": {
-    "tpm": "./bin/tpm.js"
+    "tapestry": "./bin/tapestry.js"
   },
   "scripts": {
     "test": "jest"
