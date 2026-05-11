@@ -8,6 +8,8 @@ async function resolve(dependencies, registryUrl) {
     return {};
   }
 
+  const baseUrl = registryUrl.replace(/\/$/, '');
+
   const resolved = {};
   const resolvedBy = {};
   const queue = Object.entries(dependencies).map(([name, range]) => ({
@@ -32,7 +34,7 @@ async function resolve(dependencies, registryUrl) {
 
     resolvedBy[name] = { range, requiredBy };
 
-    const meta = await fetchPackageMetadata(name, registryUrl);
+    const meta = await fetchPackageMetadata(name, baseUrl);
     const versions = meta.versions.map((v) => v.version);
     const best = semver.maxSatisfying(versions, range);
 
@@ -51,7 +53,7 @@ async function resolve(dependencies, registryUrl) {
     resolved[name] = {
       version: best,
       integrity: versionData.integrity,
-      tarball: `${registryUrl}/v1/packages/${name}/${best}.tgz`,
+      tarball: `${baseUrl}/v1/packages/${name}/${best}.tgz`,
     };
 
     const transDeps = manifest.dependencies || {};
