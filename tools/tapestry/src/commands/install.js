@@ -52,7 +52,7 @@ async function installResolved(cwd, resolved) {
     }
 
     const packManifest = readYaml(path.join(destDir, 'tapestry.yaml'));
-    addPackageToBoot(cwd, packManifest.name || packageName, packManifest);
+    addPackageToBoot(cwd, packageName, packManifest);
   }
 }
 

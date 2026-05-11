@@ -149,7 +149,7 @@ describe('install (no args)', () => {
     await install(undefined, { cwd: tmpDir });
 
     const boot = readBoot(tmpDir);
-    expect(boot.packs['mock-pkg']).toEqual({ enabled: true });
+    expect(boot.packs['@tapestry/core']).toEqual({ enabled: true });
   });
 
   it('succeeds with no dependencies in tapestry.yaml', async () => {
