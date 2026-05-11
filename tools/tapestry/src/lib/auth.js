@@ -20,7 +20,7 @@ function loadToken() {
 }
 
 function saveToken(token) {
-  fs.writeFileSync(RC_PATH, yaml.dump({ token }, { lineWidth: -1 }));
+  fs.writeFileSync(RC_PATH, yaml.dump({ token }, { lineWidth: -1 }), { mode: 0o600 });
 }
 
 function requireToken() {

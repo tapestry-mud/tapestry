@@ -44,7 +44,7 @@ describe('saveToken', () => {
   it('writes YAML with token to RC_PATH', () => {
     const spy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
     saveToken('abc-jwt');
-    expect(spy).toHaveBeenCalledWith(RC_PATH, expect.stringContaining('abc-jwt'));
+    expect(spy).toHaveBeenCalledWith(RC_PATH, expect.stringContaining('abc-jwt'), { mode: 0o600 });
   });
 });
 

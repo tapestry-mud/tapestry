@@ -7,6 +7,9 @@ const tar = require('tar');
 const EXCLUDE = new Set(['.git', 'node_modules', '.DS_Store']);
 
 function shouldInclude(filePath) {
+  if (filePath.endsWith('.tgz')) {
+    return false;
+  }
   return !filePath.split('/').some((part) => EXCLUDE.has(part));
 }
 
