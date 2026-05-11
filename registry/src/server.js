@@ -1,5 +1,6 @@
 const express = require('express');
 const pinoHttp = require('pino-http');
+const { createAuthRoutes } = require('./routes/authRoutes');
 
 function createApp({ db, dataDir, config, metrics }) {
   const app = express();
@@ -12,6 +13,10 @@ function createApp({ db, dataDir, config, metrics }) {
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
   });
+
+  if (db) {
+    app.use('/v1/auth', createAuthRoutes(db));
+  }
 
   return app;
 }
