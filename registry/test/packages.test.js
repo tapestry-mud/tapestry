@@ -61,3 +61,45 @@ describe('GET /v1/packages/@:scope/:name', () => {
     expect(res.status).toBe(404);
   });
 });
+
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
+describe('GET /v1/packages/@:scope/:name/:version.tgz', () => {
+  let tgzApp, tgzDb, tgzDataDir;
+
+  beforeEach(() => {
+    ({ app: tgzApp, db: tgzDb, dataDir: tgzDataDir } = createTestApp());
+    seedAccount(tgzDb, { handle: 'tgzuser', email: 'tgz@example.com' });
+
+    const tgzDir = path.join(tgzDataDir, 'packages', '@tapestry', 'weather');
+    fs.mkdirSync(tgzDir, { recursive: true });
+    fs.writeFileSync(path.join(tgzDir, '1.0.0.tgz'), 'fake-tarball-content');
+
+    seedPackage(tgzDb, {
+      scope: 'tapestry',
+      name: 'weather',
+      version: '1.0.0',
+      ownerHandle: 'tgzuser',
+    });
+  });
+
+  afterEach(() => cleanupTestApp({ db: tgzDb, dataDir: tgzDataDir }));
+
+  test('serves tarball file', async () => {
+    const res = await request(tgzApp).get('/v1/packages/@tapestry/weather/1.0.0.tgz');
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('fake-tarball-content');
+  });
+
+  test('returns 404 for unknown version', async () => {
+    const res = await request(tgzApp).get('/v1/packages/@tapestry/weather/9.9.9.tgz');
+    expect(res.status).toBe(404);
+  });
+
+  test('returns 404 for unknown package', async () => {
+    const res = await request(tgzApp).get('/v1/packages/@tapestry/nonexistent/1.0.0.tgz');
+    expect(res.status).toBe(404);
+  });
+});

@@ -104,6 +104,37 @@ function createPackageRoutes(db, dataDir, metrics) {
     res.json({ results });
   });
 
+  router.get('/packages/@:scope/:name/:file', (req, res) => {
+    const { scope, name, file } = req.params;
+    if (!file.endsWith('.tgz')) {
+      return res.status(400).json({ error: 'expected .tgz file' });
+    }
+    const version = file.slice(0, -4);
+
+    const pkg = db.prepare(`SELECT * FROM packages WHERE scope = ? AND name = ?`).get(scope, name);
+    if (!pkg) {
+      return res.status(404).json({ error: 'package not found' });
+    }
+    const ver = db.prepare(`SELECT * FROM versions WHERE package_id = ? AND version = ?`).get(pkg.id, version);
+    if (!ver) {
+      return res.status(404).json({ error: 'version not found' });
+    }
+
+    const tgzPath = path.join(dataDir, 'packages', `@${scope}`, name, `${version}.tgz`);
+    if (!fs.existsSync(tgzPath)) {
+      return res.status(404).json({ error: 'tarball not found on disk' });
+    }
+
+    db.prepare(`UPDATE versions SET downloads = downloads + 1 WHERE id = ?`).run(ver.id);
+
+    if (metrics) {
+      metrics.downloads.inc({ scope: `@${scope}`, name, version });
+    }
+
+    res.setHeader('Content-Type', 'application/x-gzip');
+    res.sendFile(tgzPath);
+  });
+
   return router;
 }
 
