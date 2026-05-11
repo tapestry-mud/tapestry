@@ -17,7 +17,12 @@ function createPackageRoutes(db, dataDir, metrics) {
     const packages = {};
     for (const row of rows) {
       const key = `@${row.scope}/${row.name}`;
-      const manifest = JSON.parse(row.manifest);
+      let manifest;
+      try {
+        manifest = JSON.parse(row.manifest);
+      } catch (_) {
+        manifest = {};
+      }
       if (!packages[key]) {
         packages[key] = {
           latest: row.version,
@@ -49,7 +54,15 @@ function createPackageRoutes(db, dataDir, metrics) {
     res.json({
       name: `@${scope}/${name}`,
       owner: pkg.owner_handle,
-      versions: versions.map(v => ({ ...v, manifest: JSON.parse(v.manifest) })),
+      versions: versions.map(v => {
+        let manifest;
+        try {
+          manifest = JSON.parse(v.manifest);
+        } catch (_) {
+          manifest = null;
+        }
+        return { ...v, manifest };
+      }),
     });
   });
 
