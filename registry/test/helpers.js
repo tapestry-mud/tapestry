@@ -1,6 +1,7 @@
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const { initDb } = require('../src/db');
 const { createApp } = require('../src/server');
 
@@ -17,7 +18,6 @@ function cleanupTestApp({ db, dataDir }) {
 }
 
 function seedAccount(db, { handle = 'testuser', email = 'test@example.com' } = {}) {
-  const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('password', 1);
   db.prepare(`INSERT INTO accounts (handle, email, password_hash) VALUES (?, ?, ?)`).run(handle, email, hash);
   return { handle, email, password: 'password' };
