@@ -78,3 +78,104 @@ describe('checkPublishLimits', () => {
     expect(result.error).toMatch(/storage/i);
   });
 });
+
+const request = require('supertest');
+const path = require('path');
+const fs = require('fs');
+const { createTestApp, cleanupTestApp, seedAccount } = require('./helpers');
+const { signToken } = require('../src/auth');
+
+describe('POST /v1/publish', () => {
+  let publishApp, publishDb, publishDataDir, token;
+
+  beforeEach(() => {
+    ({ app: publishApp, db: publishDb, dataDir: publishDataDir } = createTestApp());
+    seedAccount(publishDb, { handle: 'mallek', email: 'mallek@example.com' });
+    token = signToken({ handle: 'mallek', email: 'mallek@example.com' });
+  });
+  afterEach(() => cleanupTestApp({ db: publishDb, dataDir: publishDataDir }));
+
+  function makeManifest(overrides = {}) {
+    return JSON.stringify({
+      name: '@mallek/testpkg',
+      version: '1.0.0',
+      description: 'A test package',
+      type: 'module',
+      author: { name: 'Test', handle: 'mallek' },
+      license: 'MIT',
+      engine: '>=3.0.0',
+      tag_validation: 'strict',
+      ...overrides,
+    });
+  }
+
+  test('publishes a new package version', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', makeManifest());
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe('@mallek/testpkg');
+    expect(res.body.version).toBe('1.0.0');
+    expect(res.body.integrity).toMatch(/^sha256-/);
+  });
+
+  test('stores tarball on filesystem', async () => {
+    await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', makeManifest());
+    const tgzPath = path.join(publishDataDir, 'packages', '@mallek', 'testpkg', '1.0.0.tgz');
+    expect(fs.existsSync(tgzPath)).toBe(true);
+  });
+
+  test('rejects duplicate version', async () => {
+    const payload = () => request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', makeManifest());
+    await payload();
+    const res = await payload();
+    expect(res.status).toBe(409);
+  });
+
+  test('rejects publish to wrong scope', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', makeManifest({ name: '@tapestry/testpkg' }));
+    expect(res.status).toBe(403);
+  });
+
+  test('rejects unauthenticated publish', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', makeManifest());
+    expect(res.status).toBe(401);
+  });
+
+  test('rejects missing required manifest fields', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake-tarball'), 'package.tgz')
+      .field('metadata', JSON.stringify({ name: '@mallek/testpkg' })); // no version
+    expect(res.status).toBe(400);
+  });
+
+  test('rejects over-size tarball', async () => {
+    const bigBuffer = Buffer.alloc(3 * 1024 * 1024, 'x'); // 3MB, over 2MB default
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', bigBuffer, 'package.tgz')
+      .field('metadata', makeManifest());
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/tarball/i);
+  });
+});

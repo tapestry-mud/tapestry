@@ -1,5 +1,25 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { getLimitsForScope } = require('../config');
+const { requireAuth } = require('../auth');
+const { computeIntegrity } = require('../integrity');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB hard ceiling; scope limits enforced separately
+});
+
+const REQUIRED_MANIFEST_FIELDS = ['name', 'version', 'description', 'type', 'author', 'license', 'engine', 'tag_validation'];
+
+function parseScopedName(packageName) {
+  const match = packageName.match(/^@([^/]+)\/(.+)$/);
+  if (!match) {
+    throw new Error(`invalid package name: ${packageName} (must be @scope/name)`);
+  }
+  return { scope: match[1], name: match[2] };
+}
 
 function checkPublishLimits(db, config, scope, packageName, tarballSize) {
   const limits = getLimitsForScope(config, scope);
@@ -38,7 +58,80 @@ function checkPublishLimits(db, config, scope, packageName, tarballSize) {
 
 function createPublishRoutes(db, dataDir, config, metrics) {
   const router = express.Router();
-  // POST /publish added in Task 10
+
+  router.post('/publish', requireAuth, upload.single('tarball'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'tarball file required' });
+    }
+    if (!req.body.metadata) {
+      return res.status(400).json({ error: 'metadata field required' });
+    }
+
+    let manifest;
+    try {
+      manifest = JSON.parse(req.body.metadata);
+    } catch {
+      return res.status(400).json({ error: 'metadata must be valid JSON' });
+    }
+
+    for (const field of REQUIRED_MANIFEST_FIELDS) {
+      if (!manifest[field]) {
+        return res.status(400).json({ error: `manifest missing required field: ${field}` });
+      }
+    }
+
+    let scope, name;
+    try {
+      ({ scope, name } = parseScopedName(manifest.name));
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    // Scope ownership: user's handle must match scope, or user is admin
+    const account = db.prepare(`SELECT is_admin FROM accounts WHERE handle = ?`).get(req.user.handle);
+    if (scope !== req.user.handle && !account?.is_admin) {
+      return res.status(403).json({ error: `scope @${scope} is not owned by @${req.user.handle}` });
+    }
+
+    const tarball = req.file.buffer;
+    const limitError = checkPublishLimits(db, config, `@${scope}`, name, tarball.length);
+    if (limitError) {
+      return res.status(400).json(limitError);
+    }
+
+    const integrity = computeIntegrity(tarball);
+
+    // Write tarball to disk
+    const tgzDir = path.join(dataDir, 'packages', `@${scope}`, name);
+    const tgzPath = path.join(tgzDir, `${manifest.version}.tgz`);
+    fs.mkdirSync(tgzDir, { recursive: true });
+    fs.writeFileSync(tgzPath, tarball);
+
+    // Upsert package record
+    db.prepare(`INSERT OR IGNORE INTO packages (scope, name, owner_handle) VALUES (?, ?, ?)`).run(scope, name, req.user.handle);
+    const pkg = db.prepare(`SELECT id FROM packages WHERE scope = ? AND name = ?`).get(scope, name);
+
+    // Insert version (fails with UNIQUE if already exists)
+    try {
+      db.prepare(`
+        INSERT INTO versions (package_id, version, manifest, tarball_path, tarball_size, integrity)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(pkg.id, manifest.version, JSON.stringify(manifest), tgzPath, tarball.length, integrity);
+    } catch (err) {
+      fs.unlinkSync(tgzPath);
+      if (err.message.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: `version ${manifest.version} already exists` });
+      }
+      return res.status(500).json({ error: 'publish failed' });
+    }
+
+    if (metrics) {
+      metrics.publishes.inc({ scope: `@${scope}`, name });
+    }
+
+    res.status(201).json({ name: manifest.name, version: manifest.version, integrity });
+  });
+
   return router;
 }
 

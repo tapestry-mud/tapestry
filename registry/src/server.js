@@ -2,6 +2,7 @@ const express = require('express');
 const pinoHttp = require('pino-http');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { createPackageRoutes } = require('./routes/packageRoutes');
+const { createPublishRoutes } = require('./routes/publishRoutes');
 
 function createApp({ db, dataDir, config, metrics }) {
   const app = express();
@@ -18,6 +19,7 @@ function createApp({ db, dataDir, config, metrics }) {
   if (db) {
     app.use('/v1/auth', createAuthRoutes(db));
     app.use('/v1', createPackageRoutes(db, dataDir, metrics));
+    app.use('/v1', createPublishRoutes(db, dataDir, config || {}, metrics));
   }
 
   return app;

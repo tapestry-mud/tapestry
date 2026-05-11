@@ -4,8 +4,9 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { initDb } = require('../src/db');
 const { createApp } = require('../src/server');
+const { loadConfig } = require('../src/config');
 
-function createTestApp({ config = {}, metrics = null } = {}) {
+function createTestApp({ config = loadConfig('/nonexistent'), metrics = null } = {}) {
   const db = initDb(':memory:');
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-test-'));
   const app = createApp({ db, dataDir, config, metrics });
