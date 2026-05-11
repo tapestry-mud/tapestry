@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const { initDb } = require('./db');
 const { loadConfig } = require('./config');
@@ -8,6 +9,8 @@ const DATA_DIR = process.env.DATA_DIR || '/var/tapestry-registry/data';
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'registry.db');
 const CONFIG_PATH = process.env.CONFIG_PATH || '/var/tapestry-registry/registry-config.yaml';
 const PORT = parseInt(process.env.PORT || '3002', 10);
+
+fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = initDb(DB_PATH);
 const config = loadConfig(CONFIG_PATH);
