@@ -66,6 +66,39 @@ function createPackageRoutes(db, dataDir, metrics) {
     });
   });
 
+  router.get('/search', (req, res) => {
+    const q = ((req.query.q) || '').trim().toLowerCase();
+    if (!q) {
+      return res.json({ results: [] });
+    }
+    const like = `%${q}%`;
+    const rows = db.prepare(`
+      SELECT p.scope, p.name, v.version, v.manifest
+      FROM packages p
+      JOIN versions v ON v.package_id = p.id
+      WHERE (v.package_id, v.published_at) IN (
+        SELECT package_id, MAX(published_at) FROM versions GROUP BY package_id
+      )
+      AND (
+        lower(p.name) LIKE ?
+        OR lower(v.manifest) LIKE ?
+      )
+      ORDER BY p.scope, p.name
+    `).all(like, like);
+
+    const results = rows.map(row => {
+      const manifest = JSON.parse(row.manifest);
+      return {
+        name: `@${row.scope}/${row.name}`,
+        version: row.version,
+        description: manifest.description || '',
+        keywords: manifest.meta?.keywords || [],
+      };
+    });
+
+    res.json({ results });
+  });
+
   return router;
 }
 
