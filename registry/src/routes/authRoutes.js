@@ -29,11 +29,15 @@ function createAuthRoutes(db) {
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
-    const account = db.prepare(`SELECT * FROM accounts WHERE email = ?`).get(email);
-    if (!account || !(await comparePassword(password, account.password_hash))) {
-      return res.status(401).json({ error: 'invalid credentials' });
+    try {
+      const account = db.prepare(`SELECT * FROM accounts WHERE email = ?`).get(email);
+      if (!account || !(await comparePassword(password, account.password_hash))) {
+        return res.status(401).json({ error: 'invalid credentials' });
+      }
+      res.json({ token: signToken({ handle: account.handle, email: account.email }) });
+    } catch (err) {
+      res.status(500).json({ error: 'login failed' });
     }
-    res.json({ token: signToken({ handle: account.handle, email: account.email }) });
   });
 
   return router;
