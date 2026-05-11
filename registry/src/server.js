@@ -16,6 +16,13 @@ function createApp({ db, dataDir, config, metrics }) {
     res.json({ status: 'ok' });
   });
 
+  if (metrics) {
+    app.get('/metrics', async (req, res) => {
+      res.set('Content-Type', metrics.registry.contentType);
+      res.end(await metrics.registry.metrics());
+    });
+  }
+
   if (db) {
     app.use('/v1/auth', createAuthRoutes(db));
     app.use('/v1', createPackageRoutes(db, dataDir, metrics));
