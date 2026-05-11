@@ -1,0 +1,19 @@
+{
+  "name": "tpm",
+  "version": "0.1.0",
+  "description": "Tapestry Package Manager",
+  "bin": {
+    "tpm": "./bin/tpm.js"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
