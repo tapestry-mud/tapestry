@@ -8,7 +8,7 @@ const os = require('os');
 let tmpDir;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tpm-create-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-create-'));
 });
 
 afterEach(() => {

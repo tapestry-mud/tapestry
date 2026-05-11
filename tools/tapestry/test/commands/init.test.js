@@ -10,7 +10,7 @@ let tmpDir;
 
 beforeEach(() => {
   {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tpm-init-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-init-'));
   }
 });
 
