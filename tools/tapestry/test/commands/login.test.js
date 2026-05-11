@@ -12,6 +12,8 @@ beforeEach(() => {
 });
 
 it('posts credentials and saves token on success', async () => {
+  const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
   fetch.mockResolvedValue({
     ok: true,
     json: async () => ({ token: 'jwt-abc' }),
@@ -27,6 +29,9 @@ it('posts credentials and saves token on success', async () => {
     })
   );
   expect(saveToken).toHaveBeenCalledWith('jwt-abc');
+  expect(consoleSpy).toHaveBeenCalledWith('Logged in.');
+
+  consoleSpy.mockRestore();
 });
 
 it('throws on invalid credentials', async () => {
