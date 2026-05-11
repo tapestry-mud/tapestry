@@ -9,6 +9,15 @@ const { uninstall } = require('../src/commands/uninstall');
 const { update } = require('../src/commands/update');
 const { enable } = require('../src/commands/enable');
 const { disable } = require('../src/commands/disable');
+const { login } = require('../src/commands/login');
+const { register } = require('../src/commands/register');
+const { validate } = require('../src/commands/validate');
+const { pack } = require('../src/commands/pack');
+const { publish } = require('../src/commands/publish');
+const { search } = require('../src/commands/search');
+const { info } = require('../src/commands/info');
+const { list } = require('../src/commands/list');
+const { outdated } = require('../src/commands/outdated');
 
 const program = new Command();
 
@@ -97,6 +106,114 @@ program
   .action(async (pkg) => {
     try {
       await disable(pkg);
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('login')
+  .description('Authenticate with the registry and store token in ~/.tapestryrc')
+  .action(async () => {
+    try {
+      await login();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('register')
+  .description('Create an account on the registry')
+  .action(async () => {
+    try {
+      await register();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('validate')
+  .description('Validate tapestry.yaml in the current directory')
+  .action(() => {
+    try {
+      validate();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('pack')
+  .description('Build a tarball from the current pack directory for local inspection')
+  .action(async () => {
+    try {
+      await pack();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('publish')
+  .description('Build and upload the current pack to the registry')
+  .action(async () => {
+    try {
+      await publish();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('search <query>')
+  .description('Search the registry by keyword')
+  .action(async (query) => {
+    try {
+      await search(query);
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('info <package>')
+  .description('Show details for a registry package')
+  .action(async (pkg) => {
+    try {
+      await info(pkg);
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('list')
+  .description('Show installed packages with version, type, and enabled/disabled status')
+  .action(async () => {
+    try {
+      await list();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('outdated')
+  .description('Show installed packages with newer versions available in the registry')
+  .action(async () => {
+    try {
+      await outdated();
     } catch (e) {
       console.error(`error: ${e.message}`);
       process.exit(1);
