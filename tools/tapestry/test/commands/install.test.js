@@ -160,3 +160,32 @@ describe('install (no args)', () => {
     expect(fetchPackageMetadata).not.toHaveBeenCalled();
   });
 });
+
+describe('install @scope/name (with package arg)', () => {
+  it('adds package to tapestry.yaml with resolved version range', async () => {
+    writeProjectManifest(tmpDir, {});
+    fetchPackageMetadata.mockResolvedValue(makeRegistryMeta('@tapestry/weather', '0.8.1'));
+    fetchTarball.mockResolvedValue(Buffer.from('fake'));
+
+    await install('@tapestry/weather', { cwd: tmpDir });
+
+    const updated = readYaml(path.join(tmpDir, 'tapestry.yaml'));
+    expect(updated.dependencies['@tapestry/weather']).toBe('^0.8.1');
+  });
+
+  it('respects explicit range when provided', async () => {
+    writeProjectManifest(tmpDir, {});
+    fetchPackageMetadata.mockResolvedValue(makeRegistryMeta('@tapestry/weather', '0.8.1'));
+    fetchTarball.mockResolvedValue(Buffer.from('fake'));
+
+    await install('@tapestry/weather@~0.8.0', { cwd: tmpDir });
+
+    const updated = readYaml(path.join(tmpDir, 'tapestry.yaml'));
+    expect(updated.dependencies['@tapestry/weather']).toBe('~0.8.0');
+  });
+
+  it('throws on invalid package name format', async () => {
+    writeProjectManifest(tmpDir, {});
+    await expect(install('not-scoped', { cwd: tmpDir })).rejects.toThrow('Invalid package name');
+  });
+});
