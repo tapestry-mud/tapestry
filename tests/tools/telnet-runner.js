@@ -141,6 +141,25 @@ function parseStep(line) {
     const texts = seesOneOfMatch[2].split(',').map(t => t.trim().replace(/^`|`$/g, ''));
     return { type: 'assert_sees_one_of', player: seesOneOfMatch[1], texts: texts };
   }
+  const gmcpWithMatch = line.match(/^\d+\.\s*Assert (\w+) receives GMCP:\s*`(.+?)`\s+with\s+(.+)/);
+  if (gmcpWithMatch) {
+    const fields = {};
+    for (const pair of gmcpWithMatch[3].split(',')) {
+      const [k, v] = pair.split('=').map(s => s.trim().replace(/^"|"$/g, ''));
+      if (k && v !== undefined) {
+        fields[k] = v;
+      }
+    }
+    return { type: 'assert_gmcp_field', player: gmcpWithMatch[1], package: gmcpWithMatch[2], fields };
+  }
+  const gmcpMatch = line.match(/^\d+\.\s*Assert (\w+) receives GMCP:\s*`(.+)`/);
+  if (gmcpMatch) {
+    return { type: 'assert_gmcp', player: gmcpMatch[1], package: gmcpMatch[2] };
+  }
+  const gmcpOrderMatch = line.match(/^\d+\.\s*Assert `(.+?)` packet index is less than `(.+?)` packet index/);
+  if (gmcpOrderMatch) {
+    return { type: 'assert_gmcp_order', first: gmcpOrderMatch[1], second: gmcpOrderMatch[2] };
+  }
   const seesMatch = line.match(/^\d+\.\s*Assert (\w+) sees:\s*`(.+)`/);
   if (seesMatch) {
     return { type: 'assert_sees', player: seesMatch[1], text: seesMatch[2] };
@@ -168,6 +187,22 @@ function parseDefaultLogin(defaultsDir) {
   return steps;
 }
 
+// ─── Telnet Constants ──────────────────────────────────────────────
+
+const IAC  = 0xFF;
+const SB   = 0xFA;
+const SE   = 0xF0;
+const WILL = 0xFB;
+const WONT = 0xFC;
+const DO   = 0xFD;
+const DONT = 0xFE;
+
+const OPT_ECHO  = 1;
+const OPT_TTYPE = 24;
+const OPT_NAWS  = 31;
+const OPT_MSSP  = 70;
+const OPT_GMCP  = 201;
+
 // ─── Telnet Client ─────────────────────────────────────────────────
 
 class TelnetClient {
@@ -179,15 +214,22 @@ class TelnetClient {
     this.buffer = '';
     this.connected = false;
     this._resolve = null;
+    this._rawBuf = Buffer.alloc(0);
+    this.gmcpPackets = [];
+    this.gmcpEnabled = false;
   }
 
   connect() {
     return new Promise((resolve, reject) => {
       this.socket = new net.Socket();
-      this.socket.setEncoding('utf-8');
 
-      this.socket.on('data', (data) => {
-        this.buffer += data;
+      this.socket.on('data', (chunk) => {
+        this._rawBuf = Buffer.concat([this._rawBuf, chunk]);
+        this._parseIac();
+        if (this._gmcpNegotiated && !this._gmcpSupportsSent) {
+          this._gmcpSupportsSent = true;
+          process.nextTick(() => this._sendGmcpSupports());
+        }
         if (this._resolve) {
           const fn = this._resolve;
           this._resolve = null;
@@ -209,6 +251,121 @@ class TelnetClient {
         resolve();
       });
     });
+  }
+
+  _parseIac() {
+    let text = '';
+    let i = 0;
+    const buf = this._rawBuf;
+
+    while (i < buf.length) {
+      if (buf[i] !== IAC) {
+        text += String.fromCharCode(buf[i]);
+        i++;
+        continue;
+      }
+
+      if (i + 1 >= buf.length) {
+        break;
+      }
+
+      const cmd = buf[i + 1];
+
+      if (cmd === IAC) {
+        text += String.fromCharCode(0xFF);
+        i += 2;
+        continue;
+      }
+
+      if (cmd === WILL || cmd === WONT || cmd === DO || cmd === DONT) {
+        if (i + 2 >= buf.length) {
+          break;
+        }
+        const opt = buf[i + 2];
+        this._handleNegotiation(cmd, opt);
+        i += 3;
+        continue;
+      }
+
+      if (cmd === SB) {
+        const seIdx = this._findSubnegEnd(buf, i + 2);
+        if (seIdx === -1) {
+          break;
+        }
+        const subData = buf.slice(i + 2, seIdx);
+        this._handleSubnegotiation(subData);
+        i = seIdx + 2;
+        continue;
+      }
+
+      i += 2;
+    }
+
+    this._rawBuf = buf.slice(i);
+    if (text.length > 0) {
+      this.buffer += text;
+    }
+  }
+
+  _findSubnegEnd(buf, start) {
+    for (let j = start; j < buf.length - 1; j++) {
+      if (buf[j] === IAC && buf[j + 1] === SE) {
+        return j;
+      }
+    }
+    return -1;
+  }
+
+  _handleNegotiation(cmd, opt) {
+    if (cmd === WILL && opt === OPT_GMCP) {
+      this.socket.write(Buffer.from([IAC, DO, OPT_GMCP]));
+      this.gmcpEnabled = true;
+      this._gmcpNegotiated = true;
+    } else if (cmd === WILL && opt === OPT_ECHO) {
+      this.socket.write(Buffer.from([IAC, DO, OPT_ECHO]));
+    } else if (cmd === WILL) {
+      this.socket.write(Buffer.from([IAC, DONT, opt]));
+    } else if (cmd === DO) {
+      this.socket.write(Buffer.from([IAC, WONT, opt]));
+    }
+  }
+
+  _sendGmcpSupports() {
+    const packages = [
+      'Char 1', 'Char.Login 1', 'Room 1', 'World 1',
+      'Comm 1', 'Response 1', 'Core 1'
+    ];
+    const payload = 'Core.Supports.Set ' + JSON.stringify(packages);
+    const payloadBytes = Buffer.from(payload, 'utf-8');
+    const frame = Buffer.alloc(payloadBytes.length + 5);
+    frame[0] = IAC;
+    frame[1] = SB;
+    frame[2] = OPT_GMCP;
+    payloadBytes.copy(frame, 3);
+    frame[payloadBytes.length + 3] = IAC;
+    frame[payloadBytes.length + 4] = SE;
+    this.socket.write(frame);
+  }
+
+  _handleSubnegotiation(data) {
+    if (data.length === 0) {
+      return;
+    }
+    const opt = data[0];
+    if (opt === OPT_GMCP) {
+      const text = data.slice(1).toString('utf-8').trim();
+      const spaceIdx = text.indexOf(' ');
+      const pkg = spaceIdx < 0 ? text : text.slice(0, spaceIdx);
+      let payload = null;
+      if (spaceIdx >= 0) {
+        try {
+          payload = JSON.parse(text.slice(spaceIdx + 1));
+        } catch (_) {
+          payload = text.slice(spaceIdx + 1);
+        }
+      }
+      this.gmcpPackets.push({ package: pkg, data: payload });
+    }
   }
 
   send(text) {
@@ -255,6 +412,10 @@ class TelnetClient {
 
   clearBuffer() {
     this.buffer = '';
+  }
+
+  clearGmcpPackets() {
+    this.gmcpPackets = [];
   }
 
   drain() {
@@ -322,6 +483,7 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
     for (const playerName of scenario.players) {
       const client = new TelnetClient(playerName, port);
       await client.connect();
+      await client.settle(300);
       clients[playerName] = client;
       result.transcript.push(`[${playerName} connected]`);
     }
@@ -388,9 +550,9 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
 
     for (let i = 0; i < scenario.steps.length; i++) {
       const step = scenario.steps[i];
-      const client = clients[step.player];
+      const client = step.player ? clients[step.player] : null;
 
-      if (!client) {
+      if (!client && step.type !== 'assert_gmcp_order') {
         result.failures.push({
           step: i + 1,
           error: `Unknown player "${step.player}"`
@@ -469,6 +631,95 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
             actual: buf.slice(-300)
           });
           result.status = 'fail';
+        }
+      } else if (step.type === 'assert_gmcp') {
+        const found = client.gmcpPackets.some(p =>
+          p.package.toLowerCase() === step.package.toLowerCase()
+        );
+        if (found) {
+          result.transcript.push(`< ${step.player}: ✓ received GMCP "${step.package}"`);
+        } else {
+          const received = client.gmcpPackets.map(p => p.package).join(', ') || '(none)';
+          result.transcript.push(`< ${step.player}: ✗ expected GMCP "${step.package}" — received: ${received}`);
+          result.failures.push({
+            step: i + 1,
+            assertion: 'receives GMCP',
+            player: step.player,
+            expected: step.package,
+            actual: received
+          });
+          result.status = 'fail';
+        }
+      } else if (step.type === 'assert_gmcp_field') {
+        const pkt = client.gmcpPackets.find(p =>
+          p.package.toLowerCase() === step.package.toLowerCase()
+        );
+        if (!pkt) {
+          const received = client.gmcpPackets.map(p => p.package).join(', ') || '(none)';
+          result.transcript.push(`< ${step.player}: ✗ expected GMCP "${step.package}" — received: ${received}`);
+          result.failures.push({
+            step: i + 1,
+            assertion: 'receives GMCP with fields',
+            player: step.player,
+            expected: step.package,
+            actual: received
+          });
+          result.status = 'fail';
+        } else {
+          let allMatch = true;
+          for (const [k, v] of Object.entries(step.fields)) {
+            const actual = pkt.data && typeof pkt.data === 'object' ? String(pkt.data[k] ?? '') : '';
+            if (actual.toLowerCase() !== v.toLowerCase()) {
+              result.transcript.push(`< ${step.player}: ✗ GMCP "${step.package}" field ${k}: expected "${v}", got "${actual}"`);
+              result.failures.push({
+                step: i + 1,
+                assertion: `GMCP ${step.package} field ${k}`,
+                player: step.player,
+                expected: v,
+                actual: actual
+              });
+              result.status = 'fail';
+              allMatch = false;
+            }
+          }
+          if (allMatch) {
+            result.transcript.push(`< ${step.player}: ✓ received GMCP "${step.package}" with matching fields`);
+          }
+        }
+      } else if (step.type === 'assert_gmcp_order') {
+        const firstClient = Object.values(clients)[0];
+        if (!firstClient) {
+          result.failures.push({ step: i + 1, error: 'No client for GMCP order check' });
+          result.status = 'fail';
+        } else {
+          const firstIdx = firstClient.gmcpPackets.findIndex(p =>
+            p.package.toLowerCase() === step.first.toLowerCase()
+          );
+          const secondIdx = firstClient.gmcpPackets.findIndex(p =>
+            p.package.toLowerCase() === step.second.toLowerCase()
+          );
+          if (firstIdx === -1 || secondIdx === -1) {
+            const received = firstClient.gmcpPackets.map(p => p.package).join(', ') || '(none)';
+            result.transcript.push(`< ✗ GMCP order: missing packet(s) — received: ${received}`);
+            result.failures.push({
+              step: i + 1,
+              assertion: 'GMCP order',
+              expected: `${step.first} before ${step.second}`,
+              actual: received
+            });
+            result.status = 'fail';
+          } else if (firstIdx < secondIdx) {
+            result.transcript.push(`< ✓ GMCP order: "${step.first}" (${firstIdx}) before "${step.second}" (${secondIdx})`);
+          } else {
+            result.transcript.push(`< ✗ GMCP order: "${step.first}" (${firstIdx}) NOT before "${step.second}" (${secondIdx})`);
+            result.failures.push({
+              step: i + 1,
+              assertion: 'GMCP order',
+              expected: `${step.first} before ${step.second}`,
+              actual: `${step.first} at ${firstIdx}, ${step.second} at ${secondIdx}`
+            });
+            result.status = 'fail';
+          }
         }
       }
     }
@@ -894,17 +1145,19 @@ async function main() {
 
   console.log(`Running ${files.length} scenario file(s) against localhost:${port}...\n`);
 
+  let managedProcess = null;
+  if (managed) {
+    try {
+      managedProcess = await restartServer(projectRoot, port);
+    } catch (err) {
+      console.error(`Failed to start server: ${err.message}`);
+      process.exit(1);
+    }
+  }
+
   const allResults = [];
   for (let fi = 0; fi < files.length; fi++) {
-    let serverProcess = null;
-    if (managed) {
-      try {
-        serverProcess = await restartServer(projectRoot, port);
-      } catch (err) {
-        console.error(`Failed to start server for file ${fi + 1}: ${err.message}`);
-        process.exit(1);
-      }
-    } else if (fi > 0) {
+    if (fi > 0) {
       await new Promise(r => setTimeout(r, 1000));
     }
 
@@ -919,16 +1172,6 @@ async function main() {
       const transcriptPath = writeTranscript(fileResult, resultsDir);
       if (!jsonOnly) {
         console.log(`  Transcript: ${path.relative(process.cwd(), transcriptPath)}`);
-      }
-    }
-
-    if (serverProcess) {
-      if (process.platform === 'win32') {
-        try {
-          execSync(`taskkill /F /T /PID ${serverProcess.pid}`, { stdio: 'ignore', windowsHide: true });
-        } catch (_) {}
-      } else {
-        serverProcess.kill();
       }
     }
   }

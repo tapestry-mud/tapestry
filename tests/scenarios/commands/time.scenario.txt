@@ -1,5 +1,0 @@
-> connect admin password
-> time
-< It is
-< hour
-< Period:

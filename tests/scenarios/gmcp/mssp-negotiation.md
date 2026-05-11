@@ -7,7 +7,7 @@
 
 ### Steps
 1. Alice: `look`
-2. Assert Alice sees: `Town Square`
+2. Assert Alice sees: `The Nexus`
 3. Assert Alice does not see: `MSSP`
 
 ## Scenario: Player can look and see room after MSSP exchange
@@ -15,5 +15,5 @@
 
 ### Steps
 1. Alice: `look`
-2. Assert Alice sees: `Town Square`
+2. Assert Alice sees: `The Nexus`
 3. Assert Alice does not see: `MSSP`

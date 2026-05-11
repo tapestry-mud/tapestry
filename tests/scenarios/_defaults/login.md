@@ -4,7 +4,7 @@ The runner substitutes `{PlayerName}` with the actual player name from the scena
 All test players are pre-seeded in the content pack with password `testpass123`.
 
 ### {PlayerName}
-1. Wait for: `adventurer?`
+1. Wait for: `Speak your name`
 2. Send: `{PlayerName}`
 3. Wait for: `Password`
 4. Send: `testpass123`
