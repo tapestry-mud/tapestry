@@ -18,8 +18,12 @@ function createApp({ db, dataDir, config, metrics }) {
 
   if (metrics) {
     app.get('/metrics', async (req, res) => {
-      res.set('Content-Type', metrics.registry.contentType);
-      res.end(await metrics.registry.metrics());
+      try {
+        res.set('Content-Type', metrics.registry.contentType);
+        res.end(await metrics.registry.metrics());
+      } catch (err) {
+        res.status(500).end(String(err));
+      }
     });
   }
 

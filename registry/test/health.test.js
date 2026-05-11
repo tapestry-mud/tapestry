@@ -8,7 +8,7 @@ test('GET /health returns 200', async () => {
   expect(res.body).toEqual({ status: 'ok' });
 });
 
-const { createTestApp, cleanupTestApp, seedAccount } = require('./helpers');
+const { createTestApp, cleanupTestApp } = require('./helpers');
 const { createMetrics } = require('../src/metrics');
 
 describe('GET /metrics', () => {
