@@ -65,4 +65,16 @@ describe('checkPublishLimits', () => {
     const result = checkPublishLimits(db, defaultConfig, '@testscope', 'testpkg', 1); // any new bytes tip it over
     expect(result.error).toMatch(/storage/i);
   });
+
+  test('rejects new package when scope is already at storage limit', () => {
+    // Create a DIFFERENT package in the same scope that fills the storage
+    db.prepare(`INSERT INTO packages (scope, name, owner_handle) VALUES ('testscope', 'otherpkg', 'owner')`).run();
+    const otherPkg = db.prepare(`SELECT id FROM packages WHERE scope = 'testscope' AND name = 'otherpkg'`).get();
+    const bigSize = 50 * 1024 * 1024; // exactly at 50MB limit
+    db.prepare(`INSERT INTO versions (package_id, version, manifest, tarball_path, tarball_size, integrity) VALUES (?, '1.0.0', '{}', '/tmp/x.tgz', ?, 'sha256-x')`).run(otherPkg.id, bigSize);
+
+    // Try to publish a new package ('testpkg' doesn't exist yet) - should fail on scope storage
+    const result = checkPublishLimits(db, defaultConfig, '@testscope', 'testpkg', 1024);
+    expect(result.error).toMatch(/storage/i);
+  });
 });
