@@ -12,10 +12,10 @@ function init(cwd) {
       }
     }
 
-    const manifestPath = path.join(cwd, 'tpm.yaml');
+    const manifestPath = path.join(cwd, 'tapestry.yaml');
     if (fs.existsSync(manifestPath)) {
       {
-        throw new Error('tpm.yaml already exists. Run tpm install to install dependencies.');
+        throw new Error('tapestry.yaml already exists. Run tapestry install to install dependencies.');
       }
     }
 
@@ -37,13 +37,13 @@ function init(cwd) {
     writeYaml(manifestPath, manifest);
     fs.writeFileSync(path.join(cwd, 'server.yaml'), '# Tapestry server configuration\n# See https://tapestryengine.com/docs/config for full options\nport: 4000\n');
     fs.mkdirSync(path.join(cwd, 'packs'), { recursive: true });
-    fs.writeFileSync(path.join(cwd, '.gitignore'), '# Installed packages (managed by tpm install)\npacks/\n');
+    fs.writeFileSync(path.join(cwd, '.gitignore'), '# Installed packages (managed by tapestry install)\npacks/\n');
 
     console.log(`Initialized: ${name}`);
-    console.log('  tpm.yaml    project manifest');
-    console.log('  server.yaml engine config');
-    console.log('  packs/      installed packages');
-    console.log('  .gitignore  excludes packs/ from git');
+    console.log('  tapestry.yaml  project manifest');
+    console.log('  server.yaml    engine config');
+    console.log('  packs/         installed packages');
+    console.log('  .gitignore     excludes packs/ from git');
 
     if (!fs.existsSync(path.join(cwd, '.git'))) {
       {
@@ -51,7 +51,7 @@ function init(cwd) {
       }
     }
 
-    console.log('\nNext: edit tpm.yaml, then run tpm install');
+    console.log('\nNext: edit tapestry.yaml, then run tapestry install');
   }
 }
 

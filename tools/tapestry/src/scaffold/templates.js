@@ -43,7 +43,7 @@ content:
   scripts: "scripts/**/*.js"
   help: "help/**/*.yaml"
 
-# Discovery metadata (shown by tpm search and tpm info)
+# Discovery metadata (shown by tapestry search and tapestry info)
 meta:
   commands: []
   keywords: ["example"]
@@ -266,7 +266,7 @@ see_also: [help, commands]
 
 function generatePackFiles({ scopedName, shortName }) {
   return [
-    { path: 'tpm.yaml', content: manifestTemplate(scopedName) },
+    { path: 'tapestry.yaml', content: manifestTemplate(scopedName) },
     { path: 'tags.yml', content: tagsTemplate() },
     { path: 'areas/example-area/area.yaml', content: areaTemplate() },
     { path: 'areas/example-area/rooms/town-square.yaml', content: roomTemplate(shortName) },

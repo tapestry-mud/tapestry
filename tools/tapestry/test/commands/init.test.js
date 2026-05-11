@@ -20,22 +20,22 @@ afterEach(() => {
   }
 });
 
-test('creates tpm.yaml with project name derived from directory', () => {
+test('creates tapestry.yaml with project name derived from directory', () => {
   {
     const projectDir = path.join(tmpDir, 'my-game');
     fs.mkdirSync(projectDir);
     init(projectDir);
-    const manifest = readYaml(path.join(projectDir, 'tpm.yaml'));
+    const manifest = readYaml(path.join(projectDir, 'tapestry.yaml'));
     expect(manifest.name).toBe('my-game');
   }
 });
 
-test('tpm.yaml includes @tapestry/core dependency and engine config', () => {
+test('tapestry.yaml includes @tapestry/core dependency and engine config', () => {
   {
     const projectDir = path.join(tmpDir, 'my-game');
     fs.mkdirSync(projectDir);
     init(projectDir);
-    const manifest = readYaml(path.join(projectDir, 'tpm.yaml'));
+    const manifest = readYaml(path.join(projectDir, 'tapestry.yaml'));
     expect(manifest.engine).toBeDefined();
     expect(manifest.dependencies['@tapestry/core']).toBe('^1.0.0');
   }
@@ -94,11 +94,11 @@ test('does not log git hint when .git directory exists', () => {
   }
 });
 
-test('throws if tpm.yaml already exists', () => {
+test('throws if tapestry.yaml already exists', () => {
   {
     const projectDir = path.join(tmpDir, 'my-game');
     fs.mkdirSync(projectDir);
-    fs.writeFileSync(path.join(projectDir, 'tpm.yaml'), 'name: my-game\n');
-    expect(() => { init(projectDir); }).toThrow('tpm.yaml already exists');
+    fs.writeFileSync(path.join(projectDir, 'tapestry.yaml'), 'name: my-game\n');
+    expect(() => { init(projectDir); }).toThrow('tapestry.yaml already exists');
   }
 });

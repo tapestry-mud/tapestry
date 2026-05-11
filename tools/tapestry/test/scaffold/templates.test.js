@@ -11,7 +11,7 @@ test('returns exactly 8 files', () => {
 
 test('returns all expected file paths', () => {
   const paths = generatePackFiles(parsed).map(f => f.path);
-  expect(paths).toContain('tpm.yaml');
+  expect(paths).toContain('tapestry.yaml');
   expect(paths).toContain('tags.yml');
   expect(paths).toContain('areas/example-area/area.yaml');
   expect(paths).toContain('areas/example-area/rooms/town-square.yaml');
@@ -21,9 +21,9 @@ test('returns all expected file paths', () => {
   expect(paths).toContain('help/example.yaml');
 });
 
-test('tpm.yaml contains the scoped pack name', () => {
+test('tapestry.yaml contains the scoped pack name', () => {
   const files = generatePackFiles(parsed);
-  const manifest = files.find(f => f.path === 'tpm.yaml');
+  const manifest = files.find(f => f.path === 'tapestry.yaml');
   expect(manifest.content).toContain('@author/my-pack');
 });
 

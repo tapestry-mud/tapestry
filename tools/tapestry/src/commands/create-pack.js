@@ -59,7 +59,7 @@ function createPack(name, cwd) {
         console.log(`  ${file.path}`);
       }
     }
-    console.log('\nEdit tpm.yaml, then run: tpm validate');
+    console.log('\nEdit tapestry.yaml, then run: tapestry validate');
   }
 }
 

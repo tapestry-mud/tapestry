@@ -47,9 +47,9 @@ describe('createPack', () => {
     expect(fs.existsSync(path.join(tmpDir, 'my-pack'))).toBe(true);
   });
 
-  test('tpm.yaml contains the scoped name', () => {
+  test('tapestry.yaml contains the scoped name', () => {
     createPack('@author/my-pack', tmpDir);
-    const content = fs.readFileSync(path.join(tmpDir, 'my-pack', 'tpm.yaml'), 'utf8');
+    const content = fs.readFileSync(path.join(tmpDir, 'my-pack', 'tapestry.yaml'), 'utf8');
     expect(content).toContain('@author/my-pack');
   });
 
