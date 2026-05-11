@@ -42,13 +42,15 @@ async function installResolved(cwd, resolved) {
     const safeId = packageName.replace('@', '').replace('/', '-');
     const tmpPath = path.join(os.tmpdir(), `tapestry-${safeId}-${info.version}.tgz`);
 
-    const buffer = await fetchTarball(info.tarball);
-    verifyIntegrity(buffer, info.integrity);
-    saveTarball(buffer, tmpPath);
-    await extractTarball(tmpPath, destDir);
-
-    if (fs.existsSync(tmpPath)) {
-      fs.unlinkSync(tmpPath);
+    try {
+      const buffer = await fetchTarball(info.tarball);
+      verifyIntegrity(buffer, info.integrity);
+      saveTarball(buffer, tmpPath);
+      await extractTarball(tmpPath, destDir);
+    } finally {
+      if (fs.existsSync(tmpPath)) {
+        fs.unlinkSync(tmpPath);
+      }
     }
 
     const packManifest = readYaml(path.join(destDir, 'tapestry.yaml'));
