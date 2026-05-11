@@ -1,5 +1,5 @@
 bin/
-!tools/tpm/bin/
+!tools/tapestry/bin/
 obj/
 .vs/
 *.user
