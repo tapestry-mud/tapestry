@@ -7,7 +7,8 @@ const { DEFAULT_REGISTRY } = require('../lib/registry-client');
 
 async function promptRegistration() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    rl.on('error', reject);
     rl.question('Handle (lowercase, e.g. mallek): ', (handle) => {
       rl.question('Email: ', (email) => {
         rl.question('Password: ', (password) => {
