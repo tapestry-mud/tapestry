@@ -71,4 +71,21 @@ describe('registry-client', () => {
         .rejects.toThrow('Tarball download failed: 403');
     });
   });
+
+  describe('fetchPackageMetadata input validation', () => {
+    it('throws on invalid package name format', async () => {
+      await expect(fetchPackageMetadata('not-scoped', 'http://localhost:3002'))
+        .rejects.toThrow('Invalid package name');
+    });
+
+    it('throws on path traversal attempt', async () => {
+      await expect(fetchPackageMetadata('@scope/../../../etc/passwd', 'http://localhost:3002'))
+        .rejects.toThrow('Invalid package name');
+    });
+
+    it('throws on empty string', async () => {
+      await expect(fetchPackageMetadata('', 'http://localhost:3002'))
+        .rejects.toThrow('Package name must be a non-empty string');
+    });
+  });
 });
