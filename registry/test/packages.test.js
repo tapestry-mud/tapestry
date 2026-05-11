@@ -62,7 +62,6 @@ describe('GET /v1/packages/@:scope/:name', () => {
   });
 });
 
-const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
@@ -101,5 +100,10 @@ describe('GET /v1/packages/@:scope/:name/:version.tgz', () => {
   test('returns 404 for unknown package', async () => {
     const res = await request(tgzApp).get('/v1/packages/@tapestry/nonexistent/1.0.0.tgz');
     expect(res.status).toBe(404);
+  });
+
+  test('returns 400 for non-.tgz extension', async () => {
+    const res = await request(tgzApp).get('/v1/packages/@tapestry/weather/1.0.0.zip');
+    expect(res.status).toBe(400);
   });
 });
