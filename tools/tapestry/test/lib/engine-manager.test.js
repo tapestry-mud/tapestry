@@ -59,3 +59,20 @@ describe('missing or invalid engine config', () => {
     );
   });
 });
+
+describe('readEngineConfig — valid config', () => {
+  it('returns correct shape for a valid docker manifest', async () => {
+    writeYaml(path.join(tmpDir, 'tapestry.yaml'), {
+      name: 'my-game',
+      engine: { version: '3.1.0', mode: 'docker' },
+    });
+    const info = getEngineInfo(tmpDir);
+    expect(info).toMatchObject({
+      version: '3.1.0',
+      mode: 'docker',
+      image: 'ghcr.io/tapestry-mud/tapestry',
+      projectName: 'my-game',
+    });
+    expect(info.installDir).toContain('.tapestry-engine');
+  });
+});

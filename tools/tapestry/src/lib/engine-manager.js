@@ -36,7 +36,7 @@ function readEngineConfig(cwd) {
     mode: engine.mode,
     image: engine.image || DEFAULT_IMAGE,
     installDir: path.join(cwd, '.tapestry-engine'),
-    projectName: (manifest.name || 'tapestry').replace(/[^a-z0-9-]/g, '-'),
+    projectName: (manifest.name || 'tapestry').toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
   };
 }
 
