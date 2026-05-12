@@ -16,8 +16,8 @@ license: "MIT"
 engine: ">=3.0.0"
 
 # ^ means compatible minor/patch changes (>=1.0.0 <2.0.0)
-dependencies:
-  "@tapestry/core": "^1.0.0"
+# dependencies:
+#   "@scope/pack-name": "^1.0.0"
 
 # Optional: warn if not installed, never auto-installed
 # peerDependencies:

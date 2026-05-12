@@ -30,14 +30,15 @@ test('creates tapestry.yaml with project name derived from directory', () => {
   }
 });
 
-test('tapestry.yaml includes @tapestry/core dependency and engine config', () => {
+test('tapestry.yaml includes engine config and empty dependencies', () => {
   {
     const projectDir = path.join(tmpDir, 'my-game');
     fs.mkdirSync(projectDir);
     init(projectDir);
     const manifest = readYaml(path.join(projectDir, 'tapestry.yaml'));
     expect(manifest.engine).toBeDefined();
-    expect(manifest.dependencies['@tapestry/core']).toBe('^1.0.0');
+    expect(manifest.dependencies).toBeDefined();
+    expect(Object.keys(manifest.dependencies)).toHaveLength(0);
   }
 });
 

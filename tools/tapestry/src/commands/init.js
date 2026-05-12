@@ -27,9 +27,7 @@ function init(cwd) {
         mode: 'docker',
         image: 'tapestryengine/tapestry',
       },
-      dependencies: {
-        '@tapestry/core': '^1.0.0',
-      },
+      dependencies: {},
       packs: [],
       tag_validation: 'strict',
     };
