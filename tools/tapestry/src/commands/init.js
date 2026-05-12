@@ -27,7 +27,7 @@ function init(cwd) {
         mode: 'docker',
         image: 'ghcr.io/tapestry-mud/tapestry',
       },
-      dependencies: {},
+      dependencies: { '@tapestry/core': '^0.0.1' },
       packs: [],
       tag_validation: 'strict',
     };
@@ -52,7 +52,7 @@ function init(cwd) {
       }
     }
 
-    console.log('\nNext: edit tapestry.yaml, then run tapestry install');
+    console.log('\nNext: run tapestry install, then tapestry engine install, then tapestry start');
   }
 }
 

@@ -10,10 +10,13 @@ const PackageManifestSchema = z.object({
   type: z.enum(['core', 'module', 'world']),
   display_name: z.string().min(1),
   description: z.string().min(1),
-  author: z.object({
-    name: z.string().min(1),
-    handle: z.string().min(1),
-  }),
+  author: z.union([
+    z.string().min(1),
+    z.object({
+      name: z.string().min(1),
+      handle: z.string().min(1),
+    }),
+  ]),
   license: z.string().min(1),
   engine: z.string().min(1),
   tag_validation: z.enum(['strict', 'lenient']),

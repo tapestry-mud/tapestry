@@ -78,22 +78,56 @@ public class ContentLoadingModule : IGameModule
     private void LoadPacks()
     {
         var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
-
-        foreach (var packName in _config.Packs)
+        if (!Directory.Exists(packsDir))
         {
-            var packDir = Path.Combine(packsDir, packName);
-            if (Directory.Exists(packDir))
+            _packLoader.ValidateAreaWeatherZones();
+            return;
+        }
+
+        var packDirs = DiscoverPackDirectories(packsDir);
+
+        if (packDirs.Count == 0 && _config.Packs.Count > 0)
+        {
+            // Fall back to explicit list from server.yaml
+            foreach (var packName in _config.Packs)
             {
-                _packLoader.Load(packDir);
-                _logger.LogInformation("Loaded pack: {Pack}", packName);
-            }
-            else
-            {
-                _logger.LogWarning("Pack not found: {Pack} (looked in {Dir})", packName, packDir);
+                var packDir = Path.Combine(packsDir, packName);
+                if (Directory.Exists(packDir)) { packDirs.Add(packDir); }
+                else { _logger.LogWarning("Pack not found: {Pack} (looked in {Dir})", packName, packDir); }
             }
         }
 
+        foreach (var packDir in packDirs)
+        {
+            _packLoader.Load(packDir);
+            _logger.LogInformation("Loaded pack: {Pack}", Path.GetRelativePath(packsDir, packDir));
+        }
+
         _packLoader.ValidateAreaWeatherZones();
+    }
+
+    private static List<string> DiscoverPackDirectories(string packsDir)
+    {
+        var dirs = new List<string>();
+
+        foreach (var entry in Directory.EnumerateDirectories(packsDir).OrderBy(d => d))
+        {
+            var name = Path.GetFileName(entry);
+            if (name.StartsWith('@'))
+            {
+                // Scoped: @scope/package-name
+                foreach (var scoped in Directory.EnumerateDirectories(entry).OrderBy(d => d))
+                {
+                    dirs.Add(scoped);
+                }
+            }
+            else
+            {
+                dirs.Add(entry);
+            }
+        }
+
+        return dirs;
     }
 
     private void AppendPackCreditsToMotd()
