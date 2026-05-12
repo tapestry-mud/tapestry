@@ -334,6 +334,21 @@ describe('binary mode', () => {
     it('throws when no pid file exists', async () => {
       await expect(stopEngine(tmpDir)).rejects.toThrow('Engine is not running');
     });
+
+    it('still clears pid file when process is already gone', async () => {
+      const { writePid, readPid } = require('../../src/lib/process-tracker');
+      writePid(tmpDir, 9999);
+      const killSpy = jest.spyOn(process, 'kill').mockImplementation(() => {
+        const err = new Error('ESRCH');
+        err.code = 'ESRCH';
+        throw err;
+      });
+
+      await stopEngine(tmpDir);
+
+      expect(readPid(tmpDir)).toBeNull();
+      killSpy.mockRestore();
+    });
   });
 });
 
@@ -461,6 +476,24 @@ describe('source mode', () => {
     it('throws when source directory does not exist', async () => {
       fs.rmSync(path.join(tmpDir, '.tapestry-engine', 'source'), { recursive: true });
       await expect(startEngine(tmpDir)).rejects.toThrow('Engine source not found');
+    });
+  });
+
+  describe('stopEngine', () => {
+    it('kills the process by PID and clears the pid file', async () => {
+      const { writePid, readPid } = require('../../src/lib/process-tracker');
+      writePid(tmpDir, 8888);
+      const killSpy = jest.spyOn(process, 'kill').mockImplementation(() => {});
+
+      await stopEngine(tmpDir);
+
+      expect(killSpy).toHaveBeenCalledWith(8888, 'SIGTERM');
+      expect(readPid(tmpDir)).toBeNull();
+      killSpy.mockRestore();
+    });
+
+    it('throws when no pid file exists', async () => {
+      await expect(stopEngine(tmpDir)).rejects.toThrow('Engine is not running');
     });
   });
 });

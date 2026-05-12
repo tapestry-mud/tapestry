@@ -85,6 +85,9 @@ function binaryInstall(version, installDir) {
 
   const exResult = spawnSync('tar', ['-xzf', tarPath, '-C', binDir], { stdio: 'inherit' });
   if (exResult.status !== 0) {
+    if (fs.existsSync(tarPath)) {
+      fs.unlinkSync(tarPath);
+    }
     throw new Error('Failed to extract engine binary.');
   }
 
