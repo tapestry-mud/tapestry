@@ -61,6 +61,63 @@ function dockerInfo(image, version) {
   return { mode: 'docker', version, image: `${image}:${version}` };
 }
 
+// ── Binary helpers ──────────────────────────────────────────────────────────
+
+function binaryExecName() {
+  return process.platform === 'win32' ? 'Tapestry.exe' : 'Tapestry';
+}
+
+function binaryInstall(version, installDir) {
+  const platform = PLATFORM_MAP[process.platform] || 'linux';
+  const url =
+    `https://github.com/tapestry-mud/tapestry/releases/download/v${version}/tapestry-${platform}.tar.gz`;
+  const binDir = path.join(installDir, 'binary', version);
+  fs.mkdirSync(binDir, { recursive: true });
+  const tarPath = path.join(binDir, 'tapestry.tar.gz');
+
+  console.log(`Downloading Tapestry engine v${version} for ${platform}...`);
+  const dlResult = spawnSync('curl', ['-L', '-o', tarPath, url], { stdio: 'inherit' });
+  if (dlResult.status !== 0) {
+    throw new Error(
+      'Failed to download engine binary. Ensure curl is installed and the version exists on GitHub releases.'
+    );
+  }
+
+  const exResult = spawnSync('tar', ['-xzf', tarPath, '-C', binDir], { stdio: 'inherit' });
+  if (exResult.status !== 0) {
+    throw new Error('Failed to extract engine binary.');
+  }
+
+  if (fs.existsSync(tarPath)) {
+    fs.unlinkSync(tarPath);
+  }
+  console.log(`Engine installed to ${binDir}`);
+}
+
+function binaryStart(version, installDir, packsDir, serverYamlPath, cwd) {
+  const binDir = path.join(installDir, 'binary', version);
+  const execPath = path.join(binDir, binaryExecName());
+  if (!fs.existsSync(execPath)) {
+    throw new Error(
+      `Engine binary not found at ${execPath}. Run tapestry engine install first.`
+    );
+  }
+  const child = spawn(execPath, ['--packs', packsDir, '--config', serverYamlPath], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+  writePid(cwd, child.pid);
+  console.log(`Engine started (PID ${child.pid}).`);
+  console.log('  Telnet:    telnet localhost 4000');
+  console.log('  WebSocket: ws://localhost:4001');
+}
+
+function binaryInfo(version, installDir) {
+  const binDir = path.join(installDir, 'binary', version);
+  return { mode: 'binary', version, path: binDir, installed: fs.existsSync(binDir) };
+}
+
 // ── Shared process helpers ──────────────────────────────────────────────────
 
 function processStop(cwd) {
@@ -115,16 +172,20 @@ async function installEngine(cwd) {
   const config = readEngineConfig(cwd);
   if (config.mode === 'docker') {
     dockerPull(config.image, config.version);
+  } else if (config.mode === 'binary') {
+    binaryInstall(config.version, config.installDir);
   }
-  // binary and source added in later tasks
+  // source added in next task
 }
 
 async function updateEngine(cwd) {
   const config = readEngineConfig(cwd);
   if (config.mode === 'docker') {
     dockerPull(config.image, config.version);
+  } else if (config.mode === 'binary') {
+    binaryInstall(config.version, config.installDir);
   }
-  // binary and source added in later tasks
+  // source added in next task
 }
 
 function getEngineInfo(cwd) {
@@ -132,7 +193,10 @@ function getEngineInfo(cwd) {
   if (config.mode === 'docker') {
     return dockerInfo(config.image, config.version);
   }
-  return { mode: config.mode, version: config.version }; // placeholder for binary/source
+  if (config.mode === 'binary') {
+    return binaryInfo(config.version, config.installDir);
+  }
+  return { mode: config.mode, version: config.version }; // placeholder for source
 }
 
 async function startEngine(cwd) {
@@ -147,8 +211,10 @@ async function startEngine(cwd) {
   }
   if (config.mode === 'docker') {
     dockerStart(config.projectName, config.image, config.version, packsDir, serverYamlPath);
+  } else if (config.mode === 'binary') {
+    binaryStart(config.version, config.installDir, packsDir, serverYamlPath, cwd);
   }
-  // binary and source added in later tasks
+  // source added in next task
 }
 
 async function stopEngine(cwd) {

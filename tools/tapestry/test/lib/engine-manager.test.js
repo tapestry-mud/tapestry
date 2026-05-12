@@ -210,3 +210,129 @@ describe('docker mode', () => {
     });
   });
 });
+
+// ── Binary mode ────────────────────────────────────────────────────────────
+
+describe('binary mode', () => {
+  beforeEach(() => {
+    writeYaml(path.join(tmpDir, 'tapestry.yaml'), {
+      name: 'my-game',
+      engine: { version: '3.1.0', mode: 'binary' },
+    });
+  });
+
+  describe('installEngine', () => {
+    it('creates the install directory, calls curl then tar', async () => {
+      await installEngine(tmpDir);
+
+      const calls = spawnSync.mock.calls;
+      expect(calls[0][0]).toBe('curl');
+      expect(calls[0][1].join(' ')).toContain('3.1.0');
+      expect(calls[1][0]).toBe('tar');
+      expect(calls[1][1]).toContain('-xzf');
+    });
+
+    it('downloads the platform-specific archive', async () => {
+      await installEngine(tmpDir);
+
+      const curlArgs = spawnSync.mock.calls[0][1].join(' ');
+      const platform = { linux: 'linux', darwin: 'osx', win32: 'windows' }[process.platform] || 'linux';
+      expect(curlArgs).toContain(`tapestry-${platform}.tar.gz`);
+    });
+
+    it('throws when curl fails', async () => {
+      spawnSync.mockReturnValueOnce({ status: 1 });
+      await expect(installEngine(tmpDir)).rejects.toThrow('Failed to download engine binary');
+    });
+
+    it('throws when tar fails', async () => {
+      spawnSync
+        .mockReturnValueOnce({ status: 0 })  // curl succeeds
+        .mockReturnValueOnce({ status: 1 }); // tar fails
+      await expect(installEngine(tmpDir)).rejects.toThrow('Failed to extract engine binary');
+    });
+  });
+
+  describe('getEngineInfo', () => {
+    it('returns mode, version, path, and installed: false when not downloaded', () => {
+      const info = getEngineInfo(tmpDir);
+      expect(info.mode).toBe('binary');
+      expect(info.version).toBe('3.1.0');
+      expect(info.installed).toBe(false);
+      expect(info.path).toContain(path.join('.tapestry-engine', 'binary', '3.1.0'));
+    });
+
+    it('returns installed: true when the binary directory exists', () => {
+      const binDir = path.join(tmpDir, '.tapestry-engine', 'binary', '3.1.0');
+      fs.mkdirSync(binDir, { recursive: true });
+      expect(getEngineInfo(tmpDir).installed).toBe(true);
+    });
+  });
+
+  describe('startEngine', () => {
+    let binDir;
+    let execName;
+
+    beforeEach(() => {
+      binDir = path.join(tmpDir, '.tapestry-engine', 'binary', '3.1.0');
+      execName = process.platform === 'win32' ? 'Tapestry.exe' : 'Tapestry';
+      fs.mkdirSync(binDir, { recursive: true });
+      fs.writeFileSync(path.join(binDir, execName), '#!/bin/sh\n');
+      fs.mkdirSync(path.join(tmpDir, 'packs'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'server.yaml'), 'port: 4000\n');
+    });
+
+    it('spawns the binary with --packs and --config flags', async () => {
+      await startEngine(tmpDir);
+
+      const [cmd, args] = spawn.mock.calls[0];
+      expect(cmd).toContain(execName);
+      expect(args).toContain('--packs');
+      expect(args).toContain('--config');
+    });
+
+    it('spawns with detached: true and calls unref()', async () => {
+      const mockChild = { pid: 9999, unref: jest.fn() };
+      spawn.mockReturnValueOnce(mockChild);
+
+      await startEngine(tmpDir);
+
+      const opts = spawn.mock.calls[0][2];
+      expect(opts.detached).toBe(true);
+      expect(mockChild.unref).toHaveBeenCalled();
+    });
+
+    it('writes the child PID to .tapestry.pid', async () => {
+      const mockChild = { pid: 9999, unref: jest.fn() };
+      spawn.mockReturnValueOnce(mockChild);
+
+      await startEngine(tmpDir);
+
+      const { readPid } = require('../../src/lib/process-tracker');
+      expect(readPid(tmpDir)).toBe(9999);
+    });
+
+    it('throws when the binary does not exist', async () => {
+      fs.rmSync(path.join(binDir, execName));
+      await expect(startEngine(tmpDir)).rejects.toThrow('Engine binary not found');
+    });
+  });
+
+  describe('stopEngine', () => {
+    it('kills the process by PID and clears the pid file', async () => {
+      const { writePid, readPid } = require('../../src/lib/process-tracker');
+      writePid(tmpDir, 9999);
+      const killSpy = jest.spyOn(process, 'kill').mockImplementation(() => {});
+
+      await stopEngine(tmpDir);
+
+      expect(killSpy).toHaveBeenCalledWith(9999, 'SIGTERM');
+      expect(readPid(tmpDir)).toBeNull();
+      killSpy.mockRestore();
+    });
+
+    it('throws when no pid file exists', async () => {
+      await expect(stopEngine(tmpDir)).rejects.toThrow('Engine is not running');
+    });
+  });
+});
