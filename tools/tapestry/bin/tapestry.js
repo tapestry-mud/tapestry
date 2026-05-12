@@ -18,6 +18,9 @@ const { search } = require('../src/commands/search');
 const { info } = require('../src/commands/info');
 const { list } = require('../src/commands/list');
 const { outdated } = require('../src/commands/outdated');
+const { engineInstall, engineUpdate, engineInfo } = require('../src/commands/engine');
+const { startCmd } = require('../src/commands/start');
+const { stopCmd } = require('../src/commands/stop');
 
 const program = new Command();
 
@@ -214,6 +217,68 @@ program
   .action(async () => {
     try {
       await outdated();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+const engineCmd = program.command('engine').description('Manage the Tapestry engine');
+
+engineCmd
+  .command('install')
+  .description('Fetch the engine artifact for the configured mode (docker/binary/source)')
+  .action(async () => {
+    try {
+      await engineInstall();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+engineCmd
+  .command('update')
+  .description('Update the engine to the configured version')
+  .action(async () => {
+    try {
+      await engineUpdate();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+engineCmd
+  .command('info')
+  .description('Show installed engine version, mode, and image or path')
+  .action(() => {
+    try {
+      engineInfo();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('start')
+  .description('Launch the Tapestry engine')
+  .action(async () => {
+    try {
+      await startCmd();
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('stop')
+  .description('Stop the running Tapestry engine')
+  .action(async () => {
+    try {
+      await stopCmd();
     } catch (e) {
       console.error(`error: ${e.message}`);
       process.exit(1);

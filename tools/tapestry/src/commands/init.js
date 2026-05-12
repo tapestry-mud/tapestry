@@ -35,13 +35,16 @@ function init(cwd) {
     writeYaml(manifestPath, manifest);
     fs.writeFileSync(path.join(cwd, 'server.yaml'), '# Tapestry server configuration\n# See https://tapestryengine.com/docs/config for full options\nport: 4000\n');
     fs.mkdirSync(path.join(cwd, 'packs'), { recursive: true });
-    fs.writeFileSync(path.join(cwd, '.gitignore'), '# Installed packages (managed by tapestry install)\npacks/\n');
+    fs.writeFileSync(
+      path.join(cwd, '.gitignore'),
+      '# Installed packages (managed by tapestry install)\npacks/\n\n# Engine artifacts (managed by tapestry engine install)\n.tapestry-engine/\n'
+    );
 
     console.log(`Initialized: ${name}`);
     console.log('  tapestry.yaml  project manifest');
     console.log('  server.yaml    engine config');
     console.log('  packs/         installed packages');
-    console.log('  .gitignore     excludes packs/ from git');
+    console.log('  .gitignore     excludes packs/ and .tapestry-engine/ from git');
 
     if (!fs.existsSync(path.join(cwd, '.git'))) {
       {

@@ -60,13 +60,14 @@ test('creates packs/ directory', () => {
   }
 });
 
-test('creates .gitignore with packs/ entry', () => {
+test('creates .gitignore with packs/ and .tapestry-engine/ entries', () => {
   {
     const projectDir = path.join(tmpDir, 'my-game');
     fs.mkdirSync(projectDir);
     init(projectDir);
     const gitignore = fs.readFileSync(path.join(projectDir, '.gitignore'), 'utf8');
     expect(gitignore).toContain('packs/');
+    expect(gitignore).toContain('.tapestry-engine/');
   }
 });
 
