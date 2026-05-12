@@ -118,6 +118,58 @@ function binaryInfo(version, installDir) {
   return { mode: 'binary', version, path: binDir, installed: fs.existsSync(binDir) };
 }
 
+// ── Source helpers ──────────────────────────────────────────────────────────
+
+function sourceInstall(installDir) {
+  const sourceDir = path.join(installDir, 'source');
+  if (fs.existsSync(sourceDir)) {
+    throw new Error(
+      `Engine source already exists at ${sourceDir}. Run tapestry engine update to pull changes.`
+    );
+  }
+  console.log('Cloning Tapestry engine source...');
+  const result = spawnSync('git', ['clone', ENGINE_REPO, sourceDir], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error('git clone failed. Check your network connection.');
+  }
+  console.log(`Engine source cloned to ${sourceDir}`);
+}
+
+function sourcePull(installDir) {
+  const sourceDir = path.join(installDir, 'source');
+  if (!fs.existsSync(sourceDir)) {
+    throw new Error('Engine source not found. Run tapestry engine install first.');
+  }
+  console.log('Pulling engine source updates...');
+  const result = spawnSync('git', ['-C', sourceDir, 'pull'], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error('git pull failed. Check your network connection.');
+  }
+  console.log('Engine source updated.');
+}
+
+function sourceStart(installDir, packsDir, serverYamlPath, cwd) {
+  const sourceDir = path.join(installDir, 'source');
+  if (!fs.existsSync(sourceDir)) {
+    throw new Error('Engine source not found. Run tapestry engine install first.');
+  }
+  const child = spawn(
+    'dotnet',
+    ['run', '--', '--packs', packsDir, '--config', serverYamlPath],
+    { cwd: sourceDir, detached: true, stdio: 'ignore' }
+  );
+  child.unref();
+  writePid(cwd, child.pid);
+  console.log(`Engine started via dotnet run (PID ${child.pid}).`);
+  console.log('  Telnet:    telnet localhost 4000');
+  console.log('  WebSocket: ws://localhost:4001');
+}
+
+function sourceInfo(version, installDir) {
+  const sourceDir = path.join(installDir, 'source');
+  return { mode: 'source', version, path: sourceDir, installed: fs.existsSync(sourceDir) };
+}
+
 // ── Shared process helpers ──────────────────────────────────────────────────
 
 function processStop(cwd) {
@@ -174,8 +226,9 @@ async function installEngine(cwd) {
     dockerPull(config.image, config.version);
   } else if (config.mode === 'binary') {
     binaryInstall(config.version, config.installDir);
+  } else {
+    sourceInstall(config.installDir);
   }
-  // source added in next task
 }
 
 async function updateEngine(cwd) {
@@ -184,8 +237,9 @@ async function updateEngine(cwd) {
     dockerPull(config.image, config.version);
   } else if (config.mode === 'binary') {
     binaryInstall(config.version, config.installDir);
+  } else {
+    sourcePull(config.installDir);
   }
-  // source added in next task
 }
 
 function getEngineInfo(cwd) {
@@ -196,7 +250,7 @@ function getEngineInfo(cwd) {
   if (config.mode === 'binary') {
     return binaryInfo(config.version, config.installDir);
   }
-  return { mode: config.mode, version: config.version }; // placeholder for source
+  return sourceInfo(config.version, config.installDir);
 }
 
 async function startEngine(cwd) {
@@ -213,8 +267,9 @@ async function startEngine(cwd) {
     dockerStart(config.projectName, config.image, config.version, packsDir, serverYamlPath);
   } else if (config.mode === 'binary') {
     binaryStart(config.version, config.installDir, packsDir, serverYamlPath, cwd);
+  } else {
+    sourceStart(config.installDir, packsDir, serverYamlPath, cwd);
   }
-  // source added in next task
 }
 
 async function stopEngine(cwd) {

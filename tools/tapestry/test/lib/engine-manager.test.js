@@ -336,3 +336,131 @@ describe('binary mode', () => {
     });
   });
 });
+
+// ── Source mode ────────────────────────────────────────────────────────────
+
+describe('source mode', () => {
+  beforeEach(() => {
+    writeYaml(path.join(tmpDir, 'tapestry.yaml'), {
+      name: 'my-game',
+      engine: { version: '3.1.0', mode: 'source' },
+    });
+  });
+
+  describe('installEngine', () => {
+    it('calls git clone into .tapestry-engine/source', async () => {
+      await installEngine(tmpDir);
+
+      expect(spawnSync).toHaveBeenCalledWith(
+        'git',
+        expect.arrayContaining(['clone', expect.stringContaining('tapestry')]),
+        { stdio: 'inherit' }
+      );
+      const cloneArgs = spawnSync.mock.calls[0][1];
+      expect(cloneArgs[cloneArgs.length - 1]).toContain(
+        path.join('.tapestry-engine', 'source')
+      );
+    });
+
+    it('throws when source directory already exists', async () => {
+      const sourceDir = path.join(tmpDir, '.tapestry-engine', 'source');
+      fs.mkdirSync(sourceDir, { recursive: true });
+      await expect(installEngine(tmpDir)).rejects.toThrow('already exists');
+    });
+
+    it('throws when git clone fails', async () => {
+      spawnSync.mockReturnValueOnce({ status: 1 });
+      await expect(installEngine(tmpDir)).rejects.toThrow('git clone failed');
+    });
+  });
+
+  describe('updateEngine', () => {
+    it('calls git pull in the source directory', async () => {
+      const sourceDir = path.join(tmpDir, '.tapestry-engine', 'source');
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      await updateEngine(tmpDir);
+
+      const [cmd, args] = spawnSync.mock.calls[0];
+      expect(cmd).toBe('git');
+      expect(args).toContain('pull');
+      expect(args.join(' ')).toContain('.tapestry-engine');
+    });
+
+    it('throws when source directory does not exist', async () => {
+      await expect(updateEngine(tmpDir)).rejects.toThrow('Engine source not found');
+    });
+
+    it('throws when git pull fails', async () => {
+      const sourceDir = path.join(tmpDir, '.tapestry-engine', 'source');
+      fs.mkdirSync(sourceDir, { recursive: true });
+      spawnSync.mockReturnValueOnce({ status: 1 });
+      await expect(updateEngine(tmpDir)).rejects.toThrow('git pull failed');
+    });
+  });
+
+  describe('getEngineInfo', () => {
+    it('returns mode, version, path, and installed: false when not cloned', () => {
+      const info = getEngineInfo(tmpDir);
+      expect(info.mode).toBe('source');
+      expect(info.version).toBe('3.1.0');
+      expect(info.installed).toBe(false);
+      expect(info.path).toContain(path.join('.tapestry-engine', 'source'));
+    });
+
+    it('returns installed: true when source directory exists', () => {
+      const sourceDir = path.join(tmpDir, '.tapestry-engine', 'source');
+      fs.mkdirSync(sourceDir, { recursive: true });
+      expect(getEngineInfo(tmpDir).installed).toBe(true);
+    });
+  });
+
+  describe('startEngine', () => {
+    beforeEach(() => {
+      const sourceDir = path.join(tmpDir, '.tapestry-engine', 'source');
+      fs.mkdirSync(sourceDir, { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, 'packs'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'server.yaml'), 'port: 4000\n');
+    });
+
+    it('spawns dotnet run in the source directory with --packs and --config', async () => {
+      const mockChild = { pid: 8888, unref: jest.fn() };
+      spawn.mockReturnValueOnce(mockChild);
+
+      await startEngine(tmpDir);
+
+      const [cmd, args, opts] = spawn.mock.calls[0];
+      expect(cmd).toBe('dotnet');
+      expect(args[0]).toBe('run');
+      expect(args).toContain('--packs');
+      expect(args).toContain('--config');
+      expect(opts.cwd).toContain(path.join('.tapestry-engine', 'source'));
+    });
+
+    it('spawns with detached: true and calls unref()', async () => {
+      const mockChild = { pid: 8888, unref: jest.fn() };
+      spawn.mockReturnValueOnce(mockChild);
+
+      await startEngine(tmpDir);
+
+      const opts = spawn.mock.calls[0][2];
+      expect(opts.detached).toBe(true);
+      expect(mockChild.unref).toHaveBeenCalled();
+    });
+
+    it('writes the child PID to .tapestry.pid', async () => {
+      const mockChild = { pid: 8888, unref: jest.fn() };
+      spawn.mockReturnValueOnce(mockChild);
+
+      await startEngine(tmpDir);
+
+      const { readPid } = require('../../src/lib/process-tracker');
+      expect(readPid(tmpDir)).toBe(8888);
+    });
+
+    it('throws when source directory does not exist', async () => {
+      fs.rmSync(path.join(tmpDir, '.tapestry-engine', 'source'), { recursive: true });
+      await expect(startEngine(tmpDir)).rejects.toThrow('Engine source not found');
+    });
+  });
+});
