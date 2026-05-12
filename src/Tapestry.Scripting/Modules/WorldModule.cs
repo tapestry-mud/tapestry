@@ -8,6 +8,8 @@ using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
 
+public record BuildInfo(string EngineSha, string EngineVersion, string PackBuildRef);
+
 public class WorldModule : IJintApiModule
 {
     private readonly ApiMessaging _messaging;
@@ -31,6 +33,15 @@ public class WorldModule : IJintApiModule
         _mobAIManager = mobAIManager;
         _gmcp = gmcp;
         _tagRegistry = tagRegistry;
+    }
+
+    public static BuildInfo GetBuildInfo()
+    {
+        return new BuildInfo(
+            EngineSha: Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev",
+            EngineVersion: Environment.GetEnvironmentVariable("ENGINE_BUILD_VERSION") ?? "dev",
+            PackBuildRef: Environment.GetEnvironmentVariable("PACK_BUILD_REF") ?? "dev"
+        );
     }
 
     public string Namespace => "world";
@@ -218,10 +229,15 @@ public class WorldModule : IJintApiModule
                     })
                     .ToArray();
             }),
-            buildInfo = new Func<object>(() => new
+            buildInfo = new Func<object>(() =>
             {
-                engineSha = Environment.GetEnvironmentVariable("ENGINE_BUILD_SHA") ?? "dev",
-                packBuildRef = Environment.GetEnvironmentVariable("PACK_BUILD_REF") ?? "dev"
+                var info = GetBuildInfo();
+                return new
+                {
+                    engineSha = info.EngineSha,
+                    engineVersion = info.EngineVersion,
+                    packBuildRef = info.PackBuildRef
+                };
             })
         };
     }
