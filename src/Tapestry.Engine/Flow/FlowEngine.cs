@@ -21,7 +21,7 @@ public class FlowEngine
     private readonly EventBus _eventBus;
     private readonly object _commitLock = new();
 
-    public string DefaultSpawnRoomId { get; set; } = "core:town-square";
+    public string DefaultSpawnRoomId { get; set; } = "tapestry-core:recall";
 
     /// Factory used by Restart to rebuild a fresh entity with the same name.
     /// TelnetService sets this on startup so stat defaults match initial creation.

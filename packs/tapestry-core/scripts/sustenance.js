@@ -38,7 +38,7 @@ tapestry.events.on('item.consumed', function(evt) {
     var effectData = evt.data.effectData;
     var entityId = evt.data.entityId;
 
-    if (effectId === 'core:instant-heal' && effectData) {
+    if (effectId === 'tapestry-core:instant-heal' && effectData) {
         var healHp = effectData.heal_hp || 0;
         if (healHp > 0) {
             tapestry.stats.addVital(entityId, 'hp', healHp);
@@ -47,7 +47,7 @@ tapestry.events.on('item.consumed', function(evt) {
         }
     }
 
-    if (effectId === 'core:instant-restore' && effectData) {
+    if (effectId === 'tapestry-core:instant-restore' && effectData) {
         var healResource = effectData.heal_resource || 0;
         if (healResource > 0) {
             tapestry.stats.addVital(entityId, 'resource', healResource);

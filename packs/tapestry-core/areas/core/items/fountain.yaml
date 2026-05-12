@@ -1,4 +1,4 @@
-id: "core:fountain"
+id: "tapestry-core:fountain"
 name: "a stone fountain"
 type: "item"
 tags: [fixture, fill_source, no_get, drinkable]

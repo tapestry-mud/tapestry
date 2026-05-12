@@ -1,13 +1,13 @@
-id: "core:recall"
+id: "tapestry-core:recall"
 area: core
 name: "The Nexus"
 description: >
   A quiet stone chamber, cool and still. A <item>stone fountain</item> stands at the
   center, its water clear and endlessly flowing. This is where all roads lead back.
 exits:
-  down: "core:donation-pit"
+  down: "tapestry-core:donation-pit"
 tags: [safe, no_wander]
 properties:
   terrain: indoors
 fixtures:
-  - "core:fountain"
+  - "tapestry-core:fountain"

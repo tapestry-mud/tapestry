@@ -133,7 +133,7 @@ public class PackLoaderTests
         var dir = Path.Combine(Path.GetTempPath(), "tapestry-dup-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(Path.Combine(dir, "areas", "test", "items"));
         File.WriteAllText(Path.Combine(dir, "pack.yaml"), """
-            name: test-pack
+            name: test
             version: "1.0.0"
             display_name: "Test"
             description: ""

@@ -1,4 +1,4 @@
-id: "core:bread-loaf"
+id: "tapestry-core:bread-loaf"
 name: "a loaf of fresh bread"
 type: "item"
 tags: [consumable]

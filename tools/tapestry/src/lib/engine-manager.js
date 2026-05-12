@@ -16,9 +16,16 @@ function dockerPull(image, version) {
   console.log(`Pulling ${image}:${version}...`);
   const result = spawnSync('docker', ['pull', `${image}:${version}`], { stdio: 'inherit' });
   if (result.status !== 0) {
-    throw new Error(
-      `docker pull failed. Is Docker running and is ${image}:${version} a valid image?`
-    );
+    console.log(`Tag ${version} not found, falling back to ${image}:latest...`);
+    const fallback = spawnSync('docker', ['pull', `${image}:latest`], { stdio: 'inherit' });
+    if (fallback.status !== 0) {
+      throw new Error(
+        `docker pull failed. Is Docker running and is ${image} a valid image?`
+      );
+    }
+    spawnSync('docker', ['tag', `${image}:latest`, `${image}:${version}`], { stdio: 'inherit' });
+    console.log(`Engine image ready: ${image}:${version} (from latest)`);
+    return;
   }
   console.log(`Engine image ready: ${image}:${version}`);
 }

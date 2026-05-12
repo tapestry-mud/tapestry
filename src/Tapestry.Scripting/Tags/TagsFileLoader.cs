@@ -22,7 +22,7 @@ public static class TagsFileLoader
             yaml = reader.ReadToEnd();
         }
         var model = Deserializer.Deserialize<TagsFileModel>(yaml) ?? new TagsFileModel();
-        var isEngine = packName == "core";
+        var isEngine = packName == "tapestry-core";
 
         foreach (var (name, entry) in model.Tags)
         {

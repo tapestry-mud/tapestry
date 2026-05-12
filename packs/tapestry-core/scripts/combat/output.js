@@ -166,7 +166,7 @@ tapestry.events.on("entity.vital.depleted", function(event) {
 
     // Restore vitals and recall
     tapestry.stats.restoreVitals(entityId);
-    var recallRoom = tapestry.world.getProperty(entityId, "recall") || "core:recall";
+    var recallRoom = tapestry.world.getProperty(entityId, "recall") || "tapestry-core:recall";
     tapestry.world.teleportEntity(entityId, recallRoom);
 
     // Notify player

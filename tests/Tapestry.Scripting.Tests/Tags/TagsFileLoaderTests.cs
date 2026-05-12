@@ -21,7 +21,7 @@ public class TagsFileLoaderTests
         try
         {
             var registry = new TagRegistry();
-            TagsFileLoader.LoadIntoRegistry(dir, "core", registry);
+            TagsFileLoader.LoadIntoRegistry(dir, "tapestry-core", registry);
 
             registry.IsKnown("hostile", null).Should().BeTrue();
             registry.IsKnown("shop", null).Should().BeTrue();
@@ -101,7 +101,7 @@ public class TagsFileLoaderTests
         try
         {
             var registry = new TagRegistry();
-            TagsFileLoader.LoadIntoRegistry(dir, "core", registry);
+            TagsFileLoader.LoadIntoRegistry(dir, "tapestry-core", registry);
 
             registry.TryResolve("no_regen", null, out var entry);
             entry.AppliesTo.Should().Contain("mob");

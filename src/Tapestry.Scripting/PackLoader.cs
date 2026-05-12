@@ -58,17 +58,29 @@ public class PackLoader : IPackManifestProvider
         _tagRegistry = tagRegistry;
     }
 
+    // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
+    public static string PackNamespace(string name) =>
+        name.Contains('/')
+            ? name.TrimStart('@').Replace('/', '-')
+            : name;
+
     public PackManifest Load(string packDirectory)
     {
         _packContext.CurrentPackDir = packDirectory;
         var manifestPath = Path.Combine(packDirectory, "pack.yaml");
         if (!File.Exists(manifestPath))
         {
-            throw new FileNotFoundException($"No pack.yaml found in {packDirectory}");
+            manifestPath = Path.Combine(packDirectory, "tapestry.yaml");
+        }
+        if (!File.Exists(manifestPath))
+        {
+            throw new FileNotFoundException($"No pack.yaml or tapestry.yaml found in {packDirectory}");
         }
 
         var manifestYaml = File.ReadAllText(manifestPath);
         var manifest = YamlContentLoader.LoadManifest(manifestYaml);
+        var packNamespace = PackNamespace(manifest.Name);
+        _packContext.CurrentPackNamespace = packNamespace;
 
         if (!manifest.Active)
         {
@@ -79,7 +91,7 @@ public class PackLoader : IPackManifestProvider
         _logger.LogInformation("Loading pack: {Name} v{Version}", manifest.Name, manifest.Version);
         LoadedPacks.Add(manifest);
 
-        TagsFileLoader.LoadIntoRegistry(packDirectory, manifest.Name, _tagRegistry);
+        TagsFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _tagRegistry);
 
         if (!string.IsNullOrEmpty(manifest.Content.WeatherZones))
         {
@@ -93,7 +105,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Rooms))
         {
-            LoadRooms(packDirectory, manifest.Content.Rooms, manifest.Name);
+            LoadRooms(packDirectory, manifest.Content.Rooms, packNamespace);
         }
 
         foreach (var room in _world.AllRooms.Where(r => r.Area != null))
@@ -129,12 +141,12 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Scripts))
         {
-            LoadScripts(packDirectory, manifest.Content.Scripts, manifest.Name);
+            LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Help))
         {
-            _helpService.LoadPack(manifest.Name, packDirectory, manifest.Content.Help, manifest.LoadOrder);
+            _helpService.LoadPack(packNamespace, packDirectory, manifest.Content.Help, manifest.LoadOrder);
         }
 
         return manifest;
@@ -344,22 +356,14 @@ public class PackLoader : IPackManifestProvider
         }
         _registeredEntityFiles[entityId] = filePath;
 
-        var packName = _packContext.CurrentPackDir != null
-            ? Path.GetFileName(_packContext.CurrentPackDir)
-            : "";
-        if (!string.IsNullOrEmpty(packName) && entityId.Contains(':'))
+        var expectedNs = _packContext.CurrentPackNamespace;
+        if (!string.IsNullOrEmpty(expectedNs) && entityId.Contains(':'))
         {
             var ns = entityId[..entityId.IndexOf(':')];
-            var expectedNs = packName switch
-            {
-                "tapestry-core" => "core",
-                "legends-forgotten" => "lf",
-                _ => null
-            };
-            if (expectedNs != null && ns != expectedNs)
+            if (ns != expectedNs)
             {
                 throw new InvalidOperationException(
-                    $"Namespace mismatch: pack '{packName}' declared ID '{entityId}' in {filePath}");
+                    $"Namespace mismatch: pack '{expectedNs}' declared ID '{entityId}' in {filePath}");
             }
         }
     }

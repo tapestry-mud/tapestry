@@ -12,7 +12,7 @@ namespace Tapestry.Server;
 
 public class PlayerSpawner
 {
-    private static readonly string DefaultRecallRoom = "core:town-square";
+    private static readonly string DefaultRecallRoom = "tapestry-core:recall";
 
     private readonly SessionManager _sessions;
     private readonly World _world;
