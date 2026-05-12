@@ -10,6 +10,72 @@ const ENGINE_REPO = 'https://github.com/tapestry-mud/tapestry.git';
 const DEFAULT_IMAGE = 'ghcr.io/tapestry-mud/tapestry';
 const PLATFORM_MAP = { linux: 'linux', darwin: 'osx', win32: 'windows' };
 
+// ── Docker helpers ──────────────────────────────────────────────────────────
+
+function dockerPull(image, version) {
+  console.log(`Pulling ${image}:${version}...`);
+  const result = spawnSync('docker', ['pull', `${image}:${version}`], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(
+      `docker pull failed. Is Docker running and is ${image}:${version} a valid image?`
+    );
+  }
+  console.log(`Engine image ready: ${image}:${version}`);
+}
+
+function dockerStart(projectName, image, version, packsDir, serverYamlPath) {
+  const containerName = `tapestry-${projectName}`;
+  const result = spawnSync('docker', [
+    'run', '--detach',
+    '--name', containerName,
+    '-p', '4000:4000',
+    '-p', '4001:4001',
+    '-v', `${packsDir}:/app/packs`,
+    '-v', `${serverYamlPath}:/app/server.yaml`,
+    `${image}:${version}`,
+  ], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(
+      `docker run failed. Ensure the image exists and no container named '${containerName}' is already running.`
+    );
+  }
+  console.log(`Engine started. Container: ${containerName}`);
+  console.log('  Telnet:    telnet localhost 4000');
+  console.log('  WebSocket: ws://localhost:4001');
+}
+
+function dockerStop(projectName) {
+  const containerName = `tapestry-${projectName}`;
+  const result = spawnSync('docker', ['stop', containerName], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(`Failed to stop container '${containerName}'. Is it running?`);
+  }
+  spawnSync('docker', ['rm', containerName], { stdio: 'inherit' });
+  console.log('Engine stopped.');
+}
+
+function dockerInfo(image, version) {
+  return { mode: 'docker', version, image: `${image}:${version}` };
+}
+
+// ── Shared process helpers ──────────────────────────────────────────────────
+
+function processStop(cwd) {
+  const pid = readPid(cwd);
+  if (!pid) {
+    throw new Error('Engine is not running (no .tapestry.pid found).');
+  }
+  try {
+    process.kill(pid, 'SIGTERM');
+  } catch (_e) {
+    // process already gone — clear the pid file and report success
+  }
+  clearPid(cwd);
+  console.log('Engine stopped.');
+}
+
+// ── Config reader ───────────────────────────────────────────────────────────
+
 function readEngineConfig(cwd) {
   const manifestPath = path.join(cwd, 'tapestry.yaml');
   if (!fs.existsSync(manifestPath)) {
@@ -40,28 +106,55 @@ function readEngineConfig(cwd) {
   };
 }
 
+// ── Public API ──────────────────────────────────────────────────────────────
+
 async function installEngine(cwd) {
   const config = readEngineConfig(cwd);
-  void config;
+  if (config.mode === 'docker') {
+    dockerPull(config.image, config.version);
+  }
+  // binary and source added in later tasks
 }
 
 async function updateEngine(cwd) {
   const config = readEngineConfig(cwd);
-  void config;
+  if (config.mode === 'docker') {
+    dockerPull(config.image, config.version);
+  }
+  // binary and source added in later tasks
 }
 
 function getEngineInfo(cwd) {
-  return readEngineConfig(cwd);
+  const config = readEngineConfig(cwd);
+  if (config.mode === 'docker') {
+    return dockerInfo(config.image, config.version);
+  }
+  return { mode: config.mode, version: config.version }; // placeholder for binary/source
 }
 
 async function startEngine(cwd) {
   const config = readEngineConfig(cwd);
-  void config;
+  const packsDir = path.resolve(cwd, 'packs');
+  const serverYamlPath = path.resolve(cwd, 'server.yaml');
+  if (!fs.existsSync(packsDir)) {
+    throw new Error('packs/ directory not found. Run tapestry install first.');
+  }
+  if (!fs.existsSync(serverYamlPath)) {
+    throw new Error('server.yaml not found in the current directory.');
+  }
+  if (config.mode === 'docker') {
+    dockerStart(config.projectName, config.image, config.version, packsDir, serverYamlPath);
+  }
+  // binary and source added in later tasks
 }
 
 async function stopEngine(cwd) {
   const config = readEngineConfig(cwd);
-  void config;
+  if (config.mode === 'docker') {
+    dockerStop(config.projectName);
+  } else {
+    processStop(cwd);
+  }
 }
 
 module.exports = { installEngine, updateEngine, getEngineInfo, startEngine, stopEngine };
