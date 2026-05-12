@@ -178,4 +178,47 @@ describe('POST /v1/publish', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/tarball/i);
   });
+
+  test('rejects path-traversal version string', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake'), 'package.tgz')
+      .field('metadata', makeManifest({ version: '../../etc/passwd' }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/invalid version/i);
+  });
+
+  test('rejects non-semver version string', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake'), 'package.tgz')
+      .field('metadata', makeManifest({ version: 'not-a-version' }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/invalid version/i);
+  });
+
+  test('accepts valid semver with prerelease', async () => {
+    const res = await request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake'), 'package.tgz')
+      .field('metadata', makeManifest({ version: '1.0.0-beta.1' }));
+    expect(res.status).toBe(201);
+  });
+
+  test('no orphan tarball on duplicate version', async () => {
+    const payload = () => request(publishApp)
+      .post('/v1/publish')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('tarball', Buffer.from('fake'), 'package.tgz')
+      .field('metadata', makeManifest());
+    await payload();
+    const res = await payload();
+    expect(res.status).toBe(409);
+    const tgzDir = path.join(publishDataDir, 'packages', '@mallek', 'testpkg');
+    const files = fs.existsSync(tgzDir) ? fs.readdirSync(tgzDir) : [];
+    expect(files.filter(f => f.endsWith('.tmp'))).toHaveLength(0);
+  });
 });

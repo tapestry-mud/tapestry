@@ -12,6 +12,7 @@ const upload = multer({
 });
 
 const REQUIRED_MANIFEST_FIELDS = ['name', 'version', 'description', 'type', 'author', 'license', 'engine', 'tag_validation'];
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?(?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?$/;
 
 function parseScopedName(packageName) {
   const match = packageName.match(/^@([^/]+)\/(.+)$/);
@@ -80,6 +81,10 @@ function createPublishRoutes(db, dataDir, config, metrics) {
       }
     }
 
+    if (!SEMVER_RE.test(manifest.version)) {
+      return res.status(400).json({ error: `invalid version: ${manifest.version} (must be valid semver)` });
+    }
+
     let scope, name;
     try {
       ({ scope, name } = parseScopedName(manifest.name));
@@ -101,29 +106,30 @@ function createPublishRoutes(db, dataDir, config, metrics) {
 
     const integrity = computeIntegrity(tarball);
 
-    // Write tarball to disk
     const tgzDir = path.join(dataDir, 'packages', `@${scope}`, name);
     const tgzPath = path.join(tgzDir, `${manifest.version}.tgz`);
-    fs.mkdirSync(tgzDir, { recursive: true });
-    fs.writeFileSync(tgzPath, tarball);
+    const tmpPath = path.join(tgzDir, `${manifest.version}.tgz.tmp`);
 
-    // Upsert package record
+    // DB first, then write tarball — no orphans on crash
     db.prepare(`INSERT OR IGNORE INTO packages (scope, name, owner_handle) VALUES (?, ?, ?)`).run(scope, name, req.user.handle);
     const pkg = db.prepare(`SELECT id FROM packages WHERE scope = ? AND name = ?`).get(scope, name);
 
-    // Insert version (fails with UNIQUE if already exists)
     try {
       db.prepare(`
         INSERT INTO versions (package_id, version, manifest, tarball_path, tarball_size, integrity)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(pkg.id, manifest.version, JSON.stringify(manifest), tgzPath, tarball.length, integrity);
     } catch (err) {
-      fs.unlinkSync(tgzPath);
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(409).json({ error: `version ${manifest.version} already exists` });
       }
       return res.status(500).json({ error: 'publish failed' });
     }
+
+    // DB succeeded — write tarball to temp, then rename for atomicity
+    fs.mkdirSync(tgzDir, { recursive: true });
+    fs.writeFileSync(tmpPath, tarball);
+    fs.renameSync(tmpPath, tgzPath);
 
     if (metrics) {
       metrics.publishes.inc({ scope: `@${scope}`, name });

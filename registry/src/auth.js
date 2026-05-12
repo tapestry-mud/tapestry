@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret' : null);
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required in production');
+}
 const BCRYPT_ROUNDS = process.env.NODE_ENV === 'test' ? 1 : 10;
 
 function signToken(payload) {

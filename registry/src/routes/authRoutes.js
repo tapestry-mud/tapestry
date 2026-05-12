@@ -1,6 +1,8 @@
 const express = require('express');
 const { hashPassword, comparePassword, signToken } = require('../auth');
 
+const RESERVED_HANDLES = ['tapestry', 'core', 'admin', 'system', 'official'];
+
 function createAuthRoutes(db) {
   const router = express.Router();
 
@@ -11,6 +13,9 @@ function createAuthRoutes(db) {
     }
     if (!/^[a-z0-9-]+$/.test(handle)) {
       return res.status(400).json({ error: 'handle must be lowercase alphanumeric with hyphens' });
+    }
+    if (RESERVED_HANDLES.includes(handle)) {
+      return res.status(400).json({ error: `handle "${handle}" is reserved` });
     }
     try {
       const passwordHash = await hashPassword(password);

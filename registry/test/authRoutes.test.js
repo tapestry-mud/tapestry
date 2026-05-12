@@ -43,6 +43,16 @@ describe('POST /v1/auth/register', () => {
     const res = await request(app).post('/v1/auth/register').send({ handle: 'mallek' });
     expect(res.status).toBe(400);
   });
+
+  test.each(['tapestry', 'core', 'admin', 'system', 'official'])('rejects reserved handle "%s"', async (handle) => {
+    const res = await request(app).post('/v1/auth/register').send({
+      handle,
+      email: `${handle}@example.com`,
+      password: 'password',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/reserved/);
+  });
 });
 
 describe('POST /v1/auth/login', () => {
