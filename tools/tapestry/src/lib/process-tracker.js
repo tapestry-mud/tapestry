@@ -15,7 +15,7 @@ function readPid(cwd) {
     return null;
   }
   const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
-  return isNaN(pid) ? null : pid;
+  return isNaN(pid) || pid <= 0 ? null : pid;
 }
 
 function clearPid(cwd) {
