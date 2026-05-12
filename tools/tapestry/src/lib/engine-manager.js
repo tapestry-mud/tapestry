@@ -50,7 +50,10 @@ function dockerStop(projectName) {
   if (result.status !== 0) {
     throw new Error(`Failed to stop container '${containerName}'. Is it running?`);
   }
-  spawnSync('docker', ['rm', containerName], { stdio: 'inherit' });
+  const rmResult = spawnSync('docker', ['rm', containerName], { stdio: 'inherit' });
+  if (rmResult.status !== 0) {
+    throw new Error(`Failed to remove container '${containerName}'.`);
+  }
   console.log('Engine stopped.');
 }
 

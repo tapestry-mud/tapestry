@@ -201,5 +201,12 @@ describe('docker mode', () => {
         "Failed to stop container 'tapestry-my-game'"
       );
     });
+
+    it('throws when docker rm fails', async () => {
+      spawnSync
+        .mockReturnValueOnce({ status: 0 })  // docker stop succeeds
+        .mockReturnValueOnce({ status: 1 }); // docker rm fails
+      await expect(stopEngine(tmpDir)).rejects.toThrow("Failed to remove container");
+    });
   });
 });
