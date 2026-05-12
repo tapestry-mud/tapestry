@@ -23,9 +23,9 @@ function init(cwd) {
     const manifest = {
       name,
       engine: {
-        version: '>=3.0.0',
+        version: '0.0.1',
         mode: 'docker',
-        image: 'tapestryengine/tapestry',
+        image: 'ghcr.io/tapestry-mud/tapestry',
       },
       dependencies: {},
       packs: [],

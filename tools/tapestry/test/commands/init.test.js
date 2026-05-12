@@ -36,7 +36,11 @@ test('tapestry.yaml includes engine config and empty dependencies', () => {
     fs.mkdirSync(projectDir);
     init(projectDir);
     const manifest = readYaml(path.join(projectDir, 'tapestry.yaml'));
-    expect(manifest.engine).toBeDefined();
+    expect(manifest.engine).toMatchObject({
+      version: '0.0.1',
+      mode: 'docker',
+      image: 'ghcr.io/tapestry-mud/tapestry',
+    });
     expect(manifest.dependencies).toBeDefined();
     expect(Object.keys(manifest.dependencies)).toHaveLength(0);
   }
