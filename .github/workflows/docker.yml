@@ -70,7 +70,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.REGISTRY_CI_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"docker_tag":"edge","version":"edge"}' \
-            https://registry.tapestryengine.com/admin/engine-channels/nightly
+            https://registry.tapestryengine.com/v1/admin/engine-channels/nightly
 
       - name: Register version channel
         if: startsWith(github.ref, 'refs/tags/v')
@@ -80,7 +80,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.REGISTRY_CI_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"docker_tag\":\"$VERSION\",\"version\":\"$VERSION\"}" \
-            "https://registry.tapestryengine.com/admin/engine-channels/$VERSION"
+            "https://registry.tapestryengine.com/v1/admin/engine-channels/$VERSION"
 
   promote-latest:
     if: github.event_name == 'workflow_dispatch'
@@ -112,4 +112,4 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.REGISTRY_CI_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"docker_tag\":\"${{ inputs.version }}\",\"version\":\"${{ inputs.version }}\"}" \
-            https://registry.tapestryengine.com/admin/engine-channels/stable
+            https://registry.tapestryengine.com/v1/admin/engine-channels/stable
