@@ -182,12 +182,12 @@ public class ConnectionHandlerLoginPhaseTests
         return serializer.ToSaveData(entity, hash, new List<Entity>());
     }
 
-    private static void WaitUntil(Func<bool> condition, int timeoutMs = 10000)
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10000)
     {
         var sw = Stopwatch.StartNew();
         while (!condition() && sw.ElapsedMilliseconds < timeoutMs)
         {
-            Thread.Sleep(10);
+            await Task.Delay(10);
         }
     }
 
@@ -198,11 +198,11 @@ public class ConnectionHandlerLoginPhaseTests
     // ---- Tests: existing player login ----
 
     [Fact]
-    public void ExistingPlayerLogin_SendsNamePhaseOnConnect()
+    public async Task ExistingPlayerLogin_SendsNamePhaseOnConnect()
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
 
         h.GmcpHandler.Sent.Should().Contain(x => x.Package == "Char.Login.Phase");
         var namePhase = h.GmcpHandler.Sent.First(x => x.Package == "Char.Login.Phase");
@@ -210,32 +210,32 @@ public class ConnectionHandlerLoginPhaseTests
     }
 
     [Fact]
-    public void ExistingPlayerLogin_SendsPasswordPhaseBeforePasswordPrompt()
+    public async Task ExistingPlayerLogin_SendsPasswordPhaseBeforePasswordPrompt()
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Alice");
-        WaitUntil(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().ContainSingle().Which.Payload.Should().BeEquivalentTo(new { phase = "password" });
     }
 
     [Fact]
-    public void ExistingPlayerLogin_SendsPlayingPhaseAfterSuccessfulLogin()
+    public async Task ExistingPlayerLogin_SendsPlayingPhaseAfterSuccessfulLogin()
     {
         var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Alice");
-        WaitUntil(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("hunter2");
-        WaitUntil(() => HasPhase(h.GmcpHandler, "playing"), 3000);
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "playing"), 3000);
 
         var playingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")
@@ -257,15 +257,15 @@ public class ConnectionHandlerLoginPhaseTests
     // ---- Tests: new player creation confirmation ----
 
     [Fact]
-    public void NewPlayerCreation_SendsPasswordPhaseOnCreation()
+    public async Task NewPlayerCreation_SendsPasswordPhaseOnCreation()
     {
         var h = Build(); // empty store = new player
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Newguy");
-        WaitUntil(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().Contain(x => x.Payload.GetType().GetProperty("phase")!
@@ -273,63 +273,63 @@ public class ConnectionHandlerLoginPhaseTests
     }
 
     [Fact]
-    public void NewPlayerCreation_PasswordMismatch_RepromptsAndCountsAttempt()
+    public async Task NewPlayerCreation_PasswordMismatch_RepromptsAndCountsAttempt()
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
         h.Connection.SimulateInput("goodpassword");  // first password
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
 
         h.Connection.SentText.Clear();
         h.Connection.SimulateInput("differentpassword");  // confirm - mismatch
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
 
         h.Connection.SentText.Should().Contain(t => t.Contains("don't match"));
         h.Connection.IsConnected.Should().BeTrue();  // not yet disconnected
     }
 
     [Fact]
-    public void NewPlayerCreation_ThreeFailures_Disconnects()
+    public async Task NewPlayerCreation_ThreeFailures_Disconnects()
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
 
         // fail 1: too short
         h.Connection.SimulateInput("ab");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("at least")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("at least")));
         // fail 2: enter valid length, then mismatch on confirm
         h.Connection.SimulateInput("goodpassword");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
         h.Connection.SimulateInput("wrongconfirm");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
         // fail 3: too short again
         h.Connection.SimulateInput("ab");
-        WaitUntil(() => !h.Connection.IsConnected);
+        await WaitUntilAsync(() => !h.Connection.IsConnected);
 
         h.Connection.IsConnected.Should().BeFalse();
         h.Connection.SentText.Should().Contain(t => t.Contains("Too many"));
     }
 
     [Fact]
-    public void NewPlayerCreation_MatchingPasswords_SendsCreatingPhase()
+    public async Task NewPlayerCreation_MatchingPasswords_SendsCreatingPhase()
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        WaitUntil(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
 
         h.GmcpHandler.Sent.Clear();
         h.Connection.SimulateInput("goodpassword");   // first password
-        WaitUntil(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
         h.Connection.SimulateInput("goodpassword");   // confirm
-        WaitUntil(() => HasPhase(h.GmcpHandler, "creating"), 3000);
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "creating"), 3000);
 
         var creatingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")
