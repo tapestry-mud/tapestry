@@ -9,6 +9,7 @@ tapestry.commands.register({
     handler: function(actor, resolved) {
         var info = tapestry.world.buildInfo();
         var shortSha = info.engineSha.length > 7 ? info.engineSha.substring(0, 7) : info.engineSha;
+        var engineVer = info.engineVersion || 'dev';
         var packs = tapestry.packs.list();
 
         var packRef = info.packBuildRef || 'dev';
@@ -32,8 +33,8 @@ tapestry.commands.register({
                     {
                         type: 'cell',
                         cells: [
-                            { content: '  Engine build', width: 26 },
-                            { content: shortSha, width: 'fill' }
+                            { content: '  Engine', width: 26 },
+                            { content: engineVer + '  (' + shortSha + ')', width: 'fill' }
                         ]
                     }
                 ]
