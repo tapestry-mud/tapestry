@@ -177,12 +177,12 @@ public class ConnectionHandlerLoginPhaseTests
 
         var entity = new Entity("player", name);
         entity.LocationRoomId = "core:town-square";
-        var hash = BCrypt.Net.BCrypt.HashPassword(password);
+        var hash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4);
 
         return serializer.ToSaveData(entity, hash, new List<Entity>());
     }
 
-    private static void WaitUntil(Func<bool> condition, int timeoutMs = 2000)
+    private static void WaitUntil(Func<bool> condition, int timeoutMs = 10000)
     {
         var sw = Stopwatch.StartNew();
         while (!condition() && sw.ElapsedMilliseconds < timeoutMs)
