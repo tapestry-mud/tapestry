@@ -100,7 +100,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.EquipmentSlots))
         {
-            LoadEquipmentSlots(packDirectory, manifest.Content.EquipmentSlots);
+            LoadEquipmentSlots(packDirectory, manifest.Content.EquipmentSlots, packNamespace);
         }
 
         return manifest;
@@ -428,7 +428,7 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadEquipmentSlots(string packDir, string path)
+    private void LoadEquipmentSlots(string packDir, string path, string packNamespace)
     {
         var fullPath = Path.Combine(packDir, path);
         if (!File.Exists(fullPath))
@@ -440,7 +440,14 @@ public class PackLoader : IPackManifestProvider
         var slots = YamlContentLoader.LoadEquipmentSlots(yaml);
         foreach (var slotDef in slots)
         {
-            _slotRegistry.Register(new SlotDefinition(slotDef.Name, slotDef.Display, slotDef.Max));
+            if (packNamespace == "tapestry-core")
+            {
+                _slotRegistry.RegisterEngineSlot(slotDef.Name, slotDef.Display, slotDef.Max);
+            }
+            else
+            {
+                _slotRegistry.RegisterPackSlot(packNamespace, slotDef.Name, slotDef.Display, slotDef.Max);
+            }
             _logger.LogDebug("  Slot: {Name} (max {Max})", slotDef.Name, slotDef.Max);
         }
     }
