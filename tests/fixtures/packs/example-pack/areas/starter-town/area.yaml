@@ -1,0 +1,7 @@
+area:
+  id: starter-town
+  name: Starter Town
+  level_range: [1, 5]
+  reset_interval: 1800
+  occupied_modifier: 3.0
+  flags: []

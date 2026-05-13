@@ -1,0 +1,16 @@
+name: "@tapestry/example-pack"
+version: "0.0.2"
+type: world
+display_name: "Example Pack (fixture)"
+description: "Minimal test fixture for PackLoaderTests."
+author: "Tapestry"
+license: "AGPL-3.0"
+engine: ">=0.0.1"
+tag_validation: strict
+active: true
+load_order: 10
+content:
+  area_definitions: "areas/**/area.yaml"
+  rooms: "areas/**/rooms/*.yaml"
+  items: "areas/**/items/*.yaml"
+  mobs: "areas/**/mobs/*.yaml"

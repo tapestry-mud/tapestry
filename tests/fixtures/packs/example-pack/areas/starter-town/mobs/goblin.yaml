@@ -1,0 +1,31 @@
+id: "tapestry-example-pack:goblin"
+name: "a goblin"
+type: "npc"
+tags: []
+base_disposition: hostile
+keywords: [goblin, creature]
+behavior: wander
+stats:
+  strength: 8
+  dexterity: 12
+  constitution: 8
+  intelligence: 4
+  wisdom: 4
+  luck: 6
+  max_hp: 40
+  max_resource: 0
+  max_movement: 80
+properties:
+  level: 3
+  gold: 30
+  description: "A small, green-skinned creature with beady eyes and a rusty blade."
+  ac_slash: 2
+  ac_pierce: 1
+  ac_bash: 3
+  ac_exotic: 1
+loot:
+  guaranteed:
+    - item: "tapestry-example-pack:goblin-ear"
+      count: 1
+  pool: []
+  pool_rolls: 1

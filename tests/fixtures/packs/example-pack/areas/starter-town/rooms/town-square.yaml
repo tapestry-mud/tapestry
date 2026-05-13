@@ -1,0 +1,11 @@
+id: "tapestry-example-pack:town-square"
+area: starter-town
+name: "Town Square"
+description: >
+  A cobblestone square at the heart of the town.
+exits: {}
+tags: []
+properties:
+  terrain: city
+fixtures:
+  - "tapestry-example-pack:fountain"

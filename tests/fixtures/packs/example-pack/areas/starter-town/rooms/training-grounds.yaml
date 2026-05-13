@@ -1,0 +1,12 @@
+id: "tapestry-example-pack:training-grounds"
+area: starter-town
+name: "Training Grounds"
+description: >
+  A dusty yard surrounded by a low wooden fence.
+exits: {}
+tags: []
+properties:
+  terrain: outdoors
+spawns:
+  - mob: "tapestry-example-pack:goblin"
+    count: 2

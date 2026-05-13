@@ -1,0 +1,9 @@
+id: "tapestry-example-pack:goblin-ear"
+name: "a goblin ear"
+type: "item"
+tags: []
+keywords: [ear, goblin, loot]
+properties:
+  weight: 0.1
+  rarity: common
+modifiers: []
