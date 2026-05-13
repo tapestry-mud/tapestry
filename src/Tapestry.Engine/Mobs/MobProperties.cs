@@ -12,6 +12,11 @@ public static class MobProperties
     public const string PatrolRoute = "patrol_route";
     public const string PatrolInterval = "patrol_interval";
     public const string ShopSells = "shop_sells";
+    public const string BattleInterval = "battle_interval";
+    public const string BattleChance = "battle_chance";
+    public const string WanderInterval = "wander_interval";
+    public const string WanderBoundary = "wander_boundary";
+    public const string FleeThreshold = "flee_threshold";
 
     public static void Register(PropertyRegistry registry)
     {
@@ -31,5 +36,15 @@ public static class MobProperties
             PropertyValueType.Int, appliesTo: new[] { "npc" });
         registry.RegisterEngineProperty(ShopSells, "List of item IDs this shop sells",
             PropertyValueType.ListString, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(BattleInterval, "Seconds between NPC combat actions",
+            PropertyValueType.Int, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(BattleChance, "Probability of executing a battle action per tick",
+            PropertyValueType.Double, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(WanderInterval, "Seconds between wander movements",
+            PropertyValueType.Int, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(WanderBoundary, "Scope of wandering behavior (area, zone, etc.)",
+            PropertyValueType.String, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(FleeThreshold, "HP percentage threshold below which mob flees",
+            PropertyValueType.Double, appliesTo: new[] { "npc" });
     }
 }

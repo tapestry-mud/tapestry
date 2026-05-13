@@ -41,7 +41,8 @@ public static class YamlContentLoader
         {
             def.Properties = ResolveMapProperties(
                 def.Properties.ToDictionary(kv => kv.Key, kv => (object?)kv.Value),
-                registry)
+                registry,
+                ExtractPackName(def.Id))
                 .ToDictionary(kv => kv.Key, kv => kv.Value!);
         }
         var room = BuildRoom(def);
@@ -57,7 +58,8 @@ public static class YamlContentLoader
         var def = Deserializer.Deserialize<ItemDefinition>(yaml);
         def.Properties = ResolveMapProperties(
             def.Properties.ToDictionary(kv => kv.Key, kv => (object?)kv.Value),
-            registry)
+            registry,
+            ExtractPackName(def.Id))
             .ToDictionary(kv => kv.Key, kv => kv.Value!);
         return def;
     }
@@ -75,7 +77,7 @@ public static class YamlContentLoader
             Keywords = def.Keywords,
             Behavior = def.Behavior,
             Stats = def.Stats,
-            Properties = ResolveMapProperties(def.Properties, registry),
+            Properties = ResolveMapProperties(def.Properties, registry, ExtractPackName(def.Id)),
             Equipment = def.Equipment,
             Class = def.Class,
             Race = def.Race,
@@ -211,7 +213,8 @@ public static class YamlContentLoader
 
     internal static Dictionary<string, object?> ResolveMapProperties(
         IDictionary<string, object?> raw,
-        PropertyRegistry? registry)
+        PropertyRegistry? registry,
+        string? packName = null)
     {
         if (registry == null) { return new Dictionary<string, object?>(raw, StringComparer.OrdinalIgnoreCase); }
 
@@ -220,7 +223,7 @@ public static class YamlContentLoader
         {
             if (value is IDictionary<object, object> nestedRaw)
             {
-                var valueType = registry.GetValueType(key);
+                var valueType = registry.GetValueType(key, packName);
                 if (valueType == PropertyValueType.MapInt)
                 {
                     var typedMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -248,7 +251,7 @@ public static class YamlContentLoader
             }
             else if (value is IList<object> listRaw)
             {
-                var valueType = registry.GetValueType(key);
+                var valueType = registry.GetValueType(key, packName);
                 if (valueType == PropertyValueType.ListString)
                 {
                     result[key] = listRaw.Select(v => v?.ToString() ?? "").ToList();
@@ -260,10 +263,30 @@ public static class YamlContentLoader
             }
             else
             {
-                result[key] = value;
+                result[key] = CoerceScalar(value, registry.GetValueType(key, packName));
             }
         }
         return result;
+    }
+
+    private static string? ExtractPackName(string? entityId) =>
+        entityId != null && entityId.Contains(':') ? entityId.Split(':', 2)[0] : null;
+
+    private static object? CoerceScalar(object? value, PropertyValueType? expected)
+    {
+        if (value == null || expected == null) { return value; }
+        if (value is string s)
+        {
+            return expected switch
+            {
+                PropertyValueType.Int when int.TryParse(s, out var i) => i,
+                PropertyValueType.Long when long.TryParse(s, out var l) => l,
+                PropertyValueType.Double when double.TryParse(s, out var d) => d,
+                PropertyValueType.Bool when bool.TryParse(s, out var b) => b,
+                _ => value
+            };
+        }
+        return value;
     }
 
     private static Exit ParseExit(object exitValue)

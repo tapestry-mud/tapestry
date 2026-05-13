@@ -71,8 +71,22 @@ public sealed class PropertyRegistry
     public bool IsTransient(string name) =>
         _entries.TryGetValue(name.ToLowerInvariant(), out var entry) && entry.Transient;
 
-    public PropertyValueType? GetValueType(string name) =>
-        _entries.TryGetValue(name.ToLowerInvariant(), out var entry) ? entry.ValueType : null;
+    public PropertyValueType? GetValueType(string name, string? packName = null)
+    {
+        if (_entries.TryGetValue(name.ToLowerInvariant(), out var entry))
+        {
+            return entry.ValueType;
+        }
+        if (packName != null && !name.Contains(':'))
+        {
+            var prefixed = $"{packName}:{name}".ToLowerInvariant();
+            if (_entries.TryGetValue(prefixed, out entry))
+            {
+                return entry.ValueType;
+            }
+        }
+        return null;
+    }
 
     public IReadOnlyList<PropertyRegistryEntry> GetAll() => _entries.Values.ToList();
 

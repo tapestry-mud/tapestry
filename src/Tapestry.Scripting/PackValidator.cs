@@ -183,7 +183,7 @@ public class PackValidator
     {
         var count = 0;
         var manifests = _manifestProvider.LoadedPacks
-            .ToDictionary(m => m.Name, m => m, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(m => PackLoader.PackNamespace(m.Name), m => m, StringComparer.OrdinalIgnoreCase);
 
         foreach (var template in _spawnManager.AllTemplates)
         {
@@ -275,11 +275,13 @@ public class PackValidator
                     continue;
                 }
 
+                if (entry.Transient) { continue; }
+
                 var raw = getRaw(key);
                 if (!PropertyValueMatchesType(raw, entry.ValueType))
                 {
                     throw new InvalidOperationException(
-                        $"Entity '{id}' property '{key}' has wrong type. Expected {entry.ValueType}.");
+                        $"Entity '{id}' property '{key}' has wrong type. Expected {entry.ValueType}, got {raw?.GetType().Name ?? "null"} (value: {raw}).");
                 }
 
                 if (!entry.AppliesToType(entityType))
@@ -293,6 +295,8 @@ public class PackValidator
         return count;
     }
 
+    private readonly HashSet<string> _loggedManifestWarnings = new(StringComparer.OrdinalIgnoreCase);
+
     private bool IsLenientPack(string? packName)
     {
         if (packName == null) { return false; }
@@ -300,7 +304,11 @@ public class PackValidator
             .FirstOrDefault(m => PackLoader.PackNamespace(m.Name) == packName);
         if (manifest == null)
         {
-            _logger.LogWarning("Entity belongs to pack '{PackName}' which has no loaded manifest; defaulting to strict validation", packName);
+            if (_loggedManifestWarnings.Add(packName))
+            {
+                var loaded = string.Join(", ", _manifestProvider.LoadedPacks.Select(m => $"'{m.Name}' → '{PackLoader.PackNamespace(m.Name)}'"));
+                _logger.LogWarning("Pack '{PackName}' has no loaded manifest (loaded: [{Loaded}]); defaulting to strict", packName, loaded);
+            }
             return false;
         }
         return manifest.Validation == "lenient";
