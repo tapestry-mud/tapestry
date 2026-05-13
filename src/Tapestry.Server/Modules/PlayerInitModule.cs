@@ -14,7 +14,7 @@ namespace Tapestry.Server.Modules;
 public class PlayerInitModule : IGameModule
 {
     private readonly ServerConfig _config;
-    private readonly PackLoader _packLoader;
+    private readonly IPackManifestProvider _packLoader;
     private readonly PlayerPersistenceService _persistence;
     private readonly RaceRegistry _raceRegistry;
     private readonly SpawnManager _spawns;
@@ -24,7 +24,7 @@ public class PlayerInitModule : IGameModule
 
     public PlayerInitModule(
         ServerConfig config,
-        PackLoader packLoader,
+        IPackManifestProvider packLoader,
         PlayerPersistenceService persistence,
         RaceRegistry raceRegistry,
         SpawnManager spawns,
@@ -40,8 +40,48 @@ public class PlayerInitModule : IGameModule
 
     public void Configure()
     {
+        SeedAdmin();
         LoadSeedPlayers();
         RunInitialSpawns();
+    }
+
+    private void SeedAdmin()
+    {
+        var admin = _config.Admin;
+        if (admin == null || string.IsNullOrWhiteSpace(admin.Handle) || admin.Handle == "TODO")
+        {
+            return;
+        }
+
+        if (_persistence.PlayerSaveExists(admin.Handle))
+        {
+            return;
+        }
+
+        var entity = new Entity("player", admin.Handle);
+        entity.AddRole("admin");
+        entity.Stats.BaseStrength = 10;
+        entity.Stats.BaseIntelligence = 10;
+        entity.Stats.BaseWisdom = 10;
+        entity.Stats.BaseDexterity = 10;
+        entity.Stats.BaseConstitution = 10;
+        entity.Stats.BaseLuck = 10;
+        entity.Stats.BaseMaxHp = 100;
+        entity.Stats.BaseMaxResource = 50;
+        entity.Stats.BaseMaxMovement = 100;
+        entity.Stats.Hp = 100;
+        entity.Stats.Resource = 50;
+        entity.Stats.Movement = 100;
+        entity.SetProperty(CommonProperties.RegenHp, 2);
+        entity.SetProperty(CommonProperties.RegenResource, 1);
+        entity.SetProperty(CommonProperties.RegenMovement, 3);
+
+        var hash = BCrypt.Net.BCrypt.HashPassword(admin.Password);
+        _persistence.SaveNewPlayer(entity, hash).GetAwaiter().GetResult();
+
+        _logger.LogInformation(
+            "Created admin account: {Handle} (default password -- change it after first login)",
+            admin.Handle);
     }
 
     private void LoadSeedPlayers()
