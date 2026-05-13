@@ -47,6 +47,7 @@ public static class PropertiesFileLoader
         "long" => PropertyValueType.Long,
         "map_int" => PropertyValueType.MapInt,
         "map_string" => PropertyValueType.MapString,
-        _ => throw new InvalidOperationException($"Unknown property type '{type}'. Valid: string, int, double, bool, long, map_int, map_string")
+        "list_string" => PropertyValueType.ListString,
+        _ => throw new InvalidOperationException($"Unknown property type '{type}'. Valid: string, int, double, bool, long, map_int, map_string, list_string")
     };
 }

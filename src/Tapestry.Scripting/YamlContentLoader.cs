@@ -87,7 +87,9 @@ public static class YamlContentLoader
             Script = def.Script,
             Abilities = def.Abilities,
             BattleCommands = def.BattleCommands,
-            AbilityProficiency = def.AbilityProficiency
+            AbilityProficiency = def.AbilityProficiency,
+            PatrolRoute = def.PatrolRoute,
+            ShopSells = def.ShopSells
         };
 
         if (!string.IsNullOrEmpty(def.BaseDisposition))
@@ -100,7 +102,28 @@ public static class YamlContentLoader
 
         if (def.Trains != null)
         {
-            template.Properties["trains"] = def.Trains;
+            var tierStr = "apprentice";
+            var abilities = new List<string>();
+            if (def.Trains.TryGetValue("tier", out var tierRaw) && tierRaw != null)
+            {
+                tierStr = tierRaw.ToString()!;
+            }
+            var tier = tierStr.ToLower() switch
+            {
+                "apprentice" => Tapestry.Engine.Training.CapTier.Apprentice,
+                "journeyman" => Tapestry.Engine.Training.CapTier.Journeyman,
+                "master" => Tapestry.Engine.Training.CapTier.Master,
+                _ => Tapestry.Engine.Training.CapTier.Apprentice
+            };
+            if (def.Trains.TryGetValue("abilities", out var abilitiesRaw)
+                && abilitiesRaw is List<object> abilitiesList)
+            {
+                foreach (var a in abilitiesList)
+                {
+                    abilities.Add(a.ToString()!);
+                }
+            }
+            template.TrainerConfig = new Tapestry.Engine.Training.TrainerConfig(tier, abilities);
         }
 
         LootTable? lootTable = null;
@@ -221,6 +244,18 @@ public static class YamlContentLoader
                     result[key] = nestedRaw.ToDictionary(
                         kvp => kvp.Key.ToString()!,
                         kvp => (object?)kvp.Value);
+                }
+            }
+            else if (value is IList<object> listRaw)
+            {
+                var valueType = registry.GetValueType(key);
+                if (valueType == PropertyValueType.ListString)
+                {
+                    result[key] = listRaw.Select(v => v?.ToString() ?? "").ToList();
+                }
+                else
+                {
+                    result[key] = listRaw;
                 }
             }
             else
@@ -527,6 +562,8 @@ public static class YamlContentLoader
         public List<MobAbilityEntry> Abilities { get; set; } = new();
         public List<string> BattleCommands { get; set; } = new();
         public int? AbilityProficiency { get; set; }
+        public List<string> PatrolRoute { get; set; } = new();
+        public List<string> ShopSells { get; set; } = new();
     }
 
     private class LootInlineModel

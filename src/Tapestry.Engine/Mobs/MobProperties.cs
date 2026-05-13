@@ -9,6 +9,9 @@ public static class MobProperties
     public const string Gender = "gender";
     public const string LastIp = "last_ip";
     public const string ReturnRoom = "return_room";
+    public const string PatrolRoute = "patrol_route";
+    public const string PatrolInterval = "patrol_interval";
+    public const string ShopSells = "shop_sells";
 
     public static void Register(PropertyRegistry registry)
     {
@@ -22,5 +25,11 @@ public static class MobProperties
             PropertyValueType.String, appliesTo: new[] { "player" }, transient: true);
         registry.RegisterEngineProperty(ReturnRoom, "Room to return to after transient teleport",
             PropertyValueType.String, appliesTo: new[] { "player" }, transient: true);
+        registry.RegisterEngineProperty(PatrolRoute, "Ordered list of room IDs for patrol behavior",
+            PropertyValueType.ListString, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(PatrolInterval, "Seconds between patrol movements",
+            PropertyValueType.Int, appliesTo: new[] { "npc" });
+        registry.RegisterEngineProperty(ShopSells, "List of item IDs this shop sells",
+            PropertyValueType.ListString, appliesTo: new[] { "npc" });
     }
 }

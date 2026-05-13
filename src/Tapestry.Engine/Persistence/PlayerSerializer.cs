@@ -181,6 +181,7 @@ public class PlayerSerializer
                         mapInt.ToDictionary(e => e.Key, e => (object?)e.Value),
                     Dictionary<string, string> mapStr =>
                         mapStr.ToDictionary(e => e.Key, e => (object?)e.Value),
+                    List<string> listStr => listStr.ToList(),
                     _ => kvp.Value
                 };
             }
@@ -368,6 +369,7 @@ public class PlayerSerializer
         PropertyValueType.Long => typeof(long),
         PropertyValueType.MapInt => typeof(Dictionary<string, int>),
         PropertyValueType.MapString => typeof(Dictionary<string, string>),
+        PropertyValueType.ListString => typeof(List<string>),
         _ => null
     };
 
@@ -398,6 +400,19 @@ public class PlayerSerializer
                     kv => kv.Value?.ToString() ?? "");
             }
             return new Dictionary<string, string>();
+        }
+
+        if (targetType == typeof(List<string>))
+        {
+            if (value is List<object> rawList)
+            {
+                return rawList.Select(v => v?.ToString() ?? "").ToList();
+            }
+            if (value is List<string> strList)
+            {
+                return strList;
+            }
+            return new List<string>();
         }
 
         if (targetType.IsInstanceOfType(value))

@@ -19,7 +19,7 @@ public static class ConsumableProperties
         registry.RegisterEngineProperty(SustenanceValue, "Sustenance provided when consumed", PropertyValueType.Int, appliesTo: new[] { "item" });
         registry.RegisterEngineProperty(EffectId, "Effect applied when consumed", PropertyValueType.String, appliesTo: new[] { "item" });
         registry.RegisterEngineProperty(EffectDuration, "Duration of applied effect in ticks", PropertyValueType.Int, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(EffectData, "Effect parameters", PropertyValueType.String, appliesTo: new[] { "item" }, transient: true);
+        registry.RegisterEngineProperty(EffectData, "Effect parameters", PropertyValueType.MapInt, appliesTo: new[] { "item" }, transient: true);
         registry.RegisterEngineProperty(Charges, "Remaining charges", PropertyValueType.Int, appliesTo: new[] { "item" });
         registry.RegisterEngineProperty(MaxCharges, "Maximum charges", PropertyValueType.Int, appliesTo: new[] { "item" });
         registry.RegisterEngineProperty(DestroyOnEmpty, "Destroy item when charges reach zero", PropertyValueType.Bool, appliesTo: new[] { "item" });

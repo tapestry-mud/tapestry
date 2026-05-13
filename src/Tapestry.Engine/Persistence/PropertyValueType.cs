@@ -7,6 +7,7 @@ public enum PropertyValueType
     Double,
     Bool,
     Long,
-    MapInt,     // Dictionary<string, int>
-    MapString   // Dictionary<string, string>
+    MapInt,      // Dictionary<string, int>
+    MapString,   // Dictionary<string, string>
+    ListString   // List<string>
 }

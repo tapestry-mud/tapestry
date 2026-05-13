@@ -69,6 +69,8 @@ public class MobTemplate
     public int? AbilityProficiency { get; set; }
     public TrainerConfig? TrainerConfig { get; set; }
     public ShopConfig? ShopConfig { get; set; }
+    public List<string> PatrolRoute { get; set; } = new();
+    public List<string> ShopSells { get; set; } = new();
 
     public Entity CreateEntity()
     {
@@ -109,6 +111,15 @@ public class MobTemplate
 
         entity.SetProperty(CommonProperties.TemplateId, Id);
         entity.SetProperty(MobProperties.Behavior, Behavior);
+
+        if (PatrolRoute.Count > 0)
+        {
+            entity.SetProperty("patrol_route", PatrolRoute);
+        }
+        if (ShopSells.Count > 0)
+        {
+            entity.SetProperty("shop_sells", ShopSells);
+        }
 
         if (Disposition != null)
         {

@@ -313,11 +313,12 @@ public class PackValidator
         {
             PropertyValueType.String => raw is string,
             PropertyValueType.Int => raw is int or long,
-            PropertyValueType.Double => raw is double or float,
+            PropertyValueType.Double => raw is double or float or int or long,
             PropertyValueType.Bool => raw is bool,
             PropertyValueType.Long => raw is long or int,
             PropertyValueType.MapInt => raw is Dictionary<string, int>,
             PropertyValueType.MapString => raw is Dictionary<string, string>,
+            PropertyValueType.ListString => raw is System.Collections.IList,
             _ => true
         };
     }
