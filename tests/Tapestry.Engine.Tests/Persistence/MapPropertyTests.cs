@@ -1,4 +1,5 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Persistence;
 
 namespace Tapestry.Engine.Tests.Persistence;
 
@@ -82,5 +83,27 @@ public class MapPropertyTests
         _entity.SetMapValue("proficiency", "kick", 50);
         Assert.Equal(100, _entity.GetProperty<int>("gold"));
         Assert.Equal(50, _entity.GetMapValue<int>("proficiency", "kick"));
+    }
+
+    [Fact]
+    public void MapProperty_RoundTrip_ThroughSerializer()
+    {
+        var registry = new PropertyRegistry();
+        registry.RegisterEngineProperty("proficiency", "Proficiency", PropertyValueType.MapInt);
+        registry.RegisterEngineProperty("labels", "Labels", PropertyValueType.MapString);
+
+        var entity = new Entity("player", "TestPlayer");
+        entity.SetMapValue("proficiency", "kick", 100);
+        entity.SetMapValue("proficiency", "dodge", 45);
+        entity.SetMapValue("labels", "color", "red");
+
+        var serializer = new PlayerSerializer(registry);
+        var saveData = serializer.ToSaveData(entity, "hash", new List<Entity>());
+        var loadResult = serializer.FromSaveData(saveData);
+        var result = loadResult.Entity;
+
+        Assert.Equal(100, result.GetMapValue<int>("proficiency", "kick"));
+        Assert.Equal(45, result.GetMapValue<int>("proficiency", "dodge"));
+        Assert.Equal("red", result.GetMapValue<string>("labels", "color"));
     }
 }

@@ -175,7 +175,14 @@ public class PlayerSerializer
 
             if (_registry.IsKnown(kvp.Key))
             {
-                result[kvp.Key] = kvp.Value;
+                result[kvp.Key] = kvp.Value switch
+                {
+                    Dictionary<string, int> mapInt =>
+                        mapInt.ToDictionary(e => e.Key, e => (object?)e.Value),
+                    Dictionary<string, string> mapStr =>
+                        mapStr.ToDictionary(e => e.Key, e => (object?)e.Value),
+                    _ => kvp.Value
+                };
             }
             else
             {
@@ -369,6 +376,28 @@ public class PlayerSerializer
         if (value == null)
         {
             return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+        }
+
+        if (targetType == typeof(Dictionary<string, int>))
+        {
+            if (value is Dictionary<string, object?> rawDict)
+            {
+                return rawDict.ToDictionary(
+                    kv => kv.Key,
+                    kv => Convert.ToInt32(kv.Value));
+            }
+            return new Dictionary<string, int>();
+        }
+
+        if (targetType == typeof(Dictionary<string, string>))
+        {
+            if (value is Dictionary<string, object?> rawDict)
+            {
+                return rawDict.ToDictionary(
+                    kv => kv.Key,
+                    kv => kv.Value?.ToString() ?? "");
+            }
+            return new Dictionary<string, string>();
         }
 
         if (targetType.IsInstanceOfType(value))
