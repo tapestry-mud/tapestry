@@ -1,35 +1,26 @@
-// See also: CommonProperties.cs for shared entity properties
 using Tapestry.Engine.Persistence;
 
 namespace Tapestry.Engine.Abilities;
 
-/// <summary>
-/// Property keys for the ability system (proficiency tracking, queued actions, last used).
-/// </summary>
 public static class AbilityProperties
 {
-    /// <summary>Key prefix: "proficiency:"</summary>
-    public const string ProficiencyPrefix = "proficiency:";
-
-    /// <summary>Key: "queued_actions"</summary>
+    public const string Proficiency = "proficiency";
+    public const string Cap = "cap";
     public const string QueuedActions = "queued_actions";
-
-    /// <summary>Key: "last_ability_used"</summary>
     public const string LastAbilityUsed = "last_ability_used";
 
-    /// <summary>Key prefix: "cap:"</summary>
-    public const string CapPrefix = "cap:";
+    public static string ProficiencyKey(string abilityId) => abilityId;
+    public static string CapKey(string abilityId) => abilityId;
 
-    /// <summary>Key: "proficiency:{abilityId}"</summary>
-    public static string Proficiency(string abilityId) => $"proficiency:{abilityId}";
-
-    /// <summary>Key: "cap:{abilityId}"</summary>
-    public static string Cap(string abilityId) => $"cap:{abilityId}";
-
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterPrefix(ProficiencyPrefix, typeof(int));
-        registry.RegisterPrefix(CapPrefix, typeof(int));
-        registry.Register(LastAbilityUsed, typeof(string));
+        registry.RegisterEngineProperty(Proficiency, "Ability proficiency scores",
+            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+        registry.RegisterEngineProperty(Cap, "Ability proficiency caps",
+            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+        registry.RegisterEngineProperty(LastAbilityUsed, "Last ability used by this entity",
+            PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(QueuedActions, "Queued ability actions",
+            PropertyValueType.String, transient: true);
     }
 }

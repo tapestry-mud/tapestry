@@ -1,4 +1,3 @@
-// See also: CommonProperties.cs for shared entity properties
 using Tapestry.Engine.Persistence;
 
 namespace Tapestry.Engine.Items;
@@ -8,9 +7,9 @@ public static class ItemProperties
     public const string Rarity = "rarity";
     public const string Essence = "essence";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(Rarity, typeof(string));
-        registry.Register(Essence, typeof(string));
+        registry.RegisterEngineProperty(Rarity, "Item rarity tier", PropertyValueType.String, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(Essence, "Magical essence type", PropertyValueType.String, appliesTo: new[] { "item" });
     }
 }

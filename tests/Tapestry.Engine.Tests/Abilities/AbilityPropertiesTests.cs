@@ -1,4 +1,3 @@
-// tests/Tapestry.Engine.Tests/Abilities/AbilityPropertiesTests.cs
 using Tapestry.Engine.Abilities;
 
 namespace Tapestry.Engine.Tests.Abilities;
@@ -18,8 +17,14 @@ public class AbilityPropertiesTests
     }
 
     [Fact]
-    public void Proficiency_KeyFormat()
+    public void Proficiency_ConstIsMapKey()
     {
-        Assert.Equal("proficiency:kick", AbilityProperties.Proficiency("kick"));
+        Assert.Equal("proficiency", AbilityProperties.Proficiency);
+    }
+
+    [Fact]
+    public void Cap_ConstIsMapKey()
+    {
+        Assert.Equal("cap", AbilityProperties.Cap);
     }
 }

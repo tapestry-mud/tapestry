@@ -14,12 +14,12 @@ public static class RestProperties
     public const string StateResting = "resting";
     public const string StateSleeping = "sleeping";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(RestState, typeof(string));
-        registry.Register(RestTarget, typeof(string));
-        registry.Register(RestBonus, typeof(int));
-        registry.Register(SleepStartTick, typeof(long));
-        registry.Register(RoomHealingRate, typeof(int));
+        registry.RegisterEngineProperty(RestState, "Current rest state (awake/resting/sleeping)", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(RestTarget, "Entity being rested on or near", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(RestBonus, "Bonus regen while resting", PropertyValueType.Int, transient: true);
+        registry.RegisterEngineProperty(SleepStartTick, "Tick when sleep began", PropertyValueType.Long, transient: true);
+        registry.RegisterEngineProperty(RoomHealingRate, "Healing rate bonus for this room", PropertyValueType.Int, appliesTo: new[] { "room" });
     }
 }

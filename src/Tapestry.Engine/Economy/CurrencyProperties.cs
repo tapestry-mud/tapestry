@@ -5,13 +5,11 @@ namespace Tapestry.Engine.Economy;
 public static class CurrencyProperties
 {
     public const string Gold = "gold";
-    public const string Value = "value";
     public const string CurrencyTag = "currency";
     public const string NoSellTag = "no_sell";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(Gold, typeof(int));
-        registry.Register(Value, typeof(int));
+        registry.RegisterEngineProperty(Gold, "Currency held by this entity", PropertyValueType.Int);
     }
 }

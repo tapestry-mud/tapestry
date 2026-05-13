@@ -13,15 +13,15 @@ public static class ConsumableProperties
     public const string MaxCharges = "max_charges";
     public const string DestroyOnEmpty = "destroy_on_empty";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(ConsumeMethod, typeof(string));
-        registry.Register(SustenanceValue, typeof(int));
-        registry.Register(EffectId, typeof(string));
-        registry.Register(EffectDuration, typeof(int));
-        registry.Register(EffectData, typeof(Dictionary<string, object>));
-        registry.Register(Charges, typeof(int));
-        registry.Register(MaxCharges, typeof(int));
-        registry.Register(DestroyOnEmpty, typeof(bool));
+        registry.RegisterEngineProperty(ConsumeMethod, "Consumption method", PropertyValueType.String, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(SustenanceValue, "Sustenance provided when consumed", PropertyValueType.Int, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(EffectId, "Effect applied when consumed", PropertyValueType.String, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(EffectDuration, "Duration of applied effect in ticks", PropertyValueType.Int, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(EffectData, "Effect parameters", PropertyValueType.String, appliesTo: new[] { "item" }, transient: true);
+        registry.RegisterEngineProperty(Charges, "Remaining charges", PropertyValueType.Int, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(MaxCharges, "Maximum charges", PropertyValueType.Int, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(DestroyOnEmpty, "Destroy item when charges reach zero", PropertyValueType.Bool, appliesTo: new[] { "item" });
     }
 }

@@ -2,57 +2,41 @@ using Tapestry.Engine.Persistence;
 
 namespace Tapestry.Engine;
 
-/// <summary>
-/// Shared entity property keys used across multiple engine modules.
-/// </summary>
 public static class CommonProperties
 {
-    /// <summary>Key: "template_id"</summary>
     public const string TemplateId = "template_id";
-
-    /// <summary>Key: "regen_hp"</summary>
     public const string RegenHp = "regen_hp";
-
-    /// <summary>Key: "regen_resource"</summary>
     public const string RegenResource = "regen_resource";
-
-    /// <summary>Key: "regen_movement"</summary>
     public const string RegenMovement = "regen_movement";
-
-    /// <summary>Key: "corpse_decay"</summary>
     public const string CorpseDecay = "corpse_decay";
-
-    /// <summary>Key: "corpse_created_tick"</summary>
     public const string CorpseCreatedTick = "corpse_created_tick";
-
-    /// <summary>Key: "class"</summary>
     public const string Class = "class";
-
-    /// <summary>Key: "race"</summary>
     public const string Race = "race";
-
-    /// <summary>Key: "alignment"</summary>
     public const string Alignment = "alignment";
+    public const string Description = "description";
+    public const string SourcePack = "source_pack";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(TemplateId, typeof(string));
-        registry.Register(RegenHp, typeof(int));
-        registry.Register(RegenResource, typeof(int));
-        registry.Register(RegenMovement, typeof(int));
-        registry.Register(CorpseDecay, typeof(int));
-        registry.Register(CorpseCreatedTick, typeof(long));
-        registry.Register(Class, typeof(string));
-        registry.Register(Race, typeof(string));
-        registry.Register(Alignment, typeof(int));
+        registry.RegisterEngineProperty(TemplateId, "Template ID used to spawn this entity", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(RegenHp, "HP regeneration per tick", PropertyValueType.Int);
+        registry.RegisterEngineProperty(RegenResource, "Resource regeneration per tick", PropertyValueType.Int);
+        registry.RegisterEngineProperty(RegenMovement, "Movement regeneration per tick", PropertyValueType.Int);
+        registry.RegisterEngineProperty(CorpseDecay, "Ticks until corpse decays", PropertyValueType.Int);
+        registry.RegisterEngineProperty(CorpseCreatedTick, "World tick when corpse was created", PropertyValueType.Long);
+        registry.RegisterEngineProperty(Class, "Character class", PropertyValueType.String);
+        registry.RegisterEngineProperty(Race, "Character race", PropertyValueType.String);
+        registry.RegisterEngineProperty(Alignment, "Alignment value (-1000 to 1000)", PropertyValueType.Int);
+        registry.RegisterEngineProperty(Description, "Entity description text", PropertyValueType.String);
+        registry.RegisterEngineProperty(SourcePack, "Pack that loaded this entity", PropertyValueType.String, transient: true);
 
-        registry.RegisterTransient("alignment_history");
-        registry.RegisterTransient("no_follow");
-        registry.RegisterTransient("following");
-        registry.RegisterTransient("group_id");
-        registry.RegisterTransient("group_leader");
-        registry.RegisterTransient("group_join_time");
-        registry.RegisterTransient("group_invite_from");
-        registry.RegisterTransient("group_invite_expires");
+        registry.RegisterEngineProperty("alignment_history", "History of alignment shifts", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty("no_follow", "Prevents entity from being followed", PropertyValueType.Bool, transient: true);
+        registry.RegisterEngineProperty("following", "Entity this one is following", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty("group_id", "Group membership ID", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty("group_leader", "ID of group leader", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty("group_join_time", "Tick when entity joined group", PropertyValueType.Long, transient: true);
+        registry.RegisterEngineProperty("group_invite_from", "ID of entity who sent group invite", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty("group_invite_expires", "Tick when group invite expires", PropertyValueType.Long, transient: true);
     }
 }

@@ -6,8 +6,8 @@ public static class SustenanceProperties
 {
     public const string Sustenance = "sustenance";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(Sustenance, typeof(int));
+        registry.RegisterEngineProperty(Sustenance, "Current sustenance level", PropertyValueType.Int, appliesTo: new[] { "player", "npc" });
     }
 }

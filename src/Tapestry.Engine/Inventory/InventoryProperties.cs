@@ -1,30 +1,19 @@
-// See also: CommonProperties.cs for shared entity properties
 using Tapestry.Engine.Persistence;
 
 namespace Tapestry.Engine.Inventory;
 
-/// <summary>
-/// Property keys for the inventory and equipment system.
-/// </summary>
 public static class InventoryProperties
 {
-    /// <summary>Key: "slot"</summary>
     public const string Slot = "slot";
-
-    /// <summary>Key: "weight"</summary>
     public const string Weight = "weight";
-
-    /// <summary>Key: "max_carry_weight"</summary>
     public const string MaxCarryWeight = "max_carry_weight";
-
-    /// <summary>Key: "modifiers"</summary>
     public const string Modifiers = "modifiers";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(Slot, typeof(string));
-        registry.Register(Weight, typeof(double));
-        registry.Register(MaxCarryWeight, typeof(double));
-        registry.Register(Modifiers, typeof(object), transient: true);
+        registry.RegisterEngineProperty(Slot, "Equipment slot this item occupies", PropertyValueType.String, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(Weight, "Weight of this entity", PropertyValueType.Double);
+        registry.RegisterEngineProperty(MaxCarryWeight, "Maximum carry weight", PropertyValueType.Double, appliesTo: new[] { "player", "npc" });
+        registry.RegisterEngineProperty(Modifiers, "Stat modifiers granted by this item", PropertyValueType.String, transient: true);
     }
 }

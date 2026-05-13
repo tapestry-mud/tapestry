@@ -5,10 +5,10 @@ namespace Tapestry.Engine.Training;
 public static class TrainingProperties
 {
     public const string TrainsAvailable = "trains_available";
-    public const string TrainerConfigKey = "trainer_config";
 
-    public static void Register(PropertyTypeRegistry registry)
+    public static void Register(PropertyRegistry registry)
     {
-        registry.Register(TrainsAvailable, typeof(int));
+        registry.RegisterEngineProperty(TrainsAvailable, "Number of training sessions available",
+            PropertyValueType.Int, appliesTo: new[] { "player" });
     }
 }
