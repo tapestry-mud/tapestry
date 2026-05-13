@@ -12,9 +12,9 @@ public class PlayerLoadResult
 
 public class PlayerSerializer
 {
-    private readonly PropertyTypeRegistry _registry;
+    private readonly PropertyRegistry _registry;
 
-    public PlayerSerializer(PropertyTypeRegistry registry)
+    public PlayerSerializer(PropertyRegistry registry)
     {
         _registry = registry;
     }
@@ -173,7 +173,7 @@ public class PlayerSerializer
         {
             if (_registry.IsTransient(kvp.Key)) { continue; }
 
-            if (_registry.IsRegistered(kvp.Key))
+            if (_registry.IsKnown(kvp.Key))
             {
                 result[kvp.Key] = kvp.Value;
             }
@@ -290,7 +290,8 @@ public class PlayerSerializer
         }
 
         // Known property — coerce to registered type
-        var registeredType = _registry.GetType(key);
+        var valueType = _registry.GetValueType(key);
+        var registeredType = valueType.HasValue ? ValueTypeToClrType(valueType.Value) : null;
         if (registeredType != null)
         {
             try
@@ -299,8 +300,6 @@ public class PlayerSerializer
             }
             catch
             {
-                // TODO: log warning with property key, expected type, and actual value (spec section 3.3)
-                // Bad value for known property — return default
                 return registeredType.IsValueType ? Activator.CreateInstance(registeredType) : null;
             }
         }
@@ -352,6 +351,18 @@ public class PlayerSerializer
             _ => value
         };
     }
+
+    private static Type? ValueTypeToClrType(PropertyValueType vt) => vt switch
+    {
+        PropertyValueType.String => typeof(string),
+        PropertyValueType.Int => typeof(int),
+        PropertyValueType.Double => typeof(double),
+        PropertyValueType.Bool => typeof(bool),
+        PropertyValueType.Long => typeof(long),
+        PropertyValueType.MapInt => typeof(Dictionary<string, int>),
+        PropertyValueType.MapString => typeof(Dictionary<string, string>),
+        _ => null
+    };
 
     private static object? CoerceToRegisteredType(Type targetType, object? value)
     {

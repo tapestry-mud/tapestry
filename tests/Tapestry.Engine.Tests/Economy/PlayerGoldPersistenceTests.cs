@@ -5,9 +5,9 @@ namespace Tapestry.Engine.Tests.Economy;
 
 public class PlayerGoldPersistenceTests
 {
-    private PropertyTypeRegistry BuildRegistry()
+    private PropertyRegistry BuildRegistry()
     {
-        var registry = new PropertyTypeRegistry();
+        var registry = new PropertyRegistry();
         CurrencyProperties.Register(registry);
         return registry;
     }
@@ -16,7 +16,7 @@ public class PlayerGoldPersistenceTests
     public void Gold_IsRegisteredAsInt()
     {
         var registry = BuildRegistry();
-        Assert.Equal(typeof(int), registry.GetType(CurrencyProperties.Gold));
+        Assert.Equal(PropertyValueType.Int, registry.GetValueType(CurrencyProperties.Gold));
     }
 
     [Fact]
@@ -30,7 +30,6 @@ public class PlayerGoldPersistenceTests
     public void Gold_IsRegisteredType_IsInt()
     {
         var registry = BuildRegistry();
-        var type = registry.GetType(CurrencyProperties.Gold);
-        Assert.Equal(typeof(int), type);
+        Assert.Equal(PropertyValueType.Int, registry.GetValueType(CurrencyProperties.Gold));
     }
 }

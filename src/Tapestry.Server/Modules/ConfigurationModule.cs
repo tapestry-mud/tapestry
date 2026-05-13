@@ -23,7 +23,7 @@ public class ConfigurationModule : IGameModule
     private readonly ServerConfig _config;
     private readonly TrainingConfig _trainingConfig;
     private readonly EconomyConfig _economyConfig;
-    private readonly PropertyTypeRegistry _propertyRegistry;
+    private readonly PropertyRegistry _propertyRegistry;
 
     public string Name => "Configuration";
 
@@ -31,7 +31,7 @@ public class ConfigurationModule : IGameModule
         ServerConfig config,
         TrainingConfig trainingConfig,
         EconomyConfig economyConfig,
-        PropertyTypeRegistry propertyRegistry)
+        PropertyRegistry propertyRegistry)
     {
         _config = config;
         _trainingConfig = trainingConfig;
@@ -51,6 +51,7 @@ public class ConfigurationModule : IGameModule
             _config.Economy.ShopSellDiscount);
 
         CommonProperties.Register(_propertyRegistry);
+        RoomProperties.Register(_propertyRegistry);
         CombatProperties.Register(_propertyRegistry);
         InventoryProperties.Register(_propertyRegistry);
         ItemProperties.Register(_propertyRegistry);

@@ -98,7 +98,7 @@ public class ConnectionHandlerLoginPhaseTests
         var sessions = new SessionManager();
         var playerCreator = new PlayerCreator();
         var world = new World(playerCreator);
-        var registry = new PropertyTypeRegistry();
+        var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
         var serializer = new PlayerSerializer(registry);
         var persistence = new PlayerPersistenceService(
@@ -171,7 +171,7 @@ public class ConnectionHandlerLoginPhaseTests
 
     private static PlayerSaveData MakeSaveData(string name, string password)
     {
-        var registry = new PropertyTypeRegistry();
+        var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
         var serializer = new PlayerSerializer(registry);
 

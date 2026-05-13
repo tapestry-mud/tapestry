@@ -17,7 +17,7 @@ public class PlayerInitModuleTests
 {
     private static PlayerInitModule CreateModule(ServerConfig config, FakeAdminStore store)
     {
-        var registry = new PropertyTypeRegistry();
+        var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
         var serializer = new PlayerSerializer(registry);
         var sessions = new SessionManager();

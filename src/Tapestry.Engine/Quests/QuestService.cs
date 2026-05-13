@@ -264,9 +264,8 @@ public class QuestService
 
     private bool CheckPrereqs(Entity player, QuestPrereqs prereqs, QuestState state)
     {
-        // Level is stored via ProgressionProperties.Level("main") using entity.GetProperty<int>
-        // Default is 0 when unset; treat 0 as 1 to match ProgressionManager behavior
-        var level = player.GetProperty<int>(ProgressionProperties.Level("main"));
+        var levelMap = player.GetProperty<Dictionary<string, int>>(ProgressionProperties.Level);
+        var level = levelMap != null && levelMap.TryGetValue("main", out var lvl) ? lvl : 0;
         if (level == 0)
         {
             level = 1;

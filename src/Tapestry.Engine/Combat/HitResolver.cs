@@ -42,10 +42,10 @@ public static class HitResolver
         var dexMod = defender.Stats.Dexterity - 10;
         var equipmentAC = 0;
 
-        var acProp = defender.GetProperty<object>(CombatProperties.ArmorClass(damageType));
-        if (acProp != null)
+        var acMap = defender.GetProperty<Dictionary<string, int>>(CombatProperties.ArmorClass);
+        if (acMap != null && acMap.TryGetValue(damageType, out var acValue))
         {
-            equipmentAC = Convert.ToInt32(acProp);
+            equipmentAC = acValue;
         }
 
         return BaseAC + equipmentAC + dexMod;

@@ -224,8 +224,8 @@ public class ClassesModule : IJintApiModule
                     track = def.Track
                 });
 
-                var levelKey = ProgressionProperties.Level(def.Track);
-                var level = entity.GetProperty<int>(levelKey);
+                var levelMap = entity.GetProperty<Dictionary<string, int>>(ProgressionProperties.Level);
+                var level = levelMap != null && levelMap.TryGetValue(def.Track, out var lvl) ? lvl : 0;
                 if (level < 1) { level = 1; }
 
                 foreach (var entry in def.Path)

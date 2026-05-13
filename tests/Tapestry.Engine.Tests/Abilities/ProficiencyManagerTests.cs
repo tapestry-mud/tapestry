@@ -181,7 +181,7 @@ public class ProficiencyManagerTests
     public void RollProficiencyGain_NoCapPropertyDefaultsTo100()
     {
         Setup();
-        _player.SetProperty(AbilityProperties.Proficiency("kick"), 99);
+        _player.SetProperty(AbilityProperties.Proficiency, new Dictionary<string, int> { ["kick"] = 99 });
         _proficiency.RollProficiencyGain(_player.Id, "kick", new Random(42));
         Assert.InRange(_proficiency.GetProficiency(_player.Id, "kick")!.Value, 99, 100);
     }
@@ -191,19 +191,18 @@ public class ProficiencyManagerTests
     {
         Setup();
         _proficiency.Learn(_player.Id, "kick");
-        var capKey = AbilityProperties.Cap("kick");
-        var cap = _player.GetAllProperties()[capKey];
-        Assert.Equal(25, cap);
+        var capMap = _player.GetProperty<Dictionary<string, int>>(AbilityProperties.Cap);
+        Assert.Equal(25, capMap!["kick"]);
     }
 
     [Fact]
     public void Learn_DoesNotOverwriteExistingCap()
     {
         Setup();
-        _player.SetProperty(AbilityProperties.Cap("kick"), 50);
+        _player.SetProperty(AbilityProperties.Cap, new Dictionary<string, int> { ["kick"] = 50 });
         _proficiency.Learn(_player.Id, "kick");
-        var cap = _player.GetAllProperties()[AbilityProperties.Cap("kick")];
-        Assert.Equal(50, cap);
+        var capMap = _player.GetProperty<Dictionary<string, int>>(AbilityProperties.Cap);
+        Assert.Equal(50, capMap!["kick"]);
     }
 
     [Fact]
@@ -218,7 +217,7 @@ public class ProficiencyManagerTests
     public void GetCap_Returns100WhenPropertyAbsent()
     {
         Setup();
-        _player.SetProperty(AbilityProperties.Proficiency("kick"), 40);
+        _player.SetProperty(AbilityProperties.Proficiency, new Dictionary<string, int> { ["kick"] = 40 });
         Assert.Equal(100, _proficiency.GetCap(_player.Id, "kick"));
     }
 

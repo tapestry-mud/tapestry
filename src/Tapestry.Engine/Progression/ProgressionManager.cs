@@ -46,7 +46,7 @@ public class ProgressionManager
             return 0;
         }
 
-        var level = entity.GetProperty<int>(ProgressionProperties.Level(trackName));
+        var level = GetTrackInt(entity, ProgressionProperties.Level, trackName);
         if (level == 0)
         {
             InitializeTrack(entity, trackName);
@@ -68,14 +68,14 @@ public class ProgressionManager
             return null;
         }
 
-        var level = entity.GetProperty<int>(ProgressionProperties.Level(trackName));
+        var level = GetTrackInt(entity, ProgressionProperties.Level, trackName);
         if (level == 0)
         {
             InitializeTrack(entity, trackName);
             level = 1;
         }
 
-        var xp = entity.GetProperty<int>(ProgressionProperties.Xp(trackName));
+        var xp = GetTrackInt(entity, ProgressionProperties.Xp, trackName);
         var currentThreshold = level <= 1 ? 0 : track.GetXpForLevel(level);
         if (currentThreshold < 0)
         {
@@ -114,18 +114,17 @@ public class ProgressionManager
             return;
         }
 
-        var level = entity.GetProperty<int>(ProgressionProperties.Level(trackName));
+        var level = GetTrackInt(entity, ProgressionProperties.Level, trackName);
         if (level == 0)
         {
             InitializeTrack(entity, trackName);
             level = 1;
         }
 
-        var currentXp = entity.GetProperty<int>(ProgressionProperties.Xp(trackName));
+        var currentXp = GetTrackInt(entity, ProgressionProperties.Xp, trackName);
         var newXp = currentXp + amount;
-        entity.SetProperty(ProgressionProperties.Xp(trackName), newXp);
+        SetTrackInt(entity, ProgressionProperties.Xp, trackName, newXp);
 
-        // Fire XP gained event
         _eventBus.Publish(new GameEvent
         {
             Type = "progression.xp.gained",
@@ -139,7 +138,6 @@ public class ProgressionManager
             }
         });
 
-        // Check for level-ups
         while (level < track.MaxLevel)
         {
             var nextThreshold = track.GetXpForLevel(level + 1);
@@ -150,12 +148,10 @@ public class ProgressionManager
 
             var oldLevel = level;
             level++;
-            entity.SetProperty(ProgressionProperties.Level(trackName), level);
+            SetTrackInt(entity, ProgressionProperties.Level, trackName, level);
 
-            // Fire callback if defined
             track.OnLevelUp?.Invoke(entityId, trackName, level);
 
-            // Fire level-up event
             _eventBus.Publish(new GameEvent
             {
                 Type = "progression.level.up",
@@ -184,13 +180,13 @@ public class ProgressionManager
             return;
         }
 
-        var level = entity.GetProperty<int>(ProgressionProperties.Level(trackName));
+        var level = GetTrackInt(entity, ProgressionProperties.Level, trackName);
         if (level == 0)
         {
             return;
         }
 
-        var currentXp = entity.GetProperty<int>(ProgressionProperties.Xp(trackName));
+        var currentXp = GetTrackInt(entity, ProgressionProperties.Xp, trackName);
         var floor = level <= 1 ? 0 : track.GetXpForLevel(level);
         if (floor < 0)
         {
@@ -199,7 +195,7 @@ public class ProgressionManager
 
         var newXp = Math.Max(floor, currentXp - amount);
         var actualLoss = currentXp - newXp;
-        entity.SetProperty(ProgressionProperties.Xp(trackName), newXp);
+        SetTrackInt(entity, ProgressionProperties.Xp, trackName, newXp);
 
         if (actualLoss > 0)
         {
@@ -230,8 +226,8 @@ public class ProgressionManager
             return;
         }
 
-        entity.SetProperty(ProgressionProperties.Level(trackName), 1);
-        entity.SetProperty(ProgressionProperties.Xp(trackName), 0);
+        SetTrackInt(entity, ProgressionProperties.Level, trackName, 1);
+        SetTrackInt(entity, ProgressionProperties.Xp, trackName, 0);
 
         _eventBus.Publish(new GameEvent
         {
@@ -247,8 +243,25 @@ public class ProgressionManager
 
     private void InitializeTrack(Entity entity, string trackName)
     {
-        entity.SetProperty(ProgressionProperties.Level(trackName), 1);
-        entity.SetProperty(ProgressionProperties.Xp(trackName), 0);
+        SetTrackInt(entity, ProgressionProperties.Level, trackName, 1);
+        SetTrackInt(entity, ProgressionProperties.Xp, trackName, 0);
+    }
+
+    private static int GetTrackInt(Entity entity, string propertyKey, string trackName)
+    {
+        var map = entity.GetProperty<Dictionary<string, int>>(propertyKey);
+        if (map == null || !map.TryGetValue(trackName, out var value))
+        {
+            return 0;
+        }
+        return value;
+    }
+
+    private static void SetTrackInt(Entity entity, string propertyKey, string trackName, int value)
+    {
+        var map = entity.GetProperty<Dictionary<string, int>>(propertyKey) ?? new Dictionary<string, int>();
+        map[trackName] = value;
+        entity.SetProperty(propertyKey, map);
     }
 }
 

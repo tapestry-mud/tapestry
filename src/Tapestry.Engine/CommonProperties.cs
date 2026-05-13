@@ -18,7 +18,7 @@ public static class CommonProperties
 
     public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterEngineProperty(TemplateId, "Template ID used to spawn this entity", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(TemplateId, "Template ID used to spawn this entity", PropertyValueType.String);
         registry.RegisterEngineProperty(RegenHp, "HP regeneration per tick", PropertyValueType.Int);
         registry.RegisterEngineProperty(RegenResource, "Resource regeneration per tick", PropertyValueType.Int);
         registry.RegisterEngineProperty(RegenMovement, "Movement regeneration per tick", PropertyValueType.Int);

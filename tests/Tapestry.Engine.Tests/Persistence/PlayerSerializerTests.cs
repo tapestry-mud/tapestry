@@ -6,12 +6,12 @@ namespace Tapestry.Engine.Tests.Persistence;
 
 public class PlayerSerializerTests
 {
-    private readonly PropertyTypeRegistry _registry;
+    private readonly PropertyRegistry _registry;
     private readonly PlayerSerializer _serializer;
 
     public PlayerSerializerTests()
     {
-        _registry = new PropertyTypeRegistry();
+        _registry = new PropertyRegistry();
         CommonProperties.Register(_registry);
         _serializer = new PlayerSerializer(_registry);
     }

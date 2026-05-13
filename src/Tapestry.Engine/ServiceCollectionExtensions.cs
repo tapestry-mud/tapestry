@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ServerConfig>();
 
         // Persistence
-        services.AddSingleton<PropertyTypeRegistry>();
+        services.AddSingleton<PropertyRegistry>();
         services.AddSingleton<PlayerSerializer>();
 
         // Core

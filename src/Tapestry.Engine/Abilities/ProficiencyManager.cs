@@ -21,12 +21,15 @@ public class ProficiencyManager
             return;
         }
         var clamped = Math.Clamp(initialProficiency, 1, 100);
-        entity.SetProperty(AbilityProperties.Proficiency(abilityId), clamped);
+        var profMap = GetOrCreateMap(entity, AbilityProperties.Proficiency);
+        profMap[abilityId] = clamped;
+        entity.SetProperty(AbilityProperties.Proficiency, profMap);
 
-        var capKey = AbilityProperties.Cap(abilityId);
-        if (!entity.HasProperty(capKey))
+        var capMap = GetOrCreateMap(entity, AbilityProperties.Cap);
+        if (!capMap.ContainsKey(abilityId))
         {
-            entity.SetProperty(capKey, 25);
+            capMap[abilityId] = 25;
+            entity.SetProperty(AbilityProperties.Cap, capMap);
         }
     }
 
@@ -34,8 +37,8 @@ public class ProficiencyManager
     {
         var entity = _world.GetEntity(entityId);
         if (entity == null) { return 100; }
-        var capKey = AbilityProperties.Cap(abilityId);
-        if (!entity.TryGetProperty<int>(capKey, out var capValue)) { return 100; }
+        var capMap = entity.GetProperty<Dictionary<string, int>>(AbilityProperties.Cap);
+        if (capMap == null || !capMap.TryGetValue(abilityId, out var capValue)) { return 100; }
         return capValue;
     }
 
@@ -43,7 +46,9 @@ public class ProficiencyManager
     {
         var entity = _world.GetEntity(entityId);
         if (entity == null) { return; }
-        entity.SetProperty(AbilityProperties.Cap(abilityId), capValue);
+        var capMap = GetOrCreateMap(entity, AbilityProperties.Cap);
+        capMap[abilityId] = capValue;
+        entity.SetProperty(AbilityProperties.Cap, capMap);
     }
 
     public void Forget(Guid entityId, string abilityId)
@@ -53,7 +58,12 @@ public class ProficiencyManager
         {
             return;
         }
-        entity.SetProperty(AbilityProperties.Proficiency(abilityId), null);
+        var profMap = entity.GetProperty<Dictionary<string, int>>(AbilityProperties.Proficiency);
+        if (profMap != null)
+        {
+            profMap.Remove(abilityId);
+            entity.SetProperty(AbilityProperties.Proficiency, profMap.Count > 0 ? profMap : null);
+        }
     }
 
     public int? GetProficiency(Guid entityId, string abilityId)
@@ -63,8 +73,8 @@ public class ProficiencyManager
         {
             return null;
         }
-        var key = AbilityProperties.Proficiency(abilityId);
-        if (!entity.TryGetProperty<int>(key, out var profValue))
+        var profMap = entity.GetProperty<Dictionary<string, int>>(AbilityProperties.Proficiency);
+        if (profMap == null || !profMap.TryGetValue(abilityId, out var profValue))
         {
             return null;
         }
@@ -84,7 +94,9 @@ public class ProficiencyManager
             return;
         }
         var clamped = Math.Clamp(value, 1, 100);
-        entity.SetProperty(AbilityProperties.Proficiency(abilityId), clamped);
+        var profMap = GetOrCreateMap(entity, AbilityProperties.Proficiency);
+        profMap[abilityId] = clamped;
+        entity.SetProperty(AbilityProperties.Proficiency, profMap);
     }
 
     public void IncreaseProficiency(Guid entityId, string abilityId, int amount, int cap = 100)
@@ -137,16 +149,17 @@ public class ProficiencyManager
         {
             return new List<LearnedAbility>();
         }
-        var result = new List<LearnedAbility>();
-        foreach (var prop in entity.EnumerateProperties(AbilityProperties.ProficiencyPrefix))
+        var profMap = entity.GetProperty<Dictionary<string, int>>(AbilityProperties.Proficiency);
+        if (profMap == null)
         {
-            if (prop.Value is int proficiency)
-            {
-                var abilityId = prop.Key[AbilityProperties.ProficiencyPrefix.Length..];
-                result.Add(new LearnedAbility(abilityId, proficiency));
-            }
+            return new List<LearnedAbility>();
         }
-        return result;
+        return profMap.Select(kvp => new LearnedAbility(kvp.Key, kvp.Value)).ToList();
+    }
+
+    private static Dictionary<string, int> GetOrCreateMap(Entity entity, string propertyKey)
+    {
+        return entity.GetProperty<Dictionary<string, int>>(propertyKey) ?? new Dictionary<string, int>();
     }
 
     private static int GetStatByName(Entity entity, string statName)

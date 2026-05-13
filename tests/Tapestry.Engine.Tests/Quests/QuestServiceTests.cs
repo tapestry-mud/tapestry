@@ -16,8 +16,7 @@ public class QuestServiceTests
         var config = new QuestConfig { ActiveCap = 10 };
         var service = new QuestService(registry, repo, bus, config);
         var player = new Entity("player", "Alice");
-        // Level is stored via ProgressionProperties.Level("main") as GetProperty<int>
-        player.SetProperty(ProgressionProperties.Level("main"), 1);
+        player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
         return (service, repo, bus, player);
     }
 
@@ -100,7 +99,7 @@ public class QuestServiceTests
         registry.RegisterForTest(otherQuest);
         var service = new QuestService(registry, repo, bus, config);
         var player = new Entity("player", "Alice");
-        player.SetProperty(ProgressionProperties.Level("main"), 1);
+        player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
         service.AcceptQuest(player, "test:kill-quest");
         var result = service.AcceptQuest(player, "test:other-quest");
@@ -123,7 +122,7 @@ public class QuestServiceTests
         registry.RegisterForTest(mainQuest);
         var service = new QuestService(registry, repo, bus, config);
         var player = new Entity("player", "Alice");
-        player.SetProperty(ProgressionProperties.Level("main"), 1);
+        player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
         service.AcceptQuest(player, "test:side-quest"); // fills the cap
         var result = service.AcceptQuest(player, "test:main-quest"); // non-abandonable, should bypass
@@ -197,7 +196,7 @@ public class QuestServiceTests
         registry.RegisterForTest(quest);
         var service = new QuestService(registry, repo, bus, new QuestConfig());
         var player = new Entity("player", "Alice");
-        player.SetProperty(ProgressionProperties.Level("main"), 1);
+        player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
         service.AcceptQuest(player, "test:two-stage");
         service.AdvanceObjective(player.Id, "test:two-stage", "obj-0", 1);

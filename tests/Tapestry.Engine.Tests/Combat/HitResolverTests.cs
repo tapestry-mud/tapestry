@@ -21,10 +21,13 @@ public class HitResolverTests
         entity.Stats.BaseDexterity = dex;
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.Hp = 100;
-        entity.SetProperty("ac_slash", 0);
-        entity.SetProperty("ac_pierce", 0);
-        entity.SetProperty("ac_bash", 0);
-        entity.SetProperty("ac_exotic", 0);
+        entity.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int>
+        {
+            ["slash"] = 0,
+            ["pierce"] = 0,
+            ["bash"] = 0,
+            ["exotic"] = 0
+        });
         return entity;
     }
 
@@ -59,8 +62,8 @@ public class HitResolverTests
     public void CalculateArmorClass_SlashType()
     {
         var defender = CreateDefender(dex: 14);
-        defender.SetProperty("ac_slash", 5);
-        // AC = base(10) + ac_slash(5) + dex_mod(14-10=4) = 19
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int> { ["slash"] = 5 });
+        // AC = base(10) + ac[slash](5) + dex_mod(14-10=4) = 19
         var ac = HitResolver.CalculateArmorClass(defender, "slash");
         Assert.Equal(19, ac);
     }
@@ -69,10 +72,13 @@ public class HitResolverTests
     public void CalculateArmorClass_DifferentTypesReturnDifferentValues()
     {
         var defender = CreateDefender(dex: 10);
-        defender.SetProperty("ac_slash", 5);
-        defender.SetProperty("ac_pierce", 2);
-        defender.SetProperty("ac_bash", 8);
-        defender.SetProperty("ac_exotic", 0);
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int>
+        {
+            ["slash"] = 5,
+            ["pierce"] = 2,
+            ["bash"] = 8,
+            ["exotic"] = 0
+        });
 
         Assert.Equal(15, HitResolver.CalculateArmorClass(defender, "slash"));
         Assert.Equal(12, HitResolver.CalculateArmorClass(defender, "pierce"));
@@ -97,7 +103,7 @@ public class HitResolverTests
     {
         var attacker = CreateAttacker(dex: 1);
         var defender = CreateDefender(dex: 20);
-        defender.SetProperty("ac_bash", 50);
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int> { ["bash"] = 50 });
         var random = new FixedRandom(20);
         // null weapon = unarmed = bash
         var result = HitResolver.ResolveHit(attacker, defender, null, random);
@@ -110,7 +116,7 @@ public class HitResolverTests
     {
         var attacker = CreateAttacker(dex: 20);
         var defender = CreateDefender(dex: 1);
-        defender.SetProperty("ac_bash", -100);
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int> { ["bash"] = -100 });
         var random = new FixedRandom(1);
         var result = HitResolver.ResolveHit(attacker, defender, null, random);
         Assert.False(result.IsHit);
@@ -144,8 +150,11 @@ public class HitResolverTests
     {
         var attacker = CreateAttacker(dex: 10);
         var defender = CreateDefender(dex: 10);
-        defender.SetProperty("ac_slash", 5);  // AC vs slash = 15
-        defender.SetProperty("ac_pierce", 0); // AC vs pierce = 10
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int>
+        {
+            ["slash"] = 5,
+            ["pierce"] = 0
+        }); // AC vs slash = 15, AC vs pierce = 10
 
         var slashWeapon = CreateWeapon(damageType: "slash");
         var pierceWeapon = CreateWeapon(damageType: "pierce");

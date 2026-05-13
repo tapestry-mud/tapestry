@@ -20,7 +20,7 @@ public class QuestObjectiveWatcherTests
         watcher.Start();
 
         var player = new Entity("player", "Alice");
-        player.SetProperty(ProgressionProperties.Level("main"), 1);
+        player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
         service.AcceptQuest(player, quest.Id);
 
         return (watcher, service, bus, repo, player);
