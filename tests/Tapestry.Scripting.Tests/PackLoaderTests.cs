@@ -33,15 +33,15 @@ public class PackLoaderTests
     private static string ExamplePackPath()
     {
         var dir = AppContext.BaseDirectory;
-        while (dir != null && !Directory.Exists(Path.Combine(dir, "packs", "example-pack")))
+        while (dir != null && !Directory.Exists(Path.Combine(dir, "tests", "fixtures", "packs", "example-pack")))
         {
             dir = Path.GetDirectoryName(dir);
         }
         if (dir == null)
         {
-            throw new DirectoryNotFoundException("Could not locate packs/example-pack from " + AppContext.BaseDirectory);
+            throw new DirectoryNotFoundException("Could not locate tests/fixtures/packs/example-pack from " + AppContext.BaseDirectory);
         }
-        return Path.Combine(dir, "packs", "example-pack");
+        return Path.Combine(dir, "tests", "fixtures", "packs", "example-pack");
     }
 
     [Fact]
