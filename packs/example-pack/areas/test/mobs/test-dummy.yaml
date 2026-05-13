@@ -1,4 +1,4 @@
-id: "example-pack:test-dummy"
+id: "tapestry-example-pack:test-dummy"
 name: "a training dummy"
 type: "npc"
 tags: []

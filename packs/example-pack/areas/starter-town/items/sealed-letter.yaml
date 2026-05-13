@@ -1,4 +1,4 @@
-id: "example-pack:sealed-letter"
+id: "tapestry-example-pack:sealed-letter"
 name: "a sealed letter"
 type: "item"
 tags: [readable]

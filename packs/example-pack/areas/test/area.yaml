@@ -1,5 +1,5 @@
 area:
-  id: example-pack:test
+  id: tapestry-example-pack:test
   name: "Test"
   level_range: [1, 99]
   reset_interval: 999999

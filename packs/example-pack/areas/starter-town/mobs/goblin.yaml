@@ -1,4 +1,4 @@
-id: "example-pack:goblin"
+id: "tapestry-example-pack:goblin"
 name: "a goblin"
 type: "npc"
 tags: []
@@ -30,23 +30,23 @@ properties:
   ac_bash: 3
   ac_exotic: 1
 equipment:
-  - "example-pack:rusty-dagger"
+  - "tapestry-example-pack:rusty-dagger"
 loot:
   guaranteed:
-    - item: "example-pack:goblin-ear"
+    - item: "tapestry-example-pack:goblin-ear"
       count: 1
   pool:
-    - item: "example-pack:rusty-dagger"
+    - item: "tapestry-example-pack:rusty-dagger"
       weight: 50
-    - item: "example-pack:leather-scrap"
+    - item: "tapestry-example-pack:leather-scrap"
       weight: 35
-    - item: "example-pack:small-coin-pouch"
+    - item: "tapestry-example-pack:small-coin-pouch"
       weight: 15
   pool_rolls: 1
   rare_bonus:
     chance: 0.05
     pool:
-      - item: "example-pack:goblin-charm"
+      - item: "tapestry-example-pack:goblin-charm"
         weight: 70
-      - item: "example-pack:emerald-shard"
+      - item: "tapestry-example-pack:emerald-shard"
         weight: 30

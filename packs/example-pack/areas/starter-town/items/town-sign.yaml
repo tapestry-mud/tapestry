@@ -1,4 +1,4 @@
-id: "example-pack:town-sign"
+id: "tapestry-example-pack:town-sign"
 name: "a weathered wooden sign"
 type: "item"
 tags: [readable, no_get]

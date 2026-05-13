@@ -1,4 +1,4 @@
-id: "example-pack:wilderness-path"
+id: "tapestry-example-pack:wilderness-path"
 area: starter-town
 name: "Wilderness Path"
 description: >
@@ -7,14 +7,14 @@ description: >
   rustles in the underbrush nearby. A <item.uncommon>weathered walking stick</item.uncommon>
   leans against a tree.
 exits:
-  north: "example-pack:training-grounds"
-  south: "example-pack:deep-woods"
+  north: "tapestry-example-pack:training-grounds"
+  south: "tapestry-example-pack:deep-woods"
 properties:
   terrain: forest
 spawns:
-  - mob: "example-pack:goblin"
+  - mob: "tapestry-example-pack:goblin"
     count: 2
-  - mob: "example-pack:goblin-chief"
+  - mob: "tapestry-example-pack:goblin-chief"
     count: 1
 fixtures:
-  - "example-pack:gnarled-staff"
+  - "tapestry-example-pack:gnarled-staff"

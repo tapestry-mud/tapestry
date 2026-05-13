@@ -1,4 +1,4 @@
-id: "example-pack:mage-trainer"
+id: "tapestry-example-pack:mage-trainer"
 name: "a robed scholar"
 type: "npc"
 tags: [skill_trainer]

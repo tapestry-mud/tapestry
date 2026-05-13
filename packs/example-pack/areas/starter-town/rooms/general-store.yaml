@@ -1,4 +1,4 @@
-id: "example-pack:general-store"
+id: "tapestry-example-pack:general-store"
 area: starter-town
 name: "General Store"
 description: >
@@ -7,15 +7,15 @@ description: >
   seen better days. <npc>A merchant</npc> eyes you from behind the counter, ready to
   haggle.
 exits:
-  west: "example-pack:town-square"
+  west: "tapestry-example-pack:town-square"
 tags: [safe, no_wander]
 properties:
   terrain: indoors
 spawns:
-  - mob: "example-pack:merchant"
+  - mob: "tapestry-example-pack:merchant"
     count: 1
     tags: [persistent]
 fixtures:
-  - "example-pack:silver-ring"
-  - "example-pack:traveler-cloak"
-  - "example-pack:leather-boots"
+  - "tapestry-example-pack:silver-ring"
+  - "tapestry-example-pack:traveler-cloak"
+  - "tapestry-example-pack:leather-boots"

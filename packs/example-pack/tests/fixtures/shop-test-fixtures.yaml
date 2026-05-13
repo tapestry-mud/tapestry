@@ -2,7 +2,7 @@
 # Defined in packs/example-pack/tests/fixtures/ (loaded by server.test.yaml)
 #
 # Mobs:
-#   test:shopkeeper          — sells example-pack:leather-cap (value 8), example-pack:goblin-charm (value 50), default markup 1.2x / discount 0.5x
+#   test:shopkeeper          — sells tapestry-example-pack:leather-cap (value 8), tapestry-example-pack:goblin-charm (value 50), default markup 1.2x / discount 0.5x
 #   test:shopkeeper-highmarkup — same stock, buy_markup 1.4x, sell_discount 0.4x
 #
 # Rooms:

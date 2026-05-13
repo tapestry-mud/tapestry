@@ -1,4 +1,4 @@
-id: "example-pack:blacksmith"
+id: "tapestry-example-pack:blacksmith"
 name: "the village blacksmith"
 type: "npc"
 tags: [vendor, quest, no_kill]
@@ -18,5 +18,5 @@ stats:
 properties:
   level: 15
   description: "A broad-shouldered man hammering at an anvil. His arms are thick with muscle."
-  dialogue: "example-pack:blacksmith-intro"
+  dialogue: "tapestry-example-pack:blacksmith-intro"
 equipment: []

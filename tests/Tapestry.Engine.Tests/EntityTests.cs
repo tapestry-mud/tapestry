@@ -63,7 +63,7 @@ public class EntityTests
     {
         var player = new Entity("player", "Mat");
         var coin = new Entity("item:currency", "Gold Crown");
-        coin.LocationRoomId = "example-pack:town-square";
+        coin.LocationRoomId = "tapestry-example-pack:town-square";
         player.AddToContents(coin);
         coin.Container.Should().Be(player);
         coin.LocationRoomId.Should().BeNull();

@@ -1,4 +1,4 @@
-id: "example-pack:waterskin"
+id: "tapestry-example-pack:waterskin"
 name: "a leather waterskin"
 type: "item"
 tags: [drink, fillable]

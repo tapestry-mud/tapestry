@@ -1,4 +1,4 @@
-id: "example-pack:warrior-trainer"
+id: "tapestry-example-pack:warrior-trainer"
 name: "a grizzled veteran"
 type: "npc"
 tags: [skill_trainer]

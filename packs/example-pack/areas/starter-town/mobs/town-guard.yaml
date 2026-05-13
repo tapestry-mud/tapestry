@@ -1,4 +1,4 @@
-id: "example-pack:town-guard"
+id: "tapestry-example-pack:town-guard"
 name: "a town guard"
 type: "npc"
 tags: [no_kill]
@@ -19,10 +19,10 @@ properties:
   level: 10
   description: "A stern-faced guard in chain mail, patrolling the town."
   patrol_route:
-    - "example-pack:town-square"
-    - "example-pack:west-road"
-    - "example-pack:town-square"
-    - "example-pack:training-grounds"
+    - "tapestry-example-pack:town-square"
+    - "tapestry-example-pack:west-road"
+    - "tapestry-example-pack:town-square"
+    - "tapestry-example-pack:training-grounds"
   patrol_interval: 60
 equipment:
-  - "example-pack:iron-sword"
+  - "tapestry-example-pack:iron-sword"

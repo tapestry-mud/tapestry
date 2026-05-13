@@ -1,4 +1,4 @@
-id: "example-pack:mine-entrance"
+id: "tapestry-example-pack:mine-entrance"
 area: starter-town
 name: "Mine Entrance"
 description: >
@@ -7,9 +7,9 @@ description: >
   iron. A rusted sign reads <danger>"KEEP OUT"</danger> but someone has crossed out
   "OUT" and written <highlight>"GOING."</highlight>
 exits:
-  up: "example-pack:town-square"
-  down: "example-pack:mine-shaft"
+  up: "tapestry-example-pack:town-square"
+  down: "tapestry-example-pack:mine-shaft"
 properties:
   terrain: underground
 fixtures:
-  - "example-pack:glowing-lantern"
+  - "tapestry-example-pack:glowing-lantern"

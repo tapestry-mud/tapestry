@@ -1,4 +1,4 @@
-tapestry.mobs.registerScript("example-pack:guide", {
+tapestry.mobs.registerScript("tapestry-example-pack:guide", {
     onSay: function(mob, player, text) {
         var lower = text.toLowerCase();
 

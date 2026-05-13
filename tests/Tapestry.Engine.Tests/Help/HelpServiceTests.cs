@@ -40,9 +40,9 @@ public class HelpServiceTests
     public void Query_NamespacedId_ReturnsOk()
     {
         var svc = new HelpService();
-        svc.AddTopic(MakeTopic("combat-basics", "example-pack"));
+        svc.AddTopic(MakeTopic("combat-basics", "tapestry-example-pack"));
 
-        var result = svc.Query(null, "example-pack:combat-basics");
+        var result = svc.Query(null, "tapestry-example-pack:combat-basics");
 
         Assert.Equal("ok", result.Status);
     }

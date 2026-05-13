@@ -1,4 +1,4 @@
-id: "example-pack:fountain"
+id: "tapestry-example-pack:fountain"
 name: "a stone fountain"
 type: "item"
 tags: [fixture, fill_source, no_get, drinkable]

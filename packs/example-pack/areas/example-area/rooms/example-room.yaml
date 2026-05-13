@@ -1,4 +1,4 @@
-id: "example-pack:example-room"
+id: "tapestry-example-pack:example-room"
 area: example-area
 name: "Example Town Square"
 description: >
@@ -6,13 +6,13 @@ description: >
   guide</npc> stands here, ready to help new arrivals. A <item.uncommon>shiny
   coin</item.uncommon> glints on the ground.
 exits:
-  north: "example-pack:town-square"
+  north: "tapestry-example-pack:town-square"
 properties:
   terrain: city
 tags: [safe, safe_recall]
 spawns:
-  - mob: "example-pack:guide"
+  - mob: "tapestry-example-pack:guide"
     count: 1
     tags: [persistent]
 fixtures:
-  - "example-pack:shiny-coin"
+  - "tapestry-example-pack:shiny-coin"

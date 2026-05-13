@@ -170,7 +170,7 @@ public class YamlContentLoaderTests
     public void LoadMob_ParsesIdleCommandFields()
     {
         var yaml = """
-            id: "example-pack:guide"
+            id: "tapestry-example-pack:guide"
             name: "the town guide"
             type: "npc"
             tags: [npc, friendly]

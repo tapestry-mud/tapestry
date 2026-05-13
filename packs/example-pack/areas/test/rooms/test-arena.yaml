@@ -1,5 +1,5 @@
-id: "example-pack:test-arena"
-area: "example-pack:test"
+id: "tapestry-example-pack:test-arena"
+area: "tapestry-example-pack:test"
 name: "The Void"
 description: >
   Nothing. No walls, no floor, no sky -- just an endless expanse of

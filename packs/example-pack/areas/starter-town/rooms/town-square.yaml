@@ -1,4 +1,4 @@
-id: "example-pack:town-square"
+id: "tapestry-example-pack:town-square"
 area: starter-town
 name: "Town Square"
 description: >
@@ -7,22 +7,22 @@ description: >
   <npc>fountain</npc> gurgles quietly in the center. Roads lead in every direction,
   and the sound of commerce drifts from the <direction>east</direction>.
 exits:
-  north: "example-pack:inn"
-  south: "example-pack:training-grounds"
-  east: "example-pack:general-store"
-  west: "example-pack:west-road"
-  down: "example-pack:mine-entrance"
+  north: "tapestry-example-pack:inn"
+  south: "tapestry-example-pack:training-grounds"
+  east: "tapestry-example-pack:general-store"
+  west: "tapestry-example-pack:west-road"
+  down: "tapestry-example-pack:mine-entrance"
 tags: [safe, recall_point]
 properties:
   terrain: city
 spawns:
-  - mob: "example-pack:town-guard"
+  - mob: "tapestry-example-pack:town-guard"
     count: 1
     tags: [persistent]
-  - mob: "example-pack:blacksmith"
+  - mob: "tapestry-example-pack:blacksmith"
     count: 1
     tags: [persistent]
 fixtures:
-  - "example-pack:fountain"
-  - "example-pack:town-sign"
-  - "example-pack:brass-ring"
+  - "tapestry-example-pack:fountain"
+  - "tapestry-example-pack:town-sign"
+  - "tapestry-example-pack:brass-ring"

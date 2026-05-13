@@ -1,4 +1,4 @@
-id: "example-pack:old-hermit"
+id: "tapestry-example-pack:old-hermit"
 name: "an old hermit"
 type: "npc"
 tags: [quest, no_kill]
@@ -18,5 +18,5 @@ stats:
 properties:
   level: 20
   description: "A weathered old man leaning on a gnarled staff. His eyes hold ancient knowledge."
-  dialogue: "example-pack:hermit-intro"
+  dialogue: "tapestry-example-pack:hermit-intro"
 equipment: []

@@ -1,4 +1,4 @@
-id: "example-pack:guide"
+id: "tapestry-example-pack:guide"
 name: "the town guide"
 type: "npc"
 tags: [no_kill]

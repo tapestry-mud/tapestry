@@ -1,4 +1,4 @@
-id: "example-pack:merchant"
+id: "tapestry-example-pack:merchant"
 name: "the general store merchant"
 type: "npc"
 tags: [shop, persistent, no_kill]
@@ -18,14 +18,14 @@ stats:
 properties:
   description: "A sharp-eyed merchant who sizes you up the moment you walk in. Everything in this shop has a price."
   shop.sells:
-    - "example-pack:rusty-dagger"
-    - "example-pack:wooden-shield"
-    - "example-pack:leather-cap"
-    - "example-pack:leather-boots"
-    - "example-pack:healing-draught"
-    - "example-pack:waterskin"
-    - "example-pack:bedroll"
-    - "example-pack:small-sack"
-    - "example-pack:glowing-lantern"
-    - "example-pack:traveler-cloak"
+    - "tapestry-example-pack:rusty-dagger"
+    - "tapestry-example-pack:wooden-shield"
+    - "tapestry-example-pack:leather-cap"
+    - "tapestry-example-pack:leather-boots"
+    - "tapestry-example-pack:healing-draught"
+    - "tapestry-example-pack:waterskin"
+    - "tapestry-example-pack:bedroll"
+    - "tapestry-example-pack:small-sack"
+    - "tapestry-example-pack:glowing-lantern"
+    - "tapestry-example-pack:traveler-cloak"
 equipment: []

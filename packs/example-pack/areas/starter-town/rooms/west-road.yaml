@@ -1,4 +1,4 @@
-id: "example-pack:west-road"
+id: "tapestry-example-pack:west-road"
 area: starter-town
 name: "West Road"
 description: >
@@ -6,13 +6,13 @@ description: >
   with wildflowers. The town square lies to the <direction>east</direction>, its fountain just
   visible. A few travelers pass by, nodding in greeting.
 exits:
-  east: "example-pack:town-square"
-  west: "example-pack:hilltop"
+  east: "tapestry-example-pack:town-square"
+  west: "tapestry-example-pack:hilltop"
 tags: [entry_point]
 entry_point_description: "The western road out of Starter Town, open in many directions."
 entry_point_direction: east
 properties:
   terrain: road
 spawns:
-  - mob: "example-pack:goblin"
+  - mob: "tapestry-example-pack:goblin"
     count: 1

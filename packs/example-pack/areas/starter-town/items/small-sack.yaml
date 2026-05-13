@@ -1,4 +1,4 @@
-id: "example-pack:small-sack"
+id: "tapestry-example-pack:small-sack"
 name: "a small sack"
 type: "item"
 tags: [container]

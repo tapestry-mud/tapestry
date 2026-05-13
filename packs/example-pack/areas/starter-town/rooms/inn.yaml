@@ -1,4 +1,4 @@
-id: "example-pack:inn"
+id: "tapestry-example-pack:inn"
 area: starter-town
 name: "The Wanderer's Rest"
 description: >
@@ -7,13 +7,13 @@ description: >
   the air. A sturdy bar lines the far wall, behind which <npc>an innkeeper</npc>
   polishes mugs with a practiced hand.
 exits:
-  south: "example-pack:town-square"
+  south: "tapestry-example-pack:town-square"
 tags: [safe, no_wander]
 properties:
   terrain: indoors
 spawns:
-  - mob: "example-pack:old-hermit"
+  - mob: "tapestry-example-pack:old-hermit"
     count: 1
     tags: [persistent]
 fixtures:
-  - "example-pack:healing-draught"
+  - "tapestry-example-pack:healing-draught"

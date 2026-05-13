@@ -8,7 +8,7 @@ public class YamlContentLoaderAlignmentTests
     public void LoadRoom_ParsesAlignmentRange()
     {
         var yaml = @"
-id: 'example-pack:deep-woods'
+id: 'tapestry-example-pack:deep-woods'
 name: 'The Pit of Doom'
 description: 'Dark.'
 alignment_range:
@@ -26,7 +26,7 @@ alignment_block_message: 'The land itself rejects you.'
     public void LoadRoom_NoAlignmentRange_LeavesFieldNull()
     {
         var yaml = @"
-id: 'example-pack:town-square'
+id: 'tapestry-example-pack:town-square'
 name: 'Town Square'
 description: 'A square.'
 ";

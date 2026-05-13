@@ -1,4 +1,4 @@
-id: "example-pack:glowing-lantern"
+id: "tapestry-example-pack:glowing-lantern"
 name: "a glowing lantern"
 type: "item"
 tags: [emits_light, equippable]

@@ -1,4 +1,4 @@
-id: "example-pack:goblin-chief"
+id: "tapestry-example-pack:goblin-chief"
 name: "the goblin chief"
 type: "npc"
 tags: []
@@ -40,28 +40,28 @@ battle_commands:
   - 'emote snarls and winds up for a kick!'
   - "kick"
 equipment:
-  - "example-pack:iron-sword"
-  - "example-pack:leather-cap"
+  - "tapestry-example-pack:iron-sword"
+  - "tapestry-example-pack:leather-cap"
 loot:
   guaranteed:
-    - item: "example-pack:goblin-ear"
+    - item: "tapestry-example-pack:goblin-ear"
       count: 2
-    - item: "example-pack:iron-key"
+    - item: "tapestry-example-pack:iron-key"
       count: 1
   pool:
-    - item: "example-pack:iron-sword"
+    - item: "tapestry-example-pack:iron-sword"
       weight: 30
-    - item: "example-pack:leather-cap"
+    - item: "tapestry-example-pack:leather-cap"
       weight: 30
-    - item: "example-pack:coin-pouch"
+    - item: "tapestry-example-pack:coin-pouch"
       weight: 40
   pool_rolls: 2
   rare_bonus:
     chance: 0.15
     pool:
-      - item: "example-pack:chieftain-ring"
+      - item: "tapestry-example-pack:chieftain-ring"
         weight: 50
-      - item: "example-pack:crude-iron-crown"
+      - item: "tapestry-example-pack:crude-iron-crown"
         weight: 30
-      - item: "example-pack:rare-gem"
+      - item: "tapestry-example-pack:rare-gem"
         weight: 20

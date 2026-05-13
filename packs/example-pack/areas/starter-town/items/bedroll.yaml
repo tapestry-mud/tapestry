@@ -1,4 +1,4 @@
-id: "example-pack:bedroll"
+id: "tapestry-example-pack:bedroll"
 name: "a bedroll"
 type: "item"
 tags: [furniture]

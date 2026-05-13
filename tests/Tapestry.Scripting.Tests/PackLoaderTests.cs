@@ -50,9 +50,9 @@ public class PackLoaderTests
         var (world, _, _, loader) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
-        world.GetRoom("example-pack:test-arena").Should().NotBeNull();
-        world.GetRoom("example-pack:test-arena")!.Name.Should().Be("The Void");
-        world.GetRoom("example-pack:town-square").Should().NotBeNull();
+        world.GetRoom("tapestry-example-pack:test-arena").Should().NotBeNull();
+        world.GetRoom("tapestry-example-pack:test-arena")!.Name.Should().Be("The Void");
+        world.GetRoom("tapestry-example-pack:town-square").Should().NotBeNull();
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public class PackLoaderTests
         var (_, itemRegistry, _, loader) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
-        itemRegistry.HasTemplate("example-pack:iron-sword").Should().BeTrue();
-        var item = itemRegistry.CreateItem("example-pack:iron-sword");
+        itemRegistry.HasTemplate("tapestry-example-pack:iron-sword").Should().BeTrue();
+        var item = itemRegistry.CreateItem("tapestry-example-pack:iron-sword");
         item.Should().NotBeNull();
         item!.Name.Should().Be("an iron sword");
     }
@@ -73,8 +73,8 @@ public class PackLoaderTests
         var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
-        spawnManager.GetTemplate("example-pack:goblin").Should().NotBeNull();
-        spawnManager.GetTemplate("example-pack:test-dummy").Should().NotBeNull();
+        spawnManager.GetTemplate("tapestry-example-pack:goblin").Should().NotBeNull();
+        spawnManager.GetTemplate("tapestry-example-pack:test-dummy").Should().NotBeNull();
     }
 
     [Fact]
@@ -83,10 +83,10 @@ public class PackLoaderTests
         var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
-        var loot = spawnManager.GetLootTable("example-pack:goblin");
+        var loot = spawnManager.GetLootTable("tapestry-example-pack:goblin");
         loot.Should().NotBeNull();
         loot!.Guaranteed.Should().NotBeEmpty();
-        loot.Guaranteed[0].Item.Should().Be("example-pack:goblin-ear");
+        loot.Guaranteed[0].Item.Should().Be("tapestry-example-pack:goblin-ear");
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class PackLoaderTests
         var (world, _, _, loader) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
-        var townSquare = world.GetRoom("example-pack:town-square");
+        var townSquare = world.GetRoom("tapestry-example-pack:town-square");
         townSquare.Should().NotBeNull();
         townSquare!.Entities.Should().Contain(e => e.Name == "a stone fountain");
     }
@@ -108,7 +108,7 @@ public class PackLoaderTests
 
         var config = spawnManager.GetAreaConfig("starter-town");
         config.Should().NotBeNull();
-        config!.Spawns.Should().Contain(s => s.Mob == "example-pack:goblin" && s.Room == "example-pack:training-grounds");
+        config!.Spawns.Should().Contain(s => s.Mob == "tapestry-example-pack:goblin" && s.Room == "tapestry-example-pack:training-grounds");
     }
 
     [Fact]
@@ -120,8 +120,8 @@ public class PackLoaderTests
         loader.Load(ExamplePackPath());
 
         // example-pack's own tags are in the registry (cursed, lair from tags.yml)
-        tagRegistry.IsKnown("cursed", "example-pack").Should().BeTrue();
-        tagRegistry.IsKnown("lair", "example-pack").Should().BeTrue();
+        tagRegistry.IsKnown("cursed", "tapestry-example-pack").Should().BeTrue();
+        tagRegistry.IsKnown("lair", "tapestry-example-pack").Should().BeTrue();
 
         // Engine tags are NOT present -- tapestry-core was not loaded
         tagRegistry.IsKnown("no_kill", null).Should().BeFalse();

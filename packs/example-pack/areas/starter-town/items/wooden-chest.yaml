@@ -1,4 +1,4 @@
-id: "example-pack:wooden-chest"
+id: "tapestry-example-pack:wooden-chest"
 name: "a wooden chest"
 type: "item"
 tags: [container, fixture, no_get]

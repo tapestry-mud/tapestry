@@ -1,4 +1,4 @@
-id: "example-pack:healing-draught"
+id: "tapestry-example-pack:healing-draught"
 name: "a healing draught"
 type: "item"
 tags: [consumable]
