@@ -205,4 +205,19 @@ public class YamlContentLoaderTests
         template.IdleCommands[0].Should().Be("say Welcome, traveler!");
         template.IdleCommands[1].Should().Be("emote smiles warmly.");
     }
+
+    [Fact]
+    public void LoadManifest_ParsesContentMotdField()
+    {
+        var yaml = """
+            name: "test-pack"
+            version: "1.0.0"
+            content:
+              motd: "data/motd.txt"
+            """;
+
+        var manifest = YamlContentLoader.LoadManifest(yaml);
+
+        manifest.Content.Motd.Should().Be("data/motd.txt");
+    }
 }
