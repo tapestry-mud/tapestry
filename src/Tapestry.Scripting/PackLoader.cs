@@ -338,7 +338,7 @@ public class PackLoader : IPackManifestProvider
 
             if (template.Tags.Contains(ShopProperties.ShopTag)
                 && template.Properties.TryGetValue("shop", out var shopRaw)
-                && shopRaw is Dictionary<object, object> shopDict)
+                && shopRaw is Dictionary<string, object?> shopDict)
             {
                 var sells = new List<string>();
                 if (shopDict.TryGetValue("sells", out var sellsRaw)
