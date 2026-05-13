@@ -21,6 +21,7 @@ public class ServerConfig
     public MsspConfig Mssp { get; set; } = new();
     public IdleSection Idle { get; set; } = new();
     public PreAuthSection PreAuth { get; set; } = new();
+    public AdminSeedSection? Admin { get; set; }
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -181,4 +182,10 @@ public class GameSection
 public class CombatSection
 {
     public double LuckScale { get; set; } = 0.002;
+}
+
+public class AdminSeedSection
+{
+    public string Handle { get; set; } = "";
+    public string Password { get; set; } = "";
 }
