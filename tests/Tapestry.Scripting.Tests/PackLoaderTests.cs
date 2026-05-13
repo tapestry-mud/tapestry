@@ -288,8 +288,10 @@ public class PackLoaderTests
         var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance);
         var helpService = new Tapestry.Engine.Help.HelpService();
         tagRegistry ??= new TagRegistry();
+        var propertyRegistry = new Tapestry.Engine.Persistence.PropertyRegistry();
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
-            NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry);
+            NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
+            propertyRegistry);
 
         return (world, itemRegistry, spawnManager, loader);
     }

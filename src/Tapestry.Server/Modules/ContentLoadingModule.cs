@@ -97,10 +97,14 @@ public class ContentLoadingModule : IGameModule
             }
         }
 
-        foreach (var packDir in packDirs)
+        // Phase 1: all packs declare tags, properties, and slots
+        var manifests = packDirs.Select(dir => _packLoader.LoadDeclarations(dir)).ToList();
+
+        // Phase 2: all packs load content (rooms, items, mobs, scripts, help, themes)
+        foreach (var (dir, manifest) in packDirs.Zip(manifests))
         {
-            _packLoader.Load(packDir);
-            _logger.LogInformation("Loaded pack: {Pack}", Path.GetRelativePath(packsDir, packDir));
+            _packLoader.LoadContent(dir, manifest);
+            _logger.LogInformation("Loaded pack: {Pack}", Path.GetRelativePath(packsDir, dir));
         }
 
         _packLoader.ValidateAreaWeatherZones();

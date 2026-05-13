@@ -7,10 +7,12 @@ using Tapestry.Engine.Help;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Scripting.Properties;
 using Tapestry.Scripting.Tags;
 using Tapestry.Shared;
 using YamlDotNet.Serialization;
@@ -32,6 +34,7 @@ public class PackLoader : IPackManifestProvider
     private readonly WeatherZoneRegistry _weatherZoneRegistry;
     private readonly HelpService _helpService;
     private readonly TagRegistry _tagRegistry;
+    private readonly PropertyRegistry _propertyRegistry;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -42,7 +45,8 @@ public class PackLoader : IPackManifestProvider
                      ThemeRegistry theme, SpawnManager spawnManager, ItemRegistry itemRegistry,
                      ILogger<PackLoader> logger, PackContext packContext,
                      AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
-                     HelpService helpService, TagRegistry tagRegistry)
+                     HelpService helpService, TagRegistry tagRegistry,
+                     PropertyRegistry propertyRegistry)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -56,6 +60,7 @@ public class PackLoader : IPackManifestProvider
         _weatherZoneRegistry = weatherZoneRegistry;
         _helpService = helpService;
         _tagRegistry = tagRegistry;
+        _propertyRegistry = propertyRegistry;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -64,7 +69,7 @@ public class PackLoader : IPackManifestProvider
             ? name.TrimStart('@').Replace('/', '-')
             : name;
 
-    public PackManifest Load(string packDirectory)
+    public PackManifest LoadDeclarations(string packDirectory)
     {
         _packContext.CurrentPackDir = packDirectory;
         var manifestPath = Path.Combine(packDirectory, "pack.yaml");
@@ -80,7 +85,6 @@ public class PackLoader : IPackManifestProvider
         var manifestYaml = File.ReadAllText(manifestPath);
         var manifest = YamlContentLoader.LoadManifest(manifestYaml);
         var packNamespace = PackNamespace(manifest.Name);
-        _packContext.CurrentPackNamespace = packNamespace;
 
         if (!manifest.Active)
         {
@@ -88,10 +92,27 @@ public class PackLoader : IPackManifestProvider
             return manifest;
         }
 
-        _logger.LogInformation("Loading pack: {Name} v{Version}", manifest.Name, manifest.Version);
+        _logger.LogInformation("Loading declarations for pack: {Name} v{Version}", manifest.Name, manifest.Version);
         LoadedPacks.Add(manifest);
 
         TagsFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _tagRegistry);
+        PropertiesFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _propertyRegistry);
+
+        if (!string.IsNullOrEmpty(manifest.Content.EquipmentSlots))
+        {
+            LoadEquipmentSlots(packDirectory, manifest.Content.EquipmentSlots);
+        }
+
+        return manifest;
+    }
+
+    public void LoadContent(string packDirectory, PackManifest manifest)
+    {
+        if (!manifest.Active) { return; }
+
+        var packNamespace = PackNamespace(manifest.Name);
+        _packContext.CurrentPackDir = packDirectory;
+        _packContext.CurrentPackNamespace = packNamespace;
 
         if (!string.IsNullOrEmpty(manifest.Content.WeatherZones))
         {
@@ -115,11 +136,6 @@ public class PackLoader : IPackManifestProvider
                 throw new InvalidOperationException(
                     $"Room '{room.Id}' references undefined area '{room.Area}'");
             }
-        }
-
-        if (!string.IsNullOrEmpty(manifest.Content.EquipmentSlots))
-        {
-            LoadEquipmentSlots(packDirectory, manifest.Content.EquipmentSlots);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Items))
@@ -148,7 +164,12 @@ public class PackLoader : IPackManifestProvider
         {
             _helpService.LoadPack(packNamespace, packDirectory, manifest.Content.Help, manifest.LoadOrder);
         }
+    }
 
+    public PackManifest Load(string packDirectory)
+    {
+        var manifest = LoadDeclarations(packDirectory);
+        LoadContent(packDirectory, manifest);
         return manifest;
     }
 
