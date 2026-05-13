@@ -6,7 +6,7 @@ description: "Minimal test fixture for PackLoaderTests."
 author: "Tapestry"
 license: "AGPL-3.0"
 engine: ">=0.0.1"
-tag_validation: strict
+validation: strict
 active: true
 load_order: 10
 content:

@@ -18,7 +18,7 @@ public class PackValidatorTagTests
         public IReadOnlyList<PackManifest> LoadedPacks => _manifests;
         public void Add(string packName, bool lenient = false)
         {
-            _manifests.Add(new PackManifest { Name = packName, TagValidation = lenient ? "lenient" : "strict" });
+            _manifests.Add(new PackManifest { Name = packName, Validation = lenient ? "lenient" : "strict" });
         }
     }
 

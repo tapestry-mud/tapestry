@@ -216,7 +216,7 @@ public class PackValidator
 
         var lenient = packName != null
             && manifestsByName.TryGetValue(packName, out var manifest)
-            && manifest.TagValidation == "lenient";
+            && manifest.Validation == "lenient";
         var count = 0;
 
         foreach (var tag in tags)
