@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Persistence;
 using Tapestry.Shared;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -33,9 +34,16 @@ public static class YamlContentLoader
         return Deserializer.Deserialize<PackManifest>(yaml);
     }
 
-    public static RoomLoadResult LoadRoom(string yaml)
+    public static RoomLoadResult LoadRoom(string yaml, PropertyRegistry? registry = null)
     {
         var def = Deserializer.Deserialize<RoomDefinition>(yaml);
+        if (def.Properties != null)
+        {
+            def.Properties = ResolveMapProperties(
+                def.Properties.ToDictionary(kv => kv.Key, kv => (object?)kv.Value),
+                registry)
+                .ToDictionary(kv => kv.Key, kv => kv.Value!);
+        }
         var room = BuildRoom(def);
         return new RoomLoadResult(
             room,
@@ -44,12 +52,17 @@ public static class YamlContentLoader
             def.ResetInterval);
     }
 
-    public static ItemDefinition LoadItem(string yaml)
+    public static ItemDefinition LoadItem(string yaml, PropertyRegistry? registry = null)
     {
-        return Deserializer.Deserialize<ItemDefinition>(yaml);
+        var def = Deserializer.Deserialize<ItemDefinition>(yaml);
+        def.Properties = ResolveMapProperties(
+            def.Properties.ToDictionary(kv => kv.Key, kv => (object?)kv.Value),
+            registry)
+            .ToDictionary(kv => kv.Key, kv => kv.Value!);
+        return def;
     }
 
-    public static (MobTemplate Template, LootTable? LootTable) LoadMob(string yaml)
+    public static (MobTemplate Template, LootTable? LootTable) LoadMob(string yaml, PropertyRegistry? registry = null)
     {
         var def = Deserializer.Deserialize<MobFileDefinition>(yaml);
 
@@ -62,7 +75,7 @@ public static class YamlContentLoader
             Keywords = def.Keywords,
             Behavior = def.Behavior,
             Stats = def.Stats,
-            Properties = def.Properties,
+            Properties = ResolveMapProperties(def.Properties, registry),
             Equipment = def.Equipment,
             Class = def.Class,
             Race = def.Race,
@@ -171,6 +184,51 @@ public static class YamlContentLoader
     {
         var doc = Deserializer.Deserialize<ThemeFileModel>(yaml);
         return doc.Theme;
+    }
+
+    internal static Dictionary<string, object?> ResolveMapProperties(
+        IDictionary<string, object?> raw,
+        PropertyRegistry? registry)
+    {
+        if (registry == null) { return new Dictionary<string, object?>(raw, StringComparer.OrdinalIgnoreCase); }
+
+        var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in raw)
+        {
+            if (value is IDictionary<object, object> nestedRaw)
+            {
+                var valueType = registry.GetValueType(key);
+                if (valueType == PropertyValueType.MapInt)
+                {
+                    var typedMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (k, v) in nestedRaw)
+                    {
+                        typedMap[k.ToString()!] = Convert.ToInt32(v);
+                    }
+                    result[key] = typedMap;
+                }
+                else if (valueType == PropertyValueType.MapString)
+                {
+                    var typedMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (k, v) in nestedRaw)
+                    {
+                        typedMap[k.ToString()!] = v?.ToString() ?? "";
+                    }
+                    result[key] = typedMap;
+                }
+                else
+                {
+                    result[key] = nestedRaw.ToDictionary(
+                        kvp => kvp.Key.ToString()!,
+                        kvp => (object?)kvp.Value);
+                }
+            }
+            else
+            {
+                result[key] = value;
+            }
+        }
+        return result;
     }
 
     private static Exit ParseExit(object exitValue)

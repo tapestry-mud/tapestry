@@ -186,7 +186,7 @@ public class PackLoader : IPackManifestProvider
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
-            var result = YamlContentLoader.LoadRoom(yaml);
+            var result = YamlContentLoader.LoadRoom(yaml, _propertyRegistry);
             var room = result.Room;
 
             ValidateEntityId(room.Id, file);
@@ -229,7 +229,7 @@ public class PackLoader : IPackManifestProvider
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
-            var itemDef = YamlContentLoader.LoadItem(yaml);
+            var itemDef = YamlContentLoader.LoadItem(yaml, _propertyRegistry);
 
             ValidateEntityId(itemDef.Id, file);
 
@@ -287,7 +287,7 @@ public class PackLoader : IPackManifestProvider
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
-            var (template, lootTable) = YamlContentLoader.LoadMob(yaml);
+            var (template, lootTable) = YamlContentLoader.LoadMob(yaml, _propertyRegistry);
 
             ValidateEntityId(template.Id, file);
 
