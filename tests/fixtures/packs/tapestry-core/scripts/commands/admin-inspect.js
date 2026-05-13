@@ -18,14 +18,9 @@ tapestry.commands.register({
         var cls = tapestry.world.getProperty(target.id, 'class') || '-';
         var race = tapestry.world.getProperty(target.id, 'race') || '-';
         var allProps = e.properties || {};
-        var level = '-';
-        for (var lk in allProps) {
-            if (Object.prototype.hasOwnProperty.call(allProps, lk) && lk.indexOf('level:') === 0) {
-                var lv = allProps[lk];
-                if (level === '-' || lv > level) { level = lv; }
-            }
-        }
-        if (level === '-' && allProps['level'] !== undefined) { level = allProps['level']; }
+        var levelMap = allProps['level'] || {};
+        var combatLevel = typeof levelMap === 'object' ? (levelMap['combat'] || 0) : 0;
+        var level = combatLevel > 0 ? combatLevel : '-';
 
         var s = e.stats || {};
         actor.send('[' + e.name + ']\r\n');
@@ -47,12 +42,23 @@ tapestry.commands.register({
         var hungerTier = tapestry.consumables.getSustenanceTier(target.id);
         actor.send('Hunger:  ' + hungerTier + ' (' + hunger + '%)\r\n');
 
+        var levelLines = [];
+        var levelMapData = typeof allProps['level'] === 'object' ? allProps['level'] : {};
+        for (var track in levelMapData) {
+            if (Object.prototype.hasOwnProperty.call(levelMapData, track)) {
+                var tName = track.charAt(0).toUpperCase() + track.slice(1);
+                levelLines.push('  ' + tName + ': Level ' + levelMapData[track]);
+            }
+        }
+        if (levelLines.length) {
+            actor.send('Levels:\r\n' + levelLines.join('\r\n') + '\r\n');
+        }
+
+        var profMapData = typeof allProps['proficiency'] === 'object' ? allProps['proficiency'] : {};
         var profLines = [];
-        for (var pk in allProps) {
-            if (Object.prototype.hasOwnProperty.call(allProps, pk) && pk.indexOf('level:') === 0) {
-                var tName = pk.slice(6);
-                tName = tName.charAt(0).toUpperCase() + tName.slice(1);
-                profLines.push('  ' + tName + ': Level ' + allProps[pk]);
+        for (var pk in profMapData) {
+            if (Object.prototype.hasOwnProperty.call(profMapData, pk)) {
+                profLines.push('  ' + pk + ': ' + profMapData[pk] + '%');
             }
         }
         if (profLines.length) {
@@ -82,10 +88,22 @@ tapestry.commands.register({
         var propLines = [];
         for (var key in props) {
             if (Object.prototype.hasOwnProperty.call(props, key)) {
-                propLines.push(key + ': ' + props[key]);
+                var val = props[key];
+                if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+                    propLines.push(key + ': {map}');
+                    Object.keys(val).forEach(function(k) {
+                        propLines.push('  ' + key + '.' + k + ': ' + val[k]);
+                    });
+                } else {
+                    propLines.push(key + ': ' + val);
+                }
             }
         }
-        actor.send('Properties: ' + (propLines.length ? propLines.join(', ') : '(none)') + '\r\n');
+        if (propLines.length) {
+            actor.send('Properties:\r\n' + propLines.map(function(l) { return '  ' + l; }).join('\r\n') + '\r\n');
+        } else {
+            actor.send('Properties: (none)\r\n');
+        }
 
         var alignment = tapestry.alignment.get(target.id);
         var bucket = tapestry.alignment.bucket(target.id);
