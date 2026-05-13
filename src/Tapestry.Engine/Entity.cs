@@ -78,6 +78,52 @@ public class Entity
         return _properties.ContainsKey(key);
     }
 
+    public void SetMapValue<T>(string property, string key, T value)
+    {
+        if (!_properties.TryGetValue(property, out var raw) || raw is not Dictionary<string, T> map)
+        {
+            map = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
+            _properties[property] = map;
+        }
+        map[key] = value;
+    }
+
+    public T? GetMapValue<T>(string property, string key)
+    {
+        if (_properties.TryGetValue(property, out var raw) && raw is Dictionary<string, T> map
+            && map.TryGetValue(key, out var value))
+        {
+            return value;
+        }
+        return default;
+    }
+
+    public IReadOnlyDictionary<string, T>? GetMap<T>(string property)
+    {
+        if (_properties.TryGetValue(property, out var raw) && raw is Dictionary<string, T> map)
+        {
+            return map;
+        }
+        return null;
+    }
+
+    public void RemoveMapKey(string property, string key)
+    {
+        RemoveFromTypedMap<int>(property, key);
+        RemoveFromTypedMap<string>(property, key);
+        RemoveFromTypedMap<double>(property, key);
+        RemoveFromTypedMap<bool>(property, key);
+        RemoveFromTypedMap<long>(property, key);
+    }
+
+    private void RemoveFromTypedMap<T>(string property, string key)
+    {
+        if (_properties.TryGetValue(property, out var raw) && raw is Dictionary<string, T> map)
+        {
+            map.Remove(key);
+        }
+    }
+
     public IReadOnlyDictionary<string, object?> GetAllProperties()
     {
         return new Dictionary<string, object?>(_properties);
