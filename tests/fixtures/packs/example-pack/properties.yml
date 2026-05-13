@@ -1,0 +1,5 @@
+properties:
+  cursed_intensity:
+    description: "Intensity of the curse effect"
+    type: int
+    applies_to: [item]
