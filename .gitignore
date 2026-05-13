@@ -25,3 +25,6 @@ fly.toml
 
 # Git worktrees
 .worktrees/
+
+# Installed packs (managed by tapestry install)
+/packs/

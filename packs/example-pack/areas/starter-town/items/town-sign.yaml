@@ -1,8 +1,0 @@
-id: "tapestry-example-pack:town-sign"
-name: "a weathered wooden sign"
-type: "item"
-tags: [readable, no_get]
-keywords: [sign, wooden, weathered]
-properties:
-  text: "Welcome to the training grounds. The sparring yard lies to the east."
-modifiers: []

@@ -11,7 +11,7 @@ public class AdminModuleTests
         Path.Combine(
             AppContext.BaseDirectory,
             "..", "..", "..", "..", "..",
-            "packs", "tapestry-core", "scripts", "commands", "admin-inspect.js"));
+            "tests", "fixtures", "packs", "tapestry-core", "scripts", "commands", "admin-inspect.js"));
 
     private (JintRuntime rt, World world) BuildRuntime()
     {
