@@ -30,7 +30,7 @@ public class PacksModule : IJintApiModule
             .OrderBy(p => p.LoadOrder)
             .Select(p => (object)new
             {
-                name = p.Name,
+                name = PackLoader.PackNamespace(p.Name),
                 displayName = p.DisplayName,
                 version = p.Version,
                 description = p.Description,
