@@ -116,6 +116,9 @@ public class Room
         }
         return default;
     }
+
+    public IEnumerable<string> GetAllPropertyKeys() => _properties.Keys;
+    public object? GetRawProperty(string key) => _properties.GetValueOrDefault(key);
 }
 
 public record WeatherMessages(string? Start, string? Ongoing, string? End);

@@ -4,6 +4,7 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Shared;
@@ -20,6 +21,7 @@ public class PackValidator
     private readonly CommandRegistry _commandRegistry;
     private readonly TagRegistry _tagRegistry;
     private readonly IPackManifestProvider _manifestProvider;
+    private readonly PropertyRegistry _propertyRegistry;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -29,7 +31,8 @@ public class PackValidator
         AbilityRegistry abilityRegistry,
         CommandRegistry commandRegistry,
         TagRegistry tagRegistry,
-        IPackManifestProvider manifestProvider)
+        IPackManifestProvider manifestProvider,
+        PropertyRegistry propertyRegistry)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -39,6 +42,7 @@ public class PackValidator
         _commandRegistry = commandRegistry;
         _tagRegistry = tagRegistry;
         _manifestProvider = manifestProvider;
+        _propertyRegistry = propertyRegistry;
     }
 
     public void Validate()
@@ -49,6 +53,7 @@ public class PackValidator
         issueCount += ValidateItems();
         issueCount += ValidateRooms();
         issueCount += ValidateTags();
+        issueCount += ValidateProperties();
 
         _logger.LogInformation("Pack validation complete: {Count} issue(s) found", issueCount);
     }
@@ -245,5 +250,97 @@ public class PackValidator
         }
 
         return count;
+    }
+
+    private int ValidateProperties()
+    {
+        var count = 0;
+
+        foreach (var (id, entityType, packName, getKeys, getRaw) in GetAllLoadedEntityData())
+        {
+            var isLenient = IsLenientPack(packName);
+            foreach (var key in getKeys())
+            {
+                if (!_propertyRegistry.TryResolve(key, packName, out var entry))
+                {
+                    var message = $"Entity '{id}' (type={entityType}) in pack '{packName}' has unregistered property '{key}'";
+                    if (isLenient)
+                    {
+                        _logger.LogWarning(message);
+                        count++;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(message);
+                    }
+                    continue;
+                }
+
+                var raw = getRaw(key);
+                if (!PropertyValueMatchesType(raw, entry.ValueType))
+                {
+                    throw new InvalidOperationException(
+                        $"Entity '{id}' property '{key}' has wrong type. Expected {entry.ValueType}.");
+                }
+
+                if (!entry.AppliesToType(entityType))
+                {
+                    throw new InvalidOperationException(
+                        $"Entity '{id}' (type={entityType}) has property '{key}' which only applies to: {string.Join(", ", entry.AppliesTo ?? (IEnumerable<string>)Array.Empty<string>())}");
+                }
+            }
+        }
+
+        return count;
+    }
+
+    private bool IsLenientPack(string? packName)
+    {
+        if (packName == null) { return false; }
+        var manifest = _manifestProvider.LoadedPacks
+            .FirstOrDefault(m => PackLoader.PackNamespace(m.Name) == packName);
+        if (manifest == null)
+        {
+            _logger.LogWarning("Entity belongs to pack '{PackName}' which has no loaded manifest; defaulting to strict validation", packName);
+            return false;
+        }
+        return manifest.Validation == "lenient";
+    }
+
+    private static bool PropertyValueMatchesType(object? raw, PropertyValueType expected)
+    {
+        if (raw == null) { return true; }
+        return expected switch
+        {
+            PropertyValueType.String => raw is string,
+            PropertyValueType.Int => raw is int or long,
+            PropertyValueType.Double => raw is double or float,
+            PropertyValueType.Bool => raw is bool,
+            PropertyValueType.Long => raw is long or int,
+            PropertyValueType.MapInt => raw is Dictionary<string, int>,
+            PropertyValueType.MapString => raw is Dictionary<string, string>,
+            _ => true
+        };
+    }
+
+    private IEnumerable<(string id, string entityType, string? packName, Func<IEnumerable<string>> getKeys, Func<string, object?> getRaw)> GetAllLoadedEntityData()
+    {
+        foreach (var template in _spawnManager.AllTemplates)
+        {
+            var entity = template.CreateEntity();
+            var packName = template.Id.Contains(':') ? template.Id.Split(':', 2)[0] : null;
+            yield return (template.Id, entity.Type, packName, entity.GetAllPropertyKeys, entity.GetRawProperty);
+        }
+        foreach (var template in _itemRegistry.AllTemplates)
+        {
+            var entity = template.CreateEntity();
+            var packName = template.Id.Contains(':') ? template.Id.Split(':', 2)[0] : null;
+            yield return (template.Id, entity.Type, packName, entity.GetAllPropertyKeys, entity.GetRawProperty);
+        }
+        foreach (var room in _world.AllRooms)
+        {
+            var packName = room.Id.Contains(':') ? room.Id.Split(':', 2)[0] : null;
+            yield return (room.Id, "room", packName, room.GetAllPropertyKeys, room.GetRawProperty);
+        }
     }
 }

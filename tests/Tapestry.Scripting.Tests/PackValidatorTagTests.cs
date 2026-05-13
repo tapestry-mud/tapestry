@@ -4,6 +4,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
 using Tapestry.Shared;
@@ -39,6 +40,9 @@ public class PackValidatorTagTests
         var eventBus = new EventBus();
         var itemRegistry = new ItemRegistry();
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
+        var propertyRegistry = new PropertyRegistry();
+        CommonProperties.Register(propertyRegistry);
+        MobProperties.Register(propertyRegistry);
         var validator = new PackValidator(
             spawnManager,
             itemRegistry,
@@ -47,7 +51,8 @@ public class PackValidatorTagTests
             new AbilityRegistry(),
             new CommandRegistry(),
             registry,
-            manifests);
+            manifests,
+            propertyRegistry);
         return (validator, spawnManager, itemRegistry, world);
     }
 

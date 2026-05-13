@@ -129,6 +129,9 @@ public class Entity
         return new Dictionary<string, object?>(_properties);
     }
 
+    public IEnumerable<string> GetAllPropertyKeys() => _properties.Keys;
+    public object? GetRawProperty(string key) => _properties.GetValueOrDefault(key);
+
     public IEnumerable<KeyValuePair<string, object?>> EnumerateProperties(string prefix)
     {
         foreach (var kv in _properties)
