@@ -333,27 +333,28 @@ public class PackLoader : IPackManifestProvider
                     }
                 }
                 template.Properties.Remove("trains");
-                template.Properties[TrainingProperties.TrainerConfigKey] = new TrainerConfig(tier, abilities);
+                template.TrainerConfig = new TrainerConfig(tier, abilities);
             }
 
             if (template.Tags.Contains(ShopProperties.ShopTag)
                 && template.Properties.TryGetValue("shop", out var shopRaw)
                 && shopRaw is Dictionary<object, object> shopDict)
             {
+                var sells = new List<string>();
                 if (shopDict.TryGetValue("sells", out var sellsRaw)
                     && sellsRaw is List<object> sellsList)
                 {
-                    template.Properties[ShopProperties.Sells] =
-                        sellsList.Select(s => s.ToString()!).ToList();
+                    sells = sellsList.Select(s => s.ToString()!).ToList();
                 }
-                if (shopDict.TryGetValue("buy_markup", out var markupRaw))
-                {
-                    template.Properties[ShopProperties.BuyMarkup] = Convert.ToDouble(markupRaw);
-                }
-                if (shopDict.TryGetValue("sell_discount", out var discountRaw))
-                {
-                    template.Properties[ShopProperties.SellDiscount] = Convert.ToDouble(discountRaw);
-                }
+
+                var buyMarkup = shopDict.TryGetValue("buy_markup", out var markupRaw)
+                    ? Convert.ToDouble(markupRaw)
+                    : 0.0;
+                var sellDiscount = shopDict.TryGetValue("sell_discount", out var discountRaw)
+                    ? Convert.ToDouble(discountRaw)
+                    : 0.0;
+
+                template.ShopConfig = new ShopConfig(sells, buyMarkup, sellDiscount);
                 template.Properties.Remove("shop");
             }
 

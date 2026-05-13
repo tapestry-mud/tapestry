@@ -1,4 +1,7 @@
+using Tapestry.Engine.Economy;
+using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Stats;
+using Tapestry.Engine.Training;
 
 namespace Tapestry.Engine;
 
@@ -23,6 +26,9 @@ public class Entity
     public IReadOnlySet<string> Keywords => _keywords;
     public IReadOnlySet<string> Roles => _roles;
     public Disposition Disposition { get; set; } = Disposition.Neutral;
+    public DispositionDefinition? DispositionRules { get; set; }
+    public ShopConfig? ShopConfig { get; set; }
+    public TrainerConfig? TrainerConfig { get; set; }
     public StatBlock Stats { get; } = new();
     public IReadOnlyDictionary<string, Entity> Equipment => _equipment;
 

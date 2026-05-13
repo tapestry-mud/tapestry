@@ -55,7 +55,7 @@ public class TrainingManager
         foreach (var roomEntity in _world.GetEntitiesInRoom(entity.LocationRoomId))
         {
             if (!roomEntity.HasTag("skill_trainer")) { continue; }
-            var cfg = roomEntity.GetProperty<TrainerConfig>(TrainingProperties.TrainerConfigKey);
+            var cfg = roomEntity.TrainerConfig;
             if (cfg == null) { continue; }
             return new TrainerMatch(roomEntity.Id, roomEntity.Name, cfg.Tier, cfg.AbilityIds);
         }

@@ -31,7 +31,7 @@ public class DispositionTests
         var mob = new Entity("npc", "Elf");
         mob.AddTag("npc");
         mob.Disposition = Disposition.Hostile;
-        mob.SetProperty("disposition", new DispositionDefinition { Default = "neutral" });
+        mob.DispositionRules = new DispositionDefinition { Default = "neutral" };
         world.TrackEntity(mob);
 
         var player = new Entity("player", "Tester");
@@ -58,7 +58,7 @@ public class DispositionTests
 
         var mob = new Entity("npc", "Zealot");
         mob.AddTag("npc");
-        mob.SetProperty("disposition", new DispositionDefinition
+        mob.DispositionRules = new DispositionDefinition
         {
             Default = "neutral",
             Rules = new List<DispositionRule>
@@ -66,7 +66,7 @@ public class DispositionTests
                 new() { When = new DispositionCondition { MinAlignment = 300 }, Reaction = "friendly" },
                 new() { When = new DispositionCondition { MaxAlignment = -100 }, Reaction = "hostile" }
             }
-        });
+        };
         world.TrackEntity(mob);
 
         var player = new Entity("player", "Tester");
@@ -91,14 +91,14 @@ public class DispositionTests
 
         var mob = new Entity("npc", "Zealot");
         mob.AddTag("npc");
-        mob.SetProperty("disposition", new DispositionDefinition
+        mob.DispositionRules = new DispositionDefinition
         {
             Default = "neutral",
             Rules = new List<DispositionRule>
             {
                 new() { When = new DispositionCondition { MinAlignment = 300 }, Reaction = "friendly" }
             }
-        });
+        };
         world.TrackEntity(mob);
 
         var player = new Entity("player", "Tester");

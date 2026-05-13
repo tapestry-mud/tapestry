@@ -1,4 +1,6 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Economy;
+using Tapestry.Engine.Training;
 
 namespace Tapestry.Engine.Mobs;
 
@@ -65,6 +67,8 @@ public class MobTemplate
     public List<MobAbilityEntry> Abilities { get; set; } = new();
     public List<string> BattleCommands { get; set; } = new();
     public int? AbilityProficiency { get; set; }
+    public TrainerConfig? TrainerConfig { get; set; }
+    public ShopConfig? ShopConfig { get; set; }
 
     public Entity CreateEntity()
     {
@@ -108,7 +112,7 @@ public class MobTemplate
 
         if (Disposition != null)
         {
-            var disposition = new DispositionDefinition
+            entity.DispositionRules = new DispositionDefinition
             {
                 Default = Disposition.Default,
                 Rules = Disposition.Rules.Select(r => new DispositionRule
@@ -123,14 +127,6 @@ public class MobTemplate
                     }
                 }).ToList()
             };
-            entity.SetProperty("disposition", disposition);
-        }
-
-        if (IdleCommands.Count > 0)
-        {
-            entity.SetProperty("idle_commands", IdleCommands.ToArray());
-            entity.SetProperty("idle_chance", IdleChance);
-            entity.SetProperty("idle_interval", IdleInterval);
         }
 
         if (!string.IsNullOrEmpty(Script))
@@ -138,9 +134,14 @@ public class MobTemplate
             entity.SetProperty("script", Script);
         }
 
-        if (BattleCommands.Count > 0)
+        if (TrainerConfig != null)
         {
-            entity.SetProperty("battlecommands", BattleCommands.ToArray());
+            entity.TrainerConfig = TrainerConfig;
+        }
+
+        if (ShopConfig != null)
+        {
+            entity.ShopConfig = ShopConfig;
         }
 
         return entity;

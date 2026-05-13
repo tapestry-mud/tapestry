@@ -136,7 +136,7 @@ public class ApiWorld
                 _mobAIManager.OnPlayerEnteredRoom(entity.LocationRoomId, entityId);
             }
 
-            if (entity.Type == EntityTypes.Npc && entity.HasProperty("disposition") && entity.LocationRoomId != null)
+            if (entity.Type == EntityTypes.Npc && entity.DispositionRules != null && entity.LocationRoomId != null)
             {
                 _mobAIManager.OnMobEnteredRoom(entity, entity.LocationRoomId);
             }

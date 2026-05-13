@@ -38,7 +38,7 @@ public class TrainingManagerTests
         var room = _world.GetRoom(roomId) ?? throw new Exception($"Room {roomId} not found");
         var trainer = new Entity("npc", "Thom the Swordmaster");
         trainer.AddTag("skill_trainer");
-        trainer.SetProperty(TrainingProperties.TrainerConfigKey, new TrainerConfig(tier, abilities));
+        trainer.TrainerConfig = new TrainerConfig(tier, abilities);
         trainer.LocationRoomId = roomId;
         room.AddEntity(trainer);
         _world.TrackEntity(trainer);

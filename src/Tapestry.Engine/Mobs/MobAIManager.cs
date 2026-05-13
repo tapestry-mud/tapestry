@@ -154,7 +154,7 @@ public class MobAIManager
                 });
             }
 
-            if (entity.HasProperty("disposition"))
+            if (entity.DispositionRules != null)
             {
                 var room = _world.GetRoom(entity.LocationRoomId);
                 if (room != null)

@@ -43,7 +43,7 @@ public class ShopService
 
     public IReadOnlyList<ShopListing> GetListings(Entity npc)
     {
-        var sells = npc.GetProperty<List<string>>(ShopProperties.Sells);
+        var sells = npc.ShopConfig?.Sells;
         if (sells == null)
         {
             return Array.Empty<ShopListing>();
@@ -73,9 +73,9 @@ public class ShopService
     public long ComputeBuyPrice(Entity npc, int itemValue)
     {
         double markup;
-        var overrideRaw = npc.GetProperty<object>(ShopProperties.BuyMarkup);
-        markup = overrideRaw != null
-            ? Convert.ToDouble(overrideRaw)
+        var configMarkup = npc.ShopConfig?.BuyMarkup;
+        markup = configMarkup.HasValue && configMarkup.Value > 0
+            ? configMarkup.Value
             : _economyConfig.ShopBuyMarkup;
         return Math.Max(1L, (long)Math.Round(itemValue * markup));
     }
@@ -83,9 +83,9 @@ public class ShopService
     public long ComputeSellPrice(Entity npc, int itemValue)
     {
         double discount;
-        var overrideRaw = npc.GetProperty<object>(ShopProperties.SellDiscount);
-        discount = overrideRaw != null
-            ? Convert.ToDouble(overrideRaw)
+        var configDiscount = npc.ShopConfig?.SellDiscount;
+        discount = configDiscount.HasValue && configDiscount.Value > 0
+            ? configDiscount.Value
             : _economyConfig.ShopSellDiscount;
         return Math.Max(1L, (long)Math.Round(itemValue * discount));
     }
@@ -218,7 +218,7 @@ public class ShopService
 
     private (string? templateId, string? name, int value) ResolveStockItem(Entity npc, string query)
     {
-        var sells = npc.GetProperty<List<string>>(ShopProperties.Sells);
+        var sells = npc.ShopConfig?.Sells;
         if (sells == null)
         {
             return (null, null, 0);

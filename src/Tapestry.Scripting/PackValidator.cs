@@ -66,8 +66,7 @@ public class PackValidator
         {
             if (template.Tags.Contains("skill_trainer"))
             {
-                if (!template.Properties.TryGetValue(TrainingProperties.TrainerConfigKey, out var trainerObj)
-                    || trainerObj is not TrainerConfig trainerConfig)
+                if (template.TrainerConfig == null)
                 {
                     _logger.LogWarning(
                         "Mob {Id} has tag 'skill_trainer' but TrainerConfig is missing or malformed",
@@ -76,7 +75,7 @@ public class PackValidator
                     continue;
                 }
 
-                if (trainerConfig.AbilityIds.Count == 0)
+                if (template.TrainerConfig.AbilityIds.Count == 0)
                 {
                     _logger.LogWarning(
                         "Mob {Id} has tag 'skill_trainer' but TrainerConfig.AbilityIds is empty",
@@ -87,7 +86,7 @@ public class PackValidator
 
             if (template.Tags.Contains(ShopProperties.ShopTag))
             {
-                if (!template.Properties.ContainsKey(ShopProperties.Sells))
+                if (template.ShopConfig == null || template.ShopConfig.Sells.Count == 0)
                 {
                     _logger.LogWarning(
                         "Mob {Id} has tag '{Tag}' but shop config (sells list) is missing",

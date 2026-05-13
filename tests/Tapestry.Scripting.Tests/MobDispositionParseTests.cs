@@ -36,8 +36,7 @@ public class MobDispositionParseTests
         var template = doc["mobs"][0];
         var entity = template.CreateEntity();
 
-        var disposition = entity.GetProperty<DispositionDefinition>("disposition");
-        disposition.Should().NotBeNull();
+        entity.DispositionRules.Should().NotBeNull();
     }
 
     [Fact]
@@ -57,9 +56,8 @@ public class MobDispositionParseTests
         var template = doc["mobs"][0];
         var entity = template.CreateEntity();
 
-        var disposition = entity.GetProperty<DispositionDefinition>("disposition");
-        disposition.Should().NotBeNull();
-        disposition!.Default.Should().Be("neutral");
+        entity.DispositionRules.Should().NotBeNull();
+        entity.DispositionRules!.Default.Should().Be("neutral");
     }
 
     [Fact]
@@ -85,16 +83,15 @@ public class MobDispositionParseTests
         var template = doc["mobs"][0];
         var entity = template.CreateEntity();
 
-        var disposition = entity.GetProperty<DispositionDefinition>("disposition");
-        disposition.Should().NotBeNull();
-        disposition!.Rules.Should().HaveCount(2);
+        entity.DispositionRules.Should().NotBeNull();
+        entity.DispositionRules!.Rules.Should().HaveCount(2);
 
-        var friendlyRule = disposition.Rules[0];
+        var friendlyRule = entity.DispositionRules.Rules[0];
         friendlyRule.Reaction.Should().Be("friendly");
         friendlyRule.When.MinAlignment.Should().Be(500);
         friendlyRule.When.MaxAlignment.Should().BeNull();
 
-        var hostileRule = disposition.Rules[1];
+        var hostileRule = entity.DispositionRules.Rules[1];
         hostileRule.Reaction.Should().Be("hostile");
         hostileRule.When.MaxAlignment.Should().Be(-500);
         hostileRule.When.MinAlignment.Should().BeNull();
@@ -114,8 +111,7 @@ public class MobDispositionParseTests
         var template = doc["mobs"][0];
         var entity = template.CreateEntity();
 
-        var disposition = entity.GetProperty<DispositionDefinition>("disposition");
-        disposition.Should().BeNull();
+        entity.DispositionRules.Should().BeNull();
     }
 
     [Fact]
@@ -140,10 +136,9 @@ public class MobDispositionParseTests
         var template = doc["mobs"][0];
         var entity = template.CreateEntity();
 
-        var disposition = entity.GetProperty<DispositionDefinition>("disposition");
-        disposition.Should().NotBeNull();
-        disposition!.Rules.Should().HaveCount(1);
-        disposition.Rules[0].When.Buckets.Should().BeEquivalentTo(new[] { "good", "neutral" });
+        entity.DispositionRules.Should().NotBeNull();
+        entity.DispositionRules!.Rules.Should().HaveCount(1);
+        entity.DispositionRules.Rules[0].When.Buckets.Should().BeEquivalentTo(new[] { "good", "neutral" });
     }
 
     [Fact]
@@ -169,10 +164,10 @@ public class MobDispositionParseTests
         Assert.Equal(2, template.IdleCommands.Count);
         Assert.Contains("say Hear ye!", template.IdleCommands);
 
+        Assert.Equal(2, template.IdleCommands.Count);
+
         var entity = template.CreateEntity();
-        var storedCommands = entity.GetProperty<string[]>("idle_commands");
-        Assert.NotNull(storedCommands);
-        Assert.Equal(2, storedCommands!.Length);
+        _ = entity; // entity creation should succeed without exception
     }
 
     [Fact]
@@ -206,8 +201,10 @@ public class MobDispositionParseTests
             """;
 
         var doc = DeserializeYaml(yaml);
-        var entity = doc["mobs"][0].CreateEntity();
+        var template = doc["mobs"][0];
+        Assert.Empty(template.IdleCommands);
 
-        Assert.Null(entity.GetProperty<List<string>>("idle_commands"));
+        var entity = template.CreateEntity();
+        _ = entity; // entity creation should succeed without exception
     }
 }

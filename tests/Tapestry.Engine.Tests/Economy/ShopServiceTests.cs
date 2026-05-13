@@ -45,15 +45,11 @@ public class ShopServiceTests
     {
         var npc = new Entity("npc", "the test vendor");
         npc.AddTag(ShopProperties.ShopTag);
-        npc.SetProperty(ShopProperties.Sells, new List<string> { "core:short-sword", "core:leather-cap" });
-        if (markupOverride.HasValue)
-        {
-            npc.SetProperty(ShopProperties.BuyMarkup, markupOverride.Value);
-        }
-        if (discountOverride.HasValue)
-        {
-            npc.SetProperty(ShopProperties.SellDiscount, discountOverride.Value);
-        }
+        npc.ShopConfig = new ShopConfig(
+            new List<string> { "core:short-sword", "core:leather-cap" },
+            markupOverride ?? 0.0,
+            discountOverride ?? 0.0
+        );
         _world.TrackEntity(npc);
         return npc;
     }

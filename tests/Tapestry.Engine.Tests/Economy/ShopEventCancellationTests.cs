@@ -40,7 +40,7 @@ public class ShopEventCancellationTests
 
         var npc = new Entity("npc", "vendor");
         npc.AddTag(ShopProperties.ShopTag);
-        npc.SetProperty(ShopProperties.Sells, new List<string> { "core:short-sword" });
+        npc.ShopConfig = new ShopConfig(new List<string> { "core:short-sword" }, 0.0, 0.0);
         _world.TrackEntity(npc);
 
         var player = new Entity("player", "Buyer");

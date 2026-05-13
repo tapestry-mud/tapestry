@@ -47,7 +47,7 @@ public class DispositionEvaluator
         var key = (mob.Id, player.Id);
         if (_cache.ContainsKey(key)) { return; }
 
-        var def = mob.GetProperty<DispositionDefinition>("disposition");
+        var def = mob.DispositionRules;
         if (def == null) { return; }
 
         var reaction = mob.Disposition == Disposition.Hostile ? "hostile" : EvaluateRules(def, player);
@@ -86,7 +86,7 @@ public class DispositionEvaluator
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
 
-        foreach (var entity in room.Entities.Where(e => e.Type == EntityTypes.Npc && e.HasProperty("disposition")).ToList())
+        foreach (var entity in room.Entities.Where(e => e.Type == EntityTypes.Npc && e.DispositionRules != null).ToList())
         {
             EvaluateForMob(entity, player, aggroOnly);
         }

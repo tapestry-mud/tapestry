@@ -64,7 +64,7 @@ public class MobTemplateBattleCommandTests
     }
 
     [Fact]
-    public void MobTemplate_CreateEntity_StoresBattleCommandsAsProperty()
+    public void MobTemplate_CreateEntity_BattleCommandsOnTemplate()
     {
         var template = new MobTemplate
         {
@@ -76,8 +76,9 @@ public class MobTemplateBattleCommandTests
 
         var entity = template.CreateEntity();
 
-        var stored = entity.GetProperty<string[]>("battlecommands");
-        Assert.NotNull(stored);
-        Assert.Equal(2, stored!.Length);
+        // BattleCommands live on the template, not the entity property bag.
+        Assert.Equal(2, template.BattleCommands.Count);
+        Assert.Equal("fireball", template.BattleCommands[0]);
+        _ = entity; // entity creation should succeed without exception
     }
 }
