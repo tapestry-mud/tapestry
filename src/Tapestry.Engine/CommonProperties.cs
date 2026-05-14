@@ -15,8 +15,8 @@ public static class CommonProperties
     public const string Alignment = "alignment";
     public const string Description = "description";
     public const string SourcePack = "source_pack";
-    public const string LastTellFrom = "lastTellFrom";
-    public const string LastTellTo = "lastTellTo";
+    public const string LastTellFrom = "last_tell_from";
+    public const string LastTellTo = "last_tell_to";
 
     public static void Register(PropertyRegistry registry)
     {
