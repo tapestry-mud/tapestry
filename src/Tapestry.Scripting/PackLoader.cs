@@ -44,6 +44,9 @@ public class PackLoader : IPackManifestProvider
     private string? _packMotd;
     public string? PackMotd => _packMotd;
 
+    private string? _packMotdColor;
+    public string? PackMotdColor => _packMotdColor;
+
     public PackLoader(World world, SlotRegistry slotRegistry, JintRuntime runtime,
                      ThemeRegistry theme, SpawnManager spawnManager, ItemRegistry itemRegistry,
                      ILogger<PackLoader> logger, PackContext packContext,
@@ -108,6 +111,19 @@ public class PackLoader : IPackManifestProvider
             else
             {
                 _logger.LogWarning("Pack {Name}: motd file not found at {Path}", manifest.Name, motdPath);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(manifest.Content.MotdColor) && _packMotdColor == null)
+        {
+            var motdColorPath = Path.Combine(packDirectory, manifest.Content.MotdColor);
+            if (File.Exists(motdColorPath))
+            {
+                _packMotdColor = File.ReadAllText(motdColorPath);
+            }
+            else
+            {
+                _logger.LogWarning("Pack {Name}: motd_color file not found at {Path}", manifest.Name, motdColorPath);
             }
         }
 

@@ -12,6 +12,7 @@ public class ApiMessaging
     private readonly CommandResponseContext _responseContext;
     private readonly VisibilityFilter _visibility;
     private string _motd = "";
+    private string _motdColor = "";
 
     public ApiMessaging(
         World world,
@@ -27,12 +28,11 @@ public class ApiMessaging
         _visibility = visibility;
     }
 
-    public void SetMotd(string motd)
-    {
-        _motd = motd;
-    }
-
+    public void SetMotd(string motd) { _motd = motd; }
     public string GetMotd() => _motd;
+
+    public void SetMotdColor(string motd) { _motdColor = motd; }
+    public string GetMotdColor() => _motdColor;
 
     // --- Core send ---
 
@@ -113,7 +113,8 @@ public class ApiMessaging
             return;
         }
 
-        var normalized = _motd.Replace("\r\n", "\n").Replace("\n", "\r\n");
+        var text = !string.IsNullOrEmpty(_motdColor) ? _motdColor : _motd;
+        var normalized = text.Replace("\r\n", "\n").Replace("\n", "\r\n");
         Send(entityId, normalized + "\r\n");
     }
 
