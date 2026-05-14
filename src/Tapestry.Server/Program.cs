@@ -395,6 +395,9 @@ var loginGates = app.Services.GetRequiredService<LoginGateRegistry>();
 loginGates.Register(new ReservedNameGate());
 app.Services.GetRequiredService<GameBootstrapper>().Configure();
 
+// Force-resolve event-subscriber singletons so their constructors wire up EventBus subscriptions
+app.Services.GetRequiredService<Tapestry.Engine.Classes.ClassPathProcessor>();
+
 // Configure GMCP handlers (event subscriptions, flush callbacks, etc.)
 foreach (var handler in app.Services.GetRequiredService<IEnumerable<IGmcpPackageHandler>>())
 {
