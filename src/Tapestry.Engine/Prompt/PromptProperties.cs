@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Prompt;
 
@@ -8,6 +9,6 @@ public static class PromptProperties
 
     public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterEngineProperty(PromptTemplate, "Custom prompt template string", PropertyValueType.String, appliesTo: new[] { "player" });
+        registry.RegisterEngineProperty(PromptTemplate, "Custom prompt template string", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player });
     }
 }

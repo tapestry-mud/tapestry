@@ -11,10 +11,10 @@ public static class RoomProperties
     public static void Register(PropertyRegistry registry)
     {
         registry.RegisterEngineProperty(Terrain, "Terrain type of this room", PropertyValueType.String,
-            appliesTo: new[] { "room" });
+            appliesTo: new[] { EntityTypes.Room });
         registry.RegisterEngineProperty(EntryPointDescription, "Description shown when entering from another area",
-            PropertyValueType.String, appliesTo: new[] { "room" });
+            PropertyValueType.String, appliesTo: new[] { EntityTypes.Room });
         registry.RegisterEngineProperty(EntryPointDirection, "Direction word used for area entry point",
-            PropertyValueType.String, appliesTo: new[] { "room" });
+            PropertyValueType.String, appliesTo: new[] { EntityTypes.Room });
     }
 }

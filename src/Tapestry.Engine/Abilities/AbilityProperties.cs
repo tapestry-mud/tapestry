@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Abilities;
 
@@ -16,14 +17,14 @@ public static class AbilityProperties
     public static void Register(PropertyRegistry registry)
     {
         registry.RegisterEngineProperty(Proficiency, "Ability proficiency scores",
-            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+            PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
         registry.RegisterEngineProperty(Cap, "Ability proficiency caps",
-            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+            PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
         registry.RegisterEngineProperty(LastAbilityUsed, "Last ability used by this entity",
             PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty(QueuedActions, "Queued ability actions",
             PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty(RescueCooldownUntil, "Tick until rescue ability can be used again",
-            PropertyValueType.Long, appliesTo: new[] { "player" });
+            PropertyValueType.Long, appliesTo: new[] { EntityTypes.Player });
     }
 }
