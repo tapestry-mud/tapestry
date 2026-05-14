@@ -9,6 +9,30 @@ public class ColorRenderer
     private readonly ConcurrentDictionary<string, string> _ansiCache = new();
     private readonly ConcurrentDictionary<string, string> _plainCache = new();
 
+    private static readonly Dictionary<string, string> BraceColors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["black"] = "\x1b[30m",
+        ["red"] = "\x1b[31m",
+        ["green"] = "\x1b[32m",
+        ["yellow"] = "\x1b[33m",
+        ["blue"] = "\x1b[34m",
+        ["magenta"] = "\x1b[35m",
+        ["cyan"] = "\x1b[36m",
+        ["white"] = "\x1b[37m",
+        ["bright_black"] = "\x1b[90m",
+        ["bright_red"] = "\x1b[91m",
+        ["bright_green"] = "\x1b[92m",
+        ["bright_yellow"] = "\x1b[93m",
+        ["bright_blue"] = "\x1b[94m",
+        ["bright_magenta"] = "\x1b[95m",
+        ["bright_cyan"] = "\x1b[96m",
+        ["bright_white"] = "\x1b[97m",
+        ["bold"] = "\x1b[1m",
+        ["dim"] = "\x1b[2m",
+        ["/"] = "\x1b[0m",
+        ["reset"] = "\x1b[0m",
+    };
+
     public ColorRenderer(ThemeRegistry theme)
     {
         _theme = theme;
@@ -132,6 +156,25 @@ public class ColorRenderer
                 }
 
                 i = closeIndex + closeTagStr.Length;
+                continue;
+            }
+
+            // Brace color shorthand: {yellow}, {cyan}, {/}, etc.
+            if (input[i] == '{')
+            {
+                var closeIdx = input.IndexOf('}', i + 1);
+                if (closeIdx != -1)
+                {
+                    var colorName = input[(i + 1)..closeIdx];
+                    if (BraceColors.TryGetValue(colorName, out var code))
+                    {
+                        if (!strip) { sb.Append(code); }
+                        i = closeIdx + 1;
+                        continue;
+                    }
+                }
+                sb.Append(input[i]);
+                i++;
                 continue;
             }
 

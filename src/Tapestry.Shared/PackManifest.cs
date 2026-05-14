@@ -32,4 +32,5 @@ public class PackContentPaths
     public string WeatherZones { get; set; } = "";
     public string Help { get; set; } = "";
     public string Motd { get; set; } = "";
+    public string MotdColor { get; set; } = "";
 }

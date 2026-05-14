@@ -63,6 +63,10 @@ public class ContentLoadingModule : IGameModule
             ? _config.Server.Motd
             : _packLoader.PackMotd ?? "Welcome to Tapestry!";
         _messaging.SetMotd(motd);
+
+        var motdColor = _packLoader.PackMotdColor ?? "";
+        _messaging.SetMotdColor(motdColor);
+
         AppendPackCreditsToMotd();
 
         // Auto-generate help topics for commands with ArgDefinitions.
@@ -148,7 +152,13 @@ public class ContentLoadingModule : IGameModule
             return string.IsNullOrEmpty(p.Author) ? $"{label} v{p.Version}" : $"{label} v{p.Version} by {p.Author}";
         }));
 
-        var current = _messaging.GetMotd();
-        _messaging.SetMotd(current + $"\r\n[ Packs: {credits} ]");
+        var creditsLine = $"\r\n[ Packs: {credits} ]";
+        _messaging.SetMotd(_messaging.GetMotd() + creditsLine);
+
+        var currentColor = _messaging.GetMotdColor();
+        if (!string.IsNullOrEmpty(currentColor))
+        {
+            _messaging.SetMotdColor(currentColor + creditsLine);
+        }
     }
 }
