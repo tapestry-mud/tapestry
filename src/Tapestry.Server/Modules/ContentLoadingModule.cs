@@ -55,11 +55,14 @@ public class ContentLoadingModule : IGameModule
 
     public void Configure()
     {
-        _messaging.SetMotd(_config.Server.Motd);
         LoadPacks();
         _abilityCommandBridge.WireAll();
         _packValidator.Validate();
         _connectionLoader.Load();
+        var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
+            ? _config.Server.Motd
+            : _packLoader.PackMotd ?? "Welcome to Tapestry!";
+        _messaging.SetMotd(motd);
         AppendPackCreditsToMotd();
 
         // Auto-generate help topics for commands with ArgDefinitions.

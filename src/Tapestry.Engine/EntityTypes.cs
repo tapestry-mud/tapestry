@@ -6,4 +6,5 @@ public static class EntityTypes
     public const string Container = "container";
     public const string Npc = "npc";
     public const string Player = "player";
+    public const string Room = "room";
 }

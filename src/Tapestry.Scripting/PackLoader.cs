@@ -41,6 +41,9 @@ public class PackLoader : IPackManifestProvider
     public List<PackManifest> LoadedPacks { get; } = new();
     IReadOnlyList<PackManifest> IPackManifestProvider.LoadedPacks => LoadedPacks;
 
+    private string? _packMotd;
+    public string? PackMotd => _packMotd;
+
     public PackLoader(World world, SlotRegistry slotRegistry, JintRuntime runtime,
                      ThemeRegistry theme, SpawnManager spawnManager, ItemRegistry itemRegistry,
                      ILogger<PackLoader> logger, PackContext packContext,
@@ -94,6 +97,19 @@ public class PackLoader : IPackManifestProvider
 
         _logger.LogInformation("Loading declarations for pack: {Name} v{Version}", manifest.Name, manifest.Version);
         LoadedPacks.Add(manifest);
+
+        if (!string.IsNullOrEmpty(manifest.Content.Motd) && _packMotd == null)
+        {
+            var motdPath = Path.Combine(packDirectory, manifest.Content.Motd);
+            if (File.Exists(motdPath))
+            {
+                _packMotd = File.ReadAllText(motdPath);
+            }
+            else
+            {
+                _logger.LogWarning("Pack {Name}: motd file not found at {Path}", manifest.Name, motdPath);
+            }
+        }
 
         TagsFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _tagRegistry);
         PropertiesFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _propertyRegistry);

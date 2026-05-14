@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Progression;
 
@@ -10,8 +11,8 @@ public static class ProgressionProperties
     public static void Register(PropertyRegistry registry)
     {
         registry.RegisterEngineProperty(Level, "Level by progression track",
-            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+            PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
         registry.RegisterEngineProperty(Xp, "Experience points by progression track",
-            PropertyValueType.MapInt, appliesTo: new[] { "player", "npc" });
+            PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
     }
 }

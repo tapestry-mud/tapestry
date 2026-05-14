@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Rest;
 
@@ -20,6 +21,6 @@ public static class RestProperties
         registry.RegisterEngineProperty(RestTarget, "Entity being rested on or near", PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty(RestBonus, "Bonus regen while resting", PropertyValueType.Int, transient: true);
         registry.RegisterEngineProperty(SleepStartTick, "Tick when sleep began", PropertyValueType.Long, transient: true);
-        registry.RegisterEngineProperty(RoomHealingRate, "Healing rate bonus for this room", PropertyValueType.Int, appliesTo: new[] { "room" });
+        registry.RegisterEngineProperty(RoomHealingRate, "Healing rate bonus for this room", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Room });
     }
 }

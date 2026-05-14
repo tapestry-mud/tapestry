@@ -74,7 +74,7 @@ public class ServerConfig
 public class ServerSection
 {
     public string Name { get; set; } = "Tapestry MUD";
-    public string Motd { get; set; } = "Welcome to Tapestry!";
+    public string? Motd { get; set; } = null;
     public int TelnetPort { get; set; } = 4000;
     public int WebsocketPort { get; set; } = 4001;
     public int MaxConnections { get; set; } = 200;

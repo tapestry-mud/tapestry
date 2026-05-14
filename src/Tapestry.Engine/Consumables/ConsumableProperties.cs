@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Consumables;
 
@@ -15,13 +16,13 @@ public static class ConsumableProperties
 
     public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterEngineProperty(ConsumeMethod, "Consumption method", PropertyValueType.String, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(SustenanceValue, "Sustenance provided when consumed", PropertyValueType.Int, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(EffectId, "Effect applied when consumed", PropertyValueType.String, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(EffectDuration, "Duration of applied effect in ticks", PropertyValueType.Int, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(EffectData, "Effect parameters", PropertyValueType.MapInt, appliesTo: new[] { "item" }, transient: true);
-        registry.RegisterEngineProperty(Charges, "Remaining charges", PropertyValueType.Int, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(MaxCharges, "Maximum charges", PropertyValueType.Int, appliesTo: new[] { "item" });
-        registry.RegisterEngineProperty(DestroyOnEmpty, "Destroy item when charges reach zero", PropertyValueType.Bool, appliesTo: new[] { "item" });
+        registry.RegisterEngineProperty(ConsumeMethod, "Consumption method", PropertyValueType.String, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(SustenanceValue, "Sustenance provided when consumed", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(EffectId, "Effect applied when consumed", PropertyValueType.String, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(EffectDuration, "Duration of applied effect in ticks", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(EffectData, "Effect parameters", PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Item }, transient: true);
+        registry.RegisterEngineProperty(Charges, "Remaining charges", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(MaxCharges, "Maximum charges", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(DestroyOnEmpty, "Destroy item when charges reach zero", PropertyValueType.Bool, appliesTo: new[] { EntityTypes.Item });
     }
 }

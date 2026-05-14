@@ -15,6 +15,8 @@ public static class CommonProperties
     public const string Alignment = "alignment";
     public const string Description = "description";
     public const string SourcePack = "source_pack";
+    public const string LastTellFrom = "lastTellFrom";
+    public const string LastTellTo = "lastTellTo";
 
     public static void Register(PropertyRegistry registry)
     {
@@ -29,6 +31,8 @@ public static class CommonProperties
         registry.RegisterEngineProperty(Alignment, "Alignment value (-1000 to 1000)", PropertyValueType.Int);
         registry.RegisterEngineProperty(Description, "Entity description text", PropertyValueType.String);
         registry.RegisterEngineProperty(SourcePack, "Pack that loaded this entity", PropertyValueType.String, transient: true);
+        registry.RegisterEngineProperty(LastTellFrom, "Last entity who sent a tell to this player", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player });
+        registry.RegisterEngineProperty(LastTellTo, "Last entity this player sent a tell to", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player });
 
         registry.RegisterEngineProperty("alignment_history", "History of alignment shifts", PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty("no_follow", "Prevents entity from being followed", PropertyValueType.Bool, transient: true);
