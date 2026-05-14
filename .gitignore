@@ -27,4 +27,6 @@ fly.toml
 .worktrees/
 
 # Installed packs (managed by tapestry install)
+# /packs/ ignores the directory, plain /packs also catches the symlink
 /packs/
+/packs
