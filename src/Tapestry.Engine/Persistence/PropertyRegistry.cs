@@ -6,6 +6,7 @@ public sealed class PropertyRegistry
 {
     private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
     private readonly Dictionary<string, PropertyRegistryEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private Func<string, IEnumerable<string>>? _dependencyResolver;
 
     public void RegisterEngineProperty(
         string name,
@@ -48,6 +49,11 @@ public sealed class PropertyRegistry
         _entries[fullKey] = new PropertyRegistryEntry(name, packName, description, valueType, appliesSet, false);
     }
 
+    public void SetDependencyResolver(Func<string, IEnumerable<string>> resolver)
+    {
+        _dependencyResolver = resolver;
+    }
+
     public bool TryResolve(string name, string? currentPack, out PropertyRegistryEntry entry)
     {
         if (_entries.TryGetValue(name, out entry!))
@@ -61,6 +67,17 @@ public sealed class PropertyRegistry
             {
                 return true;
             }
+            if (_dependencyResolver != null)
+            {
+                foreach (var dep in _dependencyResolver(currentPack))
+                {
+                    var depKey = $"{dep}:{name}".ToLowerInvariant();
+                    if (_entries.TryGetValue(depKey, out entry!))
+                    {
+                        return true;
+                    }
+                }
+            }
         }
         entry = null!;
         return false;
@@ -73,17 +90,9 @@ public sealed class PropertyRegistry
 
     public PropertyValueType? GetValueType(string name, string? packName = null)
     {
-        if (_entries.TryGetValue(name.ToLowerInvariant(), out var entry))
+        if (TryResolve(name, packName, out var entry))
         {
             return entry.ValueType;
-        }
-        if (packName != null && !name.Contains(':'))
-        {
-            var prefixed = $"{packName}:{name}".ToLowerInvariant();
-            if (_entries.TryGetValue(prefixed, out entry))
-            {
-                return entry.ValueType;
-            }
         }
         return null;
     }

@@ -5,6 +5,8 @@ using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Help;
+using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Services;
@@ -23,6 +25,8 @@ public class ContentLoadingModule : IGameModule
     private readonly CommandRegistry _commandRegistry;
     private readonly HelpService _helpService;
     private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
+    private readonly TagRegistry _tagRegistry;
+    private readonly PropertyRegistry _propertyRegistry;
     private readonly ILogger<ContentLoadingModule> _logger;
 
     public string Name => "ContentLoading";
@@ -38,6 +42,8 @@ public class ContentLoadingModule : IGameModule
         CommandRegistry commandRegistry,
         HelpService helpService,
         Tapestry.Scripting.Modules.CommandsModule commandsModule,
+        TagRegistry tagRegistry,
+        PropertyRegistry propertyRegistry,
         ILogger<ContentLoadingModule> logger)
     {
         _config = config;
@@ -50,12 +56,15 @@ public class ContentLoadingModule : IGameModule
         _commandRegistry = commandRegistry;
         _helpService = helpService;
         _commandsModule = commandsModule;
+        _tagRegistry = tagRegistry;
+        _propertyRegistry = propertyRegistry;
         _logger = logger;
     }
 
     public void Configure()
     {
         LoadPacks();
+        WireDependencyResolvers();
         _abilityCommandBridge.WireAll();
         _packValidator.Validate();
         _connectionLoader.Load();
@@ -80,6 +89,25 @@ public class ContentLoadingModule : IGameModule
 
         _commandsModule.LogLoadTimeWarnings();
         _themeRegistry.Compile();
+    }
+
+    private void WireDependencyResolvers()
+    {
+        var depMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var manifest in _packLoader.LoadedPacks)
+        {
+            var ns = PackLoader.PackNamespace(manifest.Name);
+            var deps = manifest.Dependencies.Keys
+                .Select(PackLoader.PackNamespace)
+                .ToList();
+            depMap[ns] = deps;
+        }
+
+        IEnumerable<string> Resolve(string packNamespace) =>
+            depMap.TryGetValue(packNamespace, out var deps) ? deps : [];
+
+        _tagRegistry.SetDependencyResolver(Resolve);
+        _propertyRegistry.SetDependencyResolver(Resolve);
     }
 
     private void LoadPacks()

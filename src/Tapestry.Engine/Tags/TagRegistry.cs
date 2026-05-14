@@ -6,6 +6,7 @@ public sealed class TagRegistry
 {
     private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
     private readonly Dictionary<string, TagRegistryEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private Func<string, IEnumerable<string>>? _dependencyResolver;
 
     public void RegisterEngineTag(string name, string description, IEnumerable<string> appliesTo)
     {
@@ -40,6 +41,11 @@ public sealed class TagRegistry
             new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase));
     }
 
+    public void SetDependencyResolver(Func<string, IEnumerable<string>> resolver)
+    {
+        _dependencyResolver = resolver;
+    }
+
     public bool TryResolve(string tag, string? currentPack, out TagRegistryEntry entry)
     {
         if (_entries.TryGetValue(tag, out entry!))
@@ -52,6 +58,17 @@ public sealed class TagRegistry
             if (_entries.TryGetValue(prefixed, out entry!))
             {
                 return true;
+            }
+            if (_dependencyResolver != null)
+            {
+                foreach (var dep in _dependencyResolver(currentPack))
+                {
+                    var depKey = $"{dep}:{tag}".ToLowerInvariant();
+                    if (_entries.TryGetValue(depKey, out entry!))
+                    {
+                        return true;
+                    }
+                }
             }
         }
         entry = null!;
