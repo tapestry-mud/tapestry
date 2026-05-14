@@ -223,7 +223,8 @@ public static class YamlContentLoader
         {
             if (value is IDictionary<object, object> nestedRaw)
             {
-                var valueType = registry.GetValueType(key, packName);
+                var isTransient = registry.IsKnown(key, packName) && registry.IsTransient(key);
+                var valueType = isTransient ? null : registry.GetValueType(key, packName);
                 if (valueType == PropertyValueType.MapInt)
                 {
                     var typedMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
