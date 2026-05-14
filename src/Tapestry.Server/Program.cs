@@ -217,7 +217,7 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
         return Results.Json(new { exists = false, nameValid = false, error });
     }
 
-    var canonical = NameValidator.Canonicalize(name);
+    var canonical = NameValidator.Canonicalize(name!);
     var exists = persistence.PlayerSaveExists(canonical);
 
     return Results.Json(new { exists, nameValid = true, error = (string?)null });
@@ -241,7 +241,7 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
         return Results.Json(new { error = nameError });
     }
 
-    var canonical = NameValidator.Canonicalize(name);
+    var canonical = NameValidator.Canonicalize(name!);
     var exists = persistence.PlayerSaveExists(canonical);
 
     if (exists)

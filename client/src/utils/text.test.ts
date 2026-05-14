@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stripMarkup, parseColorTags } from './text'
+import { stripMarkup } from './text'
 
 describe('stripMarkup', () => {
     it('strips ANSI escape sequences', () => {
@@ -20,29 +20,5 @@ describe('stripMarkup', () => {
 
     it('passes plain text through unchanged', () => {
         expect(stripMarkup('plain text')).toBe('plain text')
-    })
-})
-
-describe('parseColorTags', () => {
-    it('returns single plain segment for plain text', () => {
-        const parts = parseColorTags('hello')
-        expect(parts).toHaveLength(1)
-        expect(parts[0].text).toBe('hello')
-        expect(parts[0].className).toBeUndefined()
-    })
-
-    it('returns tagged segment with className for known tag', () => {
-        const parts = parseColorTags('<highlight>bright</highlight>')
-        expect(parts).toHaveLength(1)
-        expect(parts[0].text).toBe('bright')
-        expect(parts[0].className).toContain('text-yellow')
-    })
-
-    it('handles mixed tagged and plain text', () => {
-        const parts = parseColorTags('before <highlight>mid</highlight> after')
-        expect(parts).toHaveLength(3)
-        expect(parts[0].text).toBe('before ')
-        expect(parts[1].className).toBeTruthy()
-        expect(parts[2].text).toBe(' after')
     })
 })

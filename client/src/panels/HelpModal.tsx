@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useHelpStore, type HelpTopicData, type HelpTopicSummary } from '../stores/helpStore'
-import { parseColorTags } from '../utils/text'
+import { renderTags } from '../utils/renderTags'
+import { useDisplayStore } from '../stores/displayStore'
 import { WebSocketClient } from '../connection/WebSocketClient'
 
 let savedFocus: Element | null = null
@@ -158,12 +159,13 @@ function HelpDisambiguation({ term, matches }: { term: string; matches: HelpTopi
 }
 
 function ColorTaggedText({ text }: { text: string }) {
-    const parts = parseColorTags(text)
+    const colorMap = useDisplayStore((s) => s.colorMap)
+    const parts = renderTags(text, colorMap)
     return (
         <>
             {parts.map((part, i) =>
-                part.className
-                    ? <span key={i} className={part.className}>{part.text}</span>
+                part.htmlClass
+                    ? <span key={i} className={part.htmlClass}>{part.text}</span>
                     : <span key={i}>{part.text}</span>
             )}
         </>
