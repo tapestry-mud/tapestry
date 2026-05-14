@@ -296,6 +296,93 @@ public class PackLoaderTests
         return (world, itemRegistry, spawnManager, loader);
     }
 
+    [Fact]
+    public void LoadDeclarations_ExposesPackMotd_WhenManifestDeclaresMotdFile()
+    {
+        var packDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(packDir);
+
+        try
+        {
+            var dataDir = Path.Combine(packDir, "data");
+            Directory.CreateDirectory(dataDir);
+            File.WriteAllText(Path.Combine(dataDir, "motd.txt"), "Hello from pack!");
+            File.WriteAllText(Path.Combine(packDir, "tapestry.yaml"), """
+                name: "test-motd-pack"
+                version: "1.0.0"
+                active: true
+                load_order: 0
+                content:
+                  motd: "data/motd.txt"
+                """);
+
+            var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+            loader.LoadDeclarations(packDir);
+
+            loader.PackMotd.Should().Be("Hello from pack!");
+        }
+        finally
+        {
+            Directory.Delete(packDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadDeclarations_PackMotdIsNull_WhenNoMotdDeclared()
+    {
+        var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+        loader.LoadDeclarations(ExamplePackPath());
+
+        loader.PackMotd.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadDeclarations_FirstPackWins_WhenMultiplePacksDeclareMotd()
+    {
+        var packDir1 = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var packDir2 = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(packDir1);
+        Directory.CreateDirectory(packDir2);
+
+        try
+        {
+            var dataDir1 = Path.Combine(packDir1, "data");
+            Directory.CreateDirectory(dataDir1);
+            File.WriteAllText(Path.Combine(dataDir1, "motd.txt"), "First pack wins!");
+            File.WriteAllText(Path.Combine(packDir1, "tapestry.yaml"), """
+                name: "test-motd-pack-1"
+                version: "1.0.0"
+                active: true
+                load_order: 0
+                content:
+                  motd: "data/motd.txt"
+                """);
+
+            var dataDir2 = Path.Combine(packDir2, "data");
+            Directory.CreateDirectory(dataDir2);
+            File.WriteAllText(Path.Combine(dataDir2, "motd.txt"), "Second pack loses!");
+            File.WriteAllText(Path.Combine(packDir2, "tapestry.yaml"), """
+                name: "test-motd-pack-2"
+                version: "1.0.0"
+                active: true
+                load_order: 10
+                content:
+                  motd: "data/motd.txt"
+                """);
+
+            var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+            loader.LoadDeclarations(packDir1);
+            loader.LoadDeclarations(packDir2);
+
+            loader.PackMotd.Should().Be("First pack wins!");
+        }
+        finally
+        {
+            Directory.Delete(packDir1, recursive: true);
+            Directory.Delete(packDir2, recursive: true);
+        }
+    }
+
     private sealed class NullFlowPersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) { return false; }
