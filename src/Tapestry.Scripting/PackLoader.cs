@@ -105,6 +105,10 @@ public class PackLoader : IPackManifestProvider
             {
                 _packMotd = File.ReadAllText(motdPath);
             }
+            else
+            {
+                _logger.LogWarning("Pack {Name}: motd file not found at {Path}", manifest.Name, motdPath);
+            }
         }
 
         TagsFileLoader.LoadIntoRegistry(packDirectory, packNamespace, _tagRegistry);
