@@ -64,7 +64,6 @@ public class ContentLoadingModule : IGameModule
     public void Configure()
     {
         LoadPacks();
-        WireDependencyResolvers();
         _abilityCommandBridge.WireAll();
         _packValidator.Validate();
         _connectionLoader.Load();
@@ -134,6 +133,9 @@ public class ContentLoadingModule : IGameModule
 
         // Phase 1: all packs declare tags, properties, and slots
         var manifests = packDirs.Select(dir => _packLoader.LoadDeclarations(dir)).ToList();
+
+        // Wire dependency resolvers so Phase 2 YAML coercion can see dependency properties
+        WireDependencyResolvers();
 
         // Phase 2: all packs load content (rooms, items, mobs, scripts, help, themes)
         foreach (var (dir, manifest) in packDirs.Zip(manifests))
