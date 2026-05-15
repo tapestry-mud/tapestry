@@ -66,6 +66,8 @@ public class MobTemplate
     public string? Script { get; set; }
     public List<MobAbilityEntry> Abilities { get; set; } = new();
     public List<string> BattleCommands { get; set; } = new();
+    public double? BattleChance { get; set; }
+    public int? BattleInterval { get; set; }
     public int? AbilityProficiency { get; set; }
     public TrainerConfig? TrainerConfig { get; set; }
     public ShopConfig? ShopConfig { get; set; }
@@ -119,6 +121,18 @@ public class MobTemplate
         if (ShopSells.Count > 0)
         {
             entity.SetProperty("shop_sells", ShopSells);
+        }
+        if (IdleCommands.Count > 0)
+        {
+            entity.SetProperty(MobProperties.IdleCommands, IdleCommands);
+            entity.SetProperty(MobProperties.IdleChance, IdleChance);
+            entity.SetProperty(MobProperties.IdleInterval, IdleInterval);
+        }
+        if (BattleCommands.Count > 0)
+        {
+            entity.SetProperty(MobProperties.BattleCommands, BattleCommands);
+            if (BattleChance.HasValue) { entity.SetProperty(MobProperties.BattleChance, BattleChance.Value); }
+            if (BattleInterval.HasValue) { entity.SetProperty(MobProperties.BattleInterval, BattleInterval.Value); }
         }
 
         if (Disposition != null)

@@ -99,10 +99,14 @@ public class PackValidator
             var battleCommands = template.BattleCommands;
             var abilities = template.Abilities;
 
-            if (battleCommands.Count > 0 && abilities.Count == 0)
+            var abilityLikeCommands = battleCommands
+                .Where(c => !string.IsNullOrWhiteSpace(c) && !c.TrimStart().Contains(' '))
+                .ToList();
+            if (abilityLikeCommands.Count > 0 && abilities.Count == 0)
             {
                 _logger.LogWarning(
-                    "Mob {Id} has battlecommands but no abilities -- commands will fizzle", template.Id);
+                    "Mob {Id} has battle commands that look like abilities ({Commands}) but no abilities defined -- they will fizzle",
+                    template.Id, string.Join(", ", abilityLikeCommands));
                 count++;
             }
 

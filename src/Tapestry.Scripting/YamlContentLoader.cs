@@ -89,6 +89,8 @@ public static class YamlContentLoader
             Script = def.Script,
             Abilities = def.Abilities,
             BattleCommands = def.BattleCommands,
+            BattleChance = def.BattleChance,
+            BattleInterval = def.BattleInterval,
             AbilityProficiency = def.AbilityProficiency,
             PatrolRoute = def.PatrolRoute,
             ShopSells = def.ShopSells
@@ -585,6 +587,8 @@ public static class YamlContentLoader
         public Dictionary<string, object>? Trains { get; set; }
         public List<MobAbilityEntry> Abilities { get; set; } = new();
         public List<string> BattleCommands { get; set; } = new();
+        public double? BattleChance { get; set; }
+        public int? BattleInterval { get; set; }
         public int? AbilityProficiency { get; set; }
         public List<string> PatrolRoute { get; set; } = new();
         public List<string> ShopSells { get; set; } = new();

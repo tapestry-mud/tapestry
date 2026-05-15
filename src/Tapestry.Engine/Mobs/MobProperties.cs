@@ -23,6 +23,10 @@ public static class MobProperties
     public const string GoldMin = "gold_min";
     public const string GoldMax = "gold_max";
     public const string MobLevel = "mob_level";
+    public const string IdleCommands = "idle_commands";
+    public const string IdleChance = "idle_chance";
+    public const string IdleInterval = "idle_interval";
+    public const string BattleCommands = "battle_commands";
 
     public static void Register(PropertyRegistry registry)
     {
@@ -62,5 +66,13 @@ public static class MobProperties
             PropertyValueType.Int, appliesTo: new[] { EntityTypes.Npc });
         registry.RegisterEngineProperty(MobLevel, "Fixed combat level of this NPC",
             PropertyValueType.Int, appliesTo: new[] { EntityTypes.Npc });
+        registry.RegisterEngineProperty(IdleCommands, "Commands executed randomly when idle",
+            PropertyValueType.ListString, appliesTo: new[] { EntityTypes.Npc });
+        registry.RegisterEngineProperty(IdleChance, "Probability of executing an idle command per check (0.0-1.0)",
+            PropertyValueType.Double, appliesTo: new[] { EntityTypes.Npc });
+        registry.RegisterEngineProperty(IdleInterval, "Seconds between idle command checks",
+            PropertyValueType.Int, appliesTo: new[] { EntityTypes.Npc });
+        registry.RegisterEngineProperty(BattleCommands, "Commands executed randomly during combat",
+            PropertyValueType.ListString, appliesTo: new[] { EntityTypes.Npc });
     }
 }
