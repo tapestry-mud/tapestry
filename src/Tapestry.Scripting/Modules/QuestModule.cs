@@ -30,7 +30,7 @@ public class QuestModule : IJintApiModule
     {
         return new
         {
-            offer = new Action<string, string, JsValue?>((entityIdStr, questId, options) =>
+            offer = new Action<string, string, JsValue>((entityIdStr, questId, options) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var id))
                 {
@@ -44,7 +44,7 @@ public class QuestModule : IJintApiModule
                 }
 
                 var silent = false;
-                if (options != null && options.Type != Types.Undefined && options.Type != Types.Null && options is ObjectInstance optObj)
+                if (options is ObjectInstance optObj)
                 {
                     var silentProp = optObj.Get("silent");
                     silent = silentProp.Type == Types.Boolean && (bool)silentProp.ToObject()!;
