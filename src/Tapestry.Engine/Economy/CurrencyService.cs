@@ -1,9 +1,10 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Quests;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Economy;
 
-public class CurrencyService
+public class CurrencyService : IQuestCurrencyService
 {
     private readonly World _world;
     private readonly EventBus _eventBus;

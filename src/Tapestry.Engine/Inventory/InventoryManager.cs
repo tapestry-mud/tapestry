@@ -3,11 +3,12 @@ using Tapestry.Engine;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Containers;
 using Tapestry.Engine.Economy;
+using Tapestry.Engine.Quests;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Inventory;
 
-public class InventoryManager
+public class InventoryManager : IQuestInventoryService
 {
     private readonly EventBus _eventBus;
     private readonly World _world;

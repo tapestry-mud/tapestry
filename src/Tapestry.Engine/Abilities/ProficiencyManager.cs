@@ -1,8 +1,10 @@
+using Tapestry.Engine.Quests;
+
 namespace Tapestry.Engine.Abilities;
 
 public record LearnedAbility(string AbilityId, int Proficiency);
 
-public class ProficiencyManager
+public class ProficiencyManager : IQuestProficiencyService
 {
     private readonly World _world;
     private readonly AbilityRegistry _registry;

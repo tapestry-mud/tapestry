@@ -1,6 +1,8 @@
+using Tapestry.Engine.Quests;
+
 namespace Tapestry.Engine.Items;
 
-public class ItemRegistry
+public class ItemRegistry : IQuestItemRegistry
 {
     private readonly Dictionary<string, ItemTemplate> _templates = new();
 

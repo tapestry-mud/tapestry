@@ -1,8 +1,9 @@
+using Tapestry.Engine.Quests;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Progression;
 
-public class ProgressionManager
+public class ProgressionManager : IQuestProgressionService
 {
     private readonly World _world;
     private readonly EventBus _eventBus;
