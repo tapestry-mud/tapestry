@@ -1,4 +1,6 @@
 using Jint.Native;
+using Jint.Native.Object;
+using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using JintEngine = Jint.Engine;
@@ -11,22 +13,24 @@ public class QuestModule : IJintApiModule
     private readonly QuestRegistry _questRegistry;
     private readonly World _world;
     private readonly QuestScriptLoader _scriptLoader;
+    private readonly QuestMarkerService _questMarkerService;
 
     public string Namespace => "quests";
 
-    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world, QuestScriptLoader scriptLoader)
+    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world, QuestScriptLoader scriptLoader, QuestMarkerService questMarkerService)
     {
         _questService = questService;
         _questRegistry = questRegistry;
         _world = world;
         _scriptLoader = scriptLoader;
+        _questMarkerService = questMarkerService;
     }
 
     public object Build(JintEngine engine)
     {
         return new
         {
-            offer = new Action<string, string>((entityIdStr, questId) =>
+            offer = new Action<string, string, JsValue?>((entityIdStr, questId, options) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var id))
                 {
@@ -39,7 +43,14 @@ public class QuestModule : IJintApiModule
                     return;
                 }
 
-                _questService.AcceptQuest(player, questId);
+                var silent = false;
+                if (options != null && options.Type != Types.Undefined && options.Type != Types.Null && options is ObjectInstance optObj)
+                {
+                    var silentProp = optObj.Get("silent");
+                    silent = silentProp.Type == Types.Boolean && (bool)silentProp.ToObject()!;
+                }
+
+                _questService.AcceptQuest(player, questId, silent);
             }),
 
             isActive = new Func<string, string, bool>((entityIdStr, questId) =>
@@ -80,6 +91,7 @@ public class QuestModule : IJintApiModule
                     active = state.Active.Select(a =>
                     {
                         var def = _questRegistry.Get(a.QuestId);
+                        var stage = def?.Stages.ElementAtOrDefault(a.StageIndex);
                         return new
                         {
                             questId = a.QuestId,
@@ -87,9 +99,9 @@ public class QuestModule : IJintApiModule
                             type = def?.Type ?? "side",
                             stageIndex = a.StageIndex,
                             stageCount = def?.Stages.Count ?? 0,
+                            stageDescription = stage?.Description,
                             objectives = a.Objectives.Select(o =>
                             {
-                                var stage = def?.Stages.ElementAtOrDefault(a.StageIndex);
                                 var objDef = stage?.Objectives.FirstOrDefault(od => od.Id == o.ObjectiveId);
                                 return new
                                 {
@@ -113,6 +125,62 @@ public class QuestModule : IJintApiModule
                 }
 
                 _questService.AbandonQuest(id, questId);
+            }),
+
+            getHint = new Func<string, string, string?>((entityIdStr, questId) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var id))
+                {
+                    return null;
+                }
+
+                var state = _questService.GetState(id);
+                var active = state?.Active.FirstOrDefault(a => a.QuestId == questId);
+                if (active == null)
+                {
+                    return null;
+                }
+
+                var def = _questRegistry.Get(questId);
+                var stage = def?.Stages?.ElementAtOrDefault(active.StageIndex);
+                return stage?.Hint;
+            }),
+
+            getActiveHints = new Func<string, string[]>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var id))
+                {
+                    return [];
+                }
+
+                var state = _questService.GetState(id);
+                if (state == null)
+                {
+                    return [];
+                }
+
+                var hints = new List<string>();
+                foreach (var active in state.Active)
+                {
+                    var def = _questRegistry.Get(active.QuestId);
+                    var stage = def?.Stages?.ElementAtOrDefault(active.StageIndex);
+                    if (stage?.Hint != null)
+                    {
+                        hints.Add(stage.Hint);
+                    }
+                }
+
+                return [.. hints];
+            }),
+
+            hasQuestMarker = new Func<string, string, bool>((entityIdStr, templateId) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var id))
+                {
+                    return false;
+                }
+
+                return _questMarkerService.HasQuestMarker(id, templateId);
             }),
 
             registerObjectiveType = new Action<string, object>((type, handler) =>
