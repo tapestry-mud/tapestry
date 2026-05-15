@@ -177,9 +177,9 @@ public class ApiMessaging
         {
             var itemTemplateId = item.GetProperty<string>(CommonProperties.TemplateId);
             var itemMarker = !string.IsNullOrEmpty(itemTemplateId) && _questMarkerService.HasQuestMarker(entityId, itemTemplateId)
-                ? " [Quest]"
+                ? "<highlight>[Quest]</highlight> "
                 : "";
-            lines.Add($"<item.common>{item.Name}{itemMarker} is here.</item.common>");
+            lines.Add($"<item.common>{itemMarker}{item.Name} is here.</item.common>");
         }
 
         // Show NPCs
@@ -190,9 +190,9 @@ public class ApiMessaging
         {
             var npcTemplateId = npc.GetProperty<string>(CommonProperties.TemplateId);
             var npcMarker = !string.IsNullOrEmpty(npcTemplateId) && _questMarkerService.HasQuestMarker(entityId, npcTemplateId)
-                ? " [Quest]"
+                ? "<highlight>[Quest]</highlight> "
                 : "";
-            lines.Add($"<npc>{npc.Name}{npcMarker} is here.</npc>");
+            lines.Add($"<npc>{npcMarker}{npc.Name} is here.</npc>");
         }
 
         // Show corpses (corpse is a tag, not a type -- entities are type "container")
