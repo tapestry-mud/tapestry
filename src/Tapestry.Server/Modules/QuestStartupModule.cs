@@ -31,18 +31,8 @@ public class QuestStartupModule : IGameModule
 
     public void Configure()
     {
-        var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
-
-        // Packs are nested as packs/@namespace/packname — scan two levels deep.
-        // Load quests from every installed pack that has a quests/ directory.
-        var packDirs = Directory.Exists(packsDir)
-            ? Directory.GetDirectories(packsDir)
-                .SelectMany(ns => Directory.GetDirectories(ns))
-                .Where(dir => Directory.Exists(Path.Combine(dir, "quests")))
-                .ToList()
-            : new List<string>();
-
-        _questRegistry.Load(packDirs);
+        // Quests are loaded by PackLoader.LoadContent via the quests: glob in each pack manifest.
+        // Here we only load the JS lifecycle scripts and start persistence.
 
         // Load quest lifecycle scripts
         foreach (var quest in _questRegistry.All().Where(q => q.Script != null && q.PackDirectory != null))

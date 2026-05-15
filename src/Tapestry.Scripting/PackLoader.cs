@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Color;
+using Tapestry.Engine.Quests;
 using Tapestry.Engine.Help;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
@@ -35,6 +36,7 @@ public class PackLoader : IPackManifestProvider
     private readonly HelpService _helpService;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
+    private readonly QuestRegistry _questRegistry;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -52,7 +54,7 @@ public class PackLoader : IPackManifestProvider
                      ILogger<PackLoader> logger, PackContext packContext,
                      AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
                      HelpService helpService, TagRegistry tagRegistry,
-                     PropertyRegistry propertyRegistry)
+                     PropertyRegistry propertyRegistry, QuestRegistry questRegistry)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -67,6 +69,7 @@ public class PackLoader : IPackManifestProvider
         _helpService = helpService;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
+        _questRegistry = questRegistry;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -195,6 +198,30 @@ public class PackLoader : IPackManifestProvider
         if (!string.IsNullOrEmpty(manifest.Content.Help))
         {
             _helpService.LoadPack(packNamespace, packDirectory, manifest.Content.Help, manifest.LoadOrder);
+        }
+
+        if (!string.IsNullOrEmpty(manifest.Content.Quests))
+        {
+            LoadQuests(packDirectory, manifest.Content.Quests);
+        }
+    }
+
+    private void LoadQuests(string packDir, string glob)
+    {
+        foreach (var file in MatchFiles(packDir, glob))
+        {
+            try
+            {
+                var yaml = File.ReadAllText(file);
+                var quest = YamlContentLoader.LoadQuest(yaml);
+                quest.PackDirectory = packDir;
+                _questRegistry.Register(quest);
+                _logger.LogDebug("  Quest: {Id}", quest.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load quest file: {File}", file);
+            }
         }
     }
 

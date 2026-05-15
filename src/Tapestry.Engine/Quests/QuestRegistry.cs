@@ -36,6 +36,12 @@ public class QuestRegistry
     public IReadOnlyCollection<QuestDefinition> All() =>
         _quests.Values;
 
+    public void Register(QuestDefinition quest)
+    {
+        EnsureObjectiveIds(quest);
+        _quests[quest.Id] = quest;
+    }
+
     internal void RegisterForTest(QuestDefinition quest) => _quests[quest.Id] = quest;
 
     private static void EnsureObjectiveIds(QuestDefinition quest)

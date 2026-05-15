@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Quests;
 using Tapestry.Engine.Persistence;
 using Tapestry.Shared;
 using YamlDotNet.Serialization;
@@ -32,6 +33,11 @@ public static class YamlContentLoader
     public static PackManifest LoadManifest(string yaml)
     {
         return Deserializer.Deserialize<PackManifest>(yaml);
+    }
+
+    public static QuestDefinition LoadQuest(string yaml)
+    {
+        return Deserializer.Deserialize<QuestDefinition>(yaml);
     }
 
     public static RoomLoadResult LoadRoom(string yaml, PropertyRegistry? registry = null)
