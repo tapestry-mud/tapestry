@@ -70,6 +70,7 @@ public class ConsumableService
         var effectData = item.GetProperty<Dictionary<string, object>?>(ConsumableProperties.EffectData);
         var itemName = item.Name;
 
+        var destroyItem = false;
         if (hasCharges)
         {
             var newCharges = chargesValue - 1;
@@ -79,17 +80,12 @@ public class ConsumableService
             {
                 var destroyOnEmpty = !item.HasProperty(ConsumableProperties.DestroyOnEmpty)
                     || ReadBool(item, ConsumableProperties.DestroyOnEmpty, defaultValue: true);
-                if (destroyOnEmpty)
-                {
-                    entity.RemoveFromContents(item);
-                    _world.UntrackEntity(item);
-                }
+                if (destroyOnEmpty) { destroyItem = true; }
             }
         }
         else
         {
-            entity.RemoveFromContents(item);
-            _world.UntrackEntity(item);
+            destroyItem = true;
         }
 
         if (sustenanceValue > 0)
@@ -100,6 +96,7 @@ public class ConsumableService
             entity.SetProperty(SustenanceProperties.Sustenance, Math.Min(100, current + sustenanceValue));
         }
 
+        // Publish while item still exists so event handlers can read its tags and properties.
         _eventBus.Publish(new GameEvent
         {
             Type = "item.consumed",
@@ -116,6 +113,12 @@ public class ConsumableService
                 ["sustenanceValue"] = sustenanceValue
             }
         });
+
+        if (destroyItem)
+        {
+            entity.RemoveFromContents(item);
+            _world.UntrackEntity(item);
+        }
 
         return new ConsumableResult(true, ConsumeReason.Success,
             itemId.ToString(), itemName, consumeMethod, sustenanceValue,

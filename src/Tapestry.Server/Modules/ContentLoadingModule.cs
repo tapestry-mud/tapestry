@@ -120,15 +120,18 @@ public class ContentLoadingModule : IGameModule
 
         var packDirs = DiscoverPackDirectories(packsDir);
 
-        if (packDirs.Count == 0 && _config.Packs.Count > 0)
+        if (_config.Packs.Count > 0)
         {
-            // Fall back to explicit list from server.yaml
-            foreach (var packName in _config.Packs)
+            // Filter discovered packs to only those listed in server.yaml.
+            // Matches by scoped name (@mallek/legends-forgotten), namespace (mallek-legends-forgotten), or folder name (legends-forgotten).
+            var allowed = new HashSet<string>(_config.Packs, StringComparer.OrdinalIgnoreCase);
+            packDirs = packDirs.Where(dir =>
             {
-                var packDir = Path.Combine(packsDir, packName);
-                if (Directory.Exists(packDir)) { packDirs.Add(packDir); }
-                else { _logger.LogWarning("Pack not found: {Pack} (looked in {Dir})", packName, packDir); }
-            }
+                var rel = Path.GetRelativePath(packsDir, dir).Replace('\\', '/');
+                var ns = PackLoader.PackNamespace(rel);
+                var folder = Path.GetFileName(dir);
+                return allowed.Contains(rel) || allowed.Contains(ns) || allowed.Contains(folder);
+            }).ToList();
         }
 
         // Phase 1: all packs declare tags, properties, and slots
