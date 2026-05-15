@@ -39,10 +39,25 @@ public class QuestStartupModule : IGameModule
     public void Configure()
     {
         var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
-        var packDirs = _config.Packs
+        var loadedNames = _config.Packs
             .Where(packName => _packLoader.LoadedPacks.Any(p => p.Name == packName))
-            .Select(packName => Path.Combine(packsDir, packName))
-            .ToList();
+            .ToHashSet();
+
+        // Pack directories are nested as packs/@namespace/packname — scan two levels deep
+        // and include any directory whose manifest name matches server.yaml's pack list.
+        var packDirs = Directory.Exists(packsDir)
+            ? Directory.GetDirectories(packsDir)
+                .SelectMany(ns => Directory.GetDirectories(ns))
+                .Where(dir =>
+                {
+                    var manifestPath = Path.Combine(dir, "tapestry.yaml");
+                    if (!File.Exists(manifestPath)) { manifestPath = Path.Combine(dir, "pack.yaml"); }
+                    if (!File.Exists(manifestPath)) { return false; }
+                    var yaml = File.ReadAllText(manifestPath);
+                    return loadedNames.Any(name => yaml.Contains($"name: {name}"));
+                })
+                .ToList()
+            : new List<string>();
 
         _questRegistry.Load(packDirs);
 
