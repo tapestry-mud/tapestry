@@ -84,15 +84,55 @@ public class QuestRegistryTests
               xp: 0
             """;
 
-        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var questDir = Path.Combine(dir, "quests");
-        Directory.CreateDirectory(questDir);
-        File.WriteAllText(Path.Combine(questDir, "no-ids.yaml"), yaml);
+        var dir = CreateTempPackDir(yaml, "no-ids.yaml");
 
         var registry = new QuestRegistry();
         registry.Load([dir]);
 
         var quest = registry.Get("test:no-ids");
         quest!.Stages[0].Objectives[0].Id.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void Load_ParsesSecretAndScriptFields()
+    {
+        var yaml = """
+            id: "test:secret-quest"
+            name: "Hidden"
+            secret: true
+            script: "scripts/quests/hidden.js"
+            stages:
+              - id: stage1
+                hint: "Look under the bridge."
+                objectives:
+                  - type: visit
+                    target: "test:room-bridge"
+                    count: 1
+                    description: "Visit the bridge"
+            rewards:
+              xp: 50
+              race_unlock: "test:elf"
+            """;
+
+        var dir = CreateTempPackDir(yaml, "secret-quest.yaml");
+        var registry = new QuestRegistry();
+        registry.Load([dir]);
+
+        var q = registry.Get("test:secret-quest");
+        q.Should().NotBeNull();
+        q!.Secret.Should().BeTrue();
+        q.Script.Should().Be("scripts/quests/hidden.js");
+        q.Stages[0].Hint.Should().Be("Look under the bridge.");
+        q.Rewards!.RaceUnlock.Should().Be("test:elf");
+        q.PackDirectory.Should().Be(dir);
+    }
+
+    private static string CreateTempPackDir(string yaml, string filename)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var questDir = Path.Combine(dir, "quests");
+        Directory.CreateDirectory(questDir);
+        File.WriteAllText(Path.Combine(questDir, filename), yaml);
+        return dir;
     }
 }

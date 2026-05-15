@@ -17,6 +17,11 @@ public class QuestStateRepository
     public QuestState? Get(Guid playerId) =>
         _states.GetValueOrDefault(playerId);
 
+    public void Set(Guid playerId, QuestState state)
+    {
+        _states[playerId] = state;
+    }
+
     public IEnumerable<(Guid PlayerId, QuestState State)> All() =>
         _states.Select(kv => (kv.Key, kv.Value));
 }

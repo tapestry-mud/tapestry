@@ -13,4 +13,11 @@ public class QuestDefinition
     public QuestPrereqs Prereqs { get; set; } = new();
     public List<QuestStage> Stages { get; set; } = new();
     public QuestReward Rewards { get; set; } = new();
+
+    public bool Secret { get; set; }
+
+    public string? Script { get; set; }
+
+    [YamlIgnore]
+    public string? PackDirectory { get; set; }
 }

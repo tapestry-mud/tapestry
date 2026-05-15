@@ -11,4 +11,7 @@ public class QuestReward
 
     [YamlMember(Alias = "class_unlock")]
     public string? ClassUnlock { get; set; }
+
+    [YamlMember(Alias = "race_unlock")]
+    public string? RaceUnlock { get; set; }
 }
