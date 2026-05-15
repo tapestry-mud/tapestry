@@ -170,7 +170,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<QuestStateRepository>();
 
         // Quest reward service interfaces -- packs override these via their own registrations.
-        // No-op fallbacks allow the engine to run standalone (tests, minimal hosts).
+        // Wire real service implementations to quest reward interfaces.
+        // TryAddSingleton fallbacks below are no-ops when running with the full engine.
+        services.AddSingleton<IQuestProgressionService>(sp => sp.GetRequiredService<ProgressionManager>());
+        services.AddSingleton<IQuestCurrencyService>(sp => sp.GetRequiredService<CurrencyService>());
+        services.AddSingleton<IQuestProficiencyService>(sp => sp.GetRequiredService<ProficiencyManager>());
+        services.AddSingleton<IQuestItemRegistry>(sp => sp.GetRequiredService<ItemRegistry>());
+        services.AddSingleton<IQuestInventoryService>(sp => sp.GetRequiredService<InventoryManager>());
+
+        // No-op fallbacks for standalone/test use (engine without server infrastructure).
         services.TryAddSingleton<IQuestProgressionService, NullQuestProgressionService>();
         services.TryAddSingleton<IQuestCurrencyService, NullQuestCurrencyService>();
         services.TryAddSingleton<IQuestProficiencyService, NullQuestProficiencyService>();
