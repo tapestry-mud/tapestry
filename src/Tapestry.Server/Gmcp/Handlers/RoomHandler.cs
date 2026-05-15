@@ -1,6 +1,7 @@
 using Tapestry.Contracts;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Quests;
 using Tapestry.Server.Gmcp;
 using Tapestry.Shared;
 
@@ -12,6 +13,7 @@ public class RoomHandler : IGmcpPackageHandler
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly EventBus _eventBus;
+    private readonly QuestMarkerService _questMarkerService;
 
     public string Name => "Room";
     public IReadOnlyList<string> PackageNames { get; } = new[] { "Room.Info", "Room.Nearby", "Room.WrongDir" };
@@ -20,12 +22,14 @@ public class RoomHandler : IGmcpPackageHandler
         IGmcpConnectionManager connectionManager,
         SessionManager sessions,
         World world,
-        EventBus eventBus)
+        EventBus eventBus,
+        QuestMarkerService questMarkerService)
     {
         _connectionManager = connectionManager;
         _sessions = sessions;
         _world = world;
         _eventBus = eventBus;
+        _questMarkerService = questMarkerService;
     }
 
     public void Configure()
@@ -80,7 +84,7 @@ public class RoomHandler : IGmcpPackageHandler
         _connectionManager.Send(connectionId, "Room.Info", BuildRoomInfoPayload(room, entity));
     }
 
-    private static object BuildRoomInfoPayload(Room room, Entity entity)
+    private object BuildRoomInfoPayload(Room room, Entity entity)
     {
         var exits = new Dictionary<string, string?>();
         var doors = new Dictionary<string, object>();
@@ -97,6 +101,16 @@ public class RoomHandler : IGmcpPackageHandler
             }
         }
 
+        var questMarkers = _questMarkerService
+            .GetQuestMarkersForRoom(entity.Id, room.Entities)
+            .Select(m => new
+            {
+                entity_id = m.EntityId.ToString(),
+                template = m.TemplateId,
+                quest_id = m.QuestId,
+            })
+            .ToList();
+
         return new
         {
             num = room.Id,
@@ -108,6 +122,7 @@ public class RoomHandler : IGmcpPackageHandler
             timeExposed = room.TimeExposed,
             exits,
             doors = doors.Count > 0 ? (object)doors : null,
+            quest_markers = questMarkers.Count > 0 ? (object)questMarkers : null,
         };
     }
 

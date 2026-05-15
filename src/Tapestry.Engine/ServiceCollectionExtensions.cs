@@ -187,6 +187,7 @@ public static class ServiceCollectionExtensions
         // IQuestScriptLoader is registered by Tapestry.Scripting; fall back to NullQuestScriptLoader.
         services.TryAddSingleton<IQuestScriptLoader, NullQuestScriptLoader>();
 
+        services.AddSingleton<QuestMarkerService>();
         services.AddSingleton<QuestService>();
         services.AddSingleton<QuestObjectiveWatcher>();
 

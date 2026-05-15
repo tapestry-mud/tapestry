@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Tapestry.Shared;
 using Tapestry.Engine;
+using Tapestry.Engine.Quests;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
 
@@ -24,7 +25,10 @@ public class RoomHandlerTests
         var world = new World();
         var eb = new EventBus();
 
-        var handler = new RoomHandler(cm, sessions, world, eb);
+        var repo = new QuestStateRepository();
+        var registry = new QuestRegistry();
+        var questMarkers = new QuestMarkerService(repo, registry);
+        var handler = new RoomHandler(cm, sessions, world, eb, questMarkers);
 
         var room = new Room("test:room1", "Test Room", "A plain room.");
         world.AddRoom(room);
