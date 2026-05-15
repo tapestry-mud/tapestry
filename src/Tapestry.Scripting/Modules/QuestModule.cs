@@ -1,3 +1,4 @@
+using Jint.Native;
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using JintEngine = Jint.Engine;
@@ -9,14 +10,16 @@ public class QuestModule : IJintApiModule
     private readonly QuestService _questService;
     private readonly QuestRegistry _questRegistry;
     private readonly World _world;
+    private readonly QuestScriptLoader _scriptLoader;
 
     public string Namespace => "quests";
 
-    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world)
+    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world, QuestScriptLoader scriptLoader)
     {
         _questService = questService;
         _questRegistry = questRegistry;
         _world = world;
+        _scriptLoader = scriptLoader;
     }
 
     public object Build(JintEngine engine)
@@ -116,6 +119,16 @@ public class QuestModule : IJintApiModule
             {
                 // Placeholder for custom objective type registration.
                 // Full integration requires QuestObjectiveWatcher wiring; no-op for now.
+            }),
+
+            registerScript = new Action<string, JsValue>((questId, hooksObj) =>
+            {
+                if (_scriptLoader.JintEngine == null)
+                {
+                    _scriptLoader.JintEngine = engine;
+                }
+
+                _scriptLoader.Register(questId, hooksObj);
             }),
         };
     }
