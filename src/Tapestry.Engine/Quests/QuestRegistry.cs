@@ -25,6 +25,7 @@ public class QuestRegistry
                 var quest = Deserializer.Deserialize<QuestDefinition>(yaml);
                 EnsureObjectiveIds(quest);
                 _quests[quest.Id] = quest;
+                quest.PackDirectory = packDir;
             }
         }
     }
