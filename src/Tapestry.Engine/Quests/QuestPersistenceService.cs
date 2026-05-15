@@ -8,7 +8,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Tapestry.Engine.Quests;
 
-public class QuestPersistenceService
+public class QuestPersistenceService : IQuestPersistence
 {
     private readonly string _playersDir;
     private readonly QuestRegistry _registry;

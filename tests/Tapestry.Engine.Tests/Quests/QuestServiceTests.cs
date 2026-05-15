@@ -9,15 +9,27 @@ public class QuestServiceTests
     private static (QuestService service, QuestStateRepository repo, EventBus bus, Entity player)
         Setup(QuestDefinition quest)
     {
+        var (service, repo, bus, player, _, _, _) = SetupFull(quest);
+        return (service, repo, bus, player);
+    }
+
+    private static (QuestService service, QuestStateRepository repo, EventBus bus, Entity player,
+        FakeQuestScriptLoader scriptLoader, FakeQuestRewardDispatcher rewards, FakePersistence persistence)
+        SetupFull(QuestDefinition quest)
+    {
         var bus = new EventBus();
         var repo = new QuestStateRepository();
         var registry = new QuestRegistry();
         registry.RegisterForTest(quest);
         var config = new QuestConfig { ActiveCap = 10 };
-        var service = new QuestService(registry, repo, bus, config);
+        var scriptLoader = new FakeQuestScriptLoader();
+        var rewards = new FakeQuestRewardDispatcher();
+        var persistence = new FakePersistence();
+        var service = new QuestService(registry, repo, bus, config,
+            scriptLoader, rewards, persistence);
         var player = new Entity("player", "Alice");
         player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
-        return (service, repo, bus, player);
+        return (service, repo, bus, player, scriptLoader, rewards, persistence);
     }
 
     private static QuestDefinition MakeKillQuest(string id = "test:kill-quest") => new()
@@ -97,7 +109,8 @@ public class QuestServiceTests
         registry.RegisterForTest(quest);
         var otherQuest = MakeKillQuest("test:other-quest");
         registry.RegisterForTest(otherQuest);
-        var service = new QuestService(registry, repo, bus, config);
+        var service = new QuestService(registry, repo, bus, config,
+            null, new FakeQuestRewardDispatcher(), new FakePersistence());
         var player = new Entity("player", "Alice");
         player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
@@ -120,7 +133,8 @@ public class QuestServiceTests
         var registry = new QuestRegistry();
         registry.RegisterForTest(abandonableQuest);
         registry.RegisterForTest(mainQuest);
-        var service = new QuestService(registry, repo, bus, config);
+        var service = new QuestService(registry, repo, bus, config,
+            null, new FakeQuestRewardDispatcher(), new FakePersistence());
         var player = new Entity("player", "Alice");
         player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
@@ -194,7 +208,8 @@ public class QuestServiceTests
         var repo = new QuestStateRepository();
         var registry = new QuestRegistry();
         registry.RegisterForTest(quest);
-        var service = new QuestService(registry, repo, bus, new QuestConfig());
+        var service = new QuestService(registry, repo, bus, new QuestConfig(),
+            null, new FakeQuestRewardDispatcher(), new FakePersistence());
         var player = new Entity("player", "Alice");
         player.SetProperty(ProgressionProperties.Level, new Dictionary<string, int> { ["main"] = 1 });
 
@@ -224,5 +239,144 @@ public class QuestServiceTests
         service.AcceptQuest(player, "test:kill-quest");
         service.AbandonQuest(player.Id, "test:kill-quest");
         repo.GetOrCreate(player.Id).Active.Should().HaveCount(1);
+    }
+
+    // --- New tests for Task 5 ---
+
+    [Fact]
+    public void AcceptQuest_IncludesBannerText_InQuestStartedEvent_WhenNotSecret()
+    {
+        var quest = MakeKillQuest();
+        var (service, _, bus, player, _, _, _) = SetupFull(quest);
+
+        GameEvent? startedEvent = null;
+        bus.Subscribe("quest.started", evt => { startedEvent = evt; });
+
+        service.AcceptQuest(player, quest.Id);
+
+        startedEvent.Should().NotBeNull();
+        startedEvent!.Data.ContainsKey("bannerText").Should().BeTrue();
+        startedEvent.Data["bannerText"]?.ToString().Should().Contain(quest.Name);
+    }
+
+    [Fact]
+    public void AcceptQuest_NoBannerText_InEvent_WhenSilent()
+    {
+        var quest = MakeKillQuest();
+        var (service, _, bus, player, _, _, _) = SetupFull(quest);
+
+        GameEvent? startedEvent = null;
+        bus.Subscribe("quest.started", evt => { startedEvent = evt; });
+
+        service.AcceptQuest(player, quest.Id, silent: true);
+
+        startedEvent.Should().NotBeNull();
+        startedEvent!.Data.ContainsKey("bannerText").Should().BeFalse();
+    }
+
+    [Fact]
+    public void AcceptQuest_NoBannerText_InEvent_WhenQuestIsSecret()
+    {
+        var quest = MakeKillQuest();
+        quest.Secret = true;
+        var (service, _, bus, player, _, _, _) = SetupFull(quest);
+
+        GameEvent? startedEvent = null;
+        bus.Subscribe("quest.started", evt => { startedEvent = evt; });
+
+        service.AcceptQuest(player, quest.Id);
+
+        startedEvent!.Data.ContainsKey("bannerText").Should().BeFalse();
+    }
+
+    [Fact]
+    public void AcceptQuest_NoBannerText_InEvent_WhenScriptOnGrantedReturnsTrue()
+    {
+        var quest = MakeKillQuest();
+        quest.Script = "scripts/quests/test.js";
+        var (service, _, bus, player, scriptLoader, _, _) = SetupFull(quest);
+        scriptLoader.OnGrantedReturn = true;
+
+        GameEvent? startedEvent = null;
+        bus.Subscribe("quest.started", evt => { startedEvent = evt; });
+
+        service.AcceptQuest(player, quest.Id);
+
+        startedEvent!.Data.ContainsKey("bannerText").Should().BeFalse();
+    }
+
+    [Fact]
+    public void AcceptQuest_SavesQuestState()
+    {
+        var quest = MakeKillQuest();
+        var (service, _, _, player, _, _, persistence) = SetupFull(quest);
+
+        service.AcceptQuest(player, quest.Id);
+
+        persistence.SaveCallCount.Should().Be(1);
+        persistence.LastSavedName.Should().Be("Alice");
+    }
+
+    [Fact]
+    public void CompleteQuest_DispatchesRewards()
+    {
+        var quest = MakeKillQuest();
+        var (service, _, _, player, _, rewards, _) = SetupFull(quest);
+        service.AcceptQuest(player, quest.Id);
+
+        service.AdvanceObjective(player.Id, quest.Id, "kill-trollocs", 3);
+
+        rewards.DispatchCallCount.Should().Be(1);
+        rewards.LastRewards.Should().BeSameAs(quest.Rewards);
+        rewards.LastPlayer.Should().BeSameAs(player);
+    }
+
+    [Fact]
+    public void CompleteQuest_SavesQuestState()
+    {
+        var quest = MakeKillQuest();
+        var (service, _, _, player, _, _, persistence) = SetupFull(quest);
+        service.AcceptQuest(player, quest.Id);
+        persistence.SaveCallCount = 0; // reset after accept
+
+        service.AdvanceObjective(player.Id, quest.Id, "kill-trollocs", 3);
+
+        persistence.SaveCallCount.Should().BeGreaterThan(0);
+    }
+}
+
+internal class FakeQuestScriptLoader : IQuestScriptLoader
+{
+    public bool OnGrantedReturn { get; set; } = false;
+    public bool HasScript(string questId) => OnGrantedReturn;
+    public bool CallOnGranted(string questId, Guid playerId) => OnGrantedReturn;
+    public void CallOnObjectiveAdvanced(string questId, Guid playerId, string objectiveId, int current, int required) { }
+    public void CallOnCompleted(string questId, Guid playerId) { }
+    public void CallOnStageAdvanced(string questId, Guid playerId, int stageIndex) { }
+}
+
+internal class FakeQuestRewardDispatcher : IQuestRewardDispatcher
+{
+    public int DispatchCallCount { get; set; }
+    public QuestReward? LastRewards { get; private set; }
+    public Entity? LastPlayer { get; private set; }
+
+    public void Dispatch(Entity player, QuestReward? rewards)
+    {
+        DispatchCallCount++;
+        LastPlayer = player;
+        LastRewards = rewards;
+    }
+}
+
+internal class FakePersistence : IQuestPersistence
+{
+    public int SaveCallCount { get; set; }
+    public string? LastSavedName { get; private set; }
+
+    public void Save(string playerName, QuestState state)
+    {
+        SaveCallCount++;
+        LastSavedName = playerName;
     }
 }

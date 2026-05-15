@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Tapestry.Engine.Progression;
 using Tapestry.Shared;
 
@@ -19,20 +22,32 @@ public class QuestService
     private readonly QuestStateRepository _stateRepo;
     private readonly EventBus _eventBus;
     private readonly QuestConfig _config;
+    private readonly IQuestScriptLoader? _scriptLoader;
+    private readonly IQuestRewardDispatcher _rewards;
+    private readonly IQuestPersistence _persistence;
+
+    // Tracks player entities by ID so AdvanceObjective/AbandonQuest can resolve them.
+    private readonly Dictionary<Guid, Entity> _playerCache = new();
 
     public QuestService(
         QuestRegistry registry,
         QuestStateRepository stateRepo,
         EventBus eventBus,
-        QuestConfig config)
+        QuestConfig config,
+        IQuestScriptLoader? scriptLoader,
+        IQuestRewardDispatcher rewards,
+        IQuestPersistence persistence)
     {
         _registry = registry;
         _stateRepo = stateRepo;
         _eventBus = eventBus;
         _config = config;
+        _scriptLoader = scriptLoader;
+        _rewards = rewards;
+        _persistence = persistence;
     }
 
-    public AcceptQuestResult AcceptQuest(Entity player, string questId)
+    public AcceptQuestResult AcceptQuest(Entity player, string questId, bool silent = false)
     {
         var def = _registry.Get(questId);
         if (def == null)
@@ -71,6 +86,8 @@ public class QuestService
         }
         // Non-abandonable quests always bypass the cap -- no branch needed.
 
+        _playerCache[player.Id] = player;
+
         var stage = def.Stages[0];
         var active = new ActiveQuest
         {
@@ -86,12 +103,35 @@ public class QuestService
 
         state.Active.Add(active);
 
+        string? bannerText = null;
+        if (!def.Secret && !silent)
+        {
+            var scriptSuppresses = def.Script != null && _scriptLoader != null
+                && _scriptLoader.CallOnGranted(questId, player.Id);
+            if (!scriptSuppresses)
+            {
+                bannerText = BuildBanner(def, active);
+            }
+        }
+        else if (def.Script != null && _scriptLoader != null)
+        {
+            _scriptLoader.CallOnGranted(questId, player.Id);
+        }
+
+        var eventData = new Dictionary<string, object?> { ["questId"] = questId };
+        if (bannerText != null)
+        {
+            eventData["bannerText"] = bannerText;
+        }
+
         _eventBus.Publish(new GameEvent
         {
             Type = "quest.started",
             SourceEntityId = player.Id,
-            Data = { ["questId"] = questId },
+            Data = eventData,
         });
+
+        _persistence.Save(player.Name, state);
 
         return AcceptQuestResult.Accepted;
     }
@@ -118,6 +158,8 @@ public class QuestService
 
         obj.Current = Math.Min(obj.Current + amount, obj.Required);
 
+        _scriptLoader?.CallOnObjectiveAdvanced(questId, playerId, objectiveId, obj.Current, obj.Required);
+
         _eventBus.Publish(new GameEvent
         {
             Type = "quest.objective.advanced",
@@ -133,6 +175,7 @@ public class QuestService
 
         if (!active.Objectives.All(o => o.Complete))
         {
+            _persistence.Save(GetPlayerName(playerId), state);
             return;
         }
 
@@ -142,6 +185,7 @@ public class QuestService
         if (nextStageIndex < def.Stages.Count)
         {
             AdvanceStage(active, def, nextStageIndex, playerId);
+            _persistence.Save(GetPlayerName(playerId), state);
         }
         else
         {
@@ -208,6 +252,8 @@ public class QuestService
             SourceEntityId = playerId,
             Data = { ["questId"] = questId },
         });
+
+        _persistence.Save(GetPlayerName(playerId), state);
     }
 
     public bool IsActive(Guid playerId, string questId) =>
@@ -229,6 +275,8 @@ public class QuestService
             Required = o.Count,
         }).ToList();
 
+        _scriptLoader?.CallOnStageAdvanced(def.Id, playerId, nextStageIndex);
+
         _eventBus.Publish(new GameEvent
         {
             Type = "quest.stage.advanced",
@@ -246,6 +294,14 @@ public class QuestService
         state.Active.Remove(active);
         state.Completed.Add(questId);
 
+        var player = _playerCache.GetValueOrDefault(playerId);
+        if (player != null)
+        {
+            _rewards.Dispatch(player, def.Rewards);
+        }
+
+        _scriptLoader?.CallOnCompleted(questId, playerId);
+
         _eventBus.Publish(new GameEvent
         {
             Type = "quest.completed",
@@ -260,6 +316,8 @@ public class QuestService
                 ["classUnlock"] = def.Rewards.ClassUnlock,
             },
         });
+
+        _persistence.Save(GetPlayerName(playerId), state);
     }
 
     private bool CheckPrereqs(Entity player, QuestPrereqs prereqs, QuestState state)
@@ -297,5 +355,74 @@ public class QuestService
         }
 
         return true;
+    }
+
+    private string GetPlayerName(Guid playerId) =>
+        _playerCache.TryGetValue(playerId, out var entity) ? entity.Name : playerId.ToString();
+
+    private static string BuildBanner(QuestDefinition quest, ActiveQuest active)
+    {
+        const int Width = 46;
+        var inner = Width - 4;
+
+        var lines = new List<string>();
+        lines.Add("+" + new string('-', Width - 2) + "+");
+
+        var titleLeft = "New Quest: " + quest.Name;
+        var typeStr = quest.Type ?? "side";
+        var titleWidth = inner - 8;
+        var typeFormatted = typeStr.PadLeft(6);
+        var titleLine = "| " + titleLeft.PadRight(titleWidth) + " (" + typeFormatted + ") |";
+        lines.Add(titleLine);
+        lines.Add("|" + new string(' ', Width - 2) + "|");
+
+        var stage = quest.Stages?.ElementAtOrDefault(active.StageIndex);
+        if (!string.IsNullOrEmpty(stage?.Description))
+        {
+            foreach (var line in WordWrap(stage.Description, inner))
+            {
+                lines.Add("| " + line.PadRight(inner) + " |");
+            }
+            lines.Add("|" + new string(' ', Width - 2) + "|");
+        }
+
+        foreach (var obj in active.Objectives)
+        {
+            var objDef = stage?.Objectives.FirstOrDefault(o => o.Id == obj.ObjectiveId);
+            var desc = objDef?.Description ?? obj.ObjectiveId;
+            var progress = $"[{obj.Current}/{obj.Required}]";
+            var descWidth = inner - progress.Length - 1;
+            lines.Add("| " + desc.PadRight(descWidth) + " " + progress + " |");
+        }
+
+        lines.Add("|" + new string(' ', Width - 2) + "|");
+        var footerText = "Type 'quests' to track progress.";
+        lines.Add("| " + footerText.PadRight(inner) + " |");
+        lines.Add("+" + new string('-', Width - 2) + "+");
+
+        return "\r\n" + string.Join("\r\n", lines) + "\r\n";
+    }
+
+    private static IEnumerable<string> WordWrap(string text, int width)
+    {
+        var words = text.Split(' ');
+        var current = new StringBuilder();
+        foreach (var word in words)
+        {
+            if (current.Length + word.Length + 1 > width && current.Length > 0)
+            {
+                yield return current.ToString();
+                current.Clear();
+            }
+            if (current.Length > 0)
+            {
+                current.Append(' ');
+            }
+            current.Append(word);
+        }
+        if (current.Length > 0)
+        {
+            yield return current.ToString();
+        }
     }
 }

@@ -14,7 +14,8 @@ public class QuestObjectiveWatcherTests
         var registry = new QuestRegistry();
         registry.RegisterForTest(quest);
         var config = new QuestConfig { ActiveCap = 10 };
-        var service = new QuestService(registry, repo, bus, config);
+        var service = new QuestService(registry, repo, bus, config,
+            null, new FakeQuestRewardDispatcher(), new FakePersistence());
         world ??= new World();
         var watcher = new QuestObjectiveWatcher(service, repo, bus, world);
         watcher.Start();

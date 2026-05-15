@@ -3,7 +3,7 @@ namespace Tapestry.Engine.Quests;
 /// <summary>
 /// Auto-applies all rewards from a QuestReward to a player entity on quest completion.
 /// </summary>
-public class QuestRewardDispatcher
+public class QuestRewardDispatcher : IQuestRewardDispatcher
 {
     private readonly IQuestProgressionService _progression;
     private readonly IQuestCurrencyService _currency;

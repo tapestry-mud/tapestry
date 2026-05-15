@@ -168,6 +168,25 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<QuestConfig>();
         services.AddSingleton<QuestRegistry>();
         services.AddSingleton<QuestStateRepository>();
+
+        // Quest reward service interfaces -- packs override these via their own registrations.
+        // No-op fallbacks allow the engine to run standalone (tests, minimal hosts).
+        services.TryAddSingleton<IQuestProgressionService, NullQuestProgressionService>();
+        services.TryAddSingleton<IQuestCurrencyService, NullQuestCurrencyService>();
+        services.TryAddSingleton<IQuestProficiencyService, NullQuestProficiencyService>();
+        services.TryAddSingleton<IQuestItemRegistry, NullQuestItemRegistry>();
+        services.TryAddSingleton<IQuestInventoryService, NullQuestInventoryService>();
+        services.AddSingleton<QuestRewardDispatcher>();
+        services.AddSingleton<IQuestRewardDispatcher>(sp => sp.GetRequiredService<QuestRewardDispatcher>());
+
+        // QuestPersistenceService requires ServerConfig; register NullQuestPersistence as fallback.
+        // When a full server is configured, callers should register QuestPersistenceService and
+        // override IQuestPersistence before building the container.
+        services.TryAddSingleton<IQuestPersistence, NullQuestPersistence>();
+
+        // IQuestScriptLoader is registered by Tapestry.Scripting; fall back to NullQuestScriptLoader.
+        services.TryAddSingleton<IQuestScriptLoader, NullQuestScriptLoader>();
+
         services.AddSingleton<QuestService>();
         services.AddSingleton<QuestObjectiveWatcher>();
 
