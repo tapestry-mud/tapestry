@@ -30,7 +30,7 @@ public class QuestModule : IJintApiModule
     {
         return new
         {
-            offer = new Action<string, string, JsValue>((entityIdStr, questId, options) =>
+            offer = new Action<string, string>((entityIdStr, questId) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var id))
                 {
@@ -43,14 +43,23 @@ public class QuestModule : IJintApiModule
                     return;
                 }
 
-                var silent = false;
-                if (options is ObjectInstance optObj)
+                _questService.AcceptQuest(player, questId);
+            }),
+
+            offerSilent = new Action<string, string>((entityIdStr, questId) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var id))
                 {
-                    var silentProp = optObj.Get("silent");
-                    silent = silentProp.Type == Types.Boolean && (bool)silentProp.ToObject()!;
+                    return;
                 }
 
-                _questService.AcceptQuest(player, questId, silent);
+                var player = _world.GetEntity(id);
+                if (player == null)
+                {
+                    return;
+                }
+
+                _questService.AcceptQuest(player, questId, silent: true);
             }),
 
             isActive = new Func<string, string, bool>((entityIdStr, questId) =>
