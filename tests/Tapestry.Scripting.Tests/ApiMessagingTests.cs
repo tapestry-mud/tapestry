@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Tapestry.Engine;
+using Tapestry.Engine.Quests;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
 
@@ -9,7 +10,8 @@ public class ApiMessagingTests
 {
     private static ApiMessaging CreateMessaging(World world, SessionManager sessions)
     {
-        return new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
+        var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
+        return new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
     }
 
     [Fact]

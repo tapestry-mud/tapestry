@@ -1,4 +1,5 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Quests;
 using Tapestry.Scripting.Modules;
 using Tapestry.Shared;
 
@@ -11,6 +12,7 @@ public class ApiMessaging
     private readonly IGmcpModuleAdapter _gmcp;
     private readonly CommandResponseContext _responseContext;
     private readonly VisibilityFilter _visibility;
+    private readonly QuestMarkerService _questMarkerService;
     private string _motd = "";
     private string _motdColor = "";
 
@@ -19,13 +21,15 @@ public class ApiMessaging
         SessionManager sessions,
         IGmcpModuleAdapter gmcp,
         CommandResponseContext responseContext,
-        VisibilityFilter visibility)
+        VisibilityFilter visibility,
+        QuestMarkerService questMarkerService)
     {
         _world = world;
         _sessions = sessions;
         _gmcp = gmcp;
         _responseContext = responseContext;
         _visibility = visibility;
+        _questMarkerService = questMarkerService;
     }
 
     public void SetMotd(string motd) { _motd = motd; }
@@ -171,7 +175,11 @@ public class ApiMessaging
             .ToList();
         foreach (var item in items)
         {
-            lines.Add($"<item.common>{item.Name} is here.</item.common>");
+            var itemTemplateId = item.GetProperty<string>(CommonProperties.TemplateId);
+            var itemMarker = !string.IsNullOrEmpty(itemTemplateId) && _questMarkerService.HasQuestMarker(entityId, itemTemplateId)
+                ? " [Quest]"
+                : "";
+            lines.Add($"<item.common>{item.Name}{itemMarker} is here.</item.common>");
         }
 
         // Show NPCs
@@ -180,7 +188,11 @@ public class ApiMessaging
             .ToList();
         foreach (var npc in npcs)
         {
-            lines.Add($"<npc>{npc.Name} is here.</npc>");
+            var npcTemplateId = npc.GetProperty<string>(CommonProperties.TemplateId);
+            var npcMarker = !string.IsNullOrEmpty(npcTemplateId) && _questMarkerService.HasQuestMarker(entityId, npcTemplateId)
+                ? " [Quest]"
+                : "";
+            lines.Add($"<npc>{npc.Name}{npcMarker} is here.</npc>");
         }
 
         // Show corpses (corpse is a tag, not a type -- entities are type "container")

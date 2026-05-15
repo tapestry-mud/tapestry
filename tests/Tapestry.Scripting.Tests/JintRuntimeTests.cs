@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Quests;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Races;
 using Tapestry.Engine.Combat;
@@ -236,7 +237,8 @@ public class JintRuntimeTests
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
 
         // Create service classes
-        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter());
+        var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
+        var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
