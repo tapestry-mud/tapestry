@@ -20,6 +20,7 @@ public class PlayerSpawner
     private readonly LoginHandler _loginHandler;
     private readonly MobAIManager _mobAI;
     private readonly SystemEventQueue _eventQueue;
+    private readonly EventBus _eventBus;
     private readonly TapestryMetrics _metrics;
     private readonly ILogger<PlayerSpawner> _logger;
 
@@ -30,6 +31,7 @@ public class PlayerSpawner
         LoginHandler loginHandler,
         MobAIManager mobAI,
         SystemEventQueue eventQueue,
+        EventBus eventBus,
         TapestryMetrics metrics,
         ILogger<PlayerSpawner> logger)
     {
@@ -39,6 +41,7 @@ public class PlayerSpawner
         _loginHandler = loginHandler;
         _mobAI = mobAI;
         _eventQueue = eventQueue;
+        _eventBus = eventBus;
         _metrics = metrics;
         _logger = logger;
     }
@@ -98,6 +101,16 @@ public class PlayerSpawner
         session.EnqueueInput("look");
 
         _loginHandler.SendLoginPhase(connection.Id, "playing");
+
+        _eventBus.Publish(new GameEvent
+        {
+            Type = "player.login",
+            SourceEntityId = entity.Id,
+            Data = new Dictionary<string, object?>
+            {
+                ["playerName"] = entity.Name
+            }
+        });
 
         var capturedConnectionId = connection.Id;
         var capturedEntity = entity;

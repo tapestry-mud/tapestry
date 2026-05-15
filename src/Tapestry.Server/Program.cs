@@ -80,6 +80,9 @@ builder.Services.AddTapestryScripting();
 builder.Services.AddSingleton<IPlayerStore, FilePlayerStore>();
 builder.Services.AddSingleton<PlayerPersistenceService>();
 builder.Services.AddSingleton<IFlowPersistence, FlowPersistenceAdapter>();
+builder.Services.AddSingleton<Tapestry.Engine.Quests.QuestPersistenceService>();
+builder.Services.AddSingleton<Tapestry.Engine.Quests.IQuestPersistence>(
+    sp => sp.GetRequiredService<Tapestry.Engine.Quests.QuestPersistenceService>());
 builder.Services.AddSingleton<LoginGateRegistry>();
 builder.Services.AddSingleton(sp =>
 {

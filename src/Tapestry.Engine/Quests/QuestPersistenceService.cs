@@ -12,7 +12,10 @@ public class QuestPersistenceService : IQuestPersistence
 {
     private readonly string _playersDir;
     private readonly QuestRegistry _registry;
+    private readonly EventBus _eventBus;
+    private readonly QuestStateRepository _repository;
     private readonly ILogger<QuestPersistenceService> _logger;
+    private bool _started;
 
     private static readonly ISerializer Serializer = new SerializerBuilder()
         .WithNamingConvention(UnderscoredNamingConvention.Instance)
@@ -26,9 +29,13 @@ public class QuestPersistenceService : IQuestPersistence
     public QuestPersistenceService(
         ServerConfig config,
         QuestRegistry registry,
+        EventBus eventBus,
+        QuestStateRepository repository,
         ILogger<QuestPersistenceService>? logger = null)
     {
         _registry = registry;
+        _eventBus = eventBus;
+        _repository = repository;
         _logger = logger ?? NullLogger<QuestPersistenceService>.Instance;
 
         var savePath = config.Persistence.SavePath;
@@ -37,6 +44,26 @@ public class QuestPersistenceService : IQuestPersistence
             savePath = Path.GetFullPath(savePath, config.ConfigDirectory);
         }
         _playersDir = Path.Combine(savePath, "players");
+    }
+
+    public void Start()
+    {
+        if (_started) { return; }
+        _started = true;
+
+        _eventBus.Subscribe("player.login", evt =>
+        {
+            if (!evt.SourceEntityId.HasValue) { return; }
+            if (!evt.Data.TryGetValue("playerName", out var nameObj)) { return; }
+            var playerName = nameObj?.ToString();
+            if (string.IsNullOrEmpty(playerName)) { return; }
+
+            var state = Load(playerName);
+            if (state != null)
+            {
+                _repository.Set(evt.SourceEntityId.Value, state);
+            }
+        });
     }
 
     public void Save(string playerName, QuestState state)

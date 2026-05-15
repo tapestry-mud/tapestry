@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using FluentAssertions;
+using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using Tapestry.Data;
 using Xunit;
@@ -25,7 +26,7 @@ public class QuestPersistenceServiceTests : IDisposable
         {
             Persistence = new PersistenceSection { SavePath = _tempDir }
         };
-        _sut = new QuestPersistenceService(config, _registry);
+        _sut = new QuestPersistenceService(config, _registry, new EventBus(), new QuestStateRepository());
     }
 
     [Fact]
