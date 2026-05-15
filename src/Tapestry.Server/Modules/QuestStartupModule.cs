@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Tapestry.Contracts;
-using Tapestry.Data;
 using Tapestry.Engine.Quests;
 using Tapestry.Scripting;
 
@@ -8,8 +7,6 @@ namespace Tapestry.Server.Modules;
 
 public class QuestStartupModule : IGameModule
 {
-    private readonly ServerConfig _config;
-    private readonly PackLoader _packLoader;
     private readonly QuestRegistry _questRegistry;
     private readonly QuestObjectiveWatcher _objectiveWatcher;
     private readonly JintRuntime _jintRuntime;
@@ -19,16 +16,12 @@ public class QuestStartupModule : IGameModule
     public string Name => "QuestStartup";
 
     public QuestStartupModule(
-        ServerConfig config,
-        PackLoader packLoader,
         QuestRegistry questRegistry,
         QuestObjectiveWatcher objectiveWatcher,
         JintRuntime jintRuntime,
         QuestPersistenceService persistenceService,
         ILogger<QuestStartupModule> logger)
     {
-        _config = config;
-        _packLoader = packLoader;
         _questRegistry = questRegistry;
         _objectiveWatcher = objectiveWatcher;
         _jintRuntime = jintRuntime;
@@ -39,23 +32,13 @@ public class QuestStartupModule : IGameModule
     public void Configure()
     {
         var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
-        var loadedNames = _config.Packs
-            .Where(packName => _packLoader.LoadedPacks.Any(p => p.Name == packName))
-            .ToHashSet();
 
-        // Pack directories are nested as packs/@namespace/packname — scan two levels deep
-        // and include any directory whose manifest name matches server.yaml's pack list.
+        // Packs are nested as packs/@namespace/packname — scan two levels deep.
+        // Load quests from every installed pack that has a quests/ directory.
         var packDirs = Directory.Exists(packsDir)
             ? Directory.GetDirectories(packsDir)
                 .SelectMany(ns => Directory.GetDirectories(ns))
-                .Where(dir =>
-                {
-                    var manifestPath = Path.Combine(dir, "tapestry.yaml");
-                    if (!File.Exists(manifestPath)) { manifestPath = Path.Combine(dir, "pack.yaml"); }
-                    if (!File.Exists(manifestPath)) { return false; }
-                    var yaml = File.ReadAllText(manifestPath);
-                    return loadedNames.Any(name => yaml.Contains($"name: {name}"));
-                })
+                .Where(dir => Directory.Exists(Path.Combine(dir, "quests")))
                 .ToList()
             : new List<string>();
 
