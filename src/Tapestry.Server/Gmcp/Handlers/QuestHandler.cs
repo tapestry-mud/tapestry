@@ -14,17 +14,20 @@ public class QuestHandler : IGmcpPackageHandler
     private readonly QuestService _questService;
     private readonly QuestRegistry _questRegistry;
     private readonly EventBus _eventBus;
+    private readonly SessionManager _sessionManager;
 
     public QuestHandler(
         IGmcpConnectionManager connectionManager,
         QuestService questService,
         QuestRegistry questRegistry,
-        EventBus eventBus)
+        EventBus eventBus,
+        SessionManager sessionManager)
     {
         _connectionManager = connectionManager;
         _questService = questService;
         _questRegistry = questRegistry;
         _eventBus = eventBus;
+        _sessionManager = sessionManager;
     }
 
     public void Configure()
@@ -33,6 +36,11 @@ public class QuestHandler : IGmcpPackageHandler
         {
             if (!evt.SourceEntityId.HasValue) { return; }
             SendQuestList(evt.SourceEntityId.Value);
+
+            if (evt.Data.TryGetValue("bannerText", out var banner) && banner is string text)
+            {
+                _sessionManager.SendToPlayer(evt.SourceEntityId.Value, text);
+            }
         });
 
         _eventBus.Subscribe("quest.objective.advanced", evt =>
