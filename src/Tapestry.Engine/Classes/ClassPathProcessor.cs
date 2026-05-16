@@ -10,7 +10,7 @@ public class ClassPathProcessor
     private readonly ClassRegistry _classRegistry;
     private readonly AbilityRegistry _abilityRegistry;
     private readonly ProficiencyManager _proficiencyManager;
-    private readonly SessionManager _sessions;
+    private readonly NotificationQueue _notificationQueue;
     private readonly ILogger<ClassPathProcessor> _logger;
 
     public ClassPathProcessor(
@@ -18,7 +18,7 @@ public class ClassPathProcessor
         ClassRegistry classRegistry,
         AbilityRegistry abilityRegistry,
         ProficiencyManager proficiencyManager,
-        SessionManager sessions,
+        NotificationQueue notificationQueue,
         EventBus eventBus,
         ILogger<ClassPathProcessor> logger)
     {
@@ -26,7 +26,7 @@ public class ClassPathProcessor
         _classRegistry = classRegistry;
         _abilityRegistry = abilityRegistry;
         _proficiencyManager = proficiencyManager;
-        _sessions = sessions;
+        _notificationQueue = notificationQueue;
         _logger = logger;
         eventBus.Subscribe("progression.level.up", OnLevelUp);
         eventBus.Subscribe("character.created", OnCharacterCreated);
@@ -87,7 +87,8 @@ public class ClassPathProcessor
             }
 
             _proficiencyManager.Learn(entity.Id, entry.AbilityId);
-            _sessions.GetByEntityId(entity.Id)?.Send($"You have learned {abilityDef.Name}!\r\n");
+            _notificationQueue.Enqueue(entity.Id,
+                new Notification("ability_unlock", 45, $"You have learned {abilityDef.Name}!\r\n"));
         }
     }
 }

@@ -76,6 +76,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IGmcpModuleAdapter, NullGmcpModuleAdapter>();
         services.AddSingleton<IJintApiModule, GmcpModule>();
         services.AddSingleton<IJintApiModule, RespondModule>();
+        services.AddSingleton<IJintApiModule, NotificationsModule>();
 
         // Runtime and loader
         services.AddSingleton<TagRegistry>();
