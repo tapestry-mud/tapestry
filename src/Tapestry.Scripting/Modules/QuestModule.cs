@@ -30,36 +30,34 @@ public class QuestModule : IJintApiModule
     {
         return new
         {
-            offer = new Action<string, string>((entityIdStr, questId) =>
+            offer = new Func<JsValue, JsValue, JsValue, JsValue>((entityArg, questArg, optionsArg) =>
             {
+                var entityIdStr = entityArg.ToString();
+                var questId = questArg.ToString();
+
                 if (!Guid.TryParse(entityIdStr, out var id))
                 {
-                    return;
+                    return JsValue.Undefined;
                 }
 
                 var player = _world.GetEntity(id);
                 if (player == null)
                 {
-                    return;
+                    return JsValue.Undefined;
                 }
 
-                _questService.AcceptQuest(player, questId);
-            }),
-
-            offerSilent = new Action<string, string>((entityIdStr, questId) =>
-            {
-                if (!Guid.TryParse(entityIdStr, out var id))
+                var silent = false;
+                if (optionsArg is ObjectInstance opts)
                 {
-                    return;
+                    var silentProp = opts.Get("silent");
+                    if (silentProp.Type == Types.Boolean)
+                    {
+                        silent = TypeConverter.ToBoolean(silentProp);
+                    }
                 }
 
-                var player = _world.GetEntity(id);
-                if (player == null)
-                {
-                    return;
-                }
-
-                _questService.AcceptQuest(player, questId, silent: true);
+                _questService.AcceptQuest(player, questId, silent: silent);
+                return JsValue.Undefined;
             }),
 
             isActive = new Func<string, string, bool>((entityIdStr, questId) =>
