@@ -23,6 +23,7 @@ public class GameLoopService : IHostedService
     private readonly ILogger<GameLoopService> _logger;
     private readonly EventBus _eventBus;
     private readonly MobAIManager _mobAI;
+    private readonly NotificationQueue _notificationQueue;
     private Task? _runTask;
 
     public GameLoopService(
@@ -37,7 +38,8 @@ public class GameLoopService : IHostedService
         IHostApplicationLifetime appLifetime,
         ILogger<GameLoopService> logger,
         EventBus eventBus,
-        MobAIManager mobAI)
+        MobAIManager mobAI,
+        NotificationQueue notificationQueue)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -51,6 +53,7 @@ public class GameLoopService : IHostedService
         _logger = logger;
         _eventBus = eventBus;
         _mobAI = mobAI;
+        _notificationQueue = notificationQueue;
 
         WireEvents();
     }
@@ -122,6 +125,18 @@ public class GameLoopService : IHostedService
             _gameLoop.RegisterIdleTimeoutHandler(_eventQueue, _sessions,
                 idle.WarnMessage, idle.TimeoutMessage, idle.AdminTag);
         }
+
+        _gameLoop.OnNotificationDrain += (sessions, queue) =>
+        {
+            foreach (var session in sessions.AllSessions)
+            {
+                var notifications = queue.DrainFor(session.PlayerEntity.Id);
+                foreach (var notification in notifications)
+                {
+                    sessions.SendToPlayer(session.PlayerEntity.Id, notification.Text);
+                }
+            }
+        };
 
         _gameLoop.OnTickComplete += () =>
         {
