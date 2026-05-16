@@ -55,7 +55,7 @@ describe('RoomInfoSchema', () => {
   it('parses valid room with exits', () => {
     const result = RoomInfoSchema.safeParse({
       num: 'core:town-square', name: 'Town Square', area: 'Midgaard',
-      environment: 'city', exits: { north: 'core:inn', east: 'core:store' },
+      environment: 'city', exits: { north: { id: 'core:inn', name: 'The Inn' }, east: { id: 'core:store', name: 'General Store' } },
     })
     expect(result.success).toBe(true)
   })
@@ -131,7 +131,7 @@ describe('RoomInfoSchema -- new optional fields', () => {
   it('accepts room with doors, description, weatherExposed, timeExposed', () => {
     const result = RoomInfoSchema.safeParse({
       num: 'core:cave', name: 'Cave', area: 'Wilds', environment: 'cave',
-      exits: { north: 'core:tunnel' },
+      exits: { north: { id: 'core:tunnel', name: 'Dark Tunnel' } },
       description: 'A damp cave.',
       weatherExposed: false,
       timeExposed: false,

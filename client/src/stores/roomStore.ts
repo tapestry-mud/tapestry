@@ -13,12 +13,15 @@ const DIR_NORMALIZE: Record<string, string> = {
   n: 'north', s: 'south', e: 'east', w: 'west', u: 'up', d: 'down',
 }
 
-function normalizeExits(exits: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {}
+function normalizeExits(exits: Record<string, { id: string; name: string }>): { ids: Record<string, string>; names: Record<string, string> } {
+  const ids: Record<string, string> = {}
+  const names: Record<string, string> = {}
   for (const [dir, dest] of Object.entries(exits)) {
-    result[DIR_NORMALIZE[dir] ?? dir] = dest
+    const normalized = DIR_NORMALIZE[dir] ?? dir
+    ids[normalized] = dest.id
+    names[normalized] = dest.name
   }
-  return result
+  return { ids, names }
 }
 
 function normalizeDoors(
@@ -51,6 +54,7 @@ interface RoomCurrent {
   timeExposed: boolean
   doors: Record<string, { isClosed: boolean; isLocked: boolean }>
   exits: Record<string, string>
+  exitNames: Record<string, string>
 }
 
 interface RoomStoreState {
@@ -65,7 +69,7 @@ interface RoomStoreState {
 
 const defaultCurrent: RoomCurrent = {
   num: '', name: '', area: '', environment: '',
-  description: '', weatherExposed: false, timeExposed: false, doors: {}, exits: {},
+  description: '', weatherExposed: false, timeExposed: false, doors: {}, exits: {}, exitNames: {},
 }
 
 export const useRoomStore = create<RoomStoreState>()((set) => ({
@@ -75,7 +79,7 @@ export const useRoomStore = create<RoomStoreState>()((set) => ({
 
   updateRoom: (data) =>
     set((s) => {
-      const exits = normalizeExits(data.exits)
+      const { ids: exits, names: exitNames } = normalizeExits(data.exits)
       const doors = normalizeDoors(data.doors)
       const graph = new Map(s.mapGraph)
 
@@ -86,7 +90,7 @@ export const useRoomStore = create<RoomStoreState>()((set) => ({
           const off = DIR_OFFSETS[s.lastDirection] ?? { dx: 0, dy: 0, dz: 0 }
           x = prev.x + off.dx; y = prev.y + off.dy; z = prev.z + off.dz
         }
-        graph.set(data.num, { num: data.num, name: data.name, x, y, z, exits })
+        graph.set(data.num, { num: data.num, name: data.name, x, y, z, exits, exitNames })
       }
 
       const charName = useCharStore.getState().name
@@ -103,6 +107,7 @@ export const useRoomStore = create<RoomStoreState>()((set) => ({
           timeExposed: data.timeExposed ?? false,
           doors,
           exits,
+          exitNames,
         },
         mapGraph: graph,
         lastDirection: null,
@@ -114,15 +119,19 @@ export const useRoomStore = create<RoomStoreState>()((set) => ({
   removeExit: (direction) =>
     set((s) => {
       const exits = { ...s.current.exits }
+      const exitNames = { ...s.current.exitNames }
       delete exits[direction]
+      delete exitNames[direction]
       const graph = new Map(s.mapGraph)
       const node = graph.get(s.current.num)
       if (node) {
         const nodeExits = { ...node.exits }
+        const nodeExitNames = { ...node.exitNames }
         delete nodeExits[direction]
-        graph.set(s.current.num, { ...node, exits: nodeExits })
+        delete nodeExitNames[direction]
+        graph.set(s.current.num, { ...node, exits: nodeExits, exitNames: nodeExitNames })
       }
-      return { current: { ...s.current, exits }, mapGraph: graph }
+      return { current: { ...s.current, exits, exitNames }, mapGraph: graph }
     }),
 
   loadMapForCharacter: (charName) => {

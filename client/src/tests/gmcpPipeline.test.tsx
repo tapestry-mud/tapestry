@@ -23,7 +23,7 @@ beforeEach(() => {
   GmcpDispatcher.clear()
   initCoreHandlers()
   useCharStore.setState({ name: '', race: '', class: '', level: 0, hp: 0, maxHp: 0, mana: 0, maxMana: 0, mv: 0, maxMv: 0 })
-  useRoomStore.setState({ current: { num: 0, name: '', area: '', environment: '', exits: {} }, mapGraph: new Map(), lastDirection: null })
+  useRoomStore.setState({ current: { num: 0, name: '', area: '', environment: '', exits: {}, exitNames: {} }, mapGraph: new Map(), lastDirection: null })
   useChatStore.setState({ messages: [], activeFilter: 'all', unreadCount: 0 })
   useOutputStore.setState({ lines: [], scrollLocked: false })
   useDebugStore.setState({ gmcpLog: [], textLog: [], commandLog: [], connectionLog: [], isOpen: false, activeTab: 'gmcp' })
@@ -57,14 +57,14 @@ describe('GMCP pipeline integration', () => {
     ProtocolParser.parseMessage(JSON.stringify({
       type: 'gmcp',
       package: 'Room.Info',
-      data: { num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: 'core:inn' } },
+      data: { num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: { id: 'core:inn', name: 'The Inn' } } },
     }))
     expect(useRoomStore.getState().current.name).toBe('Town Square')
     expect(useRoomStore.getState().mapGraph.has('core:town-square')).toBe(true)
   })
 
   it('Room.WrongDir envelope removes last direction from roomStore', () => {
-    useRoomStore.setState((s) => ({ ...s, lastDirection: 'north', current: { ...s.current, exits: { north: 2 } } }))
+    useRoomStore.setState((s) => ({ ...s, lastDirection: 'north', current: { ...s.current, exits: { north: 2 }, exitNames: { north: 'North Room' } } }))
     ProtocolParser.parseMessage(JSON.stringify({
       type: 'gmcp',
       package: 'Room.WrongDir',

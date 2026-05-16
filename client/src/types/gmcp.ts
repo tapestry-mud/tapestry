@@ -89,7 +89,7 @@ export const RoomInfoSchema = z.object({
   name: z.string(),
   area: z.string(),
   environment: z.string(),
-  exits: z.record(z.string(), z.string()),
+  exits: z.record(z.string(), z.object({ id: z.string(), name: z.string() })),
   description: z.string().nullish(),
   weatherExposed: z.boolean().optional(),
   timeExposed: z.boolean().optional(),

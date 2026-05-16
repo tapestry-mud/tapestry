@@ -15,6 +15,7 @@ export interface RoomNode {
   y: number
   z: number
   exits: Record<string, string>
+  exitNames: Record<string, string>
 }
 
 export interface ChatMessage {

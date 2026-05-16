@@ -2,7 +2,7 @@ import { beforeEach, describe, it, expect } from 'vitest'
 import { useRoomStore } from './roomStore'
 import { useCharStore } from './charStore'
 
-const nullRoom = { num: '', name: '', area: '', environment: '', exits: {}, description: '', weatherExposed: false, timeExposed: false, doors: {} }
+const nullRoom = { num: '', name: '', area: '', environment: '', exits: {}, exitNames: {}, description: '', weatherExposed: false, timeExposed: false, doors: {} }
 
 beforeEach(() => { useRoomStore.setState({ current: nullRoom, mapGraph: new Map(), lastDirection: null }) })
 
@@ -13,9 +13,10 @@ beforeEach(() => {
 
 describe('roomStore', () => {
   it('updateRoom sets current room fields', () => {
-    useRoomStore.getState().updateRoom({ num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: 'core:inn' } })
+    useRoomStore.getState().updateRoom({ num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: { id: 'core:inn', name: 'The Inn' } } })
     expect(useRoomStore.getState().current.name).toBe('Town Square')
     expect(useRoomStore.getState().current.exits.north).toBe('core:inn')
+    expect(useRoomStore.getState().current.exitNames.north).toBe('The Inn')
   })
 
   it('first room added to mapGraph at 0,0,0', () => {
@@ -27,7 +28,7 @@ describe('roomStore', () => {
   })
 
   it('north move increments y by 1', () => {
-    useRoomStore.getState().updateRoom({ num: 'core:start', name: 'Start', area: 'A', environment: 'o', exits: { north: 'core:north' } })
+    useRoomStore.getState().updateRoom({ num: 'core:start', name: 'Start', area: 'A', environment: 'o', exits: { north: { id: 'core:north', name: 'North Room' } } })
     useRoomStore.getState().setLastDirection('north')
     useRoomStore.getState().updateRoom({ num: 'core:north', name: 'North Room', area: 'A', environment: 'o', exits: {} })
     const node = useRoomStore.getState().mapGraph.get('core:north')
@@ -40,12 +41,15 @@ describe('roomStore', () => {
   })
 
   it('normalizes short exit keys from server', () => {
-    useRoomStore.getState().updateRoom({ num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { n: 'core:inn', e: 'core:store' } })
+    useRoomStore.getState().updateRoom({ num: 'core:town-square', name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { n: { id: 'core:inn', name: 'The Inn' }, e: { id: 'core:store', name: 'General Store' } } })
     const exits = useRoomStore.getState().current.exits
     expect(exits.north).toBe('core:inn')
     expect(exits.east).toBe('core:store')
     expect(exits.n).toBeUndefined()
     expect(exits.e).toBeUndefined()
+    const exitNames = useRoomStore.getState().current.exitNames
+    expect(exitNames.north).toBe('The Inn')
+    expect(exitNames.east).toBe('General Store')
   })
 })
 
@@ -77,7 +81,7 @@ describe('roomStore -- new fields', () => {
 describe('roomStore -- removeExit', () => {
   it('removes exit from current.exits', () => {
     useRoomStore.getState().updateRoom({
-      num: 'core:room', name: 'R', area: 'A', environment: 'o', exits: { north: 'core:north', east: 'core:east' },
+      num: 'core:room', name: 'R', area: 'A', environment: 'o', exits: { north: { id: 'core:north', name: 'North' }, east: { id: 'core:east', name: 'East' } },
     })
     useRoomStore.getState().removeExit('north')
     expect(useRoomStore.getState().current.exits.north).toBeUndefined()
@@ -86,7 +90,7 @@ describe('roomStore -- removeExit', () => {
 
   it('removes exit from mapGraph node', () => {
     useRoomStore.getState().updateRoom({
-      num: 'core:room', name: 'R', area: 'A', environment: 'o', exits: { north: 'core:north' },
+      num: 'core:room', name: 'R', area: 'A', environment: 'o', exits: { north: { id: 'core:north', name: 'North' } },
     })
     useRoomStore.getState().removeExit('north')
     const node = useRoomStore.getState().mapGraph.get('core:room')
@@ -96,7 +100,7 @@ describe('roomStore -- removeExit', () => {
 
 describe('roomStore -- map persistence', () => {
   it('loadMapForCharacter restores mapGraph from localStorage', () => {
-    const node = { num: 'core:saved', name: 'Saved Room', x: 3, y: 1, z: 0, exits: {} }
+    const node = { num: 'core:saved', name: 'Saved Room', x: 3, y: 1, z: 0, exits: {}, exitNames: {} }
     localStorage.setItem('tapestry:map:Raegar', JSON.stringify([['core:saved', node]]))
     useRoomStore.getState().loadMapForCharacter('Raegar')
     expect(useRoomStore.getState().mapGraph.get('core:saved')?.name).toBe('Saved Room')

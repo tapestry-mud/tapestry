@@ -5,7 +5,7 @@ import { useRoomStore } from '../stores/roomStore'
 
 beforeEach(() => {
   useRoomStore.setState({
-    current: { num: 1, name: 'Town Square', area: 'Midgaard', environment: 'city', exits: {} },
+    current: { num: 1, name: 'Town Square', area: 'Midgaard', environment: 'city', exits: {}, exitNames: {} },
     mapGraph: new Map(),
     lastDirection: null,
   })
@@ -29,7 +29,7 @@ describe('TopBar', () => {
 
   it('shows no area bracket when area is empty', () => {
     useRoomStore.setState({
-      current: { num: 0, name: '', area: '', environment: '', exits: {} },
+      current: { num: 0, name: '', area: '', environment: '', exits: {}, exitNames: {} },
       mapGraph: new Map(),
       lastDirection: null,
     })

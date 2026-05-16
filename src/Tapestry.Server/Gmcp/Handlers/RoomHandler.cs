@@ -86,7 +86,7 @@ public class RoomHandler : IGmcpPackageHandler
 
     private object BuildRoomInfoPayload(Room room, Entity entity)
     {
-        var exits = new Dictionary<string, string?>();
+        var exits = new Dictionary<string, object>();
         var doors = new Dictionary<string, object>();
 
         foreach (var dir in room.AvailableExits())
@@ -94,7 +94,8 @@ public class RoomHandler : IGmcpPackageHandler
             var exit = room.GetExit(dir);
             if (exit == null) { continue; }
             var shortDir = dir.ToShortString().ToLower();
-            exits[shortDir] = exit.TargetRoomId;
+            var targetRoom = _world.GetRoom(exit.TargetRoomId);
+            exits[shortDir] = new { id = exit.TargetRoomId, name = targetRoom?.Name ?? "" };
             if (exit.Door != null)
             {
                 doors[shortDir] = new { isClosed = exit.Door.IsClosed, isLocked = exit.Door.IsLocked };

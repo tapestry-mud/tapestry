@@ -5,7 +5,7 @@ import { useAnnounceStore } from '../announceStore'
 
 const nullRoom = {
   num: '', name: '', area: '', environment: '', description: '',
-  weatherExposed: false, timeExposed: false, doors: {}, exits: {},
+  weatherExposed: false, timeExposed: false, doors: {}, exits: {}, exitNames: {},
 }
 
 beforeEach(() => {
@@ -19,7 +19,7 @@ describe('handleRoomDescription', () => {
         ...nullRoom,
         name: 'Town Square',
         description: 'A busy square.',
-        exits: { north: 'core:inn', south: 'core:gate' },
+        exits: { north: 'core:inn', south: 'core:gate' }, exitNames: { north: 'The Inn', south: 'South Gate' },
       },
     })
     const pushSpy = vi.spyOn(useAnnounceStore.getState(), 'pushMessage')
@@ -72,7 +72,7 @@ describe('handleRoomDescription', () => {
         ...nullRoom,
         name: 'Forest',
         description: '{cyan}A dense forest.{reset}',
-        exits: { east: 'core:road' },
+        exits: { east: 'core:road' }, exitNames: { east: 'The Road' },
       },
     })
     const pushSpy = vi.spyOn(useAnnounceStore.getState(), 'pushMessage')

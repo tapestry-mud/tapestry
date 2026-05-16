@@ -18,7 +18,7 @@ public class RoomHandlerTests
         Room SpawnRoom,
         string ConnectionId);
 
-    private static Harness Build()
+    private static Harness Build(bool addExitRoom = false)
     {
         var cm = new FakeGmcpConnectionManager();
         var sessions = new SessionManager();
@@ -32,6 +32,13 @@ public class RoomHandlerTests
 
         var room = new Room("test:room1", "Test Room", "A plain room.");
         world.AddRoom(room);
+
+        if (addExitRoom)
+        {
+            var northRoom = new Room("test:room2", "North Room", "A room to the north.");
+            world.AddRoom(northRoom);
+            room.SetExit(Direction.North, new Exit("test:room2"));
+        }
 
         var entity = new Entity("player", "Hero");
         entity.LocationRoomId = room.Id;
@@ -93,5 +100,21 @@ public class RoomHandlerTests
         h.Handler.PackageNames.Should().Contain("Room.Info")
             .And.Contain("Room.Nearby")
             .And.Contain("Room.WrongDir");
+    }
+
+    [Fact]
+    public void RoomInfo_ExitsContainIdAndName()
+    {
+        var h = Build(addExitRoom: true);
+
+        h.Handler.SendBurst(h.ConnectionId, h.Player);
+
+        var infoMsg = h.ConnectionManager.Sent.First(x => x.Package == "Room.Info");
+        var json = System.Text.Json.JsonSerializer.Serialize(infoMsg.Payload);
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+        var exits = doc.RootElement.GetProperty("exits");
+        var north = exits.GetProperty("n");
+        north.GetProperty("id").GetString().Should().Be("test:room2");
+        north.GetProperty("name").GetString().Should().Be("North Room");
     }
 }

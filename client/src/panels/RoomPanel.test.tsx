@@ -10,8 +10,8 @@ vi.mock('../connection/WebSocketClient', () => ({
 
 beforeEach(() => {
   useRoomStore.setState({
-    current: { num: 1001, name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: 1002 } },
-    mapGraph: new Map([[1001, { num: 1001, name: 'Town Square', x: 0, y: 0, z: 0, exits: { north: 1002 } }]]),
+    current: { num: 1001, name: 'Town Square', area: 'Midgaard', environment: 'city', exits: { north: 1002 }, exitNames: { north: 'The Inn' } },
+    mapGraph: new Map([[1001, { num: 1001, name: 'Town Square', x: 0, y: 0, z: 0, exits: { north: 1002 }, exitNames: { north: 'The Inn' } }]]),
     lastDirection: null,
   })
 })

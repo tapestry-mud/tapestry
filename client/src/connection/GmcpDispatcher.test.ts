@@ -117,9 +117,9 @@ describe('Room.WrongDir handler -- removeExit', () => {
       current: {
         num: 1, name: 'R', area: 'A', environment: 'o',
         description: '', weatherExposed: false, timeExposed: false, doors: {},
-        exits: { north: 2 },
+        exits: { north: 2 }, exitNames: { north: 'North Room' },
       },
-      mapGraph: new Map([[1, { num: 1, name: 'R', x: 0, y: 0, z: 0, exits: { north: 2 } }]]),
+      mapGraph: new Map([[1, { num: 1, name: 'R', x: 0, y: 0, z: 0, exits: { north: 2 }, exitNames: { north: 'North Room' } }]]),
       lastDirection: 'north',
     })
     initCoreHandlers()
@@ -137,12 +137,12 @@ describe('Room.Info handler with context hint', () => {
     name: 'Town Square',
     area: 'Midgaard',
     environment: 'city',
-    exits: { north: 'core:inn' },
+    exits: { north: { id: 'core:inn', name: 'The Inn' } },
   }
 
   const nullRoom = {
     num: '', name: '', area: '', environment: '', description: '',
-    weatherExposed: false, timeExposed: false, doors: {}, exits: {},
+    weatherExposed: false, timeExposed: false, doors: {}, exits: {}, exitNames: {},
   }
 
   beforeEach(() => {
