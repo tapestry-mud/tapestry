@@ -257,4 +257,30 @@ public class GameLoopHardeningTests
         room.Entities.Should().BeEmpty();
         world.GetEntity(entity.Id).Should().BeNull();
     }
+
+    [Fact]
+    public void Tick_empty_input_sets_NeedsPromptRefresh()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var eventQueue = new SystemEventQueue();
+        var gameLoop = new GameLoop(
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue,
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
+
+        var conn = new FakeConnection();
+        var entity = new Entity("player", "TestPlayer");
+        var session = new PlayerSession(conn, entity);
+        sessions.Add(session);
+
+        session.NeedsPromptRefresh = false;
+        conn.SimulateInput("");
+
+        gameLoop.Tick();
+
+        session.NeedsPromptRefresh.Should().BeTrue();
+    }
 }

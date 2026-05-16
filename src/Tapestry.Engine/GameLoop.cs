@@ -164,6 +164,7 @@ public class GameLoop
 
                 if (string.IsNullOrWhiteSpace(input))
                 {
+                    session.NeedsPromptRefresh = true;
                     continue;
                 }
 
