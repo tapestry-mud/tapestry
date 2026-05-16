@@ -14,17 +14,20 @@ public class QuestHandler : IGmcpPackageHandler
     private readonly QuestService _questService;
     private readonly QuestRegistry _questRegistry;
     private readonly EventBus _eventBus;
+    private readonly NotificationQueue _notificationQueue;
 
     public QuestHandler(
         IGmcpConnectionManager connectionManager,
         QuestService questService,
         QuestRegistry questRegistry,
-        EventBus eventBus)
+        EventBus eventBus,
+        NotificationQueue notificationQueue)
     {
         _connectionManager = connectionManager;
         _questService = questService;
         _questRegistry = questRegistry;
         _eventBus = eventBus;
+        _notificationQueue = notificationQueue;
     }
 
     public void Configure()
@@ -33,43 +36,100 @@ public class QuestHandler : IGmcpPackageHandler
         {
             if (!evt.SourceEntityId.HasValue) { return; }
             SendQuestList(evt.SourceEntityId.Value);
+
+            if (evt.Data.TryGetValue("bannerText", out var banner) && banner is string text)
+            {
+                _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                    new Notification("quest_started", 50, text));
+            }
         });
 
         _eventBus.Subscribe("quest.objective.advanced", evt =>
         {
             if (!evt.SourceEntityId.HasValue) { return; }
-            if (!evt.Data.TryGetValue("questId", out var questId)) { return; }
-            SendQuestUpdate(evt.SourceEntityId.Value, questId?.ToString() ?? "");
+            if (!evt.Data.TryGetValue("questId", out var questIdObj)) { return; }
+            var questId = questIdObj?.ToString() ?? "";
+            SendQuestUpdate(evt.SourceEntityId.Value, questId);
+
+            if (!evt.Data.TryGetValue("current", out var cur) || !evt.Data.TryGetValue("required", out var req)) { return; }
+            if (!int.TryParse(cur?.ToString(), out var current) || !int.TryParse(req?.ToString(), out var required)) { return; }
+            if (current >= required) { return; }
+
+            var objId = evt.Data.TryGetValue("objectiveId", out var oid) ? oid?.ToString() : null;
+            var def = _questRegistry.Get(questId);
+            var state = _questService.GetState(evt.SourceEntityId.Value);
+            var active = state?.Active.FirstOrDefault(q => q.QuestId == questId);
+            var stage = def?.Stages.ElementAtOrDefault(active?.StageIndex ?? 0);
+            var objDef = stage?.Objectives.FirstOrDefault(o => o.Id == objId);
+            var desc = objDef?.Description ?? objId ?? "objective";
+
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_progress", 50,
+                    $"\r\n<npc>[Quest]</npc> {desc} [{current}/{required}]\r\n"));
         });
 
         _eventBus.Subscribe("quest.stage.advanced", evt =>
         {
             if (!evt.SourceEntityId.HasValue) { return; }
-            if (!evt.Data.TryGetValue("questId", out var questId)) { return; }
-            SendQuestUpdate(evt.SourceEntityId.Value, questId?.ToString() ?? "");
+            if (!evt.Data.TryGetValue("questId", out var questIdObj)) { return; }
+            var questId = questIdObj?.ToString() ?? "";
+            SendQuestUpdate(evt.SourceEntityId.Value, questId);
+
+            if (!evt.Data.TryGetValue("stageIndex", out var stageIdxObj)) { return; }
+            if (!int.TryParse(stageIdxObj?.ToString(), out var stageIndex)) { return; }
+            var def = _questRegistry.Get(questId);
+            var stage = def?.Stages.ElementAtOrDefault(stageIndex);
+            if (stage?.Description == null) { return; }
+
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_stage", 50,
+                    $"\r\n<npc>[Quest: {def!.Name}]</npc> {stage.Description}\r\n"));
         });
 
         _eventBus.Subscribe("quest.completed", evt =>
         {
             if (!evt.SourceEntityId.HasValue) { return; }
-            if (!evt.Data.TryGetValue("questId", out var questId)) { return; }
+            if (!evt.Data.TryGetValue("questId", out var questIdObj)) { return; }
+            var questId = questIdObj?.ToString() ?? "";
 
-            var rewardXp = evt.Data.TryGetValue("rewardXp", out var xp) ? xp : null;
-            var rewardGold = evt.Data.TryGetValue("rewardGold", out var gold) ? gold : null;
-            var rewardItems = evt.Data.TryGetValue("rewardItems", out var items) ? items : null;
-            var rewardAbilities = evt.Data.TryGetValue("rewardAbilities", out var abilities) ? abilities : null;
-            var classUnlock = evt.Data.TryGetValue("classUnlock", out var cls) ? cls : null;
+            var def = _questRegistry.Get(questId);
+            var questName = def?.Name ?? questId;
+            var xp = evt.Data.TryGetValue("rewardXp", out var xpVal) ? Convert.ToInt32(xpVal) : 0;
+            var gold = evt.Data.TryGetValue("rewardGold", out var goldVal) ? Convert.ToInt32(goldVal) : 0;
+            var cls = evt.Data.TryGetValue("classUnlock", out var clsVal) ? clsVal?.ToString() : null;
+
+            var msg = $"\r\n<highlight>[Quest Complete]</highlight> {questName}";
+            if (xp > 0) { msg += $"  {xp} XP"; }
+            if (gold > 0) { msg += $"  {gold} gold"; }
+            if (!string.IsNullOrEmpty(cls))
+            {
+                var shortClass = cls!.Contains(':') ? cls[(cls.LastIndexOf(':') + 1)..] : cls;
+                msg += $"  Class: {shortClass}";
+            }
+            msg += "\r\n";
+
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_complete", 50, msg,
+                    "Notification.Show",
+                    new
+                    {
+                        type = "quest_complete",
+                        title = questName,
+                        body = string.Join("  ", new[] {
+                            xp > 0 ? $"{xp} XP" : null,
+                            gold > 0 ? $"{gold} gold" : null,
+                            !string.IsNullOrEmpty(cls) ? $"Class: {(cls!.Contains(':') ? cls[(cls.LastIndexOf(':') + 1)..] : cls)}" : null
+                        }.Where(s => s != null)),
+                        priority = 50
+                    }));
 
             var payload = new
             {
-                quest_id = questId?.ToString() ?? "",
-                reward_xp = rewardXp,
-                reward_gold = rewardGold,
-                reward_items = rewardItems,
-                reward_abilities = rewardAbilities,
-                class_unlock = classUnlock,
+                quest_id = questId,
+                reward_xp = xp,
+                reward_gold = gold,
+                class_unlock = cls,
             };
-
             _connectionManager.Send(evt.SourceEntityId.Value, "Quest.Complete", payload);
         });
 
