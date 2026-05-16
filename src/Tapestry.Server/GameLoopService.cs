@@ -24,6 +24,7 @@ public class GameLoopService : IHostedService
     private readonly EventBus _eventBus;
     private readonly MobAIManager _mobAI;
     private readonly NotificationQueue _notificationQueue;
+    private readonly Tapestry.Server.Gmcp.Handlers.NotificationHandler _notificationHandler;
     private Task? _runTask;
 
     public GameLoopService(
@@ -39,7 +40,8 @@ public class GameLoopService : IHostedService
         ILogger<GameLoopService> logger,
         EventBus eventBus,
         MobAIManager mobAI,
-        NotificationQueue notificationQueue)
+        NotificationQueue notificationQueue,
+        Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -54,6 +56,7 @@ public class GameLoopService : IHostedService
         _eventBus = eventBus;
         _mobAI = mobAI;
         _notificationQueue = notificationQueue;
+        _notificationHandler = notificationHandler;
 
         WireEvents();
     }
@@ -131,10 +134,12 @@ public class GameLoopService : IHostedService
             foreach (var session in sessions.AllSessions)
             {
                 var notifications = queue.DrainFor(session.PlayerEntity.Id);
+                if (notifications.Count == 0) { continue; }
                 foreach (var notification in notifications)
                 {
                     sessions.SendToPlayer(session.PlayerEntity.Id, notification.Text);
                 }
+                _notificationHandler.DrainAndSend(session.PlayerEntity.Id, notifications);
             }
         };
 
