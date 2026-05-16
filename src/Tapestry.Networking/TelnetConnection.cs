@@ -249,7 +249,7 @@ public class TelnetConnection : IConnection
                         }
                         var line = _inputBuffer.ToString().TrimEnd('\r');
                         _inputBuffer.Clear();
-                        if (line.Length > 0) { OnInput?.Invoke(line); }
+                        OnInput?.Invoke(line);
                     }
                     else if (b == '\r')
                     {

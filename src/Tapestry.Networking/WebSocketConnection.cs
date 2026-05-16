@@ -201,10 +201,7 @@ public class WebSocketConnection : IConnection
                     if (root.TryGetProperty("data", out var dataElement))
                     {
                         var command = dataElement.GetString();
-                        if (!string.IsNullOrEmpty(command))
-                        {
-                            OnInput?.Invoke(command);
-                        }
+                        OnInput?.Invoke(command ?? "");
                     }
                     break;
 
