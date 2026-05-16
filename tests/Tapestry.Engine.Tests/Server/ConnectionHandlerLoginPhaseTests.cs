@@ -137,7 +137,7 @@ public class ConnectionHandlerLoginPhaseTests
             new CommandRouter(new CommandRegistry(), sessions, world),
             sessions, new EventBus(), new SystemEventQueue(),
             NullLogger<GameLoop>.Instance,
-            new TapestryMetrics(), new TickTimer(10));
+            new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
 
         var mobAI = new MobAIManager(world, eventBus,
             new CombatManager(world, eventBus),

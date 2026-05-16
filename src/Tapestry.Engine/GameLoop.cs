@@ -18,6 +18,7 @@ public class GameLoop
     private readonly ILogger<GameLoop> _logger;
     private readonly TapestryMetrics _metrics;
     private readonly TickTimer _timer;
+    private readonly NotificationQueue _notificationQueue;
     private readonly HashSet<Guid> _activeDisconnects = new();
     private readonly List<TickHandler> _tickHandlers = new();
     private readonly ConcurrentQueue<Action> _pendingActions = new();
@@ -34,10 +35,12 @@ public class GameLoop
     public event Action<long, double, double, double, double>? OnSlowTick;
     public event Action<CommandContext>? OnCommandProcessed;
     public event Action? OnTickComplete;
+    public event Action<SessionManager, NotificationQueue>? OnNotificationDrain;
 
     public GameLoop(CommandRouter router, SessionManager sessions, EventBus eventBus,
                     SystemEventQueue eventQueue, ILogger<GameLoop> logger,
-                    TapestryMetrics metrics, TickTimer timer)
+                    TapestryMetrics metrics, TickTimer timer,
+                    NotificationQueue notificationQueue)
     {
         _router = router;
         _sessions = sessions;
@@ -46,6 +49,7 @@ public class GameLoop
         _logger = logger;
         _metrics = metrics;
         _timer = timer;
+        _notificationQueue = notificationQueue;
     }
 
     public void Schedule(Action action)
@@ -90,7 +94,7 @@ public class GameLoop
         preTickSw.Stop();
         _metrics.TickDuration.Record(preTickSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "pre_tick"));
 
-        // 0. Drain scheduled actions (posted from network threads to run on game loop thread)
+        // 1. Drain scheduled actions (posted from network threads to run on game loop thread)
         var scheduledSw = Stopwatch.StartNew();
         var scheduledCount = 0;
         Activity? scheduledActivity = TapestryTracing.Source.StartActivity("ScheduledActions");
@@ -111,7 +115,7 @@ public class GameLoop
         scheduledActivity?.SetTag("scheduled.duration_ms", scheduledSw.Elapsed.TotalMilliseconds);
         scheduledActivity?.Dispose();
 
-        // 1. Process system events
+        // 2. Process system events
         var eventSw = Stopwatch.StartNew();
         var eventsProcessed = 0;
         Activity? eventActivity = TapestryTracing.Source.StartActivity("ProcessEvents");
@@ -146,7 +150,7 @@ public class GameLoop
         _metrics.TickDuration.Record(eventSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "events"));
         _metrics.EventsProcessed.Add(eventsProcessed);
 
-        // 2. Process incoming commands
+        // 3. Process incoming commands
         var cmdSw = Stopwatch.StartNew();
         var commandsProcessed = 0;
         Activity? cmdActivity = TapestryTracing.Source.StartActivity("ProcessCommands");
@@ -235,7 +239,15 @@ public class GameLoop
         _metrics.TickDuration.Record(cmdSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "commands"));
         _metrics.CommandsProcessed.Add(commandsProcessed);
 
-        // 3. Run tick handlers
+        // 4. Drain notifications (deferred player messages: quest banners, achievements, etc.)
+        var notifySw = Stopwatch.StartNew();
+        Activity? notifyActivity = TapestryTracing.Source.StartActivity("DrainNotifications");
+        OnNotificationDrain?.Invoke(_sessions, _notificationQueue);
+        notifySw.Stop();
+        notifyActivity?.Dispose();
+        _metrics.TickDuration.Record(notifySw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "notifications"));
+
+        // 5. Run tick handlers
         var handlersSw = Stopwatch.StartNew();
         Activity? handlersActivity = TapestryTracing.Source.StartActivity("TickHandlers");
         foreach (var handler in _tickHandlers)
@@ -262,7 +274,7 @@ public class GameLoop
         handlersActivity?.Dispose();
         _metrics.TickDuration.Record(handlersSw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "handlers"));
 
-        // 4. Flush prompts for any session that received output this tick
+        // 6. Flush prompts for any session that received output this tick
         var flushSw = Stopwatch.StartNew();
         using (TapestryTracing.Source.StartActivity("FlushPrompts"))
         {
@@ -282,11 +294,12 @@ public class GameLoop
         if (totalMs > _slowTickThresholdMs && _slowTickThresholdMs > 0)
         {
             _logger.LogWarning(
-                "Slow tick {TickNumber}: {DurationMs:F1}ms (budget: {Budget}ms) -- pre_tick: {PreTickMs:F1}ms, scheduled: {ScheduledMs:F1}ms, events: {EventMs:F1}ms, commands: {CmdMs:F1}ms, handlers: {HandlerMs:F1}ms, flush: {FlushMs:F1}ms",
+                "Slow tick {TickNumber}: {DurationMs:F1}ms (budget: {Budget}ms) -- pre_tick: {PreTickMs:F1}ms, scheduled: {ScheduledMs:F1}ms, events: {EventMs:F1}ms, commands: {CmdMs:F1}ms, notifications: {NotifyMs:F1}ms, handlers: {HandlerMs:F1}ms, flush: {FlushMs:F1}ms",
                 _tickCount, totalMs, _slowTickThresholdMs,
                 preTickSw.Elapsed.TotalMilliseconds, scheduledSw.Elapsed.TotalMilliseconds,
                 eventSw.Elapsed.TotalMilliseconds, cmdSw.Elapsed.TotalMilliseconds,
-                handlersSw.Elapsed.TotalMilliseconds, flushSw.Elapsed.TotalMilliseconds);
+                notifySw.Elapsed.TotalMilliseconds, handlersSw.Elapsed.TotalMilliseconds,
+                flushSw.Elapsed.TotalMilliseconds);
 
             OnSlowTick?.Invoke(_tickCount, totalMs, eventSw.Elapsed.TotalMilliseconds, cmdSw.Elapsed.TotalMilliseconds, handlersSw.Elapsed.TotalMilliseconds);
         }

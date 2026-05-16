@@ -62,7 +62,7 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -96,7 +96,7 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -122,7 +122,7 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -242,7 +242,7 @@ public class GameLoopTests
         var world = new World();
         var router = new CommandRouter(registry, sessions, world);
         var bus = new EventBus();
-        var loop = new GameLoop(router, sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+        var loop = new GameLoop(router, sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
         return (loop, registry, sessions, world);
     }
 
