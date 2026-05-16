@@ -14,20 +14,20 @@ public class QuestHandler : IGmcpPackageHandler
     private readonly QuestService _questService;
     private readonly QuestRegistry _questRegistry;
     private readonly EventBus _eventBus;
-    private readonly SessionManager _sessionManager;
+    private readonly NotificationQueue _notificationQueue;
 
     public QuestHandler(
         IGmcpConnectionManager connectionManager,
         QuestService questService,
         QuestRegistry questRegistry,
         EventBus eventBus,
-        SessionManager sessionManager)
+        NotificationQueue notificationQueue)
     {
         _connectionManager = connectionManager;
         _questService = questService;
         _questRegistry = questRegistry;
         _eventBus = eventBus;
-        _sessionManager = sessionManager;
+        _notificationQueue = notificationQueue;
     }
 
     public void Configure()
@@ -39,7 +39,8 @@ public class QuestHandler : IGmcpPackageHandler
 
             if (evt.Data.TryGetValue("bannerText", out var banner) && banner is string text)
             {
-                _sessionManager.SendToPlayer(evt.SourceEntityId.Value, text);
+                _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                    new Notification("quest_started", 50, text));
             }
         });
 
@@ -50,7 +51,6 @@ public class QuestHandler : IGmcpPackageHandler
             var questId = questIdObj?.ToString() ?? "";
             SendQuestUpdate(evt.SourceEntityId.Value, questId);
 
-            // Telnet progress feedback (only for in-progress, not final advance — stage/complete fires for that)
             if (!evt.Data.TryGetValue("current", out var cur) || !evt.Data.TryGetValue("required", out var req)) { return; }
             if (!int.TryParse(cur?.ToString(), out var current) || !int.TryParse(req?.ToString(), out var required)) { return; }
             if (current >= required) { return; }
@@ -63,8 +63,9 @@ public class QuestHandler : IGmcpPackageHandler
             var objDef = stage?.Objectives.FirstOrDefault(o => o.Id == objId);
             var desc = objDef?.Description ?? objId ?? "objective";
 
-            _sessionManager.SendToPlayer(evt.SourceEntityId.Value,
-                $"\r\n<npc>[Quest]</npc> {desc} [{current}/{required}]\r\n");
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_progress", 50,
+                    $"\r\n<npc>[Quest]</npc> {desc} [{current}/{required}]\r\n"));
         });
 
         _eventBus.Subscribe("quest.stage.advanced", evt =>
@@ -80,8 +81,9 @@ public class QuestHandler : IGmcpPackageHandler
             var stage = def?.Stages.ElementAtOrDefault(stageIndex);
             if (stage?.Description == null) { return; }
 
-            _sessionManager.SendToPlayer(evt.SourceEntityId.Value,
-                $"\r\n<npc>[Quest: {def!.Name}]</npc> {stage.Description}\r\n");
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_stage", 50,
+                    $"\r\n<npc>[Quest: {def!.Name}]</npc> {stage.Description}\r\n"));
         });
 
         _eventBus.Subscribe("quest.completed", evt =>
@@ -105,7 +107,21 @@ public class QuestHandler : IGmcpPackageHandler
                 msg += $"  Class: {shortClass}";
             }
             msg += "\r\n";
-            _sessionManager.SendToPlayer(evt.SourceEntityId.Value, msg);
+
+            _notificationQueue.Enqueue(evt.SourceEntityId.Value,
+                new Notification("quest_complete", 50, msg,
+                    "Notification.Show",
+                    new
+                    {
+                        type = "quest_complete",
+                        title = questName,
+                        body = string.Join("  ", new[] {
+                            xp > 0 ? $"{xp} XP" : null,
+                            gold > 0 ? $"{gold} gold" : null,
+                            !string.IsNullOrEmpty(cls) ? $"Class: {(cls!.Contains(':') ? cls[(cls.LastIndexOf(':') + 1)..] : cls)}" : null
+                        }.Where(s => s != null)),
+                        priority = 50
+                    }));
 
             var payload = new
             {

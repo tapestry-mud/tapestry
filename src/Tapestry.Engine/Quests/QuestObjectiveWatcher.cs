@@ -47,7 +47,6 @@ public class QuestObjectiveWatcher
 
         AdvanceMatchingObjectives(evt.SourceEntityId.Value, "collect", obj => obj.Target == itemTemplate);
 
-        // Check item template for quest_grant property
         var template = _items?.GetTemplate(itemTemplate);
         if (template != null && template.Properties.TryGetValue("quest_grant", out var grantVal) && grantVal is string questGrant && !string.IsNullOrEmpty(questGrant))
         {
@@ -58,7 +57,6 @@ public class QuestObjectiveWatcher
             }
         }
 
-        // Check event data for quest_advance (format: "namespace:questShortId:objectiveId")
         if (evt.Data.TryGetValue("quest_advance", out var advanceObj))
         {
             var advance = advanceObj?.ToString();
@@ -93,7 +91,6 @@ public class QuestObjectiveWatcher
 
         AdvanceMatchingObjectives(evt.SourceEntityId.Value, "visit", obj => obj.Target == newRoomId);
 
-        // Check room for quest_grant property
         var room = _world.GetRoom(newRoomId);
         var questGrant = room?.GetProperty<string>("quest_grant");
         if (!string.IsNullOrEmpty(questGrant))

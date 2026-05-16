@@ -137,6 +137,9 @@ builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.S
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCombatHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CommHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.QuestHandler>();
+builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.NotificationHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler>(
+    sp => sp.GetRequiredService<Tapestry.Server.Gmcp.Handlers.NotificationHandler>());
 builder.Services.AddSingleton<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
 // NOTE: LoginHandler is NOT registered as IGmcpPackageHandler to avoid circular DI:
 // PostLoginOrchestrator -> IEnumerable<IGmcpPackageHandler> -> LoginHandler -> PostLoginOrchestrator

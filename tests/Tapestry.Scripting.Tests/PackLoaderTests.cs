@@ -205,7 +205,7 @@ public class PackLoaderTests
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
-            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
         var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
@@ -291,9 +291,10 @@ public class PackLoaderTests
         var helpService = new Tapestry.Engine.Help.HelpService();
         tagRegistry ??= new TagRegistry();
         var propertyRegistry = new Tapestry.Engine.Persistence.PropertyRegistry();
+        var questRegistry = new QuestRegistry();
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
-            propertyRegistry);
+            propertyRegistry, questRegistry);
 
         return (world, itemRegistry, spawnManager, loader);
     }

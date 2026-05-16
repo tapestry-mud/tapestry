@@ -16,7 +16,8 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
 
         var order = new List<string>();
 
@@ -56,7 +57,8 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
 
         DisconnectEvent? received = null;
         gameLoop.OnDisconnect += (evt) =>
@@ -84,7 +86,8 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
 
         var callCount = 0;
         gameLoop.OnDisconnect += (evt) =>
@@ -159,6 +162,51 @@ public class GameLoopHardeningTests
     }
 
     [Fact]
+    public void Tick_drains_notifications_after_commands()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var eventQueue = new SystemEventQueue();
+        var notificationQueue = new NotificationQueue();
+        var gameLoop = new GameLoop(
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue,
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            notificationQueue);
+
+        var conn = new FakeConnection();
+        var entity = new Entity("player", "TestPlayer");
+        var session = new PlayerSession(conn, entity);
+        sessions.Add(session);
+
+        var order = new List<string>();
+
+        registry.Register("test", (ctx) =>
+        {
+            order.Add("command");
+            notificationQueue.Enqueue(entity.Id, new Notification("test", 50, "Notified!\r\n"));
+        });
+
+        gameLoop.OnNotificationDrain += (drainSessions, drainQueue) =>
+        {
+            foreach (var s in drainSessions.AllSessions)
+            {
+                var notes = drainQueue.DrainFor(s.PlayerEntity.Id);
+                foreach (var n in notes)
+                {
+                    order.Add("notification:" + n.Type);
+                }
+            }
+        };
+
+        conn.SimulateInput("test");
+        gameLoop.Tick();
+
+        order.Should().Equal("command", "notification:test");
+    }
+
+    [Fact]
     public void Disconnect_handler_can_clean_up_entity_from_world()
     {
         var registry = new CommandRegistry();
@@ -167,7 +215,8 @@ public class GameLoopHardeningTests
         var eventBus = new EventBus();
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
-            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10));
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
 
         // Set up a room with a player entity
         var room = new Room("town-square", "Town Square", "A bustling square.");
@@ -207,5 +256,31 @@ public class GameLoopHardeningTests
         sessions.Count.Should().Be(0);
         room.Entities.Should().BeEmpty();
         world.GetEntity(entity.Id).Should().BeNull();
+    }
+
+    [Fact]
+    public void Tick_empty_input_sets_NeedsPromptRefresh()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var eventQueue = new SystemEventQueue();
+        var gameLoop = new GameLoop(
+            new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue,
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
+            new NotificationQueue());
+
+        var conn = new FakeConnection();
+        var entity = new Entity("player", "TestPlayer");
+        var session = new PlayerSession(conn, entity);
+        sessions.Add(session);
+
+        session.NeedsPromptRefresh = false;
+        conn.SimulateInput("");
+
+        gameLoop.Tick();
+
+        session.NeedsPromptRefresh.Should().BeTrue();
     }
 }

@@ -8,7 +8,7 @@ server:
 
 packs:
   - tapestry-core
-  - example-pack
+  - legends-forgotten
 
 llm:
   provider: none

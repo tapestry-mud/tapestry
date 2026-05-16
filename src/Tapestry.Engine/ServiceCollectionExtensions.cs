@@ -164,6 +164,9 @@ public static class ServiceCollectionExtensions
                 });
         });
 
+        // Notifications
+        services.AddSingleton<NotificationQueue>();
+
         // Quests
         services.AddSingleton<QuestConfig>();
         services.AddSingleton<QuestRegistry>();
