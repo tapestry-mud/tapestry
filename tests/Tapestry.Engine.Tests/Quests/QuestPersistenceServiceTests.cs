@@ -51,7 +51,7 @@ public class QuestPersistenceServiceTests : IDisposable
 
         _sut.Save("Alice", state);
 
-        var path = Path.Combine(_playersDir, "alice.quests.yaml");
+        var path = Path.Combine(_playersDir, "alice", "quests.yaml");
         File.Exists(path).Should().BeTrue();
         var content = File.ReadAllText(path);
         content.Should().Contain("quest_id: test:quest-a");

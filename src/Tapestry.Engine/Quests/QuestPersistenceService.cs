@@ -110,5 +110,5 @@ public class QuestPersistenceService : IQuestPersistence
     }
 
     private string GetPath(string playerName) =>
-        Path.Combine(_playersDir, $"{playerName.ToLowerInvariant()}.quests.yaml");
+        Path.Combine(_playersDir, playerName.ToLowerInvariant(), "quests.yaml");
 }
