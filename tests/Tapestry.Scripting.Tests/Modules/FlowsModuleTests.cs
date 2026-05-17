@@ -16,7 +16,7 @@ public class FlowsModuleTests
     private class FakePersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) => false;
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
     private static (JintRuntime runtime, FlowRegistry registry) CreateRuntime()
