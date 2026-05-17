@@ -19,6 +19,7 @@ public class GameLoopService : IHostedService
     private readonly TapestryMetrics _metrics;
     private readonly ServerConfig _config;
     private readonly PlayerPersistenceService _persistence;
+    private readonly AccountService _accountService;
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly ILogger<GameLoopService> _logger;
     private readonly EventBus _eventBus;
@@ -36,6 +37,7 @@ public class GameLoopService : IHostedService
         TapestryMetrics metrics,
         ServerConfig config,
         PlayerPersistenceService persistence,
+        AccountService accountService,
         IHostApplicationLifetime appLifetime,
         ILogger<GameLoopService> logger,
         EventBus eventBus,
@@ -51,6 +53,7 @@ public class GameLoopService : IHostedService
         _metrics = metrics;
         _config = config;
         _persistence = persistence;
+        _accountService = accountService;
         _appLifetime = appLifetime;
         _logger = logger;
         _eventBus = eventBus;
@@ -88,8 +91,9 @@ public class GameLoopService : IHostedService
 
             var playerName = session.PlayerEntity.Name;
             var lastRoomId = session.PlayerEntity.LocationRoomId;
+            var isIntentionalQuit = evt.Reason.Equals("Quit", StringComparison.OrdinalIgnoreCase);
 
-            if (session.Phase == LoginPhase.Playing && _config.LinkDead.Enabled)
+            if (!isIntentionalQuit && session.Phase == LoginPhase.Playing && _config.LinkDead.Enabled)
             {
                 session.Phase = LoginPhase.LinkDead;
                 session.LinkDeadSinceTick = _gameLoop.TickCount;
@@ -119,6 +123,7 @@ public class GameLoopService : IHostedService
                 TaskContinuationOptions.OnlyOnFaulted);
 
             _sessions.Remove(session);
+            _accountService.UntrackOnlineEntity(session.PlayerEntity.Id);
             _metrics.ActiveConnections.Add(-1);
 
             if (lastRoomId != null)
@@ -177,6 +182,7 @@ public class GameLoopService : IHostedService
                         TaskContinuationOptions.OnlyOnFaulted);
 
                     _sessions.Remove(session);
+                    _accountService.UntrackOnlineEntity(session.PlayerEntity.Id);
                     _metrics.ActiveConnections.Add(-1);
                     _metrics.LinkDeadActive.Add(-1);
                     _metrics.LinkDeadExpired.Add(1);

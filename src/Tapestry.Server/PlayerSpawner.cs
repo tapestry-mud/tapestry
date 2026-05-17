@@ -103,10 +103,10 @@ public class PlayerSpawner
         session.Phase = LoginPhase.Playing;
         _accountService.TrackOnlineEntity(entity.Id, accountId);
 
-        connection.OnDisconnected += () =>
+        connection.OnDisconnectedWithReason += (reason) =>
         {
             _eventQueue.Enqueue(new DisconnectEvent(
-                Guid.Parse(connection.Id), entity.Id, "connection closed"));
+                Guid.Parse(connection.Id), entity.Id, reason ?? "connection closed"));
         };
 
         _sessions.RemovePreLogin(preLogin.ConnectionId);
@@ -158,10 +158,10 @@ public class PlayerSpawner
         session.ReplaceConnection(newConnection);
         _sessions.ReRegisterConnectionForSession(session);
 
-        newConnection.OnDisconnected += () =>
+        newConnection.OnDisconnectedWithReason += (reason) =>
         {
             _eventQueue.Enqueue(new DisconnectEvent(
-                Guid.Parse(capturedConnectionId), capturedEntityId, "connection closed"));
+                Guid.Parse(capturedConnectionId), capturedEntityId, reason ?? "connection closed"));
         };
 
         session.Phase = LoginPhase.Playing;
