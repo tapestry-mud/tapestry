@@ -15,6 +15,9 @@ public class TapestryMetrics
     public Histogram<double> CommandDuration { get; }
     public Histogram<long> InputQueueDepth { get; }
     public Histogram<double> SessionDuration { get; }
+    public Counter<long> FloodCommandsDropped { get; }
+    public Counter<long> FloodDisconnects { get; }
+    public Counter<long> BadInputTotal { get; }
 
     public TapestryMetrics()
     {
@@ -50,5 +53,17 @@ public class TapestryMetrics
             "tapestry.session.duration_s",
             unit: "s",
             description: "Total session duration on disconnect");
+
+        FloodCommandsDropped = _meter.CreateCounter<long>(
+            "tapestry_flood_commands_dropped",
+            description: "Commands rejected by token bucket");
+
+        FloodDisconnects = _meter.CreateCounter<long>(
+            "tapestry_flood_disconnects",
+            description: "Players disconnected for command flooding");
+
+        BadInputTotal = _meter.CreateCounter<long>(
+            "tapestry_bad_input_total",
+            description: "Unrecognized command frequency");
     }
 }
