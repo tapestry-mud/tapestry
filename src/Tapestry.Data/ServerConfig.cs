@@ -22,6 +22,7 @@ public class ServerConfig
     public IdleSection Idle { get; set; } = new();
     public PreAuthSection PreAuth { get; set; } = new();
     public AdminSeedSection? Admin { get; set; }
+    public FloodProtectionSection FloodProtection { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -188,4 +189,12 @@ public class AdminSeedSection
 {
     public string Handle { get; set; } = "";
     public string Password { get; set; } = "";
+}
+
+public class FloodProtectionSection
+{
+    public float CommandsPerSecond { get; set; } = 15;
+    public float BurstSize { get; set; } = 30;
+    public int StrikeThreshold { get; set; } = 3;
+    public int StrikeDecaySeconds { get; set; } = 10;
 }

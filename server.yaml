@@ -74,6 +74,12 @@ idle:
     session_takeover: 15
     creating: 300
 
+flood_protection:
+  commands_per_second: 15
+  burst_size: 30
+  strike_threshold: 3
+  strike_decay_seconds: 10
+
 pre_auth:
   enabled: false
   token_expiry_seconds: 60
