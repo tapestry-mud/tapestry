@@ -168,7 +168,7 @@ public class FlowEngine
                 return;
             }
 
-            _persistence.SaveNewPlayer(entity, session.PendingPasswordHash!);
+            _persistence.SaveNewPlayer(entity, session.AccountId);
         }
 
         var spawnRoom = _world.GetRoom(entity.LocationRoomId ?? DefaultSpawnRoomId)

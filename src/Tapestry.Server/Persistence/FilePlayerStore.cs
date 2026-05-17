@@ -77,11 +77,8 @@ public class FilePlayerStore : IPlayerStore
 
     public async Task SaveAsync(PlayerSaveData data)
     {
-        if (string.IsNullOrEmpty(data.PasswordHash))
-        {
-            throw new InvalidOperationException(
-                $"Refusing to save player '{data.Name}' with null or empty password hash.");
-        }
+        var playerDir = GetPlayerDir(data.Name);
+        Directory.CreateDirectory(playerDir);
 
         var path = GetFilePath(data.Name);
         var tmpPath = path + ".tmp";
@@ -106,22 +103,53 @@ public class FilePlayerStore : IPlayerStore
 
     public Task DeleteAsync(string playerName)
     {
-        var path = GetFilePath(playerName);
-        if (File.Exists(path))
+        var dir = GetPlayerDir(playerName);
+        if (Directory.Exists(dir))
         {
-            File.Delete(path);
+            Directory.Delete(dir, recursive: true);
         }
         return Task.CompletedTask;
     }
 
+    public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+    {
+        var dir = GetPlayerDir(playerName);
+        if (!Directory.Exists(dir))
+        {
+            return Array.Empty<string>();
+        }
+
+        var types = new List<string>();
+        foreach (var file in Directory.GetFiles(dir, "*.yaml"))
+        {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            if (!fileName.Equals("player", StringComparison.OrdinalIgnoreCase))
+            {
+                types.Add(fileName);
+            }
+        }
+        return types;
+    }
+
+    private string GetPlayerDir(string playerName)
+    {
+        var dir = Path.GetFullPath(Path.Combine(_playersDir, playerName.ToLowerInvariant()));
+        ValidatePath(dir, playerName);
+        return dir;
+    }
+
     private string GetFilePath(string playerName)
     {
-        var resolved = Path.GetFullPath(Path.Combine(_playersDir, playerName.ToLowerInvariant() + ".yaml"));
+        var dir = GetPlayerDir(playerName);
+        return Path.Combine(dir, "player.yaml");
+    }
+
+    private void ValidatePath(string resolved, string playerName)
+    {
         var safeBase = Path.GetFullPath(_playersDir);
         if (!resolved.StartsWith(safeBase + Path.DirectorySeparatorChar) && resolved != safeBase)
         {
             throw new ArgumentException($"Path traversal detected for player name: {playerName}");
         }
-        return resolved;
     }
 }

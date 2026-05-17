@@ -27,7 +27,7 @@ public class TokenBucketTests
             TicksPerSecond: 10,
             GetCurrentTick: () => tick,
             Logger: NullLogger.Instance);
-        var session = new PlayerSession(conn, entity, floodCtx);
+        var session = new PlayerSession(conn, entity, floodContext: floodCtx);
         return (session, conn);
     }
 
@@ -129,7 +129,7 @@ public class TokenBucketTests
         var entity = new Entity("player", "Alice");
         var floodCtx = new FloodContext(config, TicksPerSecond: 10,
             GetCurrentTick: () => tickVal, Logger: NullLogger.Instance);
-        var session = new PlayerSession(conn, entity, floodCtx);
+        var session = new PlayerSession(conn, entity, floodContext: floodCtx);
 
         // Use burst token
         conn.SimulateInput("look");
@@ -162,7 +162,7 @@ public class TokenBucketTests
         var entity = new Entity("player", "Alice");
         var floodCtx = new FloodContext(config, TicksPerSecond: 10,
             GetCurrentTick: () => 0L, Logger: NullLogger.Instance);
-        var session = new PlayerSession(conn, entity, floodCtx);
+        var session = new PlayerSession(conn, entity, floodContext: floodCtx);
 
         var received = new List<string>();
         session.InputMode = InputMode.Prompt;

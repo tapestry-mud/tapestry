@@ -18,10 +18,10 @@ public class FlowPersistenceAdapter : IFlowPersistence
         { return _service.PlayerSaveExists(name); }
     }
 
-    public void SaveNewPlayer(Entity entity, string passwordHash)
+    public void SaveNewPlayer(Entity entity, Guid accountId)
     {
         // Called on connection input thread during flow completion.
-        // GetAwaiter().GetResult() is safe here — no async context to deadlock against.
-        { _service.SaveNewPlayer(entity, passwordHash).GetAwaiter().GetResult(); }
+        // GetAwaiter().GetResult() is safe here -- no async context to deadlock against.
+        { _service.SaveNewPlayer(entity, accountId).GetAwaiter().GetResult(); }
     }
 }

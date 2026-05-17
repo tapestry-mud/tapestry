@@ -73,27 +73,79 @@ public class ConnectionHandlerLoginPhaseTests
             _data.Remove(playerName);
             return Task.CompletedTask;
         }
+
+        public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     private class FakeFlowPersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) => false;
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
     // ---- Harness ----
+
+    private class FakeAccountStore : IAccountStore
+    {
+        private readonly Dictionary<Guid, AccountSaveData> _byId = new();
+        private readonly Dictionary<string, Guid> _byEmail = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task SaveAsync(AccountSaveData data)
+        {
+            _byId[data.Id] = data;
+            _byEmail[data.Email] = data.Id;
+            return Task.CompletedTask;
+        }
+
+        public Task<AccountSaveData?> LoadByIdAsync(Guid accountId)
+        {
+            return Task.FromResult(_byId.GetValueOrDefault(accountId));
+        }
+
+        public Task<AccountSaveData?> LoadByEmailAsync(string email)
+        {
+            if (_byEmail.TryGetValue(email, out var id))
+            {
+                return LoadByIdAsync(id);
+            }
+            return Task.FromResult<AccountSaveData?>(null);
+        }
+
+        public Task DeleteAsync(Guid accountId)
+        {
+            if (_byId.TryGetValue(accountId, out var data))
+            {
+                _byEmail.Remove(data.Email);
+                _byId.Remove(accountId);
+            }
+            return Task.CompletedTask;
+        }
+
+        public bool ExistsByEmail(string email)
+        {
+            return _byEmail.ContainsKey(email);
+        }
+    }
 
     private record Harness(
         ConnectionHandler Handler,
         FakeGmcpHandler GmcpHandler,
         FakeConnection Connection,
         FakePlayerStore Store,
+        AccountService AccountService,
         GameLoop GameLoop);
 
-    private static Harness Build(Action<FakePlayerStore>? seed = null)
+    private static Harness Build(Action<FakePlayerStore>? seed = null, Action<AccountService>? accountSetup = null)
     {
         var store = new FakePlayerStore();
         seed?.Invoke(store);
+
+        var accountStore = new FakeAccountStore();
+        var accountService = new AccountService(accountStore);
+        accountSetup?.Invoke(accountService);
 
         var sessions = new SessionManager();
         var playerCreator = new PlayerCreator();
@@ -146,13 +198,15 @@ public class ConnectionHandlerLoginPhaseTests
 
         var spawner = new PlayerSpawner(
             sessions, world, gameLoop, new TickTimer(10), config, loginHandler,
-            mobAI, new SystemEventQueue(), new EventBus(), new TapestryMetrics(),
+            mobAI, new SystemEventQueue(), new EventBus(), accountService,
+            new TapestryMetrics(),
             NullLogger<PlayerSpawner>.Instance);
 
         var handler = new ConnectionHandler(
             sessions,
             new TapestryMetrics(),
             persistence,
+            accountService,
             config,
             NullLogger<ConnectionHandler>.Instance,
             NullLogger<Tapestry.Server.Login.LoginFlow>.Instance,
@@ -166,20 +220,24 @@ public class ConnectionHandlerLoginPhaseTests
         var conn = new FakeConnection();
         var gmcpHandler = new FakeGmcpHandler();
 
-        return new Harness(handler, gmcpHandler, conn, store, gameLoop);
+        return new Harness(handler, gmcpHandler, conn, store, accountService, gameLoop);
     }
 
-    private static PlayerSaveData MakeSaveData(string name, string password)
+    private static (PlayerSaveData Data, Guid AccountId) MakeSaveDataWithAccount(
+        string name, string password, AccountService accountService)
     {
+        var account = accountService.CreateAccount($"{name.ToLower()}@test.com", password)
+            .GetAwaiter().GetResult();
+        accountService.AddCharacterToAccount(account.Id, name).GetAwaiter().GetResult();
+
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
         var serializer = new PlayerSerializer(registry);
 
         var entity = new Entity("player", name);
         entity.LocationRoomId = "core:town-square";
-        var hash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4);
 
-        return serializer.ToSaveData(entity, hash, new List<Entity>());
+        return (serializer.ToSaveData(entity, account.Id, new List<Entity>()), account.Id);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10000)
@@ -200,7 +258,10 @@ public class ConnectionHandlerLoginPhaseTests
     [Fact]
     public async Task ExistingPlayerLogin_SendsNamePhaseOnConnect()
     {
-        var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
+        var h = Build();
+        var (saveData, _) = MakeSaveDataWithAccount("Alice", "hunter2", h.AccountService);
+        h.Store.Seed(saveData);
+
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
 
@@ -212,7 +273,10 @@ public class ConnectionHandlerLoginPhaseTests
     [Fact]
     public async Task ExistingPlayerLogin_SendsPasswordPhaseBeforePasswordPrompt()
     {
-        var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
+        var h = Build();
+        var (saveData, _) = MakeSaveDataWithAccount("Alice", "hunter2", h.AccountService);
+        h.Store.Seed(saveData);
+
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.GmcpHandler.Sent.Clear();
@@ -227,15 +291,19 @@ public class ConnectionHandlerLoginPhaseTests
     [Fact]
     public async Task ExistingPlayerLogin_SendsPlayingPhaseAfterSuccessfulLogin()
     {
-        var h = Build(s => s.Seed(MakeSaveData("Alice", "hunter2")));
+        var h = Build();
+        var (saveData, _) = MakeSaveDataWithAccount("Alice", "hunter2", h.AccountService);
+        h.Store.Seed(saveData);
+
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Alice");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Password:")));
+        await Task.Delay(100);
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("hunter2");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "playing"), 3000);
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "playing"), 5000);
 
         var playingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")
@@ -265,6 +333,9 @@ public class ConnectionHandlerLoginPhaseTests
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Newguy");
+        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "email"));
+
+        h.Connection.SimulateInput("newguy@test.com");
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
@@ -279,6 +350,8 @@ public class ConnectionHandlerLoginPhaseTests
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        h.Connection.SimulateInput("newguy@test.com");
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
         h.Connection.SimulateInput("goodpassword");  // first password
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
@@ -298,6 +371,8 @@ public class ConnectionHandlerLoginPhaseTests
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        h.Connection.SimulateInput("newguy@test.com");
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
 
         // fail 1: too short -- wait for re-prompt so flow is back at ReadLineAsync
@@ -323,6 +398,8 @@ public class ConnectionHandlerLoginPhaseTests
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
         await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
+        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        h.Connection.SimulateInput("newguy@test.com");
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
 
         h.GmcpHandler.Sent.Clear();

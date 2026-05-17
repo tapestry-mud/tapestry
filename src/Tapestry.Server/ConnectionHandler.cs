@@ -17,6 +17,7 @@ public class ConnectionHandler
     private readonly SessionManager _sessions;
     private readonly TapestryMetrics _metrics;
     private readonly PlayerPersistenceService _persistence;
+    private readonly AccountService _accountService;
     private readonly ServerConfig _config;
     private readonly ILogger<ConnectionHandler> _logger;
     private readonly ILogger<LoginFlow> _loginFlowLogger;
@@ -31,6 +32,7 @@ public class ConnectionHandler
         SessionManager sessions,
         TapestryMetrics metrics,
         PlayerPersistenceService persistence,
+        AccountService accountService,
         ServerConfig config,
         ILogger<ConnectionHandler> logger,
         ILogger<LoginFlow> loginFlowLogger,
@@ -44,6 +46,7 @@ public class ConnectionHandler
         _sessions = sessions;
         _metrics = metrics;
         _persistence = persistence;
+        _accountService = accountService;
         _config = config;
         _logger = logger;
         _loginFlowLogger = loginFlowLogger;
@@ -75,7 +78,7 @@ public class ConnectionHandler
         var adapter = new AsyncConnectionAdapter(connection);
 
         var flow = new LoginFlow(
-            adapter, loginContext, _persistence, _sessions, _loginGates, _loginHandler, _config,
+            adapter, loginContext, _persistence, _accountService, _sessions, _loginGates, _loginHandler, _config,
             _loginFlowLogger, _metrics, _flowEngine);
 
         _ = Task.Run(async () =>

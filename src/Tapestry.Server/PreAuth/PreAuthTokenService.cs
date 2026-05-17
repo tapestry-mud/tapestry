@@ -12,9 +12,9 @@ public class PreAuthTokenService
         _expirySeconds = expirySeconds;
     }
 
-    public string Issue(string name, PreAuthIntent intent, string? hashedPassword = null)
+    public string Issue(string name, Guid accountId, PreAuthIntent intent)
     {
-        var token = new PreAuthToken(name, intent, _expirySeconds, hashedPassword);
+        var token = new PreAuthToken(name, accountId, intent, _expirySeconds);
         _tokens[token.Id] = token;
         return token.Id;
     }

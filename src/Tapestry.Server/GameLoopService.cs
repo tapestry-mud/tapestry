@@ -117,7 +117,6 @@ public class GameLoopService : IHostedService
             _ = _persistence.SavePlayer(session).ContinueWith(
                 t => _logger.LogError(t.Exception?.GetBaseException(), "Failed to save player {Name} on disconnect", playerName),
                 TaskContinuationOptions.OnlyOnFaulted);
-            _persistence.UntrackPasswordHash(evt.EntityId);
 
             _sessions.Remove(session);
             _metrics.ActiveConnections.Add(-1);
@@ -176,7 +175,6 @@ public class GameLoopService : IHostedService
                         t => _logger.LogError(t.Exception?.GetBaseException(),
                             "Failed to save player {Name} on linkdead timeout", playerName),
                         TaskContinuationOptions.OnlyOnFaulted);
-                    _persistence.UntrackPasswordHash(session.PlayerEntity.Id);
 
                     _sessions.Remove(session);
                     _metrics.ActiveConnections.Add(-1);

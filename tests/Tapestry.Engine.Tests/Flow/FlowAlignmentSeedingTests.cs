@@ -12,7 +12,7 @@ public class FlowAlignmentSeedingTests
     private class FakePersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) => false;
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
     private (FlowEngine engine, SessionManager sessions, World world,

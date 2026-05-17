@@ -16,6 +16,7 @@ public class PlayerInitModule : IGameModule
     private readonly ServerConfig _config;
     private readonly IPackManifestProvider _packLoader;
     private readonly PlayerPersistenceService _persistence;
+    private readonly AccountService _accountService;
     private readonly RaceRegistry _raceRegistry;
     private readonly SpawnManager _spawns;
     private readonly ILogger<PlayerInitModule> _logger;
@@ -26,6 +27,7 @@ public class PlayerInitModule : IGameModule
         ServerConfig config,
         IPackManifestProvider packLoader,
         PlayerPersistenceService persistence,
+        AccountService accountService,
         RaceRegistry raceRegistry,
         SpawnManager spawns,
         ILogger<PlayerInitModule> logger)
@@ -33,6 +35,7 @@ public class PlayerInitModule : IGameModule
         _config = config;
         _packLoader = packLoader;
         _persistence = persistence;
+        _accountService = accountService;
         _raceRegistry = raceRegistry;
         _spawns = spawns;
         _logger = logger;
@@ -58,6 +61,26 @@ public class PlayerInitModule : IGameModule
             return;
         }
 
+        Guid accountId;
+        if (!string.IsNullOrWhiteSpace(admin.Email) && _accountService.ExistsByEmail(admin.Email))
+        {
+            var account = _accountService.Authenticate(admin.Email, admin.Password).GetAwaiter().GetResult();
+            if (account == null)
+            {
+                _logger.LogWarning("Admin seed: account exists for {Email} but password doesn't match", admin.Email);
+                return;
+            }
+            accountId = account.Id;
+        }
+        else
+        {
+            var email = string.IsNullOrWhiteSpace(admin.Email) ? $"{admin.Handle.ToLower()}@localhost" : admin.Email;
+            var account = _accountService.CreateAccount(email, admin.Password).GetAwaiter().GetResult();
+            accountId = account.Id;
+        }
+
+        _accountService.AddCharacterToAccount(accountId, admin.Handle).GetAwaiter().GetResult();
+
         var entity = new Entity("player", admin.Handle);
         entity.AddRole("admin");
         entity.Stats.BaseStrength = 10;
@@ -76,8 +99,7 @@ public class PlayerInitModule : IGameModule
         entity.SetProperty(CommonProperties.RegenResource, 1);
         entity.SetProperty(CommonProperties.RegenMovement, 3);
 
-        var hash = BCrypt.Net.BCrypt.HashPassword(admin.Password);
-        _persistence.SaveNewPlayer(entity, hash).GetAwaiter().GetResult();
+        _persistence.SaveNewPlayer(entity, accountId).GetAwaiter().GetResult();
 
         _logger.LogInformation(
             "Created admin account: {Handle} (default password -- change it after first login)",
@@ -163,8 +185,10 @@ public class PlayerInitModule : IGameModule
                     }
                 }
 
-                var hash = BCrypt.Net.BCrypt.HashPassword(seed.Password);
-                _persistence.SaveNewPlayer(entity, hash).GetAwaiter().GetResult();
+                var seedEmail = $"{seed.Name.ToLower()}@localhost";
+                var seedAccount = _accountService.CreateAccount(seedEmail, seed.Password).GetAwaiter().GetResult();
+                _accountService.AddCharacterToAccount(seedAccount.Id, seed.Name).GetAwaiter().GetResult();
+                _persistence.SaveNewPlayer(entity, seedAccount.Id).GetAwaiter().GetResult();
 
                 _logger.LogInformation("Created seed player: {Name}", seed.Name);
             }

@@ -12,6 +12,7 @@ public class PersistenceModule : IGameModule
     private readonly CommandRegistry _commandRegistry;
     private readonly SessionManager _sessions;
     private readonly PlayerPersistenceService _persistence;
+    private readonly AccountService _accountService;
     private readonly World _world;
     private readonly LoginHandler _loginHandler;
     private readonly ServerConfig _config;
@@ -22,6 +23,7 @@ public class PersistenceModule : IGameModule
         CommandRegistry commandRegistry,
         SessionManager sessions,
         PlayerPersistenceService persistence,
+        AccountService accountService,
         World world,
         LoginHandler loginHandler,
         ServerConfig config)
@@ -29,6 +31,7 @@ public class PersistenceModule : IGameModule
         _commandRegistry = commandRegistry;
         _sessions = sessions;
         _persistence = persistence;
+        _accountService = accountService;
         _world = world;
         _loginHandler = loginHandler;
         _config = config;
@@ -66,10 +69,21 @@ public class PersistenceModule : IGameModule
                     return;
                 }
 
+                var accountId = _accountService.GetAccountForEntity(session.PlayerEntity.Id);
+                if (accountId == null)
+                {
+                    _sessions.SendToPlayer(ctx.EntityId, "No account linked to this character.\r\n");
+                    return;
+                }
+
                 session.InputMode = InputMode.Prompt;
                 _loginHandler.SendLoginPhase(session.Connection.Id, "password");
                 session.Connection.SuppressEcho();
                 _sessions.SendToPlayer(ctx.EntityId, "Enter current password:\r\n");
+
+                var capturedAccountId = accountId.Value;
+                var promptStep = 0;
+                string? currentPassword = null;
 
                 void ExitPrompt(string message)
                 {
@@ -80,44 +94,33 @@ public class PersistenceModule : IGameModule
                     _sessions.SendToPlayer(ctx.EntityId, message + "\r\n");
                 }
 
-                session.PromptHandler = (currentPw) =>
+                session.PromptHandler = (input) =>
                 {
-                    currentPw = currentPw.Trim();
-                    var existingHash = _persistence.GetPasswordHash(session.PlayerEntity.Id);
-                    if (existingHash == null || !BCrypt.Net.BCrypt.Verify(currentPw, existingHash))
+                    input = input.Trim();
+                    if (promptStep == 0)
                     {
-                        ExitPrompt("Incorrect password. Password reset cancelled.");
-                        return;
+                        currentPassword = input;
+                        promptStep = 1;
+                        _sessions.SendToPlayer(ctx.EntityId, "Enter new password:\r\n");
                     }
-
-                    session.Connection.SendLine("Enter new password:");
-                    session.PromptHandler = (newPw) =>
+                    else if (promptStep == 1)
                     {
-                        newPw = newPw.Trim();
-                        if (newPw.Length < _config.Persistence.PasswordMinLength)
+                        if (input.Length < _config.Persistence.PasswordMinLength)
                         {
-                            ExitPrompt(
-                                $"Password must be at least {_config.Persistence.PasswordMinLength} characters. " +
-                                "Password reset cancelled.");
+                            ExitPrompt($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
                             return;
                         }
 
-                        session.Connection.SendLine("Confirm new password:");
-                        session.PromptHandler = (confirmPw) =>
+                        var changed = _accountService.ChangePassword(capturedAccountId, currentPassword!, input)
+                            .GetAwaiter().GetResult();
+                        if (!changed)
                         {
-                            confirmPw = confirmPw.Trim();
-                            if (confirmPw != newPw)
-                            {
-                                ExitPrompt("Passwords don't match. Password reset cancelled.");
-                                return;
-                            }
+                            ExitPrompt("Current password is incorrect.");
+                            return;
+                        }
 
-                            var newHash = BCrypt.Net.BCrypt.HashPassword(newPw);
-                            _persistence.UpdatePasswordHash(session.PlayerEntity.Id, newHash);
-                            _ = _persistence.SavePlayer(session);
-                            ExitPrompt("Password updated.");
-                        };
-                    };
+                        ExitPrompt("Password changed.");
+                    }
                 };
                 return;
             }
@@ -139,15 +142,11 @@ public class PersistenceModule : IGameModule
                     return;
                 }
 
-                var hash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-
+                Guid? targetAccountId = null;
                 var targetSession = _sessions.GetByPlayerName(targetName);
                 if (targetSession != null)
                 {
-                    _persistence.UpdatePasswordHash(targetSession.PlayerEntity.Id, hash);
-                    _ = _persistence.SavePlayer(targetSession);
-                    _sessions.SendToPlayer(targetSession.PlayerEntity.Id,
-                        "Your password has been reset by an administrator.\r\n");
+                    targetAccountId = targetSession.AccountId;
                 }
                 else
                 {
@@ -157,7 +156,29 @@ public class PersistenceModule : IGameModule
                         _sessions.SendToPlayer(ctx.EntityId, "Player not found.\r\n");
                         return;
                     }
-                    _ = _persistence.SaveNewPlayer(data.Entity, hash);
+                    targetAccountId = data.AccountId;
+                }
+
+                if (targetAccountId == null || targetAccountId == Guid.Empty)
+                {
+                    _sessions.SendToPlayer(ctx.EntityId, "Player has no linked account.\r\n");
+                    return;
+                }
+
+                var account = _accountService.LoadAccount(targetAccountId.Value).GetAwaiter().GetResult();
+                if (account == null)
+                {
+                    _sessions.SendToPlayer(ctx.EntityId, "Account not found.\r\n");
+                    return;
+                }
+
+                account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                _accountService.SaveAccount(account).GetAwaiter().GetResult();
+
+                if (targetSession != null)
+                {
+                    _sessions.SendToPlayer(targetSession.PlayerEntity.Id,
+                        "Your password has been reset by an administrator.\r\n");
                 }
 
                 _sessions.SendToPlayer(ctx.EntityId,

@@ -389,6 +389,6 @@ public class PackLoaderTests
     private sealed class NullFlowPersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) { return false; }
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 }

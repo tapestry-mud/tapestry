@@ -51,7 +51,6 @@ public class PlayerPersistencePhaseFilterTests
     {
         var playingSession = MakeSession("Veteran", LoginPhase.Playing);
         _sessions.Add(playingSession);
-        _svc.TrackPasswordHash(playingSession.PlayerEntity.Id, "$2a$12$fakehash");
 
         await _svc.SaveAllPlayers();
 
@@ -65,7 +64,6 @@ public class PlayerPersistencePhaseFilterTests
         var playing = MakeSession("Hero", LoginPhase.Playing);
         _sessions.Add(creating);
         _sessions.Add(playing);
-        _svc.TrackPasswordHash(playing.PlayerEntity.Id, "$2a$12$fakehash");
 
         await _svc.SaveAllPlayers();
 
@@ -97,5 +95,10 @@ internal class FakePlayerStore : IPlayerStore
     public Task DeleteAsync(string playerName)
     {
         return Task.CompletedTask;
+    }
+
+    public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+    {
+        return Array.Empty<string>();
     }
 }
