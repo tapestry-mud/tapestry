@@ -145,7 +145,7 @@ public class ConnectionHandlerLoginPhaseTests
             NullLogger<MobAIManager>.Instance);
 
         var spawner = new PlayerSpawner(
-            sessions, world, gameLoop, loginHandler,
+            sessions, world, gameLoop, new TickTimer(10), config, loginHandler,
             mobAI, new SystemEventQueue(), new EventBus(), new TapestryMetrics(),
             NullLogger<PlayerSpawner>.Instance);
 
@@ -300,14 +300,14 @@ public class ConnectionHandlerLoginPhaseTests
         h.Connection.SimulateInput("Newguy");
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
 
-        // fail 1: too short
+        // fail 1: too short -- wait for re-prompt so flow is back at ReadLineAsync
         h.Connection.SimulateInput("ab");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("at least")));
+        await WaitUntilAsync(() => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 2);
         // fail 2: enter valid length, then mismatch on confirm
         h.Connection.SimulateInput("goodpassword");
         await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
         h.Connection.SimulateInput("wrongconfirm");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
+        await WaitUntilAsync(() => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 3);
         // fail 3: too short again
         h.Connection.SimulateInput("ab");
         await WaitUntilAsync(() => !h.Connection.IsConnected);
