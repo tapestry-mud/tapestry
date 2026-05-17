@@ -18,6 +18,9 @@ public class TapestryMetrics
     public Counter<long> FloodCommandsDropped { get; }
     public Counter<long> FloodDisconnects { get; }
     public Counter<long> BadInputTotal { get; }
+    public UpDownCounter<long> LinkDeadActive { get; }
+    public Counter<long> LinkDeadReconnected { get; }
+    public Counter<long> LinkDeadExpired { get; }
 
     public TapestryMetrics()
     {
@@ -65,5 +68,17 @@ public class TapestryMetrics
         BadInputTotal = _meter.CreateCounter<long>(
             "tapestry_bad_input_total",
             description: "Unrecognized command frequency");
+
+        LinkDeadActive = _meter.CreateUpDownCounter<long>(
+            "tapestry_linkdead_active",
+            description: "Currently linkdead sessions");
+
+        LinkDeadReconnected = _meter.CreateCounter<long>(
+            "tapestry_linkdead_reconnected",
+            description: "Successful reconnections after link-dead");
+
+        LinkDeadExpired = _meter.CreateCounter<long>(
+            "tapestry_linkdead_expired",
+            description: "Linkdead sessions that timed out and were despawned");
     }
 }
