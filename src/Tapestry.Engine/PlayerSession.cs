@@ -42,6 +42,7 @@ public class PlayerSession
     private int _floodStrikes;
     private long _lastStrikeTick;
     private bool _floodWarned;
+    private bool _disconnected;
 
     public void UpdateLastInputTick(long tick)
     {
@@ -64,9 +65,11 @@ public class PlayerSession
         return _inputQueue.TryDequeue(out input);
     }
 
+    // OnInput fires serially per connection -- both read loops await before invoking.
     private bool TryConsumeToken()
     {
         if (_floodCtx == null) { return true; }
+        if (_disconnected) { return false; }
 
         var currentTick = _floodCtx.GetCurrentTick();
 
@@ -85,20 +88,19 @@ public class PlayerSession
             _lastReplenishTick = currentTick;
         }
 
+        if (_floodStrikes > 0)
+        {
+            var decayTicks = (long)(_floodCtx.Config.StrikeDecaySeconds * _floodCtx.TicksPerSecond);
+            if (currentTick - _lastStrikeTick >= decayTicks)
+            {
+                _floodStrikes = 0;
+                _floodWarned = false;
+            }
+        }
+
         if (_tokens >= 1.0f)
         {
             _tokens -= 1.0f;
-
-            if (_floodStrikes > 0)
-            {
-                var decayTicks = (long)(_floodCtx.Config.StrikeDecaySeconds * _floodCtx.TicksPerSecond);
-                if (currentTick - _lastStrikeTick >= decayTicks)
-                {
-                    _floodStrikes = 0;
-                    _floodWarned = false;
-                }
-            }
-
             return true;
         }
 
@@ -121,6 +123,7 @@ public class PlayerSession
                 PlayerEntity.Name, PlayerEntity.Id);
             _floodCtx.DisconnectCounter?.Add(1);
             Connection.SendLine("Disconnected: command flooding.");
+            _disconnected = true;
             Connection.Disconnect("command flooding");
         }
 
