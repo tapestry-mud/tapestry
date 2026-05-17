@@ -151,13 +151,15 @@ public class ConnectionHandlerLoginPhaseTests
 
         var spawner = new PlayerSpawner(
             sessions, world, gameLoop, new TickTimer(10), config, loginHandler,
-            mobAI, new SystemEventQueue(), new EventBus(), new TapestryMetrics(),
+            mobAI, new SystemEventQueue(), new EventBus(), null!,
+            new TapestryMetrics(),
             NullLogger<PlayerSpawner>.Instance);
 
         var handler = new ConnectionHandler(
             sessions,
             new TapestryMetrics(),
             persistence,
+            null!,
             config,
             NullLogger<ConnectionHandler>.Instance,
             NullLogger<Tapestry.Server.Login.LoginFlow>.Instance,

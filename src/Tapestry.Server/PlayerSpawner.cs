@@ -24,6 +24,7 @@ public class PlayerSpawner
     private readonly MobAIManager _mobAI;
     private readonly SystemEventQueue _eventQueue;
     private readonly EventBus _eventBus;
+    private readonly AccountService _accountService;
     private readonly TapestryMetrics _metrics;
     private readonly ILogger<PlayerSpawner> _logger;
 
@@ -37,6 +38,7 @@ public class PlayerSpawner
         MobAIManager mobAI,
         SystemEventQueue eventQueue,
         EventBus eventBus,
+        AccountService accountService,
         TapestryMetrics metrics,
         ILogger<PlayerSpawner> logger)
     {
@@ -49,6 +51,7 @@ public class PlayerSpawner
         _mobAI = mobAI;
         _eventQueue = eventQueue;
         _eventBus = eventBus;
+        _accountService = accountService;
         _metrics = metrics;
         _logger = logger;
     }
@@ -72,7 +75,7 @@ public class PlayerSpawner
         }
     }
 
-    public void CompleteLogin(Entity entity, IConnection connection, LoginContext preLogin)
+    public void CompleteLogin(Entity entity, IConnection connection, LoginContext preLogin, Guid accountId)
     {
         var spawnRoom = _world.GetRoom(entity.LocationRoomId ?? DefaultRecallRoom)
                         ?? _world.GetRoom(DefaultRecallRoom)
@@ -96,8 +99,9 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity, floodContext: BuildFloodContext());
+        var session = new PlayerSession(connection, entity, accountId, BuildFloodContext());
         session.Phase = LoginPhase.Playing;
+        _accountService.TrackOnlineEntity(entity.Id, accountId);
 
         connection.OnDisconnected += () =>
         {
@@ -142,7 +146,7 @@ public class PlayerSpawner
         existing.Connection.Disconnect("session takeover");
         _metrics.ActiveConnections.Add(-1);
 
-        CompleteLogin(existing.PlayerEntity, newConnection, preLogin);
+        CompleteLogin(existing.PlayerEntity, newConnection, preLogin, existing.AccountId);
     }
 
     public void ReconnectLinkDead(PlayerSession session, IConnection newConnection, LoginContext preLogin)
@@ -194,7 +198,7 @@ public class PlayerSpawner
 
     public PlayerSession CompleteNewCharacter(
         string name,
-        string hashedPassword,
+        Guid accountId,
         IConnection connection,
         LoginContext preLogin,
         FlowEngine? flowEngine)
@@ -205,10 +209,9 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity, floodContext: BuildFloodContext())
+        var session = new PlayerSession(connection, entity, accountId, BuildFloodContext())
         {
             Phase = LoginPhase.Creating,
-            PendingPasswordHash = hashedPassword
         };
 
         connection.OnDisconnected += () =>

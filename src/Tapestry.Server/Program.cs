@@ -372,7 +372,7 @@ app.MapFallback(async context =>
                 if (data != null)
                 {
                     spawner.RestoreWorldObjects(data);
-                    spawner.CompleteLogin(data.Entity, colorConn, loginContext);
+                    spawner.CompleteLogin(data.Entity, colorConn, loginContext, data.AccountId);
                 }
                 else
                 {
@@ -381,9 +381,10 @@ app.MapFallback(async context =>
             }
             else
             {
+                // TODO(Task 10): pre-auth will carry accountId instead of hashed password
                 spawner.CompleteNewCharacter(
                     preAuthToken.Name,
-                    preAuthToken.HashedPassword!,
+                    Guid.Empty,
                     colorConn,
                     loginContext,
                     flowEngine);

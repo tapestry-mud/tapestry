@@ -15,6 +15,7 @@ public class LoginFlow
     private readonly AsyncConnectionAdapter _adapter;
     private readonly LoginContext _context;
     private readonly PlayerPersistenceService _persistence;
+    private readonly AccountService _accountService;
     private readonly SessionManager _sessions;
     private readonly LoginGateRegistry _loginGates;
     private readonly LoginHandler? _loginHandler;
@@ -32,6 +33,7 @@ public class LoginFlow
         AsyncConnectionAdapter adapter,
         LoginContext context,
         PlayerPersistenceService persistence,
+        AccountService accountService,
         SessionManager sessions,
         LoginGateRegistry loginGates,
         LoginHandler? loginHandler,
@@ -43,6 +45,7 @@ public class LoginFlow
         _adapter = adapter;
         _context = context;
         _persistence = persistence;
+        _accountService = accountService;
         _sessions = sessions;
         _loginGates = loginGates;
         _loginHandler = loginHandler;
@@ -135,6 +138,14 @@ public class LoginFlow
         _adapter.SendLine("Password:");
         SendGmcpPrompt("Enter your password");
 
+        var data = await _persistence.LoadPlayer(name);
+        if (data == null)
+        {
+            _adapter.RestoreEcho();
+            _adapter.SendLine("Error loading character. Please try again.");
+            return false;
+        }
+
         var failedAttempts = 0;
         var maxAttempts = _config.Persistence.MaxLoginAttempts;
 
@@ -146,17 +157,9 @@ public class LoginFlow
             _adapter.SendLine("");
 
             var password = passwordInput.Trim();
-            var data = await _persistence.LoadPlayer(name);
 
-            if (data == null)
-            {
-                _adapter.SendLine("Error loading character. Please try again.");
-                return false;
-            }
-
-            // TODO(Task 9): verify password against AccountService instead of character save
-            // Password hash moved to account; always reject until rewired.
-            if (true)
+            var account = await _accountService.AuthenticateById(data.AccountId, password);
+            if (account == null)
             {
                 failedAttempts++;
                 if (failedAttempts >= maxAttempts)
@@ -173,6 +176,15 @@ public class LoginFlow
             }
 
             var existingSession = _sessions.GetByPlayerName(name);
+            var otherCount = _sessions.ActiveCharacterCount(
+                data.AccountId, excludeEntityId: data.Entity.Id);
+
+            if (otherCount >= _config.Accounts.MaxConcurrentCharacters)
+            {
+                _adapter.SendLine("You already have a character online. Disconnect first.");
+                return false;
+            }
+
             if (existingSession != null)
             {
                 if (existingSession.Phase == LoginPhase.LinkDead)
@@ -184,7 +196,7 @@ public class LoginFlow
             }
 
             spawner.RestoreWorldObjects(data);
-            spawner.CompleteLogin(data.Entity, _context.Connection, _context);
+            spawner.CompleteLogin(data.Entity, _context.Connection, _context, data.AccountId);
             return true;
         }
     }
@@ -227,70 +239,144 @@ public class LoginFlow
             }
         }
 
-        SetPhase(LoginPhase.Password);
+        // Email phase
+        SetPhase(LoginPhase.Email);
         _adapter.SendLine("");
         _adapter.SendLine("Welcome, " + name + ".");
-        _adapter.SendLine("Bind a new thread to the loom.");
+        _adapter.SendLine("Link your characters with an email.");
         _adapter.SendLine("");
-        _adapter.SuppressEcho();
-        _adapter.SendLine("Choose a password:");
-        SendGmcpPrompt("Choose a password");
+        _adapter.SendLine("Email:");
+        SendGmcpPrompt("Enter your email");
 
-        var creationAttempts = 0;
-        string? password = null;
-
+        var emailAttempts = 0;
+        string email;
         while (true)
         {
             var ct = _context.PhaseCts.Token;
-            var passwordInput = await _adapter.ReadLineAsync(ct);
-            _adapter.SendLine("");
-            var candidate = passwordInput.Trim();
+            var emailInput = await _adapter.ReadLineAsync(ct);
+            var candidate = emailInput.Trim();
 
-            if (candidate.Length < _config.Persistence.PasswordMinLength)
+            var (emailValid, emailError) = EmailValidator.Validate(candidate);
+            if (!emailValid)
             {
-                creationAttempts++;
-                if (creationAttempts >= 3)
+                emailAttempts++;
+                if (emailAttempts >= 3)
                 {
-                    _adapter.RestoreEcho();
                     _adapter.SendLine("Too many failed attempts.");
                     _adapter.Disconnect("login failed");
                     return true;
                 }
-                _adapter.SendLine($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
-                _adapter.SendLine("Choose a password:");
-                SendGmcpPrompt("Choose a password");
+                _adapter.SendLine(emailError!);
+                _adapter.SendLine("Email:");
+                SendGmcpPrompt("Enter your email");
                 continue;
             }
 
-            _adapter.SendLine("Confirm password:");
-            SendGmcpPrompt("Confirm password");
-
-            var confirmInput = await _adapter.ReadLineAsync(ct);
-            _adapter.SendLine("");
-            var confirm = confirmInput.Trim();
-
-            if (confirm != candidate)
-            {
-                creationAttempts++;
-                if (creationAttempts >= 3)
-                {
-                    _adapter.RestoreEcho();
-                    _adapter.SendLine("Too many failed attempts.");
-                    _adapter.Disconnect("login failed");
-                    return true;
-                }
-                _adapter.SendLine("Passwords don't match. Try again.");
-                _adapter.SendLine("Choose a password:");
-                SendGmcpPrompt("Choose a password:");
-                continue;
-            }
-
-            password = candidate;
+            email = EmailValidator.Normalize(candidate);
             break;
         }
 
-        _adapter.RestoreEcho();
-        var hash = BCrypt.Net.BCrypt.HashPassword(password);
+        Guid accountId;
+
+        if (_accountService.ExistsByEmail(email))
+        {
+            // Existing account -- verify password
+            SetPhase(LoginPhase.Password);
+            _adapter.SendLine("Account found. Enter your password.");
+            _adapter.SuppressEcho();
+            _adapter.SendLine("Password:");
+            SendGmcpPrompt("Enter your password");
+
+            var ct = _context.PhaseCts.Token;
+            var passwordInput = await _adapter.ReadLineAsync(ct);
+            _adapter.RestoreEcho();
+            _adapter.SendLine("");
+
+            var account = await _accountService.Authenticate(email, passwordInput.Trim());
+            if (account == null)
+            {
+                _adapter.SendLine("Incorrect password.");
+                return false;
+            }
+
+            var otherCount = _sessions.ActiveCharacterCount(account.Id);
+            if (otherCount >= _config.Accounts.MaxConcurrentCharacters)
+            {
+                _adapter.SendLine("You already have a character online. Disconnect first.");
+                return false;
+            }
+
+            accountId = account.Id;
+            await _accountService.AddCharacterToAccount(accountId, name);
+        }
+        else
+        {
+            // New account -- create with password
+            SetPhase(LoginPhase.Password);
+            _adapter.SendLine("");
+            _adapter.SuppressEcho();
+            _adapter.SendLine("Choose a password:");
+            SendGmcpPrompt("Choose a password");
+
+            var creationAttempts = 0;
+            string? password = null;
+
+            while (true)
+            {
+                var ct = _context.PhaseCts.Token;
+                var passwordInput = await _adapter.ReadLineAsync(ct);
+                _adapter.SendLine("");
+                var candidatePw = passwordInput.Trim();
+
+                if (candidatePw.Length < _config.Persistence.PasswordMinLength)
+                {
+                    creationAttempts++;
+                    if (creationAttempts >= 3)
+                    {
+                        _adapter.RestoreEcho();
+                        _adapter.SendLine("Too many failed attempts.");
+                        _adapter.Disconnect("login failed");
+                        return true;
+                    }
+                    _adapter.SendLine($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
+                    _adapter.SendLine("Choose a password:");
+                    SendGmcpPrompt("Choose a password");
+                    continue;
+                }
+
+                _adapter.SendLine("Confirm password:");
+                SendGmcpPrompt("Confirm password");
+
+                var confirmInput = await _adapter.ReadLineAsync(ct);
+                _adapter.SendLine("");
+                var confirm = confirmInput.Trim();
+
+                if (confirm != candidatePw)
+                {
+                    creationAttempts++;
+                    if (creationAttempts >= 3)
+                    {
+                        _adapter.RestoreEcho();
+                        _adapter.SendLine("Too many failed attempts.");
+                        _adapter.Disconnect("login failed");
+                        return true;
+                    }
+                    _adapter.SendLine("Passwords don't match. Try again.");
+                    _adapter.SendLine("Choose a password:");
+                    SendGmcpPrompt("Choose a password");
+                    continue;
+                }
+
+                password = candidatePw;
+                break;
+            }
+
+            _adapter.RestoreEcho();
+
+            var account = await _accountService.CreateAccount(email, password);
+            accountId = account.Id;
+            await _accountService.AddCharacterToAccount(accountId, name);
+        }
 
         var entity = CreateNewPlayerEntity(name);
         if (_context.Connection.RemoteAddress != null)
@@ -298,10 +384,9 @@ public class LoginFlow
             entity.SetProperty("last_ip", _context.Connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(_context.Connection, entity)
+        var session = new PlayerSession(_context.Connection, entity, accountId)
         {
             Phase = LoginPhase.Creating,
-            PendingPasswordHash = hash
         };
 
         _context.Connection.OnDisconnected += () =>
