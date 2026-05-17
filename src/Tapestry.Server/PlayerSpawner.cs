@@ -145,6 +145,11 @@ public class PlayerSpawner
         CompleteLogin(existing.PlayerEntity, newConnection, preLogin);
     }
 
+    public void ReconnectLinkDead(PlayerSession session, IConnection newConnection, LoginContext preLogin)
+    {
+        throw new NotImplementedException();
+    }
+
     public PlayerSession CompleteNewCharacter(
         string name,
         string hashedPassword,

@@ -173,6 +173,11 @@ public class LoginFlow
             var existingSession = _sessions.GetByPlayerName(name);
             if (existingSession != null)
             {
+                if (existingSession.Phase == LoginPhase.LinkDead)
+                {
+                    spawner.ReconnectLinkDead(existingSession, _context.Connection, _context);
+                    return true;
+                }
                 return await HandleSessionTakeoverAsync(existingSession, spawner);
             }
 
