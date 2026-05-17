@@ -147,7 +147,49 @@ public class PlayerSpawner
 
     public void ReconnectLinkDead(PlayerSession session, IConnection newConnection, LoginContext preLogin)
     {
-        throw new NotImplementedException();
+        var entity = session.PlayerEntity;
+        var capturedConnectionId = newConnection.Id;
+        var capturedEntityId = entity.Id;
+
+        session.ReplaceConnection(newConnection);
+        _sessions.ReRegisterConnectionForSession(session);
+
+        newConnection.OnDisconnected += () =>
+        {
+            _eventQueue.Enqueue(new DisconnectEvent(
+                Guid.Parse(capturedConnectionId), capturedEntityId, "connection closed"));
+        };
+
+        session.Phase = LoginPhase.Playing;
+        entity.RemoveTag("linkdead");
+        session.UpdateLastInputTick(_gameLoop.TickCount);
+        session.ClearInputQueue();
+
+        _sessions.RemovePreLogin(preLogin.ConnectionId);
+        _metrics.LinkDeadActive.Add(-1);
+        _metrics.LinkDeadReconnected.Add(1);
+
+        newConnection.SendLine("Reconnected.");
+        session.EnqueueInput("look");
+
+        var roomId = entity.LocationRoomId;
+        if (roomId != null)
+        {
+            _sessions.SendToRoom(roomId, entity.Name + " has reconnected.\r\n", entity.Id);
+        }
+
+        _loginHandler.SendLoginPhase(capturedConnectionId, "playing");
+
+        _eventBus.Publish(new GameEvent
+        {
+            Type = "player.reconnect",
+            SourceEntityId = capturedEntityId,
+            Data = new Dictionary<string, object?> { ["playerName"] = entity.Name }
+        });
+
+        _gameLoop.Schedule(() => _loginHandler.TriggerPostLoginBurst(capturedConnectionId, entity));
+
+        _logger.LogInformation("Player {Name} reconnected after link-dead (entity {Id})", entity.Name, entity.Id);
     }
 
     public PlayerSession CompleteNewCharacter(
