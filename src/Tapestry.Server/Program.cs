@@ -78,6 +78,8 @@ builder.Services.AddTapestryScripting();
 
 // Persistence
 builder.Services.AddSingleton<IPlayerStore, FilePlayerStore>();
+builder.Services.AddSingleton<IAccountStore, FileAccountStore>();
+builder.Services.AddSingleton<AccountService>();
 builder.Services.AddSingleton<PlayerPersistenceService>();
 builder.Services.AddSingleton<IFlowPersistence, FlowPersistenceAdapter>();
 builder.Services.AddSingleton<Tapestry.Engine.Quests.QuestPersistenceService>();
@@ -230,77 +232,101 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
     return Results.Json(new { exists, nameValid = true, error = (string?)null });
 }).RequireRateLimiting("auth-light");
 
-app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceService persistence,
-    SessionManager sessions, PreAuthTokenService tokenService, LoginGateRegistry loginGates) =>
+app.MapPost("/auth/login", async (HttpContext httpContext, AccountService accountService,
+    PreAuthTokenService tokenService) =>
 {
     var body = await httpContext.Request.ReadFromJsonAsync<PreAuthLoginRequest>();
-    if (body == null || string.IsNullOrWhiteSpace(body.Name))
+    if (body == null || string.IsNullOrWhiteSpace(body.Email))
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = "Name is required" });
+        return Results.Json(new { error = "Email is required" });
     }
 
-    var name = body.Name.Trim();
-    var (nameValid, nameError) = NameValidator.Validate(name);
-    if (!nameValid)
+    if (string.IsNullOrEmpty(body.Password))
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = nameError });
+        return Results.Json(new { error = "Password is required" });
     }
 
-    var canonical = NameValidator.Canonicalize(name!);
-    var exists = persistence.PlayerSaveExists(canonical);
-
-    if (exists)
+    var (emailValid, emailError) = EmailValidator.Validate(body.Email);
+    if (!emailValid)
     {
-        if (string.IsNullOrEmpty(body.Password))
-        {
-            httpContext.Response.StatusCode = 400;
-            return Results.Json(new { error = "Password is required" });
-        }
-
-        var data = await persistence.LoadPlayer(canonical);
-        if (data == null)
-        {
-            httpContext.Response.StatusCode = 500;
-            return Results.Json(new { error = "Error loading character" });
-        }
-
-        // TODO(Task 9): verify password against AccountService instead of character save
-        // Password hash moved to account; pre-auth login will be rewired in a later task.
-        if (true)
-        {
-            httpContext.Response.StatusCode = 401;
-            return Results.Json(new { error = "Invalid name or password" });
-        }
-
-        var token = tokenService.Issue(canonical, PreAuthIntent.Login);
-        return Results.Json(new { token });
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = emailError });
     }
-    else
+
+    var account = await accountService.Authenticate(body.Email, body.Password);
+    if (account == null)
     {
-        if (string.IsNullOrEmpty(body.Password))
+        httpContext.Response.StatusCode = 401;
+        return Results.Json(new { error = "Invalid email or password" });
+    }
+
+    return Results.Json(new
+    {
+        account_id = account.Id.ToString(),
+        characters = account.Characters
+    });
+}).RequireRateLimiting("auth-strict");
+
+app.MapPost("/auth/select", async (HttpContext httpContext, AccountService accountService,
+    PlayerPersistenceService persistence, SessionManager sessions, PreAuthTokenService tokenService,
+    LoginGateRegistry loginGates) =>
+{
+    var body = await httpContext.Request.ReadFromJsonAsync<PreAuthSelectRequest>();
+    if (body == null || string.IsNullOrWhiteSpace(body.AccountId))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "account_id is required" });
+    }
+
+    if (!Guid.TryParse(body.AccountId, out var accountId))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "Invalid account_id" });
+    }
+
+    var account = await accountService.LoadAccount(accountId);
+    if (account == null)
+    {
+        httpContext.Response.StatusCode = 404;
+        return Results.Json(new { error = "Account not found" });
+    }
+
+    if (!string.IsNullOrWhiteSpace(body.Character))
+    {
+        var charName = body.Character.Trim();
+        if (!account.Characters.Contains(charName, StringComparer.OrdinalIgnoreCase))
         {
-            httpContext.Response.StatusCode = 400;
-            return Results.Json(new { error = "Password is required" });
+            httpContext.Response.StatusCode = 403;
+            return Results.Json(new { error = "Character not on this account" });
         }
 
-        if (body.Password.Length < config.Persistence.PasswordMinLength)
-        {
-            httpContext.Response.StatusCode = 400;
-            return Results.Json(new { error = $"Password must be at least {config.Persistence.PasswordMinLength} characters" });
-        }
-
-        if (body.ConfirmPassword != body.Password)
-        {
-            httpContext.Response.StatusCode = 400;
-            return Results.Json(new { error = "Passwords do not match" });
-        }
-
-        if (sessions.GetByPlayerName(canonical) != null)
+        var otherCount = sessions.ActiveCharacterCount(accountId);
+        if (otherCount >= config.Accounts.MaxConcurrentCharacters)
         {
             httpContext.Response.StatusCode = 409;
-            return Results.Json(new { error = "That name is currently in use" });
+            return Results.Json(new { error = "Concurrent character limit reached" });
+        }
+
+        var token = tokenService.Issue(charName, accountId, PreAuthIntent.Login);
+        return Results.Json(new { token });
+    }
+    else if (!string.IsNullOrWhiteSpace(body.NewCharacter))
+    {
+        var charName = body.NewCharacter.Trim();
+        var (nameValid, nameError) = NameValidator.Validate(charName);
+        if (!nameValid)
+        {
+            httpContext.Response.StatusCode = 400;
+            return Results.Json(new { error = nameError });
+        }
+
+        var canonical = NameValidator.Canonicalize(charName);
+        if (persistence.PlayerSaveExists(canonical))
+        {
+            httpContext.Response.StatusCode = 409;
+            return Results.Json(new { error = "Character name already exists" });
         }
 
         var gateResult = loginGates.RunAll(canonical, null!);
@@ -310,9 +336,14 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
             return Results.Json(new { error = gateResult.Message ?? "Name not allowed" });
         }
 
-        var hash = BCrypt.Net.BCrypt.HashPassword(body.Password);
-        var token = tokenService.Issue(canonical, PreAuthIntent.Create, hash);
+        await accountService.AddCharacterToAccount(accountId, canonical);
+        var token = tokenService.Issue(canonical, accountId, PreAuthIntent.Create);
         return Results.Json(new { token });
+    }
+    else
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "character or new_character is required" });
     }
 }).RequireRateLimiting("auth-strict");
 
@@ -372,7 +403,7 @@ app.MapFallback(async context =>
                 if (data != null)
                 {
                     spawner.RestoreWorldObjects(data);
-                    spawner.CompleteLogin(data.Entity, colorConn, loginContext, data.AccountId);
+                    spawner.CompleteLogin(data.Entity, colorConn, loginContext, preAuthToken.AccountId);
                 }
                 else
                 {
@@ -381,10 +412,9 @@ app.MapFallback(async context =>
             }
             else
             {
-                // TODO(Task 10): pre-auth will carry accountId instead of hashed password
                 spawner.CompleteNewCharacter(
                     preAuthToken.Name,
-                    Guid.Empty,
+                    preAuthToken.AccountId,
                     colorConn,
                     loginContext,
                     flowEngine);

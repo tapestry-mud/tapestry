@@ -10,16 +10,16 @@ public class PreAuthToken
 {
     public string Id { get; } = Guid.NewGuid().ToString();
     public string Name { get; }
+    public Guid AccountId { get; }
     public PreAuthIntent Intent { get; }
-    public string? HashedPassword { get; }
     public DateTimeOffset ExpiresAt { get; }
     public bool Used { get; set; }
 
-    public PreAuthToken(string name, PreAuthIntent intent, int expirySeconds, string? hashedPassword = null)
+    public PreAuthToken(string name, Guid accountId, PreAuthIntent intent, int expirySeconds)
     {
         Name = name;
+        AccountId = accountId;
         Intent = intent;
-        HashedPassword = hashedPassword;
         ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expirySeconds);
     }
 

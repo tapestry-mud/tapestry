@@ -117,6 +117,11 @@ public class AccountService
         return _entityToAccount.TryGetValue(entityId, out var accountId) ? accountId : null;
     }
 
+    public async Task<AccountSaveData?> LoadAccount(Guid accountId)
+    {
+        return await _store.LoadByIdAsync(accountId);
+    }
+
     public bool ExistsByEmail(string email)
     {
         return _store.ExistsByEmail(email.Trim().ToLowerInvariant());
