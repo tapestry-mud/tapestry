@@ -228,10 +228,20 @@ public class SessionManager
         _byPlayerName.TryRemove(session.PlayerEntity.Name.ToLowerInvariant(), out _);
     }
 
+    public void RemoveConnectionOnly(PlayerSession session)
+    {
+        _byConnectionId.TryRemove(session.Connection.Id, out _);
+    }
+
     public void UpdateEntityId(Guid oldEntityId, PlayerSession session)
     {
         _byEntityId.TryRemove(oldEntityId, out _);
         _byEntityId[session.PlayerEntity.Id] = session;
+    }
+
+    public void ReRegisterConnectionForSession(PlayerSession session)
+    {
+        _byConnectionId[session.Connection.Id] = session;
     }
 
     public PlayerSession? GetByConnectionId(string connectionId)
@@ -250,6 +260,9 @@ public class SessionManager
     }
 
     public IEnumerable<PlayerSession> AllSessions => _byConnectionId.Values;
+
+    public IEnumerable<PlayerSession> AllLinkDeadSessions =>
+        _byEntityId.Values.Where(s => s.Phase == LoginPhase.LinkDead);
 
     public void SendToTag(string tag, string text)
     {
@@ -349,6 +362,7 @@ public class SessionManager
         foreach (var session in _byEntityId.Values)
         {
             if (session.Phase == LoginPhase.Creating) { continue; }
+            if (session.Phase == LoginPhase.LinkDead) { continue; }
             if (session.InputMode == InputMode.Prompt) { continue; }
             if (session.CurrentFlow != null) { continue; }
             if (session.NeedsPromptRefresh)
