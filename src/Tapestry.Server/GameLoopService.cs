@@ -86,13 +86,38 @@ public class GameLoopService : IHostedService
                 return;
             }
 
-            // Snapshot is synchronous (LocationRoomId still set); only the file write is async
             var playerName = session.PlayerEntity.Name;
+            var lastRoomId = session.PlayerEntity.LocationRoomId;
+
+            if (session.Phase == LoginPhase.Playing && _config.LinkDead.Enabled)
+            {
+                session.Phase = LoginPhase.LinkDead;
+                session.LinkDeadSinceTick = _gameLoop.TickCount;
+                session.PlayerEntity.AddTag("linkdead");
+                _sessions.RemoveConnectionOnly(session);
+                _metrics.LinkDeadActive.Add(1);
+
+                if (lastRoomId != null)
+                {
+                    _sessions.SendToRoom(lastRoomId, playerName + " has lost their connection.\r\n",
+                        session.PlayerEntity.Id);
+                }
+
+                _eventBus.Publish(new GameEvent
+                {
+                    Type = "player.linkdead",
+                    SourceEntityId = evt.EntityId,
+                    Data = new Dictionary<string, object?> { ["reason"] = evt.Reason }
+                });
+
+                _logger.LogInformation("Player {Name} went link-dead: {Reason}", playerName, evt.Reason);
+                return;
+            }
+
             _ = _persistence.SavePlayer(session).ContinueWith(
                 t => _logger.LogError(t.Exception?.GetBaseException(), "Failed to save player {Name} on disconnect", playerName),
                 TaskContinuationOptions.OnlyOnFaulted);
             _persistence.UntrackPasswordHash(evt.EntityId);
-            var lastRoomId = session.PlayerEntity.LocationRoomId;
 
             _sessions.Remove(session);
             _metrics.ActiveConnections.Add(-1);
@@ -127,6 +152,61 @@ public class GameLoopService : IHostedService
             _gameLoop.ConfigureIdleTimeout(idle.WarnSeconds, idle.TimeoutSeconds);
             _gameLoop.RegisterIdleTimeoutHandler(_eventQueue, _sessions,
                 idle.WarnMessage, idle.TimeoutMessage, idle.AdminTag);
+        }
+
+        if (_config.LinkDead.Enabled)
+        {
+            var ticksPerSecond = 1000.0 / _config.Server.TickRateMs;
+            var timeoutTicks = (long)(_config.LinkDead.TimeoutSeconds * ticksPerSecond);
+
+            _gameLoop.RegisterTickHandler("linkdead-cleanup", 300, () =>
+            {
+                var currentTick = _gameLoop.TickCount;
+                foreach (var session in _sessions.AllLinkDeadSessions.ToList())
+                {
+                    if (currentTick - session.LinkDeadSinceTick < timeoutTicks)
+                    {
+                        continue;
+                    }
+
+                    var playerName = session.PlayerEntity.Name;
+                    var lastRoomId = session.PlayerEntity.LocationRoomId;
+
+                    _ = _persistence.SavePlayer(session).ContinueWith(
+                        t => _logger.LogError(t.Exception?.GetBaseException(),
+                            "Failed to save player {Name} on linkdead timeout", playerName),
+                        TaskContinuationOptions.OnlyOnFaulted);
+                    _persistence.UntrackPasswordHash(session.PlayerEntity.Id);
+
+                    _sessions.Remove(session);
+                    _metrics.ActiveConnections.Add(-1);
+                    _metrics.LinkDeadActive.Add(-1);
+                    _metrics.LinkDeadExpired.Add(1);
+
+                    if (lastRoomId != null)
+                    {
+                        var room = _world.GetRoom(lastRoomId);
+                        room?.RemoveEntity(session.PlayerEntity);
+                        _mobAI.PlayerLeftRoom(lastRoomId);
+                    }
+
+                    _world.UntrackEntity(session.PlayerEntity);
+
+                    _eventBus.Publish(new GameEvent
+                    {
+                        Type = "player.logout",
+                        SourceEntityId = session.PlayerEntity.Id,
+                        Data = new Dictionary<string, object?> { ["reason"] = "linkdead timeout" }
+                    });
+
+                    if (lastRoomId != null)
+                    {
+                        _sessions.SendToRoom(lastRoomId, playerName + " fades from existence.\r\n");
+                    }
+
+                    _logger.LogInformation("Player {Name} linkdead timeout expired", playerName);
+                }
+            });
         }
 
         _gameLoop.OnNotificationDrain += (sessions, queue) =>
