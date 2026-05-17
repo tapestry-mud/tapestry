@@ -113,3 +113,11 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"docker_tag\":\"${{ inputs.version }}\",\"version\":\"${{ inputs.version }}\"}" \
             https://registry.tapestryengine.com/v1/admin/engine-channels/stable
+
+      - name: Trigger engine deploy
+        run: |
+          curl -sf -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.INFRA_DEPLOY_TOKEN }}" \
+            https://api.github.com/repos/mallek/tapestry-infra/actions/workflows/engine-deploy.yml/dispatches \
+            -d "{\"ref\":\"master\",\"inputs\":{\"version\":\"${{ inputs.version }}\",\"game_path\":\"/opt/tapestry/legends-forgotten\"}}"
