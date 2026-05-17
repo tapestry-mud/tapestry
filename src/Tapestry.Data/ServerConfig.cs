@@ -23,6 +23,7 @@ public class ServerConfig
     public PreAuthSection PreAuth { get; set; } = new();
     public AdminSeedSection? Admin { get; set; }
     public FloodProtectionSection FloodProtection { get; set; } = new();
+    public LinkDeadSection LinkDead { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -197,4 +198,10 @@ public class FloodProtectionSection
     public float BurstSize { get; set; } = 30;
     public int StrikeThreshold { get; set; } = 3;
     public int StrikeDecaySeconds { get; set; } = 10;
+}
+
+public class LinkDeadSection
+{
+    public bool Enabled { get; set; } = true;
+    public int TimeoutSeconds { get; set; } = 120;
 }
