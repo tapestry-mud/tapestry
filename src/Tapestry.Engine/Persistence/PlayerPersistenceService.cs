@@ -12,9 +12,6 @@ public class PlayerPersistenceService
     private readonly World _world;
     private readonly ILogger<PlayerPersistenceService> _logger;
 
-    // Track password hashes for online players (not stored on Entity)
-    private readonly Dictionary<Guid, string> _passwordHashes = new();
-
     public PlayerPersistenceService(
         IPlayerStore store,
         PlayerSerializer serializer,
@@ -29,33 +26,13 @@ public class PlayerPersistenceService
         _logger = logger;
     }
 
-    public void TrackPasswordHash(Guid entityId, string hash)
-    {
-        _passwordHashes[entityId] = hash;
-    }
-
-    public void UntrackPasswordHash(Guid entityId)
-    {
-        _passwordHashes.Remove(entityId);
-    }
-
-    public string? GetPasswordHash(Guid entityId)
-    {
-        return _passwordHashes.GetValueOrDefault(entityId);
-    }
-
-    public void UpdatePasswordHash(Guid entityId, string newHash)
-    {
-        _passwordHashes[entityId] = newHash;
-    }
-
     public async Task SavePlayer(PlayerSession session)
     {
         var entity = session.PlayerEntity;
-        var hash = _passwordHashes.GetValueOrDefault(entity.Id, "");
+        var accountId = session.AccountId;
 
         var allItems = CollectPlayerItems(entity);
-        var dto = _serializer.ToSaveData(entity, hash, allItems);
+        var dto = _serializer.ToSaveData(entity, accountId, allItems);
 
         await _store.SaveAsync(dto);
     }
@@ -68,15 +45,14 @@ public class PlayerPersistenceService
             return null;
         }
 
-        var result = _serializer.FromSaveData(data);
-        _passwordHashes[result.Entity.Id] = result.PasswordHash;
-        return result;
+        return _serializer.FromSaveData(data);
     }
 
     public async Task SaveAllPlayers()
     {
         var count = 0;
-        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == LoginPhase.Playing))
+        foreach (var session in _sessions.AllSessions.Where(s =>
+            s.Phase == LoginPhase.Playing || s.Phase == LoginPhase.LinkDead))
         {
             try
             {
@@ -97,14 +73,14 @@ public class PlayerPersistenceService
     public List<PlayerSaveData> SnapshotAllPlayers()
     {
         var snapshots = new List<PlayerSaveData>();
-        foreach (var session in _sessions.AllSessions.Where(s => s.Phase == LoginPhase.Playing))
+        foreach (var session in _sessions.AllSessions.Where(s =>
+            s.Phase == LoginPhase.Playing || s.Phase == LoginPhase.LinkDead))
         {
             try
             {
                 var entity = session.PlayerEntity;
-                var hash = _passwordHashes.GetValueOrDefault(entity.Id, "");
                 var allItems = CollectPlayerItems(entity);
-                snapshots.Add(_serializer.ToSaveData(entity, hash, allItems));
+                snapshots.Add(_serializer.ToSaveData(entity, session.AccountId, allItems));
             }
             catch (Exception ex)
             {
@@ -140,11 +116,10 @@ public class PlayerPersistenceService
         return _store.Exists(name);
     }
 
-    public async Task SaveNewPlayer(Entity entity, string passwordHash)
+    public async Task SaveNewPlayer(Entity entity, Guid accountId)
     {
-        _passwordHashes[entity.Id] = passwordHash;
         var allItems = CollectPlayerItems(entity);
-        var dto = _serializer.ToSaveData(entity, passwordHash, allItems);
+        var dto = _serializer.ToSaveData(entity, accountId, allItems);
         await _store.SaveAsync(dto);
     }
 
@@ -170,5 +145,4 @@ public class PlayerPersistenceService
             CollectItemsRecursive(item.Contents, items);
         }
     }
-
 }

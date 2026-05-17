@@ -154,7 +154,9 @@ public class LoginFlow
                 return false;
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(password, data.PasswordHash))
+            // TODO(Task 9): verify password against AccountService instead of character save
+            // Password hash moved to account; always reject until rewired.
+            if (true)
             {
                 failedAttempts++;
                 if (failedAttempts >= maxAttempts)

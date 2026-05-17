@@ -28,29 +28,6 @@ public class FilePlayerStoreHashGuardTests : IDisposable
         Directory.Delete(_tmpDir, recursive: true);
     }
 
-    private static PlayerSaveData MakeData(string name, string hash)
-    {
-        return new PlayerSaveData { Name = name, PasswordHash = hash };
-    }
-
-    [Fact]
-    public async Task SaveAsync_NullHash_ThrowsInvalidOperationException()
-    {
-        var data = MakeData("Alice", null!);
-        var act = async () => await _store.SaveAsync(data);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Alice*");
-    }
-
-    [Fact]
-    public async Task SaveAsync_EmptyHash_ThrowsInvalidOperationException()
-    {
-        var data = MakeData("Bob", "");
-        var act = async () => await _store.SaveAsync(data);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Bob*");
-    }
-
     [Fact]
     public void GetFilePath_PathTraversal_ThrowsArgumentException()
     {
@@ -59,9 +36,9 @@ public class FilePlayerStoreHashGuardTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_ValidHash_WritesFile()
+    public async Task SaveAsync_WritesFile()
     {
-        var data = MakeData("Carol", "$2a$12$validhash");
+        var data = new PlayerSaveData { Name = "Carol", AccountId = Guid.NewGuid().ToString() };
         await _store.SaveAsync(data);
 
         var expectedPath = Path.Combine(_tmpDir, "players", "carol.yaml");

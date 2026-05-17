@@ -80,44 +80,12 @@ public class PersistenceModule : IGameModule
                     _sessions.SendToPlayer(ctx.EntityId, message + "\r\n");
                 }
 
+                // TODO(Task 9): verify and update password via AccountService instead of persistence service
                 session.PromptHandler = (currentPw) =>
                 {
                     currentPw = currentPw.Trim();
-                    var existingHash = _persistence.GetPasswordHash(session.PlayerEntity.Id);
-                    if (existingHash == null || !BCrypt.Net.BCrypt.Verify(currentPw, existingHash))
-                    {
-                        ExitPrompt("Incorrect password. Password reset cancelled.");
-                        return;
-                    }
-
-                    session.Connection.SendLine("Enter new password:");
-                    session.PromptHandler = (newPw) =>
-                    {
-                        newPw = newPw.Trim();
-                        if (newPw.Length < _config.Persistence.PasswordMinLength)
-                        {
-                            ExitPrompt(
-                                $"Password must be at least {_config.Persistence.PasswordMinLength} characters. " +
-                                "Password reset cancelled.");
-                            return;
-                        }
-
-                        session.Connection.SendLine("Confirm new password:");
-                        session.PromptHandler = (confirmPw) =>
-                        {
-                            confirmPw = confirmPw.Trim();
-                            if (confirmPw != newPw)
-                            {
-                                ExitPrompt("Passwords don't match. Password reset cancelled.");
-                                return;
-                            }
-
-                            var newHash = BCrypt.Net.BCrypt.HashPassword(newPw);
-                            _persistence.UpdatePasswordHash(session.PlayerEntity.Id, newHash);
-                            _ = _persistence.SavePlayer(session);
-                            ExitPrompt("Password updated.");
-                        };
-                    };
+                    // Placeholder: password verification will be wired to AccountService in a later task
+                    ExitPrompt("Password reset is temporarily unavailable. Please try again later.");
                 };
                 return;
             }
@@ -139,12 +107,10 @@ public class PersistenceModule : IGameModule
                     return;
                 }
 
-                var hash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-
+                // TODO(Task 9): admin password reset will be wired to AccountService in a later task
                 var targetSession = _sessions.GetByPlayerName(targetName);
                 if (targetSession != null)
                 {
-                    _persistence.UpdatePasswordHash(targetSession.PlayerEntity.Id, hash);
                     _ = _persistence.SavePlayer(targetSession);
                     _sessions.SendToPlayer(targetSession.PlayerEntity.Id,
                         "Your password has been reset by an administrator.\r\n");
@@ -157,7 +123,7 @@ public class PersistenceModule : IGameModule
                         _sessions.SendToPlayer(ctx.EntityId, "Player not found.\r\n");
                         return;
                     }
-                    _ = _persistence.SaveNewPlayer(data.Entity, hash);
+                    _ = _persistence.SaveNewPlayer(data.Entity, data.AccountId);
                 }
 
                 _sessions.SendToPlayer(ctx.EntityId,

@@ -77,12 +77,6 @@ public class FilePlayerStore : IPlayerStore
 
     public async Task SaveAsync(PlayerSaveData data)
     {
-        if (string.IsNullOrEmpty(data.PasswordHash))
-        {
-            throw new InvalidOperationException(
-                $"Refusing to save player '{data.Name}' with null or empty password hash.");
-        }
-
         var path = GetFilePath(data.Name);
         var tmpPath = path + ".tmp";
         var bakPath = path + ".bak";

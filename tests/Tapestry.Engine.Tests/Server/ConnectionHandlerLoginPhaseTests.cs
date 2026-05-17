@@ -78,7 +78,7 @@ public class ConnectionHandlerLoginPhaseTests
     private class FakeFlowPersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) => false;
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
     // ---- Harness ----
@@ -177,9 +177,9 @@ public class ConnectionHandlerLoginPhaseTests
 
         var entity = new Entity("player", name);
         entity.LocationRoomId = "core:town-square";
-        var hash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4);
 
-        return serializer.ToSaveData(entity, hash, new List<Entity>());
+        // TODO(Task 9): password moves to AccountService; save data no longer holds hash
+        return serializer.ToSaveData(entity, Guid.Empty, new List<Entity>());
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10000)

@@ -76,8 +76,8 @@ public class PlayerInitModule : IGameModule
         entity.SetProperty(CommonProperties.RegenResource, 1);
         entity.SetProperty(CommonProperties.RegenMovement, 3);
 
-        var hash = BCrypt.Net.BCrypt.HashPassword(admin.Password);
-        _persistence.SaveNewPlayer(entity, hash).GetAwaiter().GetResult();
+        // TODO(Task 10): create an account for the admin and pass real accountId here
+        _persistence.SaveNewPlayer(entity, Guid.Empty).GetAwaiter().GetResult();
 
         _logger.LogInformation(
             "Created admin account: {Handle} (default password -- change it after first login)",
@@ -163,8 +163,8 @@ public class PlayerInitModule : IGameModule
                     }
                 }
 
-                var hash = BCrypt.Net.BCrypt.HashPassword(seed.Password);
-                _persistence.SaveNewPlayer(entity, hash).GetAwaiter().GetResult();
+                // TODO(Task 10): create an account for the seed player and pass real accountId here
+                _persistence.SaveNewPlayer(entity, Guid.Empty).GetAwaiter().GetResult();
 
                 _logger.LogInformation("Created seed player: {Name}", seed.Name);
             }

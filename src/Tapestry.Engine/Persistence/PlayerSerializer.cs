@@ -6,7 +6,7 @@ namespace Tapestry.Engine.Persistence;
 public class PlayerLoadResult
 {
     public required Entity Entity { get; init; }
-    public required string PasswordHash { get; init; }
+    public required Guid AccountId { get; init; }
     public required List<Entity> AllItems { get; init; }
 }
 
@@ -21,17 +21,17 @@ public class PlayerSerializer
 
     public PlayerSaveData ToSaveData(
         Entity player,
-        string passwordHash,
+        Guid accountId,
         List<Entity> allItems)
     {
         return new PlayerSaveData
         {
             Version = 1,
             Id = player.Id.ToString(),
+            AccountId = accountId.ToString(),
             Name = player.Name,
             Type = player.Type,
             Location = player.LocationRoomId ?? "",
-            PasswordHash = passwordHash,
             Tags = player.Tags.ToList(),
             Roles = player.Roles.ToList(),
             Stats = SerializeStats(player.Stats),
@@ -127,7 +127,7 @@ public class PlayerSerializer
         return new PlayerLoadResult
         {
             Entity = entity,
-            PasswordHash = data.PasswordHash,
+            AccountId = Guid.TryParse(data.AccountId, out var aid) ? aid : Guid.Empty,
             AllItems = allItems
         };
     }

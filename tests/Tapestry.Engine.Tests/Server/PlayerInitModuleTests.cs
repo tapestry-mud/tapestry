@@ -79,7 +79,7 @@ public class PlayerInitModuleTests
     }
 
     [Fact]
-    public void Configure_AdminBlockPresent_CreatedPlayerHasAdminRoleAndHashedPassword()
+    public void Configure_AdminBlockPresent_CreatedPlayerHasAdminRole()
     {
         var config = new ServerConfig
         {
@@ -91,7 +91,8 @@ public class PlayerInitModuleTests
 
         var saved = store.Saved.Should().ContainSingle().Subject;
         saved.Roles.Should().Contain("admin");
-        BCrypt.Net.BCrypt.Verify("changeme", saved.PasswordHash).Should().BeTrue();
+        // TODO(Task 10): password verification will be via AccountService once account creation is wired
+        saved.AccountId.Should().Be(Guid.Empty.ToString());
     }
 
     private class FakeAdminStore : IPlayerStore

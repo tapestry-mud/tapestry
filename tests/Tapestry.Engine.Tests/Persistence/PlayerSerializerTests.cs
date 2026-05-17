@@ -26,19 +26,20 @@ public class PlayerSerializerTests
     [Fact]
     public void RoundTrip_PreservesBasicFields()
     {
+        var accountId = Guid.NewGuid();
         var player = CreateTestPlayer();
-        var dto = _serializer.ToSaveData(player, "hash123", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, accountId, new List<Entity>());
 
         dto.Id.Should().Be(player.Id.ToString());
         dto.Name.Should().Be("Krakus");
         dto.Type.Should().Be("player");
-        dto.PasswordHash.Should().Be("hash123");
+        dto.AccountId.Should().Be(accountId.ToString());
 
         var result = _serializer.FromSaveData(dto);
         result.Entity.Id.Should().Be(player.Id);
         result.Entity.Name.Should().Be("Krakus");
         result.Entity.Type.Should().Be("player");
-        result.PasswordHash.Should().Be("hash123");
+        result.AccountId.Should().Be(accountId);
     }
 
     [Fact]
@@ -49,7 +50,7 @@ public class PlayerSerializerTests
         player.Stats.BaseMaxHp = 100;
         player.Stats.Hp = 75;
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Stats.BaseStrength.Should().Be(18);
@@ -66,7 +67,7 @@ public class PlayerSerializerTests
         player.Stats.AddModifier(new StatModifier("ring_of_power", StatType.Strength, 5));
         player.Stats.AddModifier(new StatModifier("blessing", StatType.MaxHp, 20));
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Stats.Modifiers.Should().HaveCount(2);
@@ -85,7 +86,7 @@ public class PlayerSerializerTests
         player.SetProperty(CommonProperties.RegenHp, 5);
         player.SetProperty(CommonProperties.TemplateId, "warrior_base");
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.GetProperty<int>(CommonProperties.RegenHp).Should().Be(5);
@@ -99,7 +100,7 @@ public class PlayerSerializerTests
         player.AddTag("player");
         player.AddRole("admin");
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Tags.Should().Contain("player");
@@ -115,7 +116,7 @@ public class PlayerSerializerTests
         player.AddToContents(sword);
 
         var allItems = new List<Entity> { sword };
-        var dto = _serializer.ToSaveData(player, "h", allItems);
+        var dto = _serializer.ToSaveData(player, Guid.Empty, allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().HaveCount(1);
@@ -133,7 +134,7 @@ public class PlayerSerializerTests
         player.SetEquipment("weapon", weapon);
 
         var allItems = new List<Entity> { weapon };
-        var dto = _serializer.ToSaveData(player, "h", allItems);
+        var dto = _serializer.ToSaveData(player, Guid.Empty, allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Equipment.Should().ContainKey("weapon");
@@ -152,7 +153,7 @@ public class PlayerSerializerTests
         player.AddToContents(bag);
 
         var allItems = new List<Entity> { bag, potion };
-        var dto = _serializer.ToSaveData(player, "h", allItems);
+        var dto = _serializer.ToSaveData(player, Guid.Empty, allItems);
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().HaveCount(1);
@@ -168,7 +169,7 @@ public class PlayerSerializerTests
     {
         var player = CreateTestPlayer();
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
 
         result.Entity.Contents.Should().BeEmpty();
@@ -182,7 +183,7 @@ public class PlayerSerializerTests
         var player = CreateTestPlayer();
         player.SetProperty("custom_flag", true);
 
-        var dto = _serializer.ToSaveData(player, "h", new List<Entity>());
+        var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
 
         // Unknown property should be serialized as tagged dict
         dto.Properties["custom_flag"].Should().BeOfType<Dictionary<string, object?>>();

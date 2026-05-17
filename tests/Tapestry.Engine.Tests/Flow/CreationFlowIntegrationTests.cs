@@ -13,7 +13,7 @@ public class CreationFlowIntegrationTests
     private class FakePersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) => false;
-        public void SaveNewPlayer(Entity entity, string passwordHash) { }
+        public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
     private static (FlowEngine engine, FlowRegistry registry, SessionManager sessions, World world)

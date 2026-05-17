@@ -18,6 +18,7 @@ public class PlayerSession
     private readonly ConcurrentQueue<string> _inputQueue = new();
     public int InputQueueCount => _inputQueue.Count;
     public LoginPhase Phase { get; set; } = LoginPhase.Creating;
+    public Guid AccountId { get; set; } = Guid.Empty;
     public FlowInstance? CurrentFlow { get; set; }
     public string? PendingPasswordHash { get; set; }
 

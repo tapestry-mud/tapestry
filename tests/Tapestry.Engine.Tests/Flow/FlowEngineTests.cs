@@ -14,16 +14,16 @@ public class FlowEngineTests
     private class FakePersistence : IFlowPersistence
     {
         public HashSet<string> ExistingNames { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public List<(Entity entity, string hash)> Saved { get; } = new();
+        public List<(Entity entity, Guid accountId)> Saved { get; } = new();
 
         public bool PlayerExists(string name)
         {
             return ExistingNames.Contains(name);
         }
 
-        public void SaveNewPlayer(Entity entity, string passwordHash)
+        public void SaveNewPlayer(Entity entity, Guid accountId)
         {
-            Saved.Add((entity, passwordHash));
+            Saved.Add((entity, accountId));
         }
     }
 
@@ -139,7 +139,7 @@ public class FlowEngineTests
         session.Phase.Should().Be(LoginPhase.Playing);
         session.CurrentFlow.Should().BeNull();
         persistence.Saved.Should().HaveCount(1);
-        persistence.Saved[0].hash.Should().Be("hash_Rand");
+        persistence.Saved[0].accountId.Should().Be(Guid.Empty);
     }
 
     [Fact]

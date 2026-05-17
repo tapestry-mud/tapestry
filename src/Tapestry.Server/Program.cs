@@ -266,7 +266,9 @@ app.MapPost("/auth/login", async (HttpContext httpContext, PlayerPersistenceServ
             return Results.Json(new { error = "Error loading character" });
         }
 
-        if (!BCrypt.Net.BCrypt.Verify(body.Password, data.PasswordHash))
+        // TODO(Task 9): verify password against AccountService instead of character save
+        // Password hash moved to account; pre-auth login will be rewired in a later task.
+        if (true)
         {
             httpContext.Response.StatusCode = 401;
             return Results.Json(new { error = "Invalid name or password" });

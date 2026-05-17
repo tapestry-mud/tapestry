@@ -6,8 +6,8 @@ public class PlayerSaveData
 {
     public int Version { get; set; } = 1;
     public string Id { get; set; } = "";
+    public string AccountId { get; set; } = "";
     public string Name { get; set; } = "";
-    public string PasswordHash { get; set; } = "";
     public string Type { get; set; } = "player";
     public string Location { get; set; } = "";
     public List<string> Tags { get; set; } = new();

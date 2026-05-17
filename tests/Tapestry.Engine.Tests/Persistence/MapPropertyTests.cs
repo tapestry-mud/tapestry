@@ -98,7 +98,7 @@ public class MapPropertyTests
         entity.SetMapValue("labels", "color", "red");
 
         var serializer = new PlayerSerializer(registry);
-        var saveData = serializer.ToSaveData(entity, "hash", new List<Entity>());
+        var saveData = serializer.ToSaveData(entity, Guid.Empty, new List<Entity>());
         var loadResult = serializer.FromSaveData(saveData);
         var result = loadResult.Entity;
 
