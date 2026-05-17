@@ -41,7 +41,7 @@ public class FilePlayerStoreHashGuardTests : IDisposable
         var data = new PlayerSaveData { Name = "Carol", AccountId = Guid.NewGuid().ToString() };
         await _store.SaveAsync(data);
 
-        var expectedPath = Path.Combine(_tmpDir, "players", "carol.yaml");
+        var expectedPath = Path.Combine(_tmpDir, "players", "carol", "player.yaml");
         File.Exists(expectedPath).Should().BeTrue();
         var yaml = await File.ReadAllTextAsync(expectedPath);
         yaml.Should().Contain("Carol");

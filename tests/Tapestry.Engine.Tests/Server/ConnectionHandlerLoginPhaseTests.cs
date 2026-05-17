@@ -73,6 +73,11 @@ public class ConnectionHandlerLoginPhaseTests
             _data.Remove(playerName);
             return Task.CompletedTask;
         }
+
+        public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     private class FakeFlowPersistence : IFlowPersistence

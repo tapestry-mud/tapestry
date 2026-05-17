@@ -96,4 +96,9 @@ internal class FakePlayerStore : IPlayerStore
     {
         return Task.CompletedTask;
     }
+
+    public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+    {
+        return Array.Empty<string>();
+    }
 }

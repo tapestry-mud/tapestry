@@ -115,6 +115,11 @@ public class PlayerInitModuleTests
             Task.FromResult<PlayerSaveData?>(null);
 
         public Task DeleteAsync(string playerName) => Task.CompletedTask;
+
+        public IReadOnlyList<string> GetSupplementalFileTypes(string playerName)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     private class FakePackManifestProvider : IPackManifestProvider

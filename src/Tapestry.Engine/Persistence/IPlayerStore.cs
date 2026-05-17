@@ -6,4 +6,5 @@ public interface IPlayerStore
     Task SaveAsync(PlayerSaveData data);
     Task DeleteAsync(string playerName);
     bool Exists(string playerName);
+    IReadOnlyList<string> GetSupplementalFileTypes(string playerName);
 }

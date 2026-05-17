@@ -96,7 +96,7 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity, BuildFloodContext());
+        var session = new PlayerSession(connection, entity, floodContext: BuildFloodContext());
         session.Phase = LoginPhase.Playing;
 
         connection.OnDisconnected += () =>
@@ -205,7 +205,7 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity, BuildFloodContext())
+        var session = new PlayerSession(connection, entity, floodContext: BuildFloodContext())
         {
             Phase = LoginPhase.Creating,
             PendingPasswordHash = hashedPassword
