@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
@@ -17,6 +18,8 @@ public class PlayerSpawner
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly GameLoop _gameLoop;
+    private readonly TickTimer _tickTimer;
+    private readonly ServerConfig _serverConfig;
     private readonly LoginHandler _loginHandler;
     private readonly MobAIManager _mobAI;
     private readonly SystemEventQueue _eventQueue;
@@ -28,6 +31,8 @@ public class PlayerSpawner
         SessionManager sessions,
         World world,
         GameLoop gameLoop,
+        TickTimer tickTimer,
+        ServerConfig serverConfig,
         LoginHandler loginHandler,
         MobAIManager mobAI,
         SystemEventQueue eventQueue,
@@ -38,12 +43,25 @@ public class PlayerSpawner
         _sessions = sessions;
         _world = world;
         _gameLoop = gameLoop;
+        _tickTimer = tickTimer;
+        _serverConfig = serverConfig;
         _loginHandler = loginHandler;
         _mobAI = mobAI;
         _eventQueue = eventQueue;
         _eventBus = eventBus;
         _metrics = metrics;
         _logger = logger;
+    }
+
+    private FloodContext BuildFloodContext()
+    {
+        return new FloodContext(
+            _serverConfig.FloodProtection,
+            _tickTimer.TicksPerSecond,
+            () => _gameLoop.TickCount,
+            _logger,
+            _metrics.FloodCommandsDropped,
+            _metrics.FloodDisconnects);
     }
 
     public void RestoreWorldObjects(PlayerLoadResult data)
@@ -78,7 +96,7 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity);
+        var session = new PlayerSession(connection, entity, BuildFloodContext());
         session.Phase = LoginPhase.Playing;
 
         connection.OnDisconnected += () =>
@@ -140,7 +158,7 @@ public class PlayerSpawner
             entity.SetProperty("last_ip", connection.RemoteAddress);
         }
 
-        var session = new PlayerSession(connection, entity)
+        var session = new PlayerSession(connection, entity, BuildFloodContext())
         {
             Phase = LoginPhase.Creating,
             PendingPasswordHash = hashedPassword
