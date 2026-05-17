@@ -13,7 +13,7 @@ public class PlayerSession
 {
     public const int MaxQueueDepth = 100;
 
-    public IConnection Connection { get; }
+    public IConnection Connection { get; private set; }
     public Entity PlayerEntity { get; private set; }
     private readonly ConcurrentQueue<string> _inputQueue = new();
     public int InputQueueCount => _inputQueue.Count;
@@ -25,8 +25,23 @@ public class PlayerSession
     {
         PlayerEntity = entity;
     }
+
+    public void ReplaceConnection(IConnection newConnection)
+    {
+        Connection = newConnection;
+        newConnection.OnInput += (input) =>
+        {
+            HandleInput(input.Trim());
+        };
+    }
+
+    public void ClearInputQueue()
+    {
+        while (_inputQueue.TryDequeue(out _)) { }
+    }
     public DateTime ConnectedAt { get; } = DateTime.UtcNow;
     public long LastInputTick { get; private set; }
+    public long LinkDeadSinceTick { get; set; }
     public bool IdleWarned { get; set; }
     public bool PromptDisplayed { get; set; }
     public bool NeedsPromptRefresh { get; set; }
