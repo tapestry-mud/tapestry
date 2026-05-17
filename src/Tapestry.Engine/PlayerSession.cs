@@ -36,7 +36,6 @@ public class PlayerSession
     public Action<string>? PromptHandler { get; set; }
     public Action? CancelPreLoginTimeout { get; set; }
 
-    // Token bucket state
     private readonly FloodContext? _floodCtx;
     private float _tokens;
     private long _lastReplenishTick = -1;
