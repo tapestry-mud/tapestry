@@ -362,6 +362,7 @@ public class LoginFlow
         return phase switch
         {
             LoginPhase.Name => pt.Name > 0 ? pt.Name : fallback,
+            LoginPhase.Email => pt.Email > 0 ? pt.Email : fallback,
             LoginPhase.Password => pt.Password > 0 ? pt.Password : fallback,
             LoginPhase.SessionTakeover => pt.SessionTakeover > 0 ? pt.SessionTakeover : fallback,
             LoginPhase.Creating => pt.Creating > 0 ? pt.Creating : fallback,

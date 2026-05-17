@@ -21,6 +21,7 @@ public class ServerConfig
     public MsspConfig Mssp { get; set; } = new();
     public IdleSection Idle { get; set; } = new();
     public PreAuthSection PreAuth { get; set; } = new();
+    public AccountsSection Accounts { get; set; } = new();
     public AdminSeedSection? Admin { get; set; }
     public FloodProtectionSection FloodProtection { get; set; } = new();
     public LinkDeadSection LinkDead { get; set; } = new();
@@ -156,6 +157,7 @@ public class TrainingSection
 public class PhaseTimeoutsSection
 {
     public int Name { get; set; } = 0;
+    public int Email { get; set; } = 0;
     public int Password { get; set; } = 0;
     public int SessionTakeover { get; set; } = 0;
     public int Creating { get; set; } = 0;
@@ -189,6 +191,7 @@ public class CombatSection
 public class AdminSeedSection
 {
     public string Handle { get; set; } = "";
+    public string Email { get; set; } = "";
     public string Password { get; set; } = "";
 }
 
@@ -204,4 +207,10 @@ public class LinkDeadSection
 {
     public bool Enabled { get; set; } = true;
     public int TimeoutSeconds { get; set; } = 120;
+}
+
+public class AccountsSection
+{
+    public int MaxConcurrentCharacters { get; set; } = 1;
+    public bool EmailVerificationRequired { get; set; } = false;
 }
