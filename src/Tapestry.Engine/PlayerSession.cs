@@ -28,11 +28,9 @@ public class PlayerSession
 
     public void ReplaceConnection(IConnection newConnection)
     {
+        Connection.OnInput -= _inputHandler;
         Connection = newConnection;
-        newConnection.OnInput += (input) =>
-        {
-            HandleInput(input.Trim());
-        };
+        newConnection.OnInput += _inputHandler;
     }
 
     public void ClearInputQueue()
@@ -51,6 +49,7 @@ public class PlayerSession
     public Action<string>? PromptHandler { get; set; }
     public Action? CancelPreLoginTimeout { get; set; }
 
+    private readonly Action<string> _inputHandler;
     private readonly FloodContext? _floodCtx;
     private float _tokens;
     private long _lastReplenishTick = -1;
@@ -180,10 +179,8 @@ public class PlayerSession
         PlayerEntity = playerEntity;
         _floodCtx = floodContext;
 
-        connection.OnInput += (input) =>
-        {
-            HandleInput(input.Trim());
-        };
+        _inputHandler = (input) => HandleInput(input.Trim());
+        connection.OnInput += _inputHandler;
     }
 
     public void Send(string text)

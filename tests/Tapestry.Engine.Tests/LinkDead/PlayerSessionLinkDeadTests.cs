@@ -58,6 +58,21 @@ public class PlayerSessionLinkDeadTests
     }
 
     [Fact]
+    public void ReplaceConnection_OldConnectionInputIgnored()
+    {
+        var old = new FakeConnection("old-id");
+        var session = new PlayerSession(old, MakeEntity());
+        session.Phase = LoginPhase.Playing;
+
+        var newConn = new FakeConnection("new-id");
+        session.ReplaceConnection(newConn);
+
+        old.SimulateInput("attack");
+
+        session.TryDequeueInput(out _).Should().BeFalse();
+    }
+
+    [Fact]
     public void ClearInputQueue_RemovesQueuedCommands()
     {
         var conn = new FakeConnection();
