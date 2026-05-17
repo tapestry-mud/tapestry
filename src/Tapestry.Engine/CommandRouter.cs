@@ -7,12 +7,15 @@ public class CommandRouter
     private readonly CommandRegistry _registry;
     private readonly SessionManager _sessions;
     private readonly World _world;
+    private readonly BadInputTracker? _badInputTracker;
 
-    public CommandRouter(CommandRegistry registry, SessionManager sessions, World world)
+    public CommandRouter(CommandRegistry registry, SessionManager sessions, World world,
+        BadInputTracker? badInputTracker = null)
     {
         _registry = registry;
         _sessions = sessions;
         _world = world;
+        _badInputTracker = badInputTracker;
     }
 
     public void Route(CommandContext ctx)
@@ -25,6 +28,11 @@ public class CommandRouter
         var registration = _registry.Resolve(ctx.Command, "player");
         if (registration == null)
         {
+            if (_badInputTracker != null)
+            {
+                var entity = _world.GetEntity(ctx.PlayerEntityId);
+                _badInputTracker.Record(ctx.Command, ctx.RawInput, entity?.Name ?? "", entity?.LocationRoomId);
+            }
             _sessions.SendToPlayer(ctx.PlayerEntityId, "Huh?\r\n");
             return;
         }

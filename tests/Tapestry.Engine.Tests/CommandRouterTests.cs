@@ -6,6 +6,9 @@ namespace Tapestry.Engine.Tests;
 
 public class CommandRouterTests
 {
+    private static BadInputTracker MakeTracker() =>
+        new BadInputTracker(Microsoft.Extensions.Logging.Abstractions.NullLogger<BadInputTracker>.Instance, null);
+
     [Fact]
     public void Route_ParsesCommandAndArgs()
     {
@@ -19,7 +22,7 @@ public class CommandRouterTests
             receivedCmd = ctx.Command;
             receivedArgs = ctx.RawArgs;
         }, packName: "core");
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
         var ctx = MakeContext("say hello world");
         router.Route(ctx);
         receivedCmd.Should().Be("say");
@@ -32,7 +35,7 @@ public class CommandRouterTests
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
         var world = new World();
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
 
         var connection = new FakeConnection();
         var entity = new Entity("player", "Test");
@@ -50,7 +53,7 @@ public class CommandRouterTests
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
         var world = new World();
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
         var called = false;
         registry.Register("test", (_) => { called = true; }, packName: "core");
         var ctx = MakeContext("");
@@ -65,7 +68,7 @@ public class CommandRouterTests
         var sessions = new SessionManager();
         var world = new World();
         registry.Register("say", (ctx) => { }, packName: "core");
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
 
         var result = router.Resolve("say");
 
@@ -79,7 +82,7 @@ public class CommandRouterTests
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
         var world = new World();
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
 
         var result = router.Resolve("xyzzy");
 
@@ -95,7 +98,7 @@ public class CommandRouterTests
         var dispatched = false;
         registry.Register("say", actor => { dispatched = true; }, roles: ["player", "mob"]);
 
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
 
         router.RouteForMob(Guid.NewGuid(), "say hello", null, "Goblin");
 
@@ -111,11 +114,53 @@ public class CommandRouterTests
         var dispatched = false;
         registry.Register("score", _ => { dispatched = true; }, roles: ["player"]);
 
-        var router = new CommandRouter(registry, sessions, world);
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
 
         router.RouteForMob(Guid.NewGuid(), "score", null, "Goblin");
 
         dispatched.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Route_UnknownCommand_RecordsBadInput()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var tracker = MakeTracker();
+        var router = new CommandRouter(registry, sessions, world, tracker);
+
+        var connection = new FakeConnection();
+        var entity = new Entity("player", "Alice");
+        var session = new PlayerSession(connection, entity);
+        sessions.Add(session);
+
+        var ctx = MakeContext("xyzzy some args", entity.Id);
+        router.Route(ctx);
+
+        tracker.GetEntries().Should().ContainSingle(e => e.Verb == "xyzzy" && e.Count == 1);
+    }
+
+    [Fact]
+    public void Route_AdminCommandWithoutRole_DoesNotRecordBadInput()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var tracker = MakeTracker();
+        var router = new CommandRouter(registry, sessions, world, tracker);
+
+        registry.Register("secret", _ => { }, roles: ["admin"]);
+
+        var connection = new FakeConnection();
+        var entity = new Entity("player", "Alice");
+        var session = new PlayerSession(connection, entity);
+        sessions.Add(session);
+
+        var ctx = MakeContext("secret", entity.Id);
+        router.Route(ctx);
+
+        tracker.GetEntries().Should().BeEmpty();
     }
 
     private static CommandContext MakeContext(string input, Guid? entityId = null)
