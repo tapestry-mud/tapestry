@@ -18,7 +18,7 @@ public class PlayerSession
     private readonly ConcurrentQueue<string> _inputQueue = new();
     public int InputQueueCount => _inputQueue.Count;
     public LoginPhase Phase { get; set; } = LoginPhase.Creating;
-    public Guid AccountId { get; set; } = Guid.Empty;
+    public Guid AccountId { get; }
     public FlowInstance? CurrentFlow { get; set; }
     public string? PendingPasswordHash { get; set; }
 
@@ -174,10 +174,11 @@ public class PlayerSession
     }
 
     public PlayerSession(IConnection connection, Entity playerEntity,
-        FloodContext? floodContext = null)
+        Guid accountId = default, FloodContext? floodContext = null)
     {
         Connection = connection;
         PlayerEntity = playerEntity;
+        AccountId = accountId;
         _floodCtx = floodContext;
 
         _inputHandler = (input) => HandleInput(input.Trim());
@@ -206,6 +207,7 @@ public class SessionManager
     private readonly ConcurrentDictionary<string, PlayerSession> _byConnectionId = new();
     private readonly ConcurrentDictionary<Guid, PlayerSession> _byEntityId = new();
     private readonly ConcurrentDictionary<string, PlayerSession> _byPlayerName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<Guid, List<PlayerSession>> _byAccountId = new();
     private readonly ConcurrentDictionary<string, LoginContext> _preLogin = new();
 
     public void Add(PlayerSession session)
@@ -220,6 +222,18 @@ public class SessionManager
         _byConnectionId[session.Connection.Id] = session;
         _byEntityId[session.PlayerEntity.Id] = session;
         _byPlayerName[name] = session;
+
+        if (session.AccountId != Guid.Empty)
+        {
+            var list = _byAccountId.GetOrAdd(session.AccountId, _ => new List<PlayerSession>());
+            lock (list)
+            {
+                if (!list.Contains(session))
+                {
+                    list.Add(session);
+                }
+            }
+        }
     }
 
     public void Remove(PlayerSession session)
@@ -227,6 +241,19 @@ public class SessionManager
         _byConnectionId.TryRemove(session.Connection.Id, out _);
         _byEntityId.TryRemove(session.PlayerEntity.Id, out _);
         _byPlayerName.TryRemove(session.PlayerEntity.Name.ToLowerInvariant(), out _);
+
+        if (session.AccountId != Guid.Empty &&
+            _byAccountId.TryGetValue(session.AccountId, out var list))
+        {
+            lock (list)
+            {
+                list.Remove(session);
+                if (list.Count == 0)
+                {
+                    _byAccountId.TryRemove(session.AccountId, out _);
+                }
+            }
+        }
     }
 
     public void RemoveConnectionOnly(PlayerSession session)
@@ -258,6 +285,35 @@ public class SessionManager
     public PlayerSession? GetByPlayerName(string name)
     {
         return _byPlayerName.GetValueOrDefault(name.ToLowerInvariant());
+    }
+
+    public IReadOnlyList<PlayerSession> GetByAccountId(Guid accountId)
+    {
+        if (_byAccountId.TryGetValue(accountId, out var list))
+        {
+            lock (list)
+            {
+                return list.ToList();
+            }
+        }
+        return Array.Empty<PlayerSession>();
+    }
+
+    public int ActiveCharacterCount(Guid accountId, Guid? excludeEntityId = null)
+    {
+        if (!_byAccountId.TryGetValue(accountId, out var list))
+        {
+            return 0;
+        }
+
+        lock (list)
+        {
+            if (excludeEntityId.HasValue)
+            {
+                return list.Count(s => s.PlayerEntity.Id != excludeEntityId.Value);
+            }
+            return list.Count;
+        }
     }
 
     public IEnumerable<PlayerSession> AllSessions => _byConnectionId.Values;
