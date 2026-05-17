@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Prompt;
@@ -35,6 +36,14 @@ public class PlayerSession
     public Action<string>? PromptHandler { get; set; }
     public Action? CancelPreLoginTimeout { get; set; }
 
+    // Token bucket state
+    private readonly FloodContext? _floodCtx;
+    private float _tokens;
+    private long _lastReplenishTick = -1;
+    private int _floodStrikes;
+    private long _lastStrikeTick;
+    private bool _floodWarned;
+
     public void UpdateLastInputTick(long tick)
     {
         LastInputTick = tick;
@@ -54,6 +63,69 @@ public class PlayerSession
     public bool TryDequeueInput(out string? input)
     {
         return _inputQueue.TryDequeue(out input);
+    }
+
+    private bool TryConsumeToken()
+    {
+        if (_floodCtx == null) { return true; }
+
+        var currentTick = _floodCtx.GetCurrentTick();
+
+        if (_lastReplenishTick < 0)
+        {
+            _tokens = _floodCtx.Config.BurstSize;
+            _lastReplenishTick = currentTick;
+        }
+
+        var elapsed = currentTick - _lastReplenishTick;
+        if (elapsed > 0)
+        {
+            var elapsedSeconds = (double)elapsed / _floodCtx.TicksPerSecond;
+            _tokens = Math.Min(_floodCtx.Config.BurstSize,
+                _tokens + (float)(elapsedSeconds * _floodCtx.Config.CommandsPerSecond));
+            _lastReplenishTick = currentTick;
+        }
+
+        if (_tokens >= 1.0f)
+        {
+            _tokens -= 1.0f;
+
+            if (_floodStrikes > 0)
+            {
+                var decayTicks = (long)(_floodCtx.Config.StrikeDecaySeconds * _floodCtx.TicksPerSecond);
+                if (currentTick - _lastStrikeTick >= decayTicks)
+                {
+                    _floodStrikes = 0;
+                    _floodWarned = false;
+                }
+            }
+
+            return true;
+        }
+
+        if (!_floodWarned)
+        {
+            Send("Slow down.\r\n");
+            _floodWarned = true;
+        }
+
+        _floodStrikes++;
+        _lastStrikeTick = currentTick;
+
+        _floodCtx.DroppedCounter?.Add(1,
+            new KeyValuePair<string, object?>("player_name", PlayerEntity.Name));
+
+        if (_floodStrikes >= _floodCtx.Config.StrikeThreshold)
+        {
+            _floodCtx.Logger?.LogWarning(
+                "Player {PlayerName} ({EntityId}) disconnected: command flooding",
+                PlayerEntity.Name, PlayerEntity.Id);
+            _floodCtx.DisconnectCounter?.Add(1);
+            Connection.SendLine("Disconnected: command flooding.");
+            Connection.Disconnect("command flooding");
+        }
+
+        return false;
     }
 
     public void HandleInput(string input)
@@ -77,13 +149,19 @@ public class PlayerSession
             CurrentFlow.HandleInput(input);
             return;
         }
+        if (!TryConsumeToken())
+        {
+            return;
+        }
         EnqueueInput(input);
     }
 
-    public PlayerSession(IConnection connection, Entity playerEntity)
+    public PlayerSession(IConnection connection, Entity playerEntity,
+        FloodContext? floodContext = null)
     {
         Connection = connection;
         PlayerEntity = playerEntity;
+        _floodCtx = floodContext;
 
         connection.OnInput += (input) =>
         {
