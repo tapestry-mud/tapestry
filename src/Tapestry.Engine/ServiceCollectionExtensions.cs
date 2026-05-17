@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Color;
@@ -43,7 +44,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<EventBus>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<EmoteRegistry>();
-        services.AddSingleton<CommandRouter>();
+        services.AddSingleton<BadInputTracker>(sp =>
+            new BadInputTracker(
+                sp.GetRequiredService<ILogger<BadInputTracker>>(),
+                sp.GetRequiredService<TapestryMetrics>().BadInputTotal));
+        services.AddSingleton<CommandRouter>(sp => new CommandRouter(
+            sp.GetRequiredService<CommandRegistry>(),
+            sp.GetRequiredService<SessionManager>(),
+            sp.GetRequiredService<World>(),
+            sp.GetRequiredService<BadInputTracker>()));
         services.AddSingleton<SessionManager>();
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
