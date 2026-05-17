@@ -9,7 +9,7 @@ public class LoginPhaseTests
     public void LoginPhase_HasExpectedValues()
     {
         var phases = Enum.GetNames<LoginPhase>();
-        phases.Should().Contain(["Connected", "Name", "Password", "SessionTakeover", "Creating", "Playing"]);
+        phases.Should().Contain(["Connected", "Name", "Password", "SessionTakeover", "Creating", "Playing", "LinkDead"]);
     }
 
     [Fact]

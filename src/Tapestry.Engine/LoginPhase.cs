@@ -7,5 +7,6 @@ public enum LoginPhase
     Password,
     SessionTakeover,
     Creating,
-    Playing
+    Playing,
+    LinkDead
 }
