@@ -25,13 +25,15 @@ public class PlayerInitModuleTests
         var persistence = new PlayerPersistenceService(
             store, serializer, sessions, world,
             NullLogger<PlayerPersistenceService>.Instance);
+        var accountStore = new FakeAccountStore();
+        var accountService = new AccountService(accountStore);
         var packLoader = new FakePackManifestProvider();
         var raceRegistry = new RaceRegistry();
         var eventBus = new EventBus();
         var lootResolver = new LootTableResolver();
         var spawns = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry());
         return new PlayerInitModule(
-            config, packLoader, persistence, raceRegistry, spawns,
+            config, packLoader, persistence, accountService, raceRegistry, spawns,
             NullLogger<PlayerInitModule>.Instance);
     }
 
@@ -91,8 +93,36 @@ public class PlayerInitModuleTests
 
         var saved = store.Saved.Should().ContainSingle().Subject;
         saved.Roles.Should().Contain("admin");
-        // TODO(Task 10): password verification will be via AccountService once account creation is wired
-        saved.AccountId.Should().Be(Guid.Empty.ToString());
+        Guid.TryParse(saved.AccountId, out var parsedId).Should().BeTrue();
+        parsedId.Should().NotBe(Guid.Empty);
+    }
+
+    private class FakeAccountStore : IAccountStore
+    {
+        private readonly Dictionary<Guid, AccountSaveData> _byId = new();
+        private readonly Dictionary<string, Guid> _byEmail = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task SaveAsync(AccountSaveData data)
+        {
+            _byId[data.Id] = data;
+            _byEmail[data.Email] = data.Id;
+            return Task.CompletedTask;
+        }
+
+        public Task<AccountSaveData?> LoadByIdAsync(Guid accountId) =>
+            Task.FromResult(_byId.GetValueOrDefault(accountId));
+
+        public Task<AccountSaveData?> LoadByEmailAsync(string email)
+        {
+            if (_byEmail.TryGetValue(email, out var id))
+            {
+                return LoadByIdAsync(id);
+            }
+            return Task.FromResult<AccountSaveData?>(null);
+        }
+
+        public Task DeleteAsync(Guid accountId) => Task.CompletedTask;
+        public bool ExistsByEmail(string email) => _byEmail.ContainsKey(email);
     }
 
     private class FakeAdminStore : IPlayerStore

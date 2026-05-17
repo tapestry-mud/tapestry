@@ -122,6 +122,11 @@ public class AccountService
         return await _store.LoadByIdAsync(accountId);
     }
 
+    public async Task SaveAccount(AccountSaveData account)
+    {
+        await _store.SaveAsync(account);
+    }
+
     public bool ExistsByEmail(string email)
     {
         return _store.ExistsByEmail(email.Trim().ToLowerInvariant());
