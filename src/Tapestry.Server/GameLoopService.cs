@@ -156,8 +156,8 @@ public class GameLoopService : IHostedService
 
         if (_config.LinkDead.Enabled)
         {
-            var ticksPerSecond = 1000.0 / _config.Server.TickRateMs;
-            var timeoutTicks = (long)(_config.LinkDead.TimeoutSeconds * ticksPerSecond);
+            var ticksPerSecond = (long)Math.Round(1000.0 / _config.Server.TickRateMs);
+            var timeoutTicks = _config.LinkDead.TimeoutSeconds * ticksPerSecond;
 
             _gameLoop.RegisterTickHandler("linkdead-cleanup", 300, () =>
             {
