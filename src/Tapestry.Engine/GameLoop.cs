@@ -22,6 +22,7 @@ public class GameLoop
     private readonly HashSet<Guid> _activeDisconnects = new();
     private readonly List<TickHandler> _tickHandlers = new();
     private readonly ConcurrentQueue<Action> _pendingActions = new();
+    private const int MaxCommandsPerSessionPerTick = 10;
     private long _tickCount;
     private Action? _preTick;
     private int _idleTimeoutTicks;
@@ -158,8 +159,12 @@ public class GameLoop
         {
             _metrics.InputQueueDepth.Record(session.InputQueueCount);
 
+            var sessionCommandsThisTick = 0;
             while (session.TryDequeueInput(out var input))
             {
+                if (sessionCommandsThisTick >= MaxCommandsPerSessionPerTick) { break; }
+                sessionCommandsThisTick++;
+
                 session.UpdateLastInputTick(_tickCount);
 
                 if (string.IsNullOrWhiteSpace(input))
