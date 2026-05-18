@@ -347,6 +347,135 @@ app.MapPost("/auth/select", async (HttpContext httpContext, AccountService accou
     }
 }).RequireRateLimiting("auth-strict");
 
+app.MapGet("/auth/check-email", (string? email, AccountService accountService) =>
+{
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        return Results.Json(new { exists = false });
+    }
+
+    var (valid, _) = EmailValidator.Validate(email);
+    if (!valid)
+    {
+        return Results.Json(new { exists = false });
+    }
+
+    var exists = accountService.ExistsByEmail(email);
+    return Results.Json(new { exists });
+}).RequireRateLimiting("auth-light");
+
+app.MapPost("/auth/login-by-character", async (HttpContext httpContext,
+    PlayerPersistenceService persistence, AccountService accountService,
+    SessionManager sessions, PreAuthTokenService tokenService) =>
+{
+    var body = await httpContext.Request.ReadFromJsonAsync<PreAuthLoginByCharacterRequest>();
+    if (body == null || string.IsNullOrWhiteSpace(body.Character))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "character is required" });
+    }
+
+    if (string.IsNullOrEmpty(body.Password))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "password is required" });
+    }
+
+    var canonical = NameValidator.Canonicalize(body.Character);
+    if (!persistence.PlayerSaveExists(canonical))
+    {
+        httpContext.Response.StatusCode = 404;
+        return Results.Json(new { error = "Character not found" });
+    }
+
+    var playerData = await persistence.LoadPlayer(canonical);
+    if (playerData == null || playerData.AccountId == Guid.Empty)
+    {
+        httpContext.Response.StatusCode = 500;
+        return Results.Json(new { error = "Character data unavailable" });
+    }
+
+    var account = await accountService.AuthenticateById(playerData.AccountId, body.Password);
+    if (account == null)
+    {
+        httpContext.Response.StatusCode = 401;
+        return Results.Json(new { error = "Invalid password" });
+    }
+
+    var activeCount = sessions.ActiveCharacterCount(account.Id);
+    if (activeCount >= config.Accounts.MaxConcurrentCharacters)
+    {
+        httpContext.Response.StatusCode = 409;
+        return Results.Json(new { error = "Concurrent character limit reached" });
+    }
+
+    var token = tokenService.Issue(canonical, account.Id, PreAuthIntent.Login);
+    return Results.Json(new { token });
+}).RequireRateLimiting("auth-strict");
+
+app.MapPost("/auth/register", async (HttpContext httpContext,
+    AccountService accountService, PlayerPersistenceService persistence,
+    LoginGateRegistry loginGates, PreAuthTokenService tokenService) =>
+{
+    var body = await httpContext.Request.ReadFromJsonAsync<PreAuthRegisterRequest>();
+    if (body == null || string.IsNullOrWhiteSpace(body.Email))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "email is required" });
+    }
+
+    if (string.IsNullOrEmpty(body.Password))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "password is required" });
+    }
+
+    if (string.IsNullOrWhiteSpace(body.Character))
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = "character is required" });
+    }
+
+    var (emailValid, emailError) = EmailValidator.Validate(body.Email);
+    if (!emailValid)
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = emailError });
+    }
+
+    var (nameValid, nameError) = NameValidator.Validate(body.Character);
+    if (!nameValid)
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = nameError });
+    }
+
+    var canonical = NameValidator.Canonicalize(body.Character);
+    if (persistence.PlayerSaveExists(canonical))
+    {
+        httpContext.Response.StatusCode = 409;
+        return Results.Json(new { error = "Character name already exists" });
+    }
+
+    if (accountService.ExistsByEmail(body.Email))
+    {
+        httpContext.Response.StatusCode = 409;
+        return Results.Json(new { error = "An account with this email already exists" });
+    }
+
+    var gateResult = loginGates.RunAll(canonical, null!);
+    if (!gateResult.Allowed)
+    {
+        httpContext.Response.StatusCode = 403;
+        return Results.Json(new { error = gateResult.Message ?? "Name not allowed" });
+    }
+
+    var account = await accountService.CreateAccount(body.Email, body.Password);
+    await accountService.AddCharacterToAccount(account.Id, canonical);
+    var token = tokenService.Issue(canonical, account.Id, PreAuthIntent.Create);
+    return Results.Json(new { token });
+}).RequireRateLimiting("auth-strict");
+
 // --- WebSocket fallback (runs only when no HTTP route matched) ---
 
 app.MapFallback(async context =>
