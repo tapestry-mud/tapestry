@@ -7,8 +7,8 @@ namespace Tapestry.Engine.Heartbeat;
 
 public class PulseContext
 {
-    public long CurrentTick { get; init; }
-    public long CurrentPulse { get; init; }
+    public long CurrentTick { get; set; }
+    public long CurrentPulse { get; set; }
     public World World { get; init; } = null!;
     public EventBus EventBus { get; init; } = null!;
     public CombatManager CombatManager { get; init; } = null!;

@@ -352,6 +352,7 @@ public class GameLoop
 
     public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks = 10, SustenanceConfig? sustenanceConfig = null, RestConfig? restConfig = null)
     {
+        var regenData = new Dictionary<string, object?>(2);
         RegisterTickHandler("regen", regenIntervalTicks, () =>
         {
             var regenCandidates = world.GetEntitiesByType("player")
@@ -403,36 +404,42 @@ public class GameLoop
 
                 if (regenHp > 0 && entity.Stats.Hp < entity.Stats.MaxHp)
                 {
+                    regenData.Clear();
+                    regenData["vital"] = "hp";
+                    regenData["amount"] = regenHp;
                     var regenEvent = new GameEvent
                     {
                         Type = "entity.regen",
                         SourceEntityId = entity.Id,
                         RoomId = entity.LocationRoomId,
-                        Data = { ["vital"] = "hp", ["amount"] = regenHp }
+                        Data = regenData
                     };
                     eventBus.Publish(regenEvent);
 
                     if (!regenEvent.Cancelled)
                     {
-                        var amount = regenEvent.Data.ContainsKey("amount") ? (int)regenEvent.Data["amount"]! : regenHp;
+                        var amount = regenData.ContainsKey("amount") ? (int)regenData["amount"]! : regenHp;
                         entity.Stats.Hp += amount;
                     }
                 }
 
                 if (regenResource > 0 && entity.Stats.Resource < entity.Stats.MaxResource)
                 {
+                    regenData.Clear();
+                    regenData["vital"] = "resource";
+                    regenData["amount"] = regenResource;
                     var regenResourceEvent = new GameEvent
                     {
                         Type = "entity.regen",
                         SourceEntityId = entity.Id,
                         RoomId = entity.LocationRoomId,
-                        Data = { ["vital"] = "resource", ["amount"] = regenResource }
+                        Data = regenData
                     };
                     eventBus.Publish(regenResourceEvent);
 
                     if (!regenResourceEvent.Cancelled)
                     {
-                        var amount = regenResourceEvent.Data.ContainsKey("amount") ? (int)regenResourceEvent.Data["amount"]! : regenResource;
+                        var amount = regenData.ContainsKey("amount") ? (int)regenData["amount"]! : regenResource;
                         entity.Stats.Resource += amount;
                     }
                 }

@@ -11,6 +11,9 @@ public class AreaTickService
     private readonly ServerConfig _config;
     private readonly Dictionary<string, AreaTickState> _states =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _playerCounts =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _areaTickData = new(3);
 
     public AreaTickService(World world, EventBus eventBus, AreaRegistry areaRegistry, ServerConfig config)
     {
@@ -22,10 +25,12 @@ public class AreaTickService
 
     public void Tick()
     {
+        RebuildPlayerCounts();
+
         foreach (var areaDef in _areaRegistry.All())
         {
             var state = GetOrCreateState(areaDef.Id);
-            var playerCount = GetPlayerCount(areaDef.Id);
+            _playerCounts.TryGetValue(areaDef.Id, out var playerCount);
 
             state.TicksSinceLastFire++;
 
@@ -40,15 +45,14 @@ public class AreaTickService
             state.TicksSinceLastFire = 0;
             state.TickCount++;
 
+            _areaTickData.Clear();
+            _areaTickData["areaId"] = areaDef.Id;
+            _areaTickData["tickCount"] = state.TickCount;
+            _areaTickData["playerCount"] = playerCount;
             _eventBus.Publish(new GameEvent
             {
                 Type = "area.tick",
-                Data = new Dictionary<string, object?>
-                {
-                    ["areaId"] = areaDef.Id,
-                    ["tickCount"] = state.TickCount,
-                    ["playerCount"] = playerCount
-                }
+                Data = _areaTickData
             });
         }
     }
@@ -60,9 +64,34 @@ public class AreaTickService
 
     public int GetPlayerCount(string areaId)
     {
-        return _world.AllRooms
-            .Where(r => string.Equals(r.Area, areaId, StringComparison.OrdinalIgnoreCase))
-            .Sum(r => r.Entities.Count(e => e.Type == EntityTypes.Player));
+        if (_playerCounts.Count == 0)
+        {
+            RebuildPlayerCounts();
+        }
+        _playerCounts.TryGetValue(areaId, out var count);
+        return count;
+    }
+
+    private void RebuildPlayerCounts()
+    {
+        _playerCounts.Clear();
+        foreach (var room in _world.AllRooms)
+        {
+            if (room.Area == null) { continue; }
+            var players = 0;
+            for (var i = 0; i < room.Entities.Count; i++)
+            {
+                if (room.Entities[i].Type == EntityTypes.Player)
+                {
+                    players++;
+                }
+            }
+            if (players > 0)
+            {
+                _playerCounts.TryGetValue(room.Area, out var existing);
+                _playerCounts[room.Area] = existing + players;
+            }
+        }
     }
 
     public void SetResetInterval(string areaId, int ticks)

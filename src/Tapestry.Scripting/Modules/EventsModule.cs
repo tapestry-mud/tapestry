@@ -23,22 +23,8 @@ public class EventsModule : IJintApiModule
         {
             on = new Action<string, JsValue>((eventType, callback) =>
             {
-                _eventBus.Subscribe(eventType, gameEvent =>
-                {
-                    var capturedEvent = gameEvent;
-                    var eventObj = new
-                    {
-                        type = gameEvent.Type,
-                        sourceEntityId = gameEvent.SourceEntityId?.ToString(),
-                        targetEntityId = gameEvent.TargetEntityId?.ToString(),
-                        roomId = gameEvent.RoomId,
-                        cancelled = gameEvent.Cancelled,
-                        data = gameEvent.Data,
-                        cancel = new Action(() => { capturedEvent.Cancelled = true; })
-                    };
-
-                    engine.Invoke(callback, JsValue.FromObject(engine, eventObj));
-                });
+                var dispatcher = new EventDispatcher(engine, callback);
+                _eventBus.Subscribe(eventType, dispatcher.Dispatch);
             }),
 
             publish = new Action<string, JsValue>((eventType, dataObj) =>
@@ -59,5 +45,37 @@ public class EventsModule : IJintApiModule
                 });
             })
         };
+    }
+
+    private class EventDispatcher
+    {
+        private readonly JintEngine _engine;
+        private readonly JsValue _callback;
+        private readonly JsValue _cancelFn;
+        private GameEvent? _current;
+
+        public EventDispatcher(JintEngine engine, JsValue callback)
+        {
+            _engine = engine;
+            _callback = callback;
+            _cancelFn = JsValue.FromObject(engine, new Action(() =>
+            {
+                if (_current != null) { _current.Cancelled = true; }
+            }));
+        }
+
+        public void Dispatch(GameEvent gameEvent)
+        {
+            _current = gameEvent;
+            var jsEvent = _engine.Intrinsics.Object.Construct(Array.Empty<JsValue>());
+            jsEvent.FastSetDataProperty("type", (JsValue)(gameEvent.Type));
+            jsEvent.FastSetDataProperty("sourceEntityId", gameEvent.SourceEntityId?.ToString() ?? JsValue.Null);
+            jsEvent.FastSetDataProperty("targetEntityId", gameEvent.TargetEntityId?.ToString() ?? JsValue.Null);
+            jsEvent.FastSetDataProperty("roomId", gameEvent.RoomId ?? JsValue.Null);
+            jsEvent.FastSetDataProperty("cancelled", gameEvent.Cancelled);
+            jsEvent.FastSetDataProperty("data", JsValue.FromObject(_engine, gameEvent.Data));
+            jsEvent.FastSetDataProperty("cancel", _cancelFn);
+            _engine.Invoke(_callback, jsEvent);
+        }
     }
 }
