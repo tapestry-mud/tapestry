@@ -1,8 +1,14 @@
 # Tapestry
 
-A modular MUD engine where the engine provides the platform and content packs provide the game.
+A modular MUD engine where the engine ships plumbing and packs ship the game.
 
-Think Minecraft's relationship to mods: the engine is the canvas, packs are the paint. A server operator loads the packs they want and gets a unique MUD. A content creator builds a pack and shares it with the community.
+Rooms, NPCs, quests, shops, items, branching quest chains -- all YAML config files. If you can write a config file, you can build a MUD. JavaScript is available for event-driven behavior (NPC reactions, custom commands, quest lifecycle hooks), but most worlds never need it.
+
+Every pack you build can be published to the registry and installed by any Tapestry server. The registry is how the community shares work.
+
+**Live demo:** [lf.tapestryengine.com](https://lf.tapestryengine.com) -- Legends Forgotten, a Wheel of Time-inspired MUD built entirely from Tapestry packs.
+
+---
 
 ## Screenshots
 
@@ -16,212 +22,216 @@ Think Minecraft's relationship to mods: the engine is the canvas, packs are the 
 
 <a href="screenshots/jaeger-tracing.png"><img src="screenshots/jaeger-tracing.png" width="600" alt="Jaeger distributed trace showing GameLoop tick breakdown"></a>
 
-<a href="screenshots/tpm-package-manager.png"><img src="screenshots/tpm-package-manager.png" width="600" alt="TPM package manager CLI showing search, install, list, info, and disable commands"></a>
+---
 
 ## Quick Start
 
-```bash
-dotnet run --project src/Tapestry.Server
-```
-
-Then connect with any telnet client:
+Requires [Docker](https://www.docker.com/) and the [Tapestry CLI](https://github.com/tapestry-mud/tapestry-cli):
 
 ```bash
-telnet localhost 4000
+npm install -g @tapestry-mud/cli
+
+tapestry init       # scaffold a project from the starter preset
+tapestry install    # download packs from the registry
+tapestry start      # pull the engine image and boot
 ```
 
-Enter a name, and you're in. Type `help` for commands.
+Connect with `telnet localhost 4000` or open the [web client](https://github.com/tapestry-mud/tapestry-client) in a browser.
 
-### Web Client
+---
 
-A browser-based client lives in [`client/`](client/). Connect via browser -- no plugins required.
+## Building a Game with YAML
+
+The pack system is the core idea. The engine provides systems; packs provide content. Here is what that looks like in practice:
+
+**A room:**
+```yaml
+id: "mygame:village-square"
+name: "Village Square"
+description: "Market stalls line the cobblestones. Smoke rises from the smithy to the north."
+exits:
+  north: "mygame:smithy"
+  south: "mygame:inn"
+properties:
+  terrain: urban
+spawns:
+  - mob: "mygame:merchant"
+    count: 2
+    max: 4
+```
+
+**A quest with branching paths:**
+```yaml
+id: "mygame:first-mission"
+name: "Prove Your Worth"
+giver: "mygame:guild-master"
+stages:
+  - id: hunt
+    objectives:
+      - type: kill
+        target: "mygame:goblin"
+        count: 5
+  - id: return
+    objectives:
+      - type: visit
+        target: "mygame:guildhall"
+rewards:
+  xp: 200
+  gold: 50
+```
+
+**A hostile NPC with loot:**
+```yaml
+id: "mygame:goblin"
+name: "a cave goblin"
+base_disposition: hostile
+behavior: aggro
+stats:
+  strength: 8
+  max_hp: 20
+battle_commands:
+  - "emote snarls and lunges."
+  - kick
+properties:
+  mob_level: 2
+  xp_value: 40
+loot:
+  pool:
+    - item: "mygame:rusty-dagger"
+      weight: 80
+```
+
+For behavior that goes beyond configuration -- NPC dialogue triggered by quest completion, custom combat abilities, character initialization -- JavaScript event hooks are available. See the [official packs](https://github.com/tapestry-mud/tapestry-packs) for working examples.
+
+---
+
+## What's in the Engine
+
+**World:** Rooms with directional and keyword exits, doors (lock/pick/key), temporary portals, weather zones, day/night cycle, area resets, spawn tables with rare spawn weighting.
+
+**Entities:** Unified entity model with tags and dynamic properties. Stats with equipment modifiers, weight-based inventory, multi-slot equipment. Containers, consumables (eat/drink/quaff/recite), rest/sleep with regen multipliers.
+
+**Combat:** D20 hit resolution, 4-type AC (slash/pierce/bash/exotic), 20-tier damage verb scaling, death with corpse/loot, flee, wimpy, alignment shifts.
+
+**Progression:** XP tracks with configurable formulas, death penalty, level-up callbacks. Proficiency tiers (Novice through Master). Trainer NPCs, class paths with auto-grant on level-up, stat training.
+
+**Social:** Say/yell/emote, communication channels, groups (follow/invite/kick/promote), XP and gold sharing, rescue, group chat.
+
+**Character creation:** Step-based wizard with ANSI panels, race/class/alignment selection with per-option lore text, pack-defined creation options.
+
+**NPCs:** Wander/patrol/stationary AI, aggro, flee threshold, shop system (buy/sell/list), idle behavior, skill trainers.
+
+---
+
+## Pack System
+
+Packs are the unit of extension for everything -- content and systems alike.
+
+A pack can be a world (areas, NPCs, quests), a system (crafting, economy, an enhanced quest engine, a skill tree), or both. System packs register their own tags and properties with the engine; content packs declare a dependency and use them. The CLI resolves the dependency graph and installs everything in the right order.
+
+This means the ecosystem can grow independently of the engine. Someone publishes a crafting system pack. A world builder depends on it and uses `craftable: true` in their item YAML. No engine changes, no C#.
+
+A pack contains:
+
+| File type | Purpose |
+|-----------|---------|
+| `tapestry.yaml` | Manifest -- name, version, engine constraint, dependencies, content globs |
+| `areas/**/*.yaml` | Rooms, mobs, items, spawn tables |
+| `quests/**/*.yaml` | Quest definitions with objectives and rewards |
+| `scripts/**/*.js` | System behavior, event hooks, custom commands (optional) |
+| `help/**/*.yaml` | In-game help topics (optional) |
+
+Higher-priority packs can override commands, extend areas, or replace items from lower-priority packs.
+
+See [tapestry-packs](https://github.com/tapestry-mud/tapestry-packs) for the official packs and a reference for how community packs are structured.
+
+---
 
 ## Accessibility
 
-Tapestry treats accessibility as a first-class concern. The web client includes:
+Screen reader support is baked into the engine, not bolted on by the client.
 
-- **Skip navigation** -- links to jump directly to game output, command input, or announcement settings
-- **Screen reader announcements** -- live regions that announce game state changes (vitals warnings, combat events, chat messages, room changes) without requiring navigation away from the command input
-- **Configurable announcement priority** -- each category can be set to Interrupt (assertive), Polite, or Off via the settings panel. Preferences persist per-browser
-- **Vitals threshold alerts** -- announces when HP, mana, or movement drop below 40% (low) and 10% (critical), then stays silent until the player heals above the low threshold
-- **xterm screen reader mode** -- terminal output is mirrored to a live text buffer so screen readers can read game output as it arrives
-- **Semantic markup** -- proper landmarks (`<main>`, `role="log"`, `role="complementary"`), labeled inputs, and ARIA attributes throughout
-- **Mobile layout** -- on small screens, GMCP panels are visually hidden but remain in the DOM for assistive technology
+Every reaction that would print on screen is also sent through the GMCP feedback channel. That means any pack -- even one built without accessibility in mind -- is automatically readable by a screen reader. Content creators can supply richer structured GMCP channels for a more tailored experience, but the feedback channel guarantees a working floor.
 
-The telnet server works with any screen reader out of the box since it's plain text over a terminal connection.
+The web client exposes this through ARIA live regions fed by GMCP packets (not terminal scraping -- the terminal is `aria-hidden`). Players configure how aggressively each category of content is announced: Interrupt, Polite, or Off. On-demand keyboard shortcuts let screen reader users request a full room description, nearby entities with action hints, or help text at any time.
+
+The telnet server works with any screen reader out of the box -- plain text over a terminal connection.
+
+See [tapestry-client](https://github.com/tapestry-mud/tapestry-client) for full details on the client-side implementation.
+
+---
+
+## Observability
+
+The engine ships a full OpenTelemetry pipeline. Entirely additive -- the engine runs fine without it.
+
+```bash
+docker-compose up -d          # start the observability stack
+# set telemetry.enabled: true in server.yaml
+tapestry start
+```
+
+Open Grafana at `http://localhost:3001` for the pre-provisioned Tapestry Overview dashboard.
+
+| Component | Purpose |
+|-----------|---------|
+| OTel Collector | Telemetry pipeline hub |
+| Loki | Log aggregation |
+| Prometheus | Metrics |
+| Jaeger | Distributed traces |
+| Grafana | Unified UI with pre-provisioned dashboard |
+
+What's instrumented: every game loop tick, per-command execution time, connection lifecycle, slow tick detection, active connections, queue depth.
+
+---
 
 ## Architecture
 
-**Modular monolith** in C#/.NET 10. The engine has zero hardcoded game logic — everything comes from content packs.
+Modular .NET 10 monolith. Zero hardcoded game logic -- everything comes from packs.
 
 ```
 Tapestry.Shared       Enums, interfaces, shared types
 Tapestry.Engine       Entity system, rooms, world graph, event bus, command routing, game loop
-Tapestry.Networking   Telnet server, ANSI color support
+Tapestry.Networking   Telnet + WebSocket servers, ANSI color
 Tapestry.Scripting    Jint JS runtime, YAML loader, pack loader, JS-to-engine bridge
 Tapestry.Data         Server configuration (YAML)
 Tapestry.Server       Host startup, DI wiring
 ```
 
-### Content Packs
+Key dependencies: [Jint](https://github.com/sebastienros/jint) (embedded ES6+ JS runtime, 37 API modules), [YamlDotNet](https://github.com/aaubry/YamlDotNet), OpenTelemetry .NET SDK.
 
-Packs live in `packs/` and contain:
+---
 
-- **YAML** for data (rooms, areas, entities, items, mobs, loot tables, spawns)
-- **JavaScript** for behavior (commands, event hooks, tick handlers, class definitions)
-- **pack.yaml** manifest with metadata, version constraints, and content globs
-
-Packs stack. `load_order` controls precedence, so a pack can override commands, extend areas, or replace items from lower-priority packs. The included `tapestry-core` pack provides a starter town and base commands. Additional packs layer new worlds on top, overriding and extending as needed.
-
-### Key Tech
-
-- **Jint** -- embedded JS runtime (ES6+) for pack scripting, 37 API modules
-- **YamlDotNet** -- content file parsing
-- **Event Bus** -- priority-ordered pub/sub with cancellation (scripts can veto actions)
-- **Command Registry** -- priority-based dispatch with aliases (packs override commands)
-- **Tick-based Game Loop** -- configurable rate, processes input queues and tick handlers
-- **GMCP** -- structured data protocol for rich clients (vitals, room info, effects, combat)
-- **WebSocket** -- native WebSocket server for browser-based play
-- **OpenTelemetry** -- structured logging, metrics, and distributed tracing
-
-## Configuration
-
-`server.yaml` at the project root:
-
-```yaml
-server:
-  name: "Tapestry Dev Server"
-  telnet_port: 4000
-  tick_rate_ms: 100
-
-packs:
-  - tapestry-core
-```
-
-## Creating a Content Pack
-
-```
-packs/my-pack/
-  pack.yaml              # name, version, content globs
-  areas/**/*.yaml        # room definitions
-  scripts/init.js        # runs first — setup
-  scripts/commands/*.js  # command registrations
-```
-
-The JS API available to scripts:
-
-```javascript
-// Register a command
-tapestry.commands.register({
-    name: 'wave',
-    aliases: ['wav'],
-    handler: function(player, args) {
-        player.send('You wave enthusiastically.\r\n');
-        tapestry.world.sendToRoomExcept(player.roomId, player.entityId,
-            player.name + ' waves enthusiastically.\r\n');
-    }
-});
-
-// Subscribe to events
-tapestry.events.on('player.connect', function(event) { /* ... */ });
-
-// World helpers
-tapestry.world.moveEntity(entityId, direction)
-tapestry.world.sendRoomDescription(entityId)
-tapestry.world.getOnlinePlayers()
-```
-
-## Observability
-
-The engine includes a full OpenTelemetry pipeline — structured logging (Serilog), metrics, and distributed tracing. It's entirely additive: the engine runs fine without the observability stack.
-
-**Stack:**
-
-| Component | Purpose | Image |
-|-----------|---------|-------|
-| OTel Collector | Pipeline hub — receives all telemetry from the engine | `otel/opentelemetry-collector-contrib` |
-| Loki | Log storage | `grafana/loki` |
-| Prometheus | Metrics storage (scrapes OTel Collector) | `prom/prometheus` |
-| Jaeger | Trace storage | `jaegertracing/jaeger` |
-| Grafana | Single UI for logs, metrics, and traces | `grafana/grafana` |
-
-**Quick start:**
-
-```bash
-docker-compose up -d          # Start observability stack
-# Edit server.yaml → telemetry.enabled: true
-dotnet run --project src/Tapestry.Server
-```
-
-Then open **Grafana** at `http://localhost:3001` — the Tapestry Overview dashboard is pre-provisioned with:
-- Active connections, commands/sec, events/sec gauges
-- Tick and command duration percentile graphs
-- Input queue depth
-- Live log tail (filterable by level)
-- Recent traces (clickable)
-
-**Other ports** (for direct access if needed):
-- Prometheus: `http://localhost:9091`
-- Loki: `http://localhost:3100`
-
-**What's instrumented:**
-- Every GameLoop tick (event processing, command execution, tick handlers)
-- Per-command execution time, tagged by command name and player
-- Connection lifecycle (connect, login, disconnect with reason)
-- Slow tick detection with in-game admin broadcast
-- Metrics: tick duration, commands/sec, queue depth, active connections
-
-```bash
-docker-compose down            # Stop the stack — engine keeps running
-```
-
-## Tests
+## Engine Development
 
 ```bash
 dotnet test
+dotnet run --project src/Tapestry.Server
 ```
 
-## Current Status
+---
 
-### What's Built
+## Status
 
-**Core Engine:** Telnet + WebSocket server, ANSI color themes, GMCP protocol, tick-based game loop, event bus with cancellation, command registry with pack override, OpenTelemetry observability.
+Pre-v1, actively developed. The engine is stable and running production traffic at [lf.tapestryengine.com](https://lf.tapestryengine.com). Breaking changes may occur before v1.0.
 
-**Content System:** YAML + JavaScript content packs with load ordering and version constraints. Pack-defined equipment slots, rarity tiers, progression tracks, class paths, races.
+The [issue tracker](https://github.com/tapestry-mud/tapestry/issues) has all planned work, labeled by area (`server`, `client`, `pack`) and difficulty (`good first issue`). To contribute: pick an issue, leave a comment, open a PR against `master`.
 
-**World:** Rooms with directional + keyword exits, doors (lock/pick/key), temporary portals with expiry, weather zones, day/night cycle, area resets, spawn tables with rare spawns.
+---
 
-**Entities:** Unified entity model with tags + dynamic properties. Stats with equipment modifiers. Weight-based inventory. Multi-slot equipment. Containers (put/get/fill). Consumables (eat/drink/quaff/recite). Rest/sleep with regen multipliers.
+## Ecosystem
 
-**Combat:** D20 hit resolution, 4-type AC (slash/pierce/bash/exotic), damage verb scaling (20 tiers), death with corpse/loot, flee, wimpy, alignment shifts.
+| Repo | Purpose |
+|------|---------|
+| [tapestry-cli](https://github.com/tapestry-mud/tapestry-cli) | CLI -- init, install, start, publish |
+| [tapestry-packs](https://github.com/tapestry-mud/tapestry-packs) | Official content packs |
+| [tapestry-client](https://github.com/tapestry-mud/tapestry-client) | React web client |
+| [tapestry-registry](https://github.com/tapestry-mud/tapestry-registry) | Registry server |
 
-**Progression:** XP tracks with configurable formulas, death penalty, level-up callbacks. Proficiency tiers (Novice through Master). Trainer NPCs. Class paths with auto-grant on level-up. Stat training at level-up.
+[tapestryengine.com](https://tapestryengine.com) - [Browse packs](https://tapestryengine.com/packages.html) - [lf.tapestryengine.com](https://lf.tapestryengine.com)
 
-**Social:** Say/yell/emote, communication channels, groups (follow/invite/kick/promote), XP and gold sharing, rescue, group chat.
-
-**NPCs:** Wander/patrol/stationary AI, aggro, flee threshold, equipment drops, loot tables, shops (buy/sell/list).
-
-**Character Creation:** Step-based wizard with ANSI panels, race/class/alignment selection, per-option lore text, validation rules.
-
-**Web Client:** React 19 + TypeScript browser client. Three-column drag-and-drop layout. Auto-mapper. Real-time vitals, stats, effects, combat target, XP tracking via GMCP. Four themes. Screen reader support with configurable announcements.
-
-## Contributing
-
-The [issue tracker](https://github.com/tapestry-mud/tapestry/issues) is where all planned work lives. Issues are labeled by area (`server`, `client`, `pack`) and difficulty (`good first issue`).
-
-To contribute: pick an issue, leave a comment, and open a PR against `master`.
-
-## Why Tapestry
-
-Most MUD engines hardcode game logic. Tapestry doesn't. The engine provides systems (entities, rooms, combat, progression, events) and packs provide the game (what a sword is, what a goblin does, what happens when you level up).
-
-**What this means for contributors:**
-- Build an entire game without touching C#. YAML + JavaScript is all you need
-- Stack multiple packs. Your cyberpunk pack and someone's fantasy pack can coexist on the same server
-- Override anything. A pack can replace the `look` command, redefine equipment slots, or add new stat types
-- 37 scripting API modules with full engine access from JavaScript
-- Modern tooling: OpenTelemetry observability, browser client with GMCP, comprehensive test suite
+---
 
 ## License
 
-[AGPL-3.0](LICENSE) — use it for anything, run it as a service, but keep your modifications open.
+[AGPL-3.0](LICENSE) -- use it for anything, run it as a service, but keep your modifications open.
