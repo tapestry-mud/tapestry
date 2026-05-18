@@ -142,7 +142,7 @@ public class GameLoopService : IHostedService
                 Data = new Dictionary<string, object?> { ["reason"] = evt.Reason }
             });
 
-            if (lastRoomId != null)
+            if (!isIntentionalQuit && lastRoomId != null)
             {
                 _sessions.SendToRoom(lastRoomId, playerName + " fades from existence.\r\n");
             }
