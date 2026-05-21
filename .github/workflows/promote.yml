@@ -48,10 +48,19 @@ jobs:
             -d "{\"docker_tag\":\"${{ inputs.version }}\",\"version\":\"${{ inputs.version }}\"}" \
             https://registry.tapestryengine.com/v1/admin/engine-channels/stable
 
+      - name: Mint deploy token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.DEPLOY_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: tapestry-mud
+          repositories: tapestry-infra
+
       - name: Trigger engine deploy
         run: |
           curl -sf -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.INFRA_DEPLOY_TOKEN }}" \
+            -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
             https://api.github.com/repos/tapestry-mud/tapestry-infra/actions/workflows/engine-deploy.yml/dispatches \
             -d "{\"ref\":\"master\",\"inputs\":{\"version\":\"${{ inputs.version }}\",\"game_path\":\"/opt/tapestry/legends-forgotten\"}}"
