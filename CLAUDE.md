@@ -43,3 +43,7 @@ dotnet test tests/Tapestry.Engine.Tests
 - `server.yaml` - server config, lists which packs to load
 - `packs/tapestry-core/` - minimal engine-required content (recall room, admin commands)
 - `packs/example-pack/` - complete example with human race, warrior/mage classes, starter area
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md) for the vulnerability reporting process and supply-chain practices. Do not introduce unpinned dependencies (no `^`/`~`); never report security issues in public issues or PRs.
