@@ -190,117 +190,7 @@ public class TelnetConnection : IConnection
                     return;
                 }
 
-                for (var i = 0; i < bytesRead; i++)
-                {
-                    var b = buffer[i];
-
-                    // --- Telnet command parsing (state persists across reads) ---
-                    switch (_parseState)
-                    {
-                        case ParseState.Iac:
-                            // We previously saw IAC; b is the command byte.
-                            if (b == TelnetProtocolConstants.SB)
-                            {
-                                _parseState = ParseState.SubnegOption;
-                            }
-                            else if (b >= TelnetProtocolConstants.WILL && b <= TelnetProtocolConstants.DONT)
-                            {
-                                _parseState = ParseState.Negotiate; // option byte follows
-                            }
-                            else
-                            {
-                                _parseState = ParseState.Normal; // 2-byte IAC command (incl. IAC IAC); ignore
-                            }
-                            continue;
-
-                        case ParseState.Negotiate:
-                            // Option byte for IAC WILL/WONT/DO/DONT; consume and ignore.
-                            _parseState = ParseState.Normal;
-                            continue;
-
-                        case ParseState.SubnegOption:
-                            _subnegOption = b;
-                            _subnegBuffer.Clear();
-                            _parseState = ParseState.Subneg;
-                            continue;
-
-                        case ParseState.Subneg:
-                            if (b == TelnetProtocolConstants.IAC)
-                            {
-                                _parseState = ParseState.SubnegIac;
-                            }
-                            else
-                            {
-                                _subnegBuffer.Add(b);
-                            }
-                            continue;
-
-                        case ParseState.SubnegIac:
-                            if (b == TelnetProtocolConstants.SE)
-                            {
-                                Router?.HandleSubnegotiation(_subnegOption, _subnegBuffer.ToArray());
-                                _subnegBuffer.Clear();
-                                _parseState = ParseState.Normal;
-                            }
-                            else if (b == TelnetProtocolConstants.IAC)
-                            {
-                                _subnegBuffer.Add(TelnetProtocolConstants.IAC); // escaped IAC
-                                _parseState = ParseState.Subneg;
-                            }
-                            else
-                            {
-                                // Stray IAC command inside subneg; treat byte as data.
-                                _subnegBuffer.Add(b);
-                                _parseState = ParseState.Subneg;
-                            }
-                            continue;
-                    }
-
-                    if (b == TelnetProtocolConstants.IAC)
-                    {
-                        _parseState = ParseState.Iac;
-                        continue;
-                    }
-
-                    // --- Regular input ---
-                    if (b == '\n')
-                    {
-                        if (_echoEnabled)
-                        {
-                            SendRawBytes(new byte[] { (byte)'\r', (byte)'\n' });
-                        }
-                        var line = _inputBuffer.ToString().TrimEnd('\r');
-                        _inputBuffer.Clear();
-                        OnInput?.Invoke(line);
-                    }
-                    else if (b == '\r')
-                    {
-                        // Ignore CR; handle on LF
-                    }
-                    else if (b == 8 || b == 127)
-                    {
-                        if (_inputBuffer.Length > 0)
-                        {
-                            _inputBuffer.Length--;
-                            if (_echoEnabled)
-                            {
-                                SendRawBytes(new byte[] { 8, (byte)' ', 8 });
-                            }
-                        }
-                    }
-                    else if (b >= 32)
-                    {
-                        _inputBuffer.Append((char)b);
-                        if (_echoEnabled) { SendRawBytes(new byte[] { b }); }
-
-                        if (_inputBuffer.Length > MaxLineLength)
-                        {
-                            _logger.LogWarning("Input line exceeded {MaxLength} bytes, clearing buffer for connection {Id}", MaxLineLength, Id);
-                            _inputBuffer.Clear();
-                            SendLine("Input too long, discarded.");
-                        }
-                    }
-                }
+                ProcessInboundBytes(buffer.AsSpan(0, bytesRead));
             }
         }
         catch (OperationCanceledException)
@@ -311,6 +201,125 @@ public class TelnetConnection : IConnection
         {
             _logger.LogDebug("Read error on connection {Id}: {Error}", Id, ex.Message);
             Disconnect("read error: " + ex.Message);
+        }
+    }
+
+    // Drives the telnet parse state machine over a span of inbound bytes. State
+    // persists across calls, so IAC/subnegotiation sequences split across reads
+    // (or fed in arbitrary chunks) parse correctly. Separated from the read loop
+    // so parsing can be tested deterministically without sockets or timing.
+    internal void ProcessInboundBytes(ReadOnlySpan<byte> data)
+    {
+        for (var i = 0; i < data.Length; i++)
+        {
+            var b = data[i];
+
+            // --- Telnet command parsing (state persists across reads) ---
+            switch (_parseState)
+            {
+                case ParseState.Iac:
+                    // We previously saw IAC; b is the command byte.
+                    if (b == TelnetProtocolConstants.SB)
+                    {
+                        _parseState = ParseState.SubnegOption;
+                    }
+                    else if (b >= TelnetProtocolConstants.WILL && b <= TelnetProtocolConstants.DONT)
+                    {
+                        _parseState = ParseState.Negotiate; // option byte follows
+                    }
+                    else
+                    {
+                        _parseState = ParseState.Normal; // 2-byte IAC command (incl. IAC IAC); ignore
+                    }
+                    continue;
+
+                case ParseState.Negotiate:
+                    // Option byte for IAC WILL/WONT/DO/DONT; consume and ignore.
+                    _parseState = ParseState.Normal;
+                    continue;
+
+                case ParseState.SubnegOption:
+                    _subnegOption = b;
+                    _subnegBuffer.Clear();
+                    _parseState = ParseState.Subneg;
+                    continue;
+
+                case ParseState.Subneg:
+                    if (b == TelnetProtocolConstants.IAC)
+                    {
+                        _parseState = ParseState.SubnegIac;
+                    }
+                    else
+                    {
+                        _subnegBuffer.Add(b);
+                    }
+                    continue;
+
+                case ParseState.SubnegIac:
+                    if (b == TelnetProtocolConstants.SE)
+                    {
+                        Router?.HandleSubnegotiation(_subnegOption, _subnegBuffer.ToArray());
+                        _subnegBuffer.Clear();
+                        _parseState = ParseState.Normal;
+                    }
+                    else if (b == TelnetProtocolConstants.IAC)
+                    {
+                        _subnegBuffer.Add(TelnetProtocolConstants.IAC); // escaped IAC
+                        _parseState = ParseState.Subneg;
+                    }
+                    else
+                    {
+                        // Stray IAC command inside subneg; treat byte as data.
+                        _subnegBuffer.Add(b);
+                        _parseState = ParseState.Subneg;
+                    }
+                    continue;
+            }
+
+            if (b == TelnetProtocolConstants.IAC)
+            {
+                _parseState = ParseState.Iac;
+                continue;
+            }
+
+            // --- Regular input ---
+            if (b == '\n')
+            {
+                if (_echoEnabled)
+                {
+                    SendRawBytes(new byte[] { (byte)'\r', (byte)'\n' });
+                }
+                var line = _inputBuffer.ToString().TrimEnd('\r');
+                _inputBuffer.Clear();
+                OnInput?.Invoke(line);
+            }
+            else if (b == '\r')
+            {
+                // Ignore CR; handle on LF
+            }
+            else if (b == 8 || b == 127)
+            {
+                if (_inputBuffer.Length > 0)
+                {
+                    _inputBuffer.Length--;
+                    if (_echoEnabled)
+                    {
+                        SendRawBytes(new byte[] { 8, (byte)' ', 8 });
+                    }
+                }
+            }
+            else if (b >= 32)
+            {
+                _inputBuffer.Append((char)b);
+                if (_echoEnabled) { SendRawBytes(new byte[] { b }); }
+
+                if (_inputBuffer.Length > MaxLineLength)
+                {
+                    _logger.LogWarning("Input line exceeded {MaxLength} bytes, clearing buffer for connection {Id}", MaxLineLength, Id);
+                    _inputBuffer.Clear();
+                    SendLine("Input too long, discarded.");
+                }
+            }
         }
     }
 }
