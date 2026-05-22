@@ -146,6 +146,29 @@ public class TelnetConnectionHardeningTests
         finally { server.Dispose(); client.Dispose(); }
     }
 
+    [Fact]
+    public void RemoteAddress_derives_from_socket_RemoteEndPoint_not_from_http_middleware()
+    {
+        var (serverTcp, clientTcp) = CreatePair();
+        try
+        {
+            var conn = new TelnetConnection(
+                serverTcp,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<TelnetConnection>.Instance);
+
+            // TelnetConnection strips the port (see TelnetConnection.cs:45) — compare IP only.
+            // RemoteEndPoint.ToString() returns "127.0.0.1:PORT"; .Address.ToString() gives "127.0.0.1".
+            var expectedIp = ((System.Net.IPEndPoint)serverTcp.Client.RemoteEndPoint!).Address.ToString();
+            conn.RemoteAddress.Should().Be(expectedIp);
+            conn.RemoteAddress.Should().NotBeNullOrEmpty();
+        }
+        finally
+        {
+            serverTcp.Dispose();
+            clientTcp.Dispose();
+        }
+    }
+
     private static (TelnetConnection conn, RecordingHandler handler,
         System.Net.Sockets.TcpClient server, System.Net.Sockets.TcpClient client) BuildConnection(byte option = 201)
     {
