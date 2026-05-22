@@ -108,16 +108,21 @@ public class PlayerInitModule : IGameModule
 
     private void LoadSeedPlayers()
     {
-        var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
-
-        foreach (var packName in _config.Packs)
+        // Read seed players from each loaded pack's resolved directory. The pack
+        // dirs are scoped (@scope/name) and already filtered to enabled packs by
+        // ContentLoadingModule, so reuse PackDirectory rather than reconstructing
+        // a flat bin/packs/<name> path (which silently missed scoped packs).
+        foreach (var manifest in _packLoader.LoadedPacks)
         {
-            if (!_packLoader.LoadedPacks.Any(p => p.Name == packName))
+            if (string.IsNullOrEmpty(manifest.PackDirectory))
             {
+                // Unreachable given PackLoader's guard, but if a manifest ever reaches
+                // here without a directory, say so loudly rather than skip in silence.
+                _logger.LogWarning("Pack {Name} loaded without a directory; skipping seed players", manifest.Name);
                 continue;
             }
 
-            var playersPath = Path.Combine(packsDir, packName, "players.yaml");
+            var playersPath = Path.Combine(manifest.PackDirectory, "players.yaml");
             if (!File.Exists(playersPath))
             {
                 continue;

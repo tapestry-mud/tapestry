@@ -56,6 +56,18 @@ public class PackLoaderTests
         world.GetRoom("tapestry-example-pack:town-square").Should().NotBeNull();
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void LoadDeclarations_NullOrEmptyDirectory_Throws(string? packDirectory)
+    {
+        var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+
+        var act = () => loader.LoadDeclarations(packDirectory!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public void LoadPack_RegistersItemTemplates()
     {

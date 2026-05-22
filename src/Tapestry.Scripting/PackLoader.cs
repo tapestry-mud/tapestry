@@ -80,6 +80,10 @@ public class PackLoader : IPackManifestProvider
 
     public PackManifest LoadDeclarations(string packDirectory)
     {
+        // A pack must load from a real directory. Guard at the source so a missing
+        // path can never produce a manifest with an empty PackDirectory (which would
+        // silently disable seed loading downstream).
+        ArgumentException.ThrowIfNullOrEmpty(packDirectory);
         _packContext.CurrentPackDir = packDirectory;
         var manifestPath = Path.Combine(packDirectory, "pack.yaml");
         if (!File.Exists(manifestPath))
@@ -93,6 +97,7 @@ public class PackLoader : IPackManifestProvider
 
         var manifestYaml = File.ReadAllText(manifestPath);
         var manifest = YamlContentLoader.LoadManifest(manifestYaml);
+        manifest.PackDirectory = packDirectory;
         var packNamespace = PackNamespace(manifest.Name);
 
         if (!manifest.Active)

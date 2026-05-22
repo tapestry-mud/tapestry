@@ -15,7 +15,14 @@ namespace Tapestry.Engine.Tests.Server;
 
 public class PlayerInitModuleTests
 {
-    private static PlayerInitModule CreateModule(ServerConfig config, FakeAdminStore store)
+    private static PlayerInitModule CreateModule(ServerConfig config, FakeAdminStore store) =>
+        BuildModule(config, store, new FakeAccountStore(), new FakePackManifestProvider());
+
+    private static PlayerInitModule BuildModule(
+        ServerConfig config,
+        IPlayerStore playerStore,
+        IAccountStore accountStore,
+        IPackManifestProvider packLoader)
     {
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
@@ -23,11 +30,9 @@ public class PlayerInitModuleTests
         var sessions = new SessionManager();
         var world = new World();
         var persistence = new PlayerPersistenceService(
-            store, serializer, sessions, world,
+            playerStore, serializer, sessions, world,
             NullLogger<PlayerPersistenceService>.Instance);
-        var accountStore = new FakeAccountStore();
         var accountService = new AccountService(accountStore);
-        var packLoader = new FakePackManifestProvider();
         var raceRegistry = new RaceRegistry();
         var eventBus = new EventBus();
         var lootResolver = new LootTableResolver();
@@ -97,6 +102,43 @@ public class PlayerInitModuleTests
         parsedId.Should().NotBe(Guid.Empty);
     }
 
+    [Fact]
+    public async Task Configure_SeedPlayerInScopedPackDir_CreatesPlayerAndAccount()
+    {
+        // Seed players live in a scoped pack directory (@scope/name). The loader
+        // must read players.yaml from the loaded pack's actual directory, not a
+        // reconstructed bin/packs/<bareName> path.
+        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var packDir = Path.Combine(tmpDir, "@tapestry", "example-pack");
+        Directory.CreateDirectory(packDir);
+        await File.WriteAllTextAsync(
+            Path.Combine(packDir, "players.yaml"),
+            "players:\n  - name: Wanderer\n    password: testpass123\n");
+
+        try
+        {
+            var config = new ServerConfig();
+            var playerStore = new FakeAdminStore();
+            var accountStore = new FakeAccountStore();
+            var module = BuildModule(
+                config, playerStore, accountStore,
+                new FakePackManifestProvider(new PackManifest
+                {
+                    Name = "@tapestry/example-pack",
+                    PackDirectory = packDir
+                }));
+
+            module.Configure();
+
+            playerStore.Saved.Should().ContainSingle(d => d.Name == "Wanderer");
+            accountStore.ExistsByEmail("wanderer@localhost").Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
     private class FakeAccountStore : IAccountStore
     {
         private readonly Dictionary<Guid, AccountSaveData> _byId = new();
@@ -154,6 +196,8 @@ public class PlayerInitModuleTests
 
     private class FakePackManifestProvider : IPackManifestProvider
     {
-        public IReadOnlyList<PackManifest> LoadedPacks => new List<PackManifest>();
+        private readonly List<PackManifest> _packs;
+        public FakePackManifestProvider(params PackManifest[] packs) => _packs = packs.ToList();
+        public IReadOnlyList<PackManifest> LoadedPacks => _packs;
     }
 }

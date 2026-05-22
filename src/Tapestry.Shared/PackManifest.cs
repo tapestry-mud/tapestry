@@ -16,6 +16,10 @@ public class PackManifest
     public int LoadOrder { get; set; } = 100;
     public string Validation { get; set; } = "strict";
     public PackContentPaths Content { get; set; } = new();
+
+    /// <summary>Absolute directory the pack was loaded from. Set by PackLoader at load time; not deserialized from the manifest file.</summary>
+    [YamlDotNet.Serialization.YamlIgnore]
+    public string PackDirectory { get; set; } = "";
 }
 
 public class PackContentPaths
