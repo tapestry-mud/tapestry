@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Treat all build/analyzer warnings as errors across every project. -->
+    <!-- Uses the default analyzer ruleset; AnalysisMode=All surfaces ~6k mostly-noise
+         warnings (test-naming, ConfigureAwait, style) and would need a curated
+         .editorconfig before it could be enabled. Tracked as a separate cleanup pass. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

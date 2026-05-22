@@ -67,14 +67,14 @@ public class TelnetNegotiatorTests
 
             // Simulate client side
             var buf = new byte[64];
-            await clientStream.ReadAsync(buf);
+            _ = await clientStream.ReadAsync(buf);
 
             // Respond WILL TTYPE
             await clientStream.WriteAsync(new byte[] { IAC, WILL, OPT_TTYPE });
             await clientStream.FlushAsync();
 
             // Read SB TTYPE SEND from server
-            await clientStream.ReadAsync(buf);
+            _ = await clientStream.ReadAsync(buf);
 
             // Respond SB TTYPE IS "zmud"
             var ttypeName = Encoding.ASCII.GetBytes("zmud");
@@ -123,14 +123,14 @@ public class TelnetNegotiatorTests
             var negotiateTask = negotiator.NegotiateAsync(conn, CancellationToken.None);
 
             var buf = new byte[64];
-            await clientStream.ReadAsync(buf);
+            _ = await clientStream.ReadAsync(buf);
 
             // Respond WILL TTYPE
             await clientStream.WriteAsync(new byte[] { IAC, WILL, OPT_TTYPE });
             await clientStream.FlushAsync();
 
             // Read SB TTYPE SEND
-            await clientStream.ReadAsync(buf);
+            _ = await clientStream.ReadAsync(buf);
 
             // Respond SB TTYPE IS "ANSI"
             var ttypeName = Encoding.ASCII.GetBytes("ANSI");
@@ -177,7 +177,7 @@ public class TelnetNegotiatorTests
             var negotiateTask = negotiator.NegotiateAsync(conn, CancellationToken.None);
 
             var buf = new byte[64];
-            await clientStream.ReadAsync(buf);
+            _ = await clientStream.ReadAsync(buf);
 
             // Respond WILL NAWS only (ignore TTYPE)
             await clientStream.WriteAsync(new byte[] { IAC, WILL, OPT_NAWS });
@@ -244,7 +244,7 @@ public class TelnetNegotiatorTests
             var negotiateTask = negotiator.NegotiateAsync(conn, CancellationToken.None);
             // drain client side and let timeout fire
             var buf = new byte[256];
-            await clientTcp.GetStream().ReadAsync(buf);
+            _ = await clientTcp.GetStream().ReadAsync(buf);
             await negotiateTask;
 
             handler.NegotiateAsyncCalled.Should().BeTrue();
@@ -270,13 +270,13 @@ public class TelnetNegotiatorTests
             var clientStream = clientTcp.GetStream();
 
             var buf = new byte[256];
-            await clientStream.ReadAsync(buf); // drain server opening
+            _ = await clientStream.ReadAsync(buf); // drain server opening
 
             // Client sends DO 201 (GMCP)
             await clientStream.WriteAsync(new byte[] { IAC, DO, 201 });
             // Also satisfy TTYPE and NAWS to let negotiation complete
             await clientStream.WriteAsync(new byte[] { IAC, WILL, OPT_TTYPE });
-            await clientStream.ReadAsync(buf); // drain SB TTYPE SEND
+            _ = await clientStream.ReadAsync(buf); // drain SB TTYPE SEND
             var ttypeName = Encoding.ASCII.GetBytes("mudlet");
             await clientStream.WriteAsync(new byte[] { IAC, SB, OPT_TTYPE, 0 }.Concat(ttypeName).Concat(new byte[] { IAC, SE }).ToArray());
             await clientStream.WriteAsync(new byte[] { IAC, SB, OPT_NAWS, 0, 80, 0, 24, IAC, SE });

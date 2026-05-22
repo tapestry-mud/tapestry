@@ -194,10 +194,10 @@ public class SpawnManagerTests
 
         manager.RunAreaReset("test-area");
         var room = world.GetRoom("core:test-room")!;
-        Assert.Single(room.Entities.Where(e => e.Type == "npc"));
+        Assert.Single(room.Entities, e => e.Type == "npc");
 
         manager.RunAreaReset("test-area");
-        Assert.Single(room.Entities.Where(e => e.Type == "npc"));
+        Assert.Single(room.Entities, e => e.Type == "npc");
     }
 
     [Fact]
