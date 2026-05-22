@@ -4,8 +4,12 @@ namespace Tapestry.Engine;
 
 public sealed class AsyncConnectionAdapter : IDisposable
 {
+    /// <summary>Maximum number of input lines buffered while no read is pending.</summary>
+    public const int MaxBufferedInputLines = 64;
+
     private readonly IConnection _connection;
     private TaskCompletionSource<string>? _pending;
+    private readonly Queue<string> _buffer = new();
     private readonly object _lock = new();
 
     public string ConnectionId => _connection.Id;
@@ -20,10 +24,17 @@ public sealed class AsyncConnectionAdapter : IDisposable
 
     public Task<string> ReadLineAsync(CancellationToken ct)
     {
-        var tcs = new TaskCompletionSource<string>();
+        TaskCompletionSource<string> tcs;
 
         lock (_lock)
         {
+            // Deliver any input that arrived before this read was requested.
+            if (_buffer.Count > 0)
+            {
+                return Task.FromResult(_buffer.Dequeue());
+            }
+
+            tcs = new TaskCompletionSource<string>();
             _pending = tcs;
         }
 
@@ -49,8 +60,19 @@ public sealed class AsyncConnectionAdapter : IDisposable
         {
             tcs = _pending;
             _pending = null;
+
+            // No reader waiting: buffer the line (bounded) so it isn't lost to a
+            // race between the prompt being written and the next ReadLineAsync.
+            if (tcs == null)
+            {
+                if (_buffer.Count < MaxBufferedInputLines)
+                {
+                    _buffer.Enqueue(input);
+                }
+                return;
+            }
         }
-        tcs?.TrySetResult(input);
+        tcs.TrySetResult(input);
     }
 
     private void HandleDisconnect()

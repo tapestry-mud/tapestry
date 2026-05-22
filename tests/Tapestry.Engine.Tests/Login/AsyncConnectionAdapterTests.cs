@@ -45,13 +45,54 @@ public class AsyncConnectionAdapterTests
     }
 
     [Fact]
-    public void InputArrivingWithNoPendingRead_IsDropped()
+    public async Task InputArrivingWithNoPendingRead_IsBufferedUntilNextRead()
     {
         var conn = new FakeConnection("a4");
-        var _ = new AsyncConnectionAdapter(conn);
+        var adapter = new AsyncConnectionAdapter(conn);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
-        // Should not throw
-        conn.SimulateInput("stray input");
+        conn.SimulateInput("typed ahead"); // arrives before any ReadLineAsync
+
+        var result = await adapter.ReadLineAsync(cts.Token);
+
+        result.Should().Be("typed ahead");
+    }
+
+    [Fact]
+    public async Task BufferedInput_IsReturnedInFifoOrder()
+    {
+        var conn = new FakeConnection("a8");
+        var adapter = new AsyncConnectionAdapter(conn);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        conn.SimulateInput("first");
+        conn.SimulateInput("second");
+
+        (await adapter.ReadLineAsync(cts.Token)).Should().Be("first");
+        (await adapter.ReadLineAsync(cts.Token)).Should().Be("second");
+    }
+
+    [Fact]
+    public async Task BufferedInput_IsCappedToBound()
+    {
+        var conn = new FakeConnection("a9");
+        var adapter = new AsyncConnectionAdapter(conn);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        for (var i = 0; i < AsyncConnectionAdapter.MaxBufferedInputLines + 10; i++)
+        {
+            conn.SimulateInput($"line{i}");
+        }
+
+        // The first MaxBufferedInputLines are retained in order; overflow is dropped.
+        for (var i = 0; i < AsyncConnectionAdapter.MaxBufferedInputLines; i++)
+        {
+            (await adapter.ReadLineAsync(cts.Token)).Should().Be($"line{i}");
+        }
+
+        // Nothing buffered beyond the cap: the next read stays pending.
+        var pending = adapter.ReadLineAsync(CancellationToken.None);
+        pending.IsCompleted.Should().BeFalse();
     }
 
     [Fact]
