@@ -136,6 +136,7 @@ public class PersistenceSection
 public class NetworkingSection
 {
     public int NegotiationTimeoutMs { get; set; } = 500;
+    public List<string> TrustedProxies { get; set; } = new();
 }
 
 public class EconomySection

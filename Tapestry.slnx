@@ -12,5 +12,6 @@
     <Project Path="tests/Tapestry.Engine.Tests/Tapestry.Engine.Tests.csproj" />
     <Project Path="tests/Tapestry.Networking.Tests/Tapestry.Networking.Tests.csproj" />
     <Project Path="tests/Tapestry.Scripting.Tests/Tapestry.Scripting.Tests.csproj" />
+    <Project Path="tests/Tapestry.Server.Tests/Tapestry.Server.Tests.csproj" />
   </Folder>
 </Solution>
