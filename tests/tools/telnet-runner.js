@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const net = require('net');
+const os = require('os');
 
 // ─── Scenario Parser ───────────────────────────────────────────────
 
@@ -745,21 +746,25 @@ function resolveDefaultLogin(defaultSteps, playerName) {
   }));
 }
 
-function cleanSaveFiles(projectRoot) {
-  const savesDir = path.join(projectRoot, 'data', 'saves', 'players');
-  if (fs.existsSync(savesDir)) {
-    for (const f of fs.readdirSync(savesDir)) {
-      if (f.endsWith('.yaml') || f.endsWith('.tmp') || f.endsWith('.bak')) {
-        fs.unlinkSync(path.join(savesDir, f));
-      }
-    }
-  }
+// Create an isolated, ephemeral config for a managed run: a temp dir holding a
+// copy of server.test.yaml whose save_path points inside that temp dir. The
+// server then boots against an empty save store every run, so stale saves can
+// never mask a broken seed/persistence path (as they did before the repos were
+// lifted to a clean machine). The caller removes tmpDir when the run finishes.
+function createManagedConfig(projectRoot) {
+  const baseConfig = path.join(projectRoot, 'server.test.yaml');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-test-'));
+  // Copy the config verbatim into the temp dir. The server resolves the relative
+  // save_path (./data/saves) against the config's own directory, so persistence
+  // lands inside tmpDir without rewriting any paths.
+  const configPath = path.join(tmpDir, 'server.test.yaml');
+  fs.copyFileSync(baseConfig, configPath);
+  return { tmpDir, configPath };
 }
 
-async function restartServer(projectRoot, port) {
+async function restartServer(projectRoot, port, configPath) {
   await killExistingServer();
-  cleanSaveFiles(projectRoot);
-  const serverProcess = startServer(projectRoot, port);
+  const serverProcess = startServer(projectRoot, port, configPath);
   await waitForPort(port);
   return serverProcess;
 }
@@ -982,10 +987,10 @@ function killExistingServer() {
   });
 }
 
-function startServer(projectRoot, port) {
+function startServer(projectRoot, port, configPath) {
   const serverProj = path.join(projectRoot, 'src', 'Tapestry.Server');
-  const configPath = path.join(projectRoot, 'server.test.yaml');
-  const child = spawn('dotnet', ['run', '--project', serverProj, '--no-build', '--', configPath], {
+  const cfg = configPath || path.join(projectRoot, 'server.test.yaml');
+  const child = spawn('dotnet', ['run', '--project', serverProj, '--no-build', '--', cfg], {
     cwd: projectRoot,
     stdio: 'ignore',
     windowsHide: true
@@ -1030,7 +1035,8 @@ function printHelp() {
   console.log('Options:');
   console.log('  --port N     Telnet port to connect to (default: 4000)');
   console.log('  --delay N    Settle delay in ms between steps (default: 500)');
-  console.log('  --managed    Build, start a fresh server before tests, kill it after each file');
+  console.log('  --managed    Build + boot a fresh server with an isolated, ephemeral save store');
+  console.log('               (temp dir, removed after) so stale saves can\'t mask seed/persist bugs');
   console.log('  --clean      Delete old result files from the results/ dir before running');
   console.log('  --all-packs  Discover scenarios from tests/scenarios/ plus packs/*/tests/');
   console.log('  --json       Print results as JSON to stdout instead of human-readable summary');
@@ -1080,6 +1086,7 @@ async function main() {
   const clean = flags.includes('--clean');
 
   let projectRoot = null;
+  let managedConfig = null;
   if (managed) {
     projectRoot = findProjectRoot();
     if (!projectRoot) {
@@ -1089,6 +1096,9 @@ async function main() {
     // Build once up front so per-file restarts use --no-build
     console.log('Building server...');
     execSync(`dotnet build "${path.join(projectRoot, 'src', 'Tapestry.Server')}" -v q`, { stdio: 'inherit' });
+    // Isolated, ephemeral save store so every managed run starts from a clean slate.
+    managedConfig = createManagedConfig(projectRoot);
+    console.log(`Isolated save store: ${managedConfig.tmpDir}`);
   }
 
   const root = projectRoot || findProjectRoot() || process.cwd();
@@ -1148,9 +1158,12 @@ async function main() {
   let managedProcess = null;
   if (managed) {
     try {
-      managedProcess = await restartServer(projectRoot, port);
+      managedProcess = await restartServer(projectRoot, port, managedConfig.configPath);
     } catch (err) {
       console.error(`Failed to start server: ${err.message}`);
+      if (managedConfig) {
+        fs.rmSync(managedConfig.tmpDir, { recursive: true, force: true });
+      }
       process.exit(1);
     }
   }
@@ -1206,6 +1219,9 @@ async function main() {
 
   if (managed) {
     await killExistingServer();
+    if (managedConfig) {
+      fs.rmSync(managedConfig.tmpDir, { recursive: true, force: true });
+    }
   }
 
   const anyFailed = allResults.some(r =>
