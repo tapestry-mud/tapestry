@@ -207,6 +207,12 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (config.Networking.TrustedProxies.Count > 0)
+{
+    app.UseForwardedHeaders(
+        ForwardedHeadersOptionsBuilder.Build(config.Networking.TrustedProxies));
+}
+
 // WebSocket endpoint for web client connections
 app.UseWebSockets();
 app.UseRateLimiter();
