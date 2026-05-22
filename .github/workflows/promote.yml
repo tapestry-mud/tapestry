@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 env:
   REGISTRY: ghcr.io
@@ -42,8 +43,10 @@ jobs:
 
       - name: Register stable channel
         run: |
+          OIDC_TOKEN=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://registry.tapestryengine.com" | jq -r '.value')
           curl -sf -X PATCH \
-            -H "Authorization: Bearer ${{ secrets.REGISTRY_CI_TOKEN }}" \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"docker_tag\":\"${{ inputs.version }}\",\"version\":\"${{ inputs.version }}\"}" \
             https://registry.tapestryengine.com/v1/admin/engine-channels/stable
