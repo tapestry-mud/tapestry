@@ -106,6 +106,43 @@ public class TelnetConnectionHardeningTests
         }
     }
 
+    [Fact]
+    public async Task ReadLoop_routes_subneg_when_iac_se_split_across_buffers()
+    {
+        var (serverTcp, clientTcp) = CreatePair();
+        try
+        {
+            using var cts = new CancellationTokenSource(2000);
+            var conn = new TelnetConnection(serverTcp, Microsoft.Extensions.Logging.Abstractions.NullLogger<TelnetConnection>.Instance);
+
+            var handler = new RecordingHandler(201);
+            var router = new TelnetProtocolRouter();
+            router.Register(handler);
+            conn.AttachRouter(router);
+
+            var readTask = conn.ReadLoopAsync(cts.Token);
+
+            var stream = clientTcp.GetStream();
+            // Force the split so that IAC is the last byte of one read and SE
+            // arrives in the next read: IAC SB 201 0x41 0x42 IAC | SE
+            await stream.WriteAsync(new byte[] { 255, 250, 201, 0x41, 0x42, 255 });
+            await Task.Delay(50);
+            await stream.WriteAsync(new byte[] { 240 });
+            await stream.WriteAsync(new byte[] { (byte)'q', (byte)'\n' });
+
+            await Task.Delay(100);
+            cts.Cancel();
+            try { await readTask; } catch (OperationCanceledException) { }
+
+            handler.ReceivedData.Should().Equal(new byte[] { 0x41, 0x42 });
+        }
+        finally
+        {
+            serverTcp.Dispose();
+            clientTcp.Dispose();
+        }
+    }
+
     private static (System.Net.Sockets.TcpClient server, System.Net.Sockets.TcpClient client) CreatePair()
     {
         var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
