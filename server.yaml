@@ -37,6 +37,9 @@ persistence:
 
 networking:
   negotiation_timeout_ms: 500
+  # trusted_proxies:
+  #   - 172.18.0.0/16   # Docker bridge — Caddy connects from here
+  #   - 127.0.0.1/32    # loopback (local health checks)
 
 training:
   require_safe_room_for_stats: false
