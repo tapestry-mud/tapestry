@@ -24,10 +24,15 @@ using Tapestry.Scripting.Modules;
 using Tapestry.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using System.Threading.RateLimiting;
 
-// Load config early for Serilog and telemetry setup
-var configPath = args.Length > 0 ? args[0] : "server.yaml";
+// Load config early for Serilog and telemetry setup.
+// --config <path> and --packs <dir> are parsed via the command-line config provider.
+var launchConfig = new ConfigurationBuilder().AddCommandLine(args).Build();
+var (configArg, packsOverride) = LaunchOptions.Resolve(launchConfig);
+
+var configPath = configArg;
 if (!File.Exists(configPath))
 {
     configPath = Path.Combine(AppContext.BaseDirectory, configPath);
@@ -39,6 +44,7 @@ if (!File.Exists(configPath))
 }
 
 var config = ServerConfig.Load(configPath);
+config.PacksDirectory = packsOverride;
 
 // Configure Serilog
 var logConfig = new LoggerConfiguration()

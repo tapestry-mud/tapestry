@@ -111,7 +111,7 @@ public class ContentLoadingModule : IGameModule
 
     private void LoadPacks()
     {
-        var packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
+        var packsDir = _config.ResolvedPacksDirectory;
         if (!Directory.Exists(packsDir))
         {
             _packLoader.ValidateAreaWeatherZones();

@@ -28,6 +28,21 @@ public class ServerConfig
 
     public string ConfigDirectory { get; private set; } = "";
 
+    /// <summary>
+    /// Optional packs directory override, set from the <c>--packs</c> launch
+    /// argument. Not read from server.yaml; null means "use the default".
+    /// </summary>
+    public string? PacksDirectory { get; set; }
+
+    /// <summary>
+    /// The effective packs directory: the <see cref="PacksDirectory"/> override
+    /// when set, otherwise <c>packs/</c> beside the running binary.
+    /// </summary>
+    public string ResolvedPacksDirectory =>
+        string.IsNullOrWhiteSpace(PacksDirectory)
+            ? Path.Combine(AppContext.BaseDirectory, "packs")
+            : PacksDirectory;
+
     public static ServerConfig Load(string path)
     {
         var deserializer = new DeserializerBuilder()
