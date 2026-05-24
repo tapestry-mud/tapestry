@@ -64,19 +64,67 @@ public class Entity
             {
                 return (T)(object)objList.OfType<string>().ToList();
             }
+
+            if (TryCoerceNumeric<T>(value, out var coerced))
+            {
+                return coerced;
+            }
         }
         return default;
     }
 
     public bool TryGetProperty<T>(string key, out T? value)
     {
-        if (_properties.TryGetValue(key, out var raw) && raw is T typed)
+        if (_properties.TryGetValue(key, out var raw))
         {
-            value = typed;
-            return true;
+            if (raw is T typed)
+            {
+                value = typed;
+                return true;
+            }
+
+            if (TryCoerceNumeric<T>(raw, out value))
+            {
+                return true;
+            }
         }
         value = default;
         return false;
+    }
+
+    // JS (Jint) stores numbers as double; C# callers often want int. Coerce between
+    // numeric types so Get/TryGetProperty read reliably regardless of which side wrote
+    // the value. bool, char, and string are intentionally never coerced.
+    private static bool TryCoerceNumeric<T>(object? raw, out T? value)
+    {
+        value = default;
+        if (raw == null || !IsNumeric(raw) || !IsNumericType(typeof(T)))
+        {
+            return false;
+        }
+        try
+        {
+            value = (T)Convert.ChangeType(raw, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T));
+            return true;
+        }
+        catch (OverflowException) { return false; }
+        catch (InvalidCastException) { return false; }
+        catch (FormatException) { return false; }
+    }
+
+    private static bool IsNumeric(object value)
+    {
+        return value is int or long or short or sbyte or byte or uint or ulong or ushort
+            or double or float or decimal;
+    }
+
+    private static bool IsNumericType(Type type)
+    {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        return type == typeof(int) || type == typeof(long) || type == typeof(short)
+            || type == typeof(sbyte) || type == typeof(byte) || type == typeof(uint)
+            || type == typeof(ulong) || type == typeof(ushort) || type == typeof(double)
+            || type == typeof(float) || type == typeof(decimal);
     }
 
     public bool HasProperty(string key)
