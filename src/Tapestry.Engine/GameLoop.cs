@@ -20,7 +20,9 @@ public class GameLoop
     private readonly TickTimer _timer;
     private readonly NotificationQueue _notificationQueue;
     private readonly HashSet<Guid> _activeDisconnects = new();
-    private readonly List<TickHandler> _tickHandlers = new();
+    private readonly Dictionary<string, TickHandler> _handlers = new();
+    private readonly SortedDictionary<long, List<string>> _dueSlots = new();
+    private readonly Dictionary<string, long> _nextDue = new();
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     private const int MaxCommandsPerSessionPerTick = 10;
     private long _tickCount;
@@ -68,9 +70,41 @@ public class GameLoop
         _slowTickThresholdMs = thresholdMs;
     }
 
-    public void RegisterTickHandler(string name, int intervalTicks, Action handler)
+    public void RegisterTickHandler(string name, int intervalTicks, Action handler, string packName = "kernel")
     {
-        _tickHandlers.Add(new TickHandler(name, intervalTicks, handler));
+        if (intervalTicks <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(intervalTicks), "Interval must be greater than zero.");
+        }
+
+        if (_handlers.ContainsKey(name))
+        {
+            CancelTickHandler(name);
+        }
+
+        var due = _tickCount + intervalTicks;
+        _handlers[name] = new TickHandler(name, intervalTicks, packName, handler);
+        _nextDue[name] = due;
+        if (!_dueSlots.ContainsKey(due))
+        {
+            _dueSlots[due] = new List<string>();
+        }
+        _dueSlots[due].Add(name);
+    }
+
+    public void CancelTickHandler(string name)
+    {
+        if (!_handlers.ContainsKey(name)) { return; }
+        _handlers.Remove(name);
+        if (_nextDue.TryGetValue(name, out var due))
+        {
+            _nextDue.Remove(name);
+            if (_dueSlots.TryGetValue(due, out var slot))
+            {
+                slot.Remove(name);
+                if (slot.Count == 0) { _dueSlots.Remove(due); }
+            }
+        }
     }
 
     public void ConfigureIdleTimeout(int warnSeconds, int timeoutSeconds)
@@ -253,15 +287,31 @@ public class GameLoop
         notifyActivity?.Dispose();
         _metrics.TickDuration.Record(notifySw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("phase", "notifications"));
 
-        // 5. Run tick handlers
+        // 5. Run tick handlers (due-ordered dispatch)
         var handlersSw = Stopwatch.StartNew();
         Activity? handlersActivity = TapestryTracing.Source.StartActivity("TickHandlers");
-        foreach (var handler in _tickHandlers)
+        while (_dueSlots.Count > 0 && _dueSlots.Keys.First() <= _tickCount)
         {
-            if (_tickCount % handler.IntervalTicks == 0)
+            var dueKey = _dueSlots.Keys.First();
+            var names = _dueSlots[dueKey].ToList();
+            _dueSlots.Remove(dueKey);
+
+            foreach (var handlerName in names)
             {
-                using var handlerSpan = TapestryTracing.Source.StartActivity($"TickHandler.{handler.Name}");
-                handlerSpan?.SetTag("handler.name", handler.Name);
+                if (!_handlers.TryGetValue(handlerName, out var handler)) { continue; }
+
+                // Reschedule before invoking (so cancels inside the handler work cleanly)
+                var nextDue = dueKey + handler.IntervalTicks;
+                _nextDue[handlerName] = nextDue;
+                if (!_dueSlots.ContainsKey(nextDue))
+                {
+                    _dueSlots[nextDue] = new List<string>();
+                }
+                _dueSlots[nextDue].Add(handlerName);
+
+                using var handlerSpan = TapestryTracing.Source.StartActivity($"TickHandler.{handlerName}");
+                handlerSpan?.SetTag("handler.name", handlerName);
+                handlerSpan?.SetTag("handler.pack", handler.PackName);
                 handlerSpan?.SetTag("handler.interval", handler.IntervalTicks);
                 var handlerTimerSw = Stopwatch.StartNew();
                 try
@@ -270,10 +320,17 @@ public class GameLoop
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Tick handler error: handler={HandlerName}", handler.Name);
+                    _logger.LogError(ex, "Tick handler error: handler={HandlerName} pack={PackName}", handlerName, handler.PackName);
                 }
                 handlerTimerSw.Stop();
-                handlerSpan?.SetTag("handler.duration_ms", handlerTimerSw.Elapsed.TotalMilliseconds);
+                var handlerMs = handlerTimerSw.Elapsed.TotalMilliseconds;
+                handlerSpan?.SetTag("handler.duration_ms", handlerMs);
+                if (_slowTickThresholdMs > 0 && handlerMs > _slowTickThresholdMs)
+                {
+                    _logger.LogWarning(
+                        "Slow tick handler: {Handler} (pack={Pack}) took {Dur:F1}ms (budget: {Budget}ms)",
+                        handlerName, handler.PackName, handlerMs, _slowTickThresholdMs);
+                }
             }
         }
         handlersSw.Stop();
@@ -497,5 +554,5 @@ public class GameLoop
         }
     }
 
-    private record TickHandler(string Name, int IntervalTicks, Action Action);
+    private record TickHandler(string Name, int IntervalTicks, string PackName, Action Action);
 }

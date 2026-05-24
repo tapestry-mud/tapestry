@@ -235,6 +235,75 @@ public class GameLoopTests
         dispatched.Should().Contain("east");
     }
 
+    [Fact]
+    public void RegisterTickHandler_WithIntervalZeroOrNegative_Throws()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            loop.RegisterTickHandler("test", 0, () => { }));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            loop.RegisterTickHandler("test", -1, () => { }));
+    }
+
+    [Fact]
+    public void RegisterTickHandler_SameName_ReplacesExistingHandler()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        var firstCount = 0;
+        var secondCount = 0;
+
+        loop.RegisterTickHandler("my-handler", 1, () => { firstCount++; });
+        loop.RegisterTickHandler("my-handler", 1, () => { secondCount++; }); // replaces
+
+        loop.Tick();
+
+        firstCount.Should().Be(0);
+        secondCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void CancelTickHandler_PreventsSubsequentFiring()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        var callCount = 0;
+
+        loop.RegisterTickHandler("cancellable", 1, () => { callCount++; });
+        loop.CancelTickHandler("cancellable");
+
+        loop.Tick();
+
+        callCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void RegisterTickHandler_DueOrdered_FiresAtRegistrationPlusInterval()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        var firedOnTick = -1L;
+
+        // Register when tickCount = 0; interval = 3; should fire on tick 3.
+        loop.RegisterTickHandler("test", 3, () => { firedOnTick = loop.TickCount; });
+
+        loop.Tick(); // tick 1
+        loop.Tick(); // tick 2
+        loop.Tick(); // tick 3 — fires
+
+        firedOnTick.Should().Be(3);
+    }
+
+    [Fact]
+    public void RegisterTickHandler_DueOrdered_KeepsCorrectCadenceAfterFirstFire()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        var fireTicks = new List<long>();
+
+        loop.RegisterTickHandler("test", 3, () => { fireTicks.Add(loop.TickCount); });
+
+        for (var i = 0; i < 9; i++) { loop.Tick(); }
+
+        fireTicks.Should().Equal(new[] { 3L, 6L, 9L });
+    }
+
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
     {
         var registry = new CommandRegistry();
