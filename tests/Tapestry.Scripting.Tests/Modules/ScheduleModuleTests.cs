@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Modules;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -141,5 +142,78 @@ public class ScheduleModuleTests
         loop.Tick();
 
         fireCount.Should().Be(1); // replaced, not stacked
+    }
+
+    private static string RegenScalingScript => """
+        var TIER_FULL_MIN = 67;
+        var TIER_HUNGRY_MIN = 34;
+        function getSustenanceValue(entityId) {
+            var val = tapestry.world.getProperty(entityId, 'sustenance');
+            return (val === null || val === undefined) ? 100 : val;
+        }
+        function getTier(value) {
+            if (value >= TIER_FULL_MIN) { return 'full'; }
+            if (value >= TIER_HUNGRY_MIN) { return 'hungry'; }
+            return 'famished';
+        }
+        tapestry.events.on('entity.regen', function(evt) {
+            var tier = getTier(getSustenanceValue(evt.sourceEntityId));
+            var mult = tier === 'full' ? 1.0 : tier === 'hungry' ? 0.5 : 0.0;
+            evt.data.amount = Math.round(evt.data.amount * mult);
+            if (mult === 0.0) { evt.cancel(); }
+        });
+    """;
+
+    [Fact]
+    public void SurvivalRegenSubscriber_CancelsRegen_WhenFamished()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        var bus = provider.GetRequiredService<EventBus>();
+        var world = provider.GetRequiredService<World>();
+        rt.Initialize();
+
+        var entity = new Entity("player", "Test");
+        world.TrackEntity(entity);
+        entity.SetProperty("sustenance", 0); // famished
+
+        rt.Execute(RegenScalingScript, "@tapestry/survival");
+
+        var regenData = new Dictionary<string, object?> { ["vital"] = "hp", ["amount"] = 10 };
+        var regenEvent = new GameEvent { Type = "entity.regen", SourceEntityId = entity.Id, Data = regenData };
+        bus.Publish(regenEvent);
+
+        regenEvent.Cancelled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SurvivalRegenSubscriber_HalvesAmount_WhenHungry()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        var bus = provider.GetRequiredService<EventBus>();
+        var world = provider.GetRequiredService<World>();
+        rt.Initialize();
+
+        var entity = new Entity("player", "Test");
+        world.TrackEntity(entity);
+        entity.SetProperty("sustenance", 50); // hungry (34–66)
+
+        rt.Execute(RegenScalingScript, "@tapestry/survival");
+
+        var regenData = new Dictionary<string, object?> { ["vital"] = "hp", ["amount"] = 10 };
+        var regenEvent = new GameEvent { Type = "entity.regen", SourceEntityId = entity.Id, Data = regenData };
+        bus.Publish(regenEvent);
+
+        regenEvent.Cancelled.Should().BeFalse();
+        Convert.ToInt32(regenData["amount"]).Should().Be(5);
     }
 }
