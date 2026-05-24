@@ -13,6 +13,7 @@ using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Properties;
 using Tapestry.Scripting.Tags;
 using Tapestry.Shared;
@@ -37,6 +38,7 @@ public class PackLoader : IPackManifestProvider
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly QuestRegistry _questRegistry;
+    private readonly ScheduleModule _scheduleModule;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -54,7 +56,8 @@ public class PackLoader : IPackManifestProvider
                      ILogger<PackLoader> logger, PackContext packContext,
                      AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
                      HelpService helpService, TagRegistry tagRegistry,
-                     PropertyRegistry propertyRegistry, QuestRegistry questRegistry)
+                     PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
+                     ScheduleModule scheduleModule)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -70,6 +73,7 @@ public class PackLoader : IPackManifestProvider
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _questRegistry = questRegistry;
+        _scheduleModule = scheduleModule;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -477,6 +481,8 @@ public class PackLoader : IPackManifestProvider
     private void LoadScripts(string packDir, string glob, string packName)
     {
         var files = MatchFiles(packDir, glob).ToList();
+
+        _scheduleModule.ResetPack(packName);
 
         var initFile = files.FirstOrDefault(f => Path.GetFileName(f) == "init.js");
         if (initFile != null)

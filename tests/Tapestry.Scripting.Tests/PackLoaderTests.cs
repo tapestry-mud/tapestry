@@ -304,9 +304,10 @@ public class PackLoaderTests
         tagRegistry ??= new TagRegistry();
         var propertyRegistry = new Tapestry.Engine.Persistence.PropertyRegistry();
         var questRegistry = new QuestRegistry();
+        var scheduleModule = new ScheduleModule(gameLoop, world);
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
-            propertyRegistry, questRegistry);
+            propertyRegistry, questRegistry, scheduleModule);
 
         return (world, itemRegistry, spawnManager, loader);
     }

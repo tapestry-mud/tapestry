@@ -72,6 +72,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule, ArgsModule>();
         services.AddSingleton<FlowsModule>();
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FlowsModule>());
+        services.AddSingleton<ScheduleModule>();
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<ScheduleModule>());
 
         services.TryAddSingleton<IGmcpModuleAdapter, NullGmcpModuleAdapter>();
         services.AddSingleton<IJintApiModule, GmcpModule>();
