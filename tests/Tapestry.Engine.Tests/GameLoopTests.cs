@@ -304,6 +304,82 @@ public class GameLoopTests
         fireTicks.Should().Equal(new[] { 3L, 6L, 9L });
     }
 
+    [Fact]
+    public void RegisterRegenHandler_EmitsRegenEvent_ForMovement()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
+            new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue());
+
+        var entity = new Entity("player", "Test");
+        entity.Stats.BaseMaxMovement = 100;
+        entity.Stats.Movement = 50;
+        entity.SetProperty("regen_movement", 10);
+
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+
+        var room = new Room("test", "Test", "Test room");
+        room.AddEntity(entity);
+        world.AddRoom(room);
+        world.TrackEntity(entity);
+
+        GameEvent? capturedEvent = null;
+        eventBus.Subscribe("entity.regen", evt =>
+        {
+            if ((string?)evt.Data.GetValueOrDefault("vital") == "movement")
+            {
+                capturedEvent = evt;
+            }
+        });
+
+        loop.Tick();
+
+        capturedEvent.Should().NotBeNull();
+        capturedEvent!.Data["vital"].Should().Be("movement");
+        capturedEvent.Data["amount"].Should().Be(10);
+    }
+
+    [Fact]
+    public void RegisterRegenHandler_MovementRegenEvent_IsRespectedWhenMutated()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
+            new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue());
+
+        var entity = new Entity("player", "Test");
+        entity.Stats.BaseMaxMovement = 100;
+        entity.Stats.Movement = 50;
+        entity.SetProperty("regen_movement", 10);
+
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+
+        var room = new Room("test", "Test", "Test room");
+        room.AddEntity(entity);
+        world.AddRoom(room);
+        world.TrackEntity(entity);
+
+        // Subscriber cancels movement regen
+        eventBus.Subscribe("entity.regen", evt =>
+        {
+            if ((string?)evt.Data.GetValueOrDefault("vital") == "movement")
+            {
+                evt.Cancelled = true;
+            }
+        });
+
+        loop.Tick();
+
+        entity.Stats.Movement.Should().Be(50); // unchanged because event was cancelled
+    }
+
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
     {
         var registry = new CommandRegistry();

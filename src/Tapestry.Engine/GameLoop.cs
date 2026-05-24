@@ -475,7 +475,7 @@ public class GameLoop
 
                     if (!regenEvent.Cancelled)
                     {
-                        var amount = regenData.ContainsKey("amount") ? (int)regenData["amount"]! : regenHp;
+                        var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenHp;
                         entity.Stats.Hp += amount;
                     }
                 }
@@ -496,14 +496,30 @@ public class GameLoop
 
                     if (!regenResourceEvent.Cancelled)
                     {
-                        var amount = regenData.ContainsKey("amount") ? (int)regenData["amount"]! : regenResource;
+                        var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenResource;
                         entity.Stats.Resource += amount;
                     }
                 }
 
                 if (regenMovement > 0 && entity.Stats.Movement < entity.Stats.MaxMovement)
                 {
-                    entity.Stats.Movement += regenMovement;
+                    regenData.Clear();
+                    regenData["vital"] = "movement";
+                    regenData["amount"] = regenMovement;
+                    var regenMovementEvent = new GameEvent
+                    {
+                        Type = "entity.regen",
+                        SourceEntityId = entity.Id,
+                        RoomId = entity.LocationRoomId,
+                        Data = regenData
+                    };
+                    eventBus.Publish(regenMovementEvent);
+
+                    if (!regenMovementEvent.Cancelled)
+                    {
+                        var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenMovement;
+                        entity.Stats.Movement += amount;
+                    }
                 }
             }
         });
