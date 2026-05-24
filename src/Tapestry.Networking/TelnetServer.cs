@@ -9,6 +9,10 @@ public class TelnetServer
 {
     private readonly int _port;
     private readonly int _negotiationTimeoutMs;
+    private readonly bool _keepAliveEnabled;
+    private readonly int _keepAliveIdleSeconds;
+    private readonly int _keepAliveIntervalSeconds;
+    private readonly int _keepAliveRetryCount;
     private readonly MsspConfig? _msspConfig;
     private readonly Func<MsspDynamicValues>? _getMsspDynamic;
     private readonly ILogger<TelnetServer> _logger;
@@ -22,11 +26,19 @@ public class TelnetServer
         int port,
         int negotiationTimeoutMs,
         ILogger<TelnetServer> logger,
+        bool keepAliveEnabled = true,
+        int keepAliveIdleSeconds = 60,
+        int keepAliveIntervalSeconds = 15,
+        int keepAliveRetryCount = 4,
         MsspConfig? msspConfig = null,
         Func<MsspDynamicValues>? getMsspDynamic = null)
     {
         _port = port;
         _negotiationTimeoutMs = negotiationTimeoutMs;
+        _keepAliveEnabled = keepAliveEnabled;
+        _keepAliveIdleSeconds = keepAliveIdleSeconds;
+        _keepAliveIntervalSeconds = keepAliveIntervalSeconds;
+        _keepAliveRetryCount = keepAliveRetryCount;
         _logger = logger;
         _msspConfig = msspConfig;
         _getMsspDynamic = getMsspDynamic;
@@ -43,6 +55,22 @@ public class TelnetServer
             while (!ct.IsCancellationRequested)
             {
                 var client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
+
+                if (_keepAliveEnabled)
+                {
+                    try
+                    {
+                        TcpKeepAlive.Apply(client.Client, _keepAliveIdleSeconds,
+                            _keepAliveIntervalSeconds, _keepAliveRetryCount);
+                    }
+                    catch (SocketException ex)
+                    {
+                        // Never let a keepalive-tuning quirk kill the accept loop.
+                        _logger.LogWarning(ex, "Failed to enable TCP keepalive for {Remote}",
+                            client.Client.RemoteEndPoint);
+                    }
+                }
+
                 var connection = new TelnetConnection(client, _logger);
                 _logger.LogInformation("New telnet connection: {Id} from {Remote}", connection.Id, client.Client.RemoteEndPoint);
 

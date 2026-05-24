@@ -104,10 +104,15 @@ builder.Services.AddSingleton(sp =>
     var sessions = sp.GetRequiredService<SessionManager>();
     var startTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
+    var keepAlive = config.Networking.KeepAlive;
     return new TelnetServer(
         config.Server.TelnetPort,
         config.Networking.NegotiationTimeoutMs,
         sp.GetRequiredService<ILogger<TelnetServer>>(),
+        keepAlive.Enabled,
+        keepAlive.IdleSeconds,
+        keepAlive.IntervalSeconds,
+        keepAlive.RetryCount,
         config.Mssp,
         getMsspDynamic: () => new MsspDynamicValues
         {
@@ -499,7 +504,11 @@ app.MapFallback(async context =>
         return;
     }
 
-    using var ws = await context.WebSockets.AcceptWebSocketAsync();
+    var wsKeepAlive = config.Networking.KeepAlive;
+    using var ws = wsKeepAlive.Enabled
+        ? await context.WebSockets.AcceptWebSocketAsync(
+            WebSocketKeepAlive.BuildAcceptContext(wsKeepAlive.IntervalSeconds, wsKeepAlive.RetryCount))
+        : await context.WebSockets.AcceptWebSocketAsync();
     var handler = context.RequestServices.GetRequiredService<ConnectionHandler>();
     var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
     var wsLogger = loggerFactory.CreateLogger<WebSocketConnection>();

@@ -152,6 +152,21 @@ public class NetworkingSection
 {
     public int NegotiationTimeoutMs { get; set; } = 500;
     public List<string> TrustedProxies { get; set; } = new();
+    public KeepAliveSection KeepAlive { get; set; } = new();
+}
+
+// Liveness detection for half-open connections (client vanished without a clean
+// TCP FIN / WebSocket Close). Without this, a dropped connection's read loop blocks
+// forever, the session never fires OnDisconnected, and the player zombies in the
+// world holding a connection/concurrency slot. Telnet uses OS-level TCP keepalive;
+// WebSocket uses ping/pong with an abort timeout. Detection window for both is
+// roughly IdleSeconds + IntervalSeconds * RetryCount.
+public class KeepAliveSection
+{
+    public bool Enabled { get; set; } = true;
+    public int IdleSeconds { get; set; } = 60;
+    public int IntervalSeconds { get; set; } = 15;
+    public int RetryCount { get; set; } = 4;
 }
 
 public class EconomySection
