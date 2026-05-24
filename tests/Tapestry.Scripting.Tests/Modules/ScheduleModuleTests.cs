@@ -260,4 +260,64 @@ public class ScheduleModuleTests
         regenEvent.Cancelled.Should().BeFalse();
         Convert.ToInt32(regenData["amount"]).Should().Be(5);
     }
+
+    [Fact]
+    public void SurvivalItemConsumed_AppliesSustenanceValue_CappedAt100()
+    {
+        // The survival item.consumed subscriber now owns nutrition application
+        // (moved out of the engine's ConsumableService). Verifies the apply path and
+        // the 100 cap in the real Jint runtime. Kept in parity with
+        // @tapestry/survival/scripts/sustenance.js.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        var bus = provider.GetRequiredService<EventBus>();
+        var world = provider.GetRequiredService<World>();
+        rt.Initialize();
+
+        var hungry = new Entity("player", "Hungry");
+        world.TrackEntity(hungry);
+        hungry.SetProperty("sustenance", 50);
+
+        var nearFull = new Entity("player", "NearFull");
+        world.TrackEntity(nearFull);
+        nearFull.SetProperty("sustenance", 90);
+
+        rt.Execute("""
+            function getSustenanceValue(entityId) {
+                var val = tapestry.world.getProperty(entityId, 'sustenance');
+                return (val === null || val === undefined) ? 100 : val;
+            }
+            tapestry.events.on('item.consumed', function(evt) {
+                var entityId = evt.data.entityId;
+                var sustenanceValue = Number(evt.data.sustenanceValue) || 0;
+                if (sustenanceValue > 0) {
+                    var current = Number(getSustenanceValue(entityId)) || 0;
+                    tapestry.world.setProperty(entityId, 'sustenance', Math.min(100, current + sustenanceValue));
+                }
+            });
+        """, "@tapestry/survival");
+
+        bus.Publish(new GameEvent
+        {
+            Type = "item.consumed",
+            SourceEntityId = hungry.Id,
+            Data = new Dictionary<string, object?> { ["entityId"] = hungry.Id.ToString(), ["sustenanceValue"] = 30 }
+        });
+        bus.Publish(new GameEvent
+        {
+            Type = "item.consumed",
+            SourceEntityId = nearFull.Id,
+            Data = new Dictionary<string, object?> { ["entityId"] = nearFull.Id.ToString(), ["sustenanceValue"] = 30 }
+        });
+
+        // Read value-tolerantly: JS writes numbers as double, so verify the nutrition
+        // LOGIC (apply + cap) by value. The double-vs-int storage issue is a separate
+        // engine concern — see the GMCP hunger read finding.
+        Convert.ToInt32(world.GetEntity(hungry.Id)!.GetProperty<object>("sustenance")).Should().Be(80);
+        Convert.ToInt32(world.GetEntity(nearFull.Id)!.GetProperty<object>("sustenance")).Should().Be(100); // capped
+    }
 }

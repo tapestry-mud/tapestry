@@ -87,13 +87,9 @@ public class ConsumableService
             destroyItem = true;
         }
 
-        if (sustenanceValue > 0)
-        {
-            var current = entity.TryGetProperty<int>("sustenance", out var sustenanceVal)
-                ? sustenanceVal
-                : 100;
-            entity.SetProperty("sustenance", Math.Min(100, current + sustenanceValue));
-        }
+        // Nutrition (sustenanceValue) is applied by the @tapestry/survival pack via its
+        // item.consumed subscriber, not here — the kernel knows nothing about hunger.
+        // sustenanceValue is still emitted below and returned in the result for the pack.
 
         // Publish while item still exists so event handlers can read its tags and properties.
         _eventBus.Publish(new GameEvent
