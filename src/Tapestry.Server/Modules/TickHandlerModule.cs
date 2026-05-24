@@ -7,7 +7,6 @@ using Tapestry.Engine.Heartbeat;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Rest;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Shared;
 
 namespace Tapestry.Server.Modules;
@@ -23,7 +22,6 @@ public class TickHandlerModule : IGameModule
     private readonly MobCommandQueue _mobCommandQueue;
     private readonly DirtyVitalsBatcher _dirtyVitalsBatcher;
     private readonly PlayerPersistenceService _persistence;
-    private readonly SustenanceConfig _sustenanceConfig;
     private readonly RestConfig _restConfig;
     private readonly ServerConfig _config;
     private readonly AreaTickService _areaTick;
@@ -43,7 +41,6 @@ public class TickHandlerModule : IGameModule
         MobCommandQueue mobCommandQueue,
         DirtyVitalsBatcher dirtyVitalsBatcher,
         PlayerPersistenceService persistence,
-        SustenanceConfig sustenanceConfig,
         RestConfig restConfig,
         ServerConfig config,
         AreaTickService areaTick,
@@ -60,7 +57,6 @@ public class TickHandlerModule : IGameModule
         _mobCommandQueue = mobCommandQueue;
         _dirtyVitalsBatcher = dirtyVitalsBatcher;
         _persistence = persistence;
-        _sustenanceConfig = sustenanceConfig;
         _restConfig = restConfig;
         _config = config;
         _areaTick = areaTick;
@@ -89,7 +85,6 @@ public class TickHandlerModule : IGameModule
         _gameLoop.RegisterTickHandler("heartbeat", 1, () => _heartbeat.Tick());
 
         RegisterCorpseDecay();
-        RegisterSustenanceDrain();
         RegisterAutosave();
 
         _gameLoop.RegisterRegenHandler(_world, _eventBus,
@@ -147,76 +142,6 @@ public class TickHandlerModule : IGameModule
                         _sessions.SendToRoom(roomId!, corpse.Name + " crumbles to dust.\r\n");
                     }
                     _world.UntrackEntity(corpse);
-                }
-            }
-        });
-    }
-
-    private void RegisterSustenanceDrain()
-    {
-        var lastReminderByEntity = new Dictionary<Guid, long>();
-
-        _gameLoop.RegisterTickHandler("sustenance-drain", _sustenanceConfig.DrainCadence, () =>
-        {
-            foreach (var entity in _world.GetEntitiesByType("player"))
-            {
-                var current = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
-                    ? sustenanceVal
-                    : 100;
-                var prevTier = _sustenanceConfig.GetTier(current);
-
-                var drainAmount = _sustenanceConfig.DrainAmount;
-                var tickEvent = new GameEvent
-                {
-                    Type = "sustenance.tick",
-                    SourceEntityId = entity.Id,
-                    Data = new Dictionary<string, object?>
-                    {
-                        ["entityId"] = entity.Id.ToString(),
-                        ["drainAmount"] = drainAmount
-                    }
-                };
-                _eventBus.Publish(tickEvent);
-                if (tickEvent.Cancelled) { continue; }
-                if (tickEvent.Data.TryGetValue("drainAmount", out var modifiedDrain)
-                    && modifiedDrain is int md) { drainAmount = md; }
-
-                var newValue = Math.Max(0, current - drainAmount);
-                entity.SetProperty(SustenanceProperties.Sustenance, newValue);
-
-                var newTier = _sustenanceConfig.GetTier(newValue);
-                if (newTier != prevTier)
-                {
-                    _eventBus.Publish(new GameEvent
-                    {
-                        Type = "sustenance.changed",
-                        SourceEntityId = entity.Id,
-                        Data = new Dictionary<string, object?>
-                        {
-                            ["entityId"] = entity.Id.ToString(),
-                            ["oldTier"] = prevTier,
-                            ["newTier"] = newTier
-                        }
-                    });
-                }
-
-                if (newTier != "full" && newTier == prevTier)
-                {
-                    var lastReminder = lastReminderByEntity.GetValueOrDefault(entity.Id, 0L);
-                    if (_gameLoop.TickCount - lastReminder >= _sustenanceConfig.ReminderIntervalTicks)
-                    {
-                        lastReminderByEntity[entity.Id] = _gameLoop.TickCount;
-                        _eventBus.Publish(new GameEvent
-                        {
-                            Type = "sustenance.reminder",
-                            SourceEntityId = entity.Id,
-                            Data = new Dictionary<string, object?>
-                            {
-                                ["entityId"] = entity.Id.ToString(),
-                                ["tier"] = newTier
-                            }
-                        });
-                    }
                 }
             }
         });

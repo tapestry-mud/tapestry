@@ -4,7 +4,6 @@ using Tapestry.Engine.Classes;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Rest;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Training;
 using Tapestry.Shared;
 
@@ -103,9 +102,9 @@ public class WorldEventModule : IGameModule
             if (!evt.SourceEntityId.HasValue) { return; }
             var player = _world.GetEntity(evt.SourceEntityId.Value);
             if (player == null) { return; }
-            if (!player.HasProperty(SustenanceProperties.Sustenance))
+            if (!player.HasProperty("sustenance"))
             {
-                player.SetProperty(SustenanceProperties.Sustenance, 100);
+                player.SetProperty("sustenance", 100);
             }
         });
     }

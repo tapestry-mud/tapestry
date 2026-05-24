@@ -18,7 +18,6 @@ using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Stats;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Engine.Ui;
@@ -245,7 +244,6 @@ public class PackLoaderTests
         var returnAddressService = new ReturnAddressService(eventBus);
         var temporaryExitService = new TemporaryExitService(world, eventBus, areaTickService);
         var consumableService = new ConsumableService(world, eventBus);
-        var sustenanceConfig = new SustenanceConfig();
         var economyConfig = new EconomyConfig();
         var shopService = new ShopService(world, eventBus, currencyService, economyConfig, itemRegistry, equipmentManager);
         var restService = new RestService(world, eventBus, gameLoop);
@@ -283,7 +281,7 @@ public class PackLoaderTests
             new AdminModule(world, messaging, sessions, panelRenderer, NullLogger<AdminModule>.Instance),
             new CurrencyModule(world, currencyService),
             new ShopModule(world, shopService),
-            new ConsumablesModule(consumableService, world, sustenanceConfig),
+            new ConsumablesModule(consumableService),
             new RestModule(restService),
             new DoorsModule(world, doorService, eventBus),
             new PortalsModule(world, temporaryExitService),

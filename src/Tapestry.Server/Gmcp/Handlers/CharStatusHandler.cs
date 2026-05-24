@@ -4,7 +4,6 @@ using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Progression;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Server.Gmcp;
 
 namespace Tapestry.Server.Gmcp.Handlers;
@@ -18,7 +17,6 @@ public class CharStatusHandler : IGmcpPackageHandler
     private readonly EventBus _eventBus;
     private readonly ProgressionManager _progression;
     private readonly AlignmentManager _alignment;
-    private readonly SustenanceConfig _sustenance;
 
     public string Name => "CharStatus";
     public IReadOnlyList<string> PackageNames { get; } = new[] { "Char.Status", "Char.StatusVars" };
@@ -30,8 +28,7 @@ public class CharStatusHandler : IGmcpPackageHandler
         World world,
         EventBus eventBus,
         ProgressionManager progression,
-        AlignmentManager alignment,
-        SustenanceConfig sustenance)
+        AlignmentManager alignment)
     {
         _connectionManager = connectionManager;
         _batcher = batcher;
@@ -40,7 +37,6 @@ public class CharStatusHandler : IGmcpPackageHandler
         _eventBus = eventBus;
         _progression = progression;
         _alignment = alignment;
-        _sustenance = sustenance;
     }
 
     public void Configure()
@@ -84,8 +80,7 @@ public class CharStatusHandler : IGmcpPackageHandler
         var alignment = _alignment.Get(entity.Id);
         var alignmentBucket = _alignment.Bucket(entity.Id);
         var gold = entity.GetProperty<int>(CurrencyProperties.Gold);
-        var hungerValue = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sv) ? sv : 100;
-        var hungerTier = _sustenance.GetTier(hungerValue);
+        var hungerValue = entity.TryGetProperty<int>("sustenance", out var sv) ? sv : 100;
 
         return new
         {
@@ -105,7 +100,6 @@ public class CharStatusHandler : IGmcpPackageHandler
             alignment,
             alignmentBucket,
             gold,
-            hungerTier,
             hungerValue,
             isAdmin = entity.HasRole("admin"),
         };

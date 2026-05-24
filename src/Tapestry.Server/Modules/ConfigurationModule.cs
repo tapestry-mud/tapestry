@@ -13,7 +13,6 @@ using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Rest;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Training;
 
 namespace Tapestry.Server.Modules;
@@ -61,7 +60,6 @@ public class ConfigurationModule : IGameModule
         AbilityProperties.Register(_propertyRegistry);
         TrainingProperties.Register(_propertyRegistry);
         CurrencyProperties.Register(_propertyRegistry);
-        SustenanceProperties.Register(_propertyRegistry);
         ConsumableProperties.Register(_propertyRegistry);
         ContainerProperties.Register(_propertyRegistry);
         RestProperties.Register(_propertyRegistry);

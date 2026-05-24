@@ -11,7 +11,6 @@ using Tapestry.Engine.Effects;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Flow;

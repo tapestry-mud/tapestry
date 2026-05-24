@@ -144,6 +144,50 @@ public class ScheduleModuleTests
         fireCount.Should().Be(1); // replaced, not stacked
     }
 
+    [Fact]
+    public void SurvivalDrain_IntegrationTest_SustenanceDropsAfterDrainCadence()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        var loop = provider.GetRequiredService<GameLoop>();
+        var world = provider.GetRequiredService<World>();
+        rt.Initialize();
+
+        var entity = new Entity("player", "TestPlayer");
+        world.TrackEntity(entity);
+        entity.SetProperty("sustenance", 100);
+
+        rt.Execute("""
+            var DRAIN_AMOUNT = 1;
+            var DRAIN_CADENCE = 300;
+            var TIER_FULL_MIN = 67;
+            var TIER_HUNGRY_MIN = 34;
+            function getSustenanceValue(entityId) {
+                var val = tapestry.world.getProperty(entityId, 'sustenance');
+                return (val === null || val === undefined) ? 100 : val;
+            }
+            function getTier(value) {
+                if (value >= TIER_FULL_MIN) { return 'full'; }
+                if (value >= TIER_HUNGRY_MIN) { return 'hungry'; }
+                return 'famished';
+            }
+            tapestry.schedule.everyForEach(DRAIN_CADENCE, { type: 'player' }, function(entity) {
+                var current = getSustenanceValue(entity.id);
+                tapestry.world.setProperty(entity.id, 'sustenance', Math.max(0, current - DRAIN_AMOUNT));
+            });
+        """, "@tapestry/survival");
+
+        for (var i = 0; i < 300; i++) { loop.Tick(); }
+
+        var raw = world.GetEntity(entity.Id)!.GetProperty<object>("sustenance");
+        var sustenance = Convert.ToInt32(raw);
+        sustenance.Should().Be(99);
+    }
+
     private static string RegenScalingScript => """
         var TIER_FULL_MIN = 67;
         var TIER_HUNGRY_MIN = 34;

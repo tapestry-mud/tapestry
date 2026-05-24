@@ -5,7 +5,6 @@ using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Progression;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
 
@@ -31,9 +30,8 @@ public class CharStatusHandlerTests
         var eb = new EventBus();
         var progression = new ProgressionManager(world, eb);
         var alignment = new AlignmentManager(world, eb, new AlignmentConfig());
-        var sustenance = new SustenanceConfig();
 
-        var handler = new CharStatusHandler(cm, batcher, sessions, world, eb, progression, alignment, sustenance);
+        var handler = new CharStatusHandler(cm, batcher, sessions, world, eb, progression, alignment);
 
         var entity = new Entity("player", "Hero");
         world.TrackEntity(entity);

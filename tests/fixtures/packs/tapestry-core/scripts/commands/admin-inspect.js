@@ -38,8 +38,12 @@ tapestry.commands.register({
         var gold = tapestry.currency.getGold(target.id);
         actor.send('Gold:    ' + gold + '\r\n');
 
-        var hunger = tapestry.consumables.getSustenance(target.id);
-        var hungerTier = tapestry.consumables.getSustenanceTier(target.id);
+        var hungerRaw = tapestry.world.getProperty(target.id, 'sustenance');
+        var hunger = (hungerRaw === null || hungerRaw === undefined) ? null : hungerRaw;
+        var hungerTier = hunger === null ? 'n/a'
+            : hunger >= 67 ? 'full'
+            : hunger >= 34 ? 'hungry'
+            : 'famished';
         actor.send('Hunger:  ' + hungerTier + ' (' + hunger + '%)\r\n');
 
         var levelLines = [];

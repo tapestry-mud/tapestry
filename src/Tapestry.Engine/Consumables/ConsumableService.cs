@@ -1,4 +1,3 @@
-using Tapestry.Engine.Sustenance;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Consumables;
@@ -90,10 +89,10 @@ public class ConsumableService
 
         if (sustenanceValue > 0)
         {
-            var current = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
+            var current = entity.TryGetProperty<int>("sustenance", out var sustenanceVal)
                 ? sustenanceVal
                 : 100;
-            entity.SetProperty(SustenanceProperties.Sustenance, Math.Min(100, current + sustenanceValue));
+            entity.SetProperty("sustenance", Math.Min(100, current + sustenanceValue));
         }
 
         // Publish while item still exists so event handlers can read its tags and properties.

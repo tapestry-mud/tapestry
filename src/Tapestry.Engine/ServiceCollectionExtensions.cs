@@ -18,7 +18,6 @@ using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Races;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Rest;
 using Tapestry.Engine.Ui;
@@ -124,8 +123,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CurrencyService>();
         services.AddSingleton<ShopService>();
 
-        // Sustenance / Consumables
-        services.AddSingleton<SustenanceConfig>();
+        // Consumables
         services.AddSingleton<ConsumableService>();
 
         // Rest
