@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Rest;
-using Tapestry.Engine.Sustenance;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -407,7 +406,7 @@ public class GameLoop
         });
     }
 
-    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks = 10, SustenanceConfig? sustenanceConfig = null, RestConfig? restConfig = null)
+    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks = 10, RestConfig? restConfig = null)
     {
         var regenData = new Dictionary<string, object?>(2);
         RegisterTickHandler("regen", regenIntervalTicks, () =>
@@ -417,15 +416,6 @@ public class GameLoop
                 .Where(e => !e.HasTag("no_regen"));
             foreach (var entity in regenCandidates)
             {
-                var sustenanceMultiplier = 1.0;
-                if (sustenanceConfig != null)
-                {
-                    var sustenance = entity.TryGetProperty<int>(SustenanceProperties.Sustenance, out var sustenanceVal)
-                        ? sustenanceVal
-                        : 100;
-                    sustenanceMultiplier = sustenanceConfig.GetRegenMultiplier(sustenance);
-                }
-
                 var restMultiplier = 1.0;
                 if (restConfig != null)
                 {
@@ -452,7 +442,7 @@ public class GameLoop
                     }
                 }
 
-                var finalMultiplier = sustenanceMultiplier * restMultiplier;
+                var finalMultiplier = restMultiplier;
                 if (finalMultiplier == 0.0) { continue; }
 
                 var regenHp = (int)Math.Round(entity.GetProperty<int>(CommonProperties.RegenHp) * finalMultiplier);

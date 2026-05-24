@@ -94,7 +94,6 @@ public class TickHandlerModule : IGameModule
 
         _gameLoop.RegisterRegenHandler(_world, _eventBus,
             regenIntervalTicks: 30,
-            sustenanceConfig: _sustenanceConfig,
             restConfig: _restConfig);
 
         _gameLoop.RegisterTickHandler("gmcp-vitals-flush", 1, () => _dirtyVitalsBatcher.FlushDirtyVitals());

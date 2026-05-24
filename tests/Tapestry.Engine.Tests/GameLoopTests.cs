@@ -380,6 +380,35 @@ public class GameLoopTests
         entity.Stats.Movement.Should().Be(50); // unchanged because event was cancelled
     }
 
+    [Fact]
+    public void RegisterRegenHandler_WithNoSustenanceConfig_RegensFully()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
+            new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue());
+
+        var entity = new Entity("player", "Test");
+        entity.Stats.BaseMaxHp = 100;
+        entity.Stats.Hp = 50;
+        entity.SetProperty("regen_hp", 5);
+        entity.SetProperty("sustenance", 0); // famished — would have suppressed regen before
+
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+
+        var room = new Room("test", "Test", "Test room");
+        world.AddRoom(room);
+        entity.LocationRoomId = "test";
+        world.TrackEntity(entity);
+
+        loop.Tick();
+
+        entity.Stats.Hp.Should().Be(55); // full regen regardless of sustenance
+    }
+
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
     {
         var registry = new CommandRegistry();
