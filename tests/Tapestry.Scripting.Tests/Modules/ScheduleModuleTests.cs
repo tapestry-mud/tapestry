@@ -320,4 +320,43 @@ public class ScheduleModuleTests
         Convert.ToInt32(world.GetEntity(hungry.Id)!.GetProperty<object>("sustenance")).Should().Be(80);
         Convert.ToInt32(world.GetEntity(nearFull.Id)!.GetProperty<object>("sustenance")).Should().Be(100); // capped
     }
+
+    [Fact]
+    public void SurvivalSeedsSustenance_OnCharacterCreated_OnlyIfUnset()
+    {
+        // Seeding moved out of the engine (WorldEventModule) into survival. Must seed a
+        // fresh character to 100 but never clobber an existing value (e.g. a famished 0/20).
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        var bus = provider.GetRequiredService<EventBus>();
+        var world = provider.GetRequiredService<World>();
+        rt.Initialize();
+
+        var fresh = new Entity("player", "Fresh");
+        world.TrackEntity(fresh);                  // no sustenance set
+        var existing = new Entity("player", "Existing");
+        world.TrackEntity(existing);
+        existing.SetProperty("sustenance", 20);    // already partway down — must be preserved
+
+        rt.Execute("""
+            function seedSustenance(entityId) {
+                if (!entityId) { return; }
+                var raw = tapestry.world.getProperty(entityId, 'sustenance');
+                if (raw === null || raw === undefined) {
+                    tapestry.world.setProperty(entityId, 'sustenance', 100);
+                }
+            }
+            tapestry.events.on('character.created', function(evt) { seedSustenance(evt.sourceEntityId); });
+        """, "@tapestry/survival");
+
+        bus.Publish(new GameEvent { Type = "character.created", SourceEntityId = fresh.Id });
+        bus.Publish(new GameEvent { Type = "character.created", SourceEntityId = existing.Id });
+
+        (world.GetEntity(fresh.Id)!.TryGetProperty<int>("sustenance", out var f) ? f : -1).Should().Be(100);
+        (world.GetEntity(existing.Id)!.TryGetProperty<int>("sustenance", out var e) ? e : -1).Should().Be(20);
+    }
 }

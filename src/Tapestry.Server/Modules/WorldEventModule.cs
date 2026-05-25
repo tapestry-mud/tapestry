@@ -43,7 +43,6 @@ public class WorldEventModule : IGameModule
     {
         WireMovementTracking();
         WirePersistenceSaves();
-        WireSustenanceInit();
         RegisterRestAutoWake();
         StatGrowthOnLevelUp.Subscribe(_eventBus, _world, _classRegistry, _trainingManager);
     }
@@ -95,19 +94,8 @@ public class WorldEventModule : IGameModule
         }, priority: 50);
     }
 
-    private void WireSustenanceInit()
-    {
-        _eventBus.Subscribe("character.created", evt =>
-        {
-            if (!evt.SourceEntityId.HasValue) { return; }
-            var player = _world.GetEntity(evt.SourceEntityId.Value);
-            if (player == null) { return; }
-            if (!player.HasProperty("sustenance"))
-            {
-                player.SetProperty("sustenance", 100);
-            }
-        });
-    }
+    // Sustenance seeding moved to @tapestry/survival (character.created / player.login).
+    // The kernel no longer initializes hunger.
 
     private void RegisterRestAutoWake()
     {
