@@ -1,0 +1,14 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Local-only packs symlink — points to a Windows path WSL can't resolve, and in
+# docker mode packs are supplied at runtime via tapestry link / bind-mount.
+packs/
+
+# Repo cruft not needed in the engine image
+.git/
+.github/
+data/
+screenshots/
+grafana/
