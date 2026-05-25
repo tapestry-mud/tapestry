@@ -82,6 +82,8 @@ public static class ServiceCollectionExtensions
 
         // Runtime and loader
         services.AddSingleton<TagRegistry>();
+        services.AddSingleton<Tapestry.Scripting.Interop.PackExportRegistry>();
+        services.AddSingleton<Tapestry.Scripting.Interop.PackDependencyGraph>();
         services.AddSingleton<JintRuntime>();
         services.AddSingleton<PackLoader>();
         services.AddSingleton<IPackManifestProvider>(sp => sp.GetRequiredService<PackLoader>());
