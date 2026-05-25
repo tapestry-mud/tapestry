@@ -9,6 +9,7 @@ using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Connections;
+using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Services;
 
 namespace Tapestry.Server.Modules;
@@ -27,6 +28,7 @@ public class ContentLoadingModule : IGameModule
     private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
+    private readonly PackDependencyGraph _dependencyGraph;
     private readonly ILogger<ContentLoadingModule> _logger;
 
     public string Name => "ContentLoading";
@@ -44,6 +46,7 @@ public class ContentLoadingModule : IGameModule
         Tapestry.Scripting.Modules.CommandsModule commandsModule,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
+        PackDependencyGraph dependencyGraph,
         ILogger<ContentLoadingModule> logger)
     {
         _config = config;
@@ -58,6 +61,7 @@ public class ContentLoadingModule : IGameModule
         _commandsModule = commandsModule;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
+        _dependencyGraph = dependencyGraph;
         _logger = logger;
     }
 
@@ -97,7 +101,9 @@ public class ContentLoadingModule : IGameModule
         {
             var ns = PackLoader.PackNamespace(manifest.Name);
             var deps = manifest.Dependencies.Keys
+                .Concat(manifest.OptionalDependencies.Keys) // §5: optional edges count too
                 .Select(PackLoader.PackNamespace)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
             depMap[ns] = deps;
         }
@@ -107,6 +113,7 @@ public class ContentLoadingModule : IGameModule
 
         _tagRegistry.SetDependencyResolver(Resolve);
         _propertyRegistry.SetDependencyResolver(Resolve);
+        _dependencyGraph.Build(depMap); // feed the interop edge gate
     }
 
     private void LoadPacks()
