@@ -7,14 +7,14 @@ namespace Tapestry.Scripting.Tests;
 public class PackManifestOptionalDepsTests
 {
     [Fact]
-    public void LoadManifest_ParsesOptionalDependencies_CamelCaseKey()
+    public void LoadManifest_ParsesOptionalDependencies_SnakeCaseKey()
     {
         var yaml = """
             name: "@tapestry/cooking"
             version: "0.1.0"
             dependencies:
               "@tapestry/core": "^0.1.0"
-            optionalDependencies:
+            optional_dependencies:
               "@tapestry/survival": "^0.1.0"
             """;
 

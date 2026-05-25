@@ -1,5 +1,3 @@
-using YamlDotNet.Serialization;
-
 namespace Tapestry.Shared;
 
 public class PackManifest
@@ -16,7 +14,8 @@ public class PackManifest
     public bool Active { get; set; } = true;
     public Dictionary<string, string> Dependencies { get; set; } = new();
 
-    [YamlMember(Alias = "optionalDependencies", ApplyNamingConventions = false)]
+    // Maps to the snake_case manifest key `optional_dependencies` via the loader's
+    // UnderscoredNamingConvention — consistent with load_order, display_name, etc.
     public Dictionary<string, string> OptionalDependencies { get; set; } = new();
     public int LoadOrder { get; set; } = 100;
     public string Validation { get; set; } = "strict";

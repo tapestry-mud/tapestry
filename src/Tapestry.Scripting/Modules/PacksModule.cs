@@ -189,7 +189,7 @@ public class PacksModule : IJintApiModule
         {
             throw new InteropException(
                 $"Pack '{caller}' has no declared dependency on '{target}'; " +
-                $"add it to `dependencies` or `optionalDependencies`.");
+                $"add it to `dependencies` or `optional_dependencies`.");
         }
     }
 
