@@ -1,3 +1,5 @@
+using YamlDotNet.Serialization;
+
 namespace Tapestry.Shared;
 
 public class PackManifest
@@ -13,6 +15,9 @@ public class PackManifest
     public string EngineVersion { get; set; } = "";
     public bool Active { get; set; } = true;
     public Dictionary<string, string> Dependencies { get; set; } = new();
+
+    [YamlMember(Alias = "optionalDependencies", ApplyNamingConventions = false)]
+    public Dictionary<string, string> OptionalDependencies { get; set; } = new();
     public int LoadOrder { get; set; } = 100;
     public string Validation { get; set; } = "strict";
     public PackContentPaths Content { get; set; } = new();
