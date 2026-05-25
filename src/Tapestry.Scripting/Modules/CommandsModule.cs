@@ -232,7 +232,8 @@ public class CommandsModule : IJintApiModule
                             hasTag = new Func<string, bool>(tag => entity.HasTag(tag))
                         };
                         // JintEngine is not thread-safe; visibleTo predicates share the singleton engine.
-                        var result = engine.Invoke(fn, null, new object[] { playerObj });
+                        // visibleTo is a deferred pack predicate — attribute it to the registering pack.
+                        var result = engine.InvokeAsPack(packName, fn, null, new object[] { playerObj });
                         return result.Type == Types.Boolean && (bool)result.ToObject()!;
                     }
                     catch (Exception ex)
@@ -254,7 +255,7 @@ public class CommandsModule : IJintApiModule
 
         _commandRegistry.Register(
             name,
-            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp); },
+            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp, packName); },
             aliases,
             priority,
             packName,
@@ -327,7 +328,7 @@ public class CommandsModule : IJintApiModule
 
     private void InvokeActorHandler(
         JintEngine engine, JsValue handler, ActorContext actorCtx,
-        Dictionary<string, ArgDefinition>? argDefs, GmcpConfig? gmcpConfig)
+        Dictionary<string, ArgDefinition>? argDefs, GmcpConfig? gmcpConfig, string packName)
     {
         var isMob = actorCtx.Source == "mob";
         var name = isMob
@@ -393,7 +394,7 @@ public class CommandsModule : IJintApiModule
 
         try
         {
-            engine.Invoke(handler, null, new object[] { actorObj, argsToPass });
+            engine.InvokeAsPack(packName, handler, null, new object[] { actorObj, argsToPass });
         }
         finally
         {

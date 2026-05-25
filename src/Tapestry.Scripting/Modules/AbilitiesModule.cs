@@ -86,9 +86,14 @@ public class AbilitiesModule : IJintApiModule
 
             var context = new {};
 
+            // The ability handler is a deferred pack-registered callback; attribute it to
+            // the pack that registered the ability (look up by id), not the stale __currentPack.
+            var ownerAbilityId = evt.Data.TryGetValue("abilityId", out var ownerAid) ? ownerAid?.ToString() : null;
+            var owningPack = (ownerAbilityId != null ? _registry.Get(ownerAbilityId)?.PackName : null) ?? "";
+
             try
             {
-                engine.Invoke(abilityHandler, null, new object[] { user, target, context });
+                engine.InvokeAsPack(owningPack, abilityHandler, null, new object[] { user, target, context });
             }
             catch (Exception ex)
             {
