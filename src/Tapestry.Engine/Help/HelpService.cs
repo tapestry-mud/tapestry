@@ -28,9 +28,17 @@ public class HelpService
 
     private static readonly string[] RoleHierarchy = ["player", "builder", "admin"];
 
-    public HelpService(ILogger<HelpService>? logger = null)
+    // Resolves an entity's roles by id (e.g. World.GetEntity(id).Roles). Null in
+    // standalone/test construction, in which case any logged-in entity is treated
+    // as plain player tier.
+    private readonly Func<string, IEnumerable<string>>? _rolesResolver;
+
+    public HelpService(
+        ILogger<HelpService>? logger = null,
+        Func<string, IEnumerable<string>>? rolesResolver = null)
     {
         _logger = logger;
+        _rolesResolver = rolesResolver;
     }
 
     public void LoadPack(string packName, string packRoot, string helpGlob, int loadOrder)
@@ -161,8 +169,21 @@ public class HelpService
     private static bool IsVisible(HelpTopic t, int playerTier) =>
         RoleTier(t.Role) <= playerTier;
 
-    // -1 = no player (chargen) -- only role-less visible
-    // any GUID = player tier for now
-    private static int PlayerTier(string? entityId) =>
-        string.IsNullOrWhiteSpace(entityId) ? -1 : RoleTier("player");
+    // -1 = no player (chargen) -- only role-less visible.
+    // A logged-in entity is at least player tier; builder/admin roles elevate it
+    // so role-gated help (link, spawn, etc.) becomes visible to those who hold them.
+    private int PlayerTier(string? entityId)
+    {
+        if (string.IsNullOrWhiteSpace(entityId)) { return -1; }
+
+        var tier = RoleTier("player");
+        if (_rolesResolver != null)
+        {
+            foreach (var role in _rolesResolver(entityId))
+            {
+                tier = Math.Max(tier, RoleTier(role));
+            }
+        }
+        return tier;
+    }
 }

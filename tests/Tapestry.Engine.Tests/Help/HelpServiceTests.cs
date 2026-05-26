@@ -141,6 +141,43 @@ public class HelpServiceTests
     }
 
     [Fact]
+    public void RoleFilter_PlayerTier_HidesBuilderTopics()
+    {
+        var svc = new HelpService(rolesResolver: _ => new[] { "player" });
+        svc.AddTopic(MakeTopic("link", role: "builder"));
+
+        var result = svc.Query(Guid.NewGuid().ToString(), "link");
+
+        Assert.Equal("no_match", result.Status);
+    }
+
+    [Fact]
+    public void RoleFilter_BuilderRole_ShowsBuilderTopics()
+    {
+        var svc = new HelpService(rolesResolver: _ => new[] { "builder" });
+        svc.AddTopic(MakeTopic("link", role: "builder"));
+
+        var result = svc.Query(Guid.NewGuid().ToString(), "link");
+
+        Assert.Equal("ok", result.Status);
+    }
+
+    [Fact]
+    public void RoleFilter_AdminRole_ShowsBuilderAndAdminTopics()
+    {
+        // An admin entity carries roles { "admin" } only (no explicit "player"),
+        // yet must see player, builder, and admin help.
+        var svc = new HelpService(rolesResolver: _ => new[] { "admin" });
+        svc.AddTopic(MakeTopic("kill", role: "player"));
+        svc.AddTopic(MakeTopic("link", role: "builder"));
+        svc.AddTopic(MakeTopic("purge", role: "admin"));
+
+        Assert.Equal("ok", svc.Query(Guid.NewGuid().ToString(), "kill").Status);
+        Assert.Equal("ok", svc.Query(Guid.NewGuid().ToString(), "link").Status);
+        Assert.Equal("ok", svc.Query(Guid.NewGuid().ToString(), "purge").Status);
+    }
+
+    [Fact]
     public void Categories_ReturnsDistinctSortedList()
     {
         var svc = new HelpService();

@@ -209,8 +209,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<QuestService>();
         services.AddSingleton<QuestObjectiveWatcher>();
 
-        // Help
-        services.AddSingleton<HelpService>();
+        // Help -- resolver wraps World.GetEntity(id).Roles so role-gated help
+        // (builder/admin) is visible to entities that actually hold those roles.
+        services.AddSingleton<HelpService>(sp => new HelpService(
+            sp.GetService<ILogger<HelpService>>(),
+            entityId => Guid.TryParse(entityId, out var gid)
+                ? sp.GetRequiredService<World>().GetEntity(gid)?.Roles ?? Enumerable.Empty<string>()
+                : Enumerable.Empty<string>()));
 
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();

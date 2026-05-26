@@ -70,4 +70,37 @@ public class HelpRendererTests
         var output = HelpRenderer.RenderNoMatch("xyzzy");
         Assert.Contains("xyzzy", output);
     }
+
+    // Telnet requires CRLF; a bare LF produces staggered output. Guards against
+    // Environment.NewLine (a lone \n in the Linux container) creeping back in.
+    [Fact]
+    public void RenderTopic_UsesCrlfLineEndings_NoBareLf()
+    {
+        var topic = new HelpTopic
+        {
+            Title = "X",
+            Brief = "B.",
+            Body = "Line one.\nLine two.",
+            Syntax = new() { "x [y]" },
+            SeeAlso = new() { "z" }
+        };
+        var output = HelpRenderer.RenderTopic(topic, 60);
+        var stripped = output.Replace("\r\n", "");
+        Assert.DoesNotContain("\n", stripped);
+        Assert.DoesNotContain("\r", stripped);
+    }
+
+    [Fact]
+    public void RenderDisambiguation_UsesCrlfLineEndings_NoBareLf()
+    {
+        var matches = new List<HelpTopicSummary>
+        {
+            new() { Id = "a", Title = "A", Brief = "." },
+            new() { Id = "b", Title = "B", Brief = "." }
+        };
+        var output = HelpRenderer.RenderDisambiguation("x", matches, 60);
+        var stripped = output.Replace("\r\n", "");
+        Assert.DoesNotContain("\n", stripped);
+        Assert.DoesNotContain("\r", stripped);
+    }
 }
