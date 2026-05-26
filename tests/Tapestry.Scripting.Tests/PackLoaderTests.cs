@@ -278,7 +278,7 @@ public class PackLoaderTests
             new AlignmentModule(alignmentManager, alignmentConfig, world),
             new UiModule(panelRenderer),
             new TrainingModule(trainingManager, proficiencyManager, trainingConfig),
-            new AdminModule(world, messaging, sessions, panelRenderer, NullLogger<AdminModule>.Instance),
+            new AdminModule(world, messaging, sessions, panelRenderer, NullLogger<AdminModule>.Instance, new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Tags.TagRegistry()),
             new CurrencyModule(world, currencyService),
             new ShopModule(world, shopService),
             new ConsumablesModule(consumableService),

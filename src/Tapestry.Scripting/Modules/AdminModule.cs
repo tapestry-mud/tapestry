@@ -3,19 +3,13 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Ui;
 using Tapestry.Scripting.Services;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
-
-internal record SetTypeRegistration(
-    string Kind,
-    string Type,
-    IReadOnlyList<string> AppliesTo,
-    string Help,
-    string Pack,
-    JsValue Handler);
 
 internal record GrantKindRegistration(
     string Kind,
@@ -32,8 +26,10 @@ public class AdminModule : IJintApiModule
     private readonly SessionManager _sessions;
     private readonly PanelRenderer _renderer;
     private readonly ILogger<AdminModule> _logger;
+    private readonly PropertyRegistry _propertyRegistry;
+    private readonly TagRegistry _tagRegistry;
+    private readonly AttributeWriter _attributeWriter;
 
-    private readonly Dictionary<(string Kind, string Type), SetTypeRegistration> _setTypes = new();
     private readonly Dictionary<(string Kind, string Type), GrantKindRegistration> _grantKinds = new();
 
     private static readonly HashSet<string> AllowedKinds =
@@ -44,13 +40,18 @@ public class AdminModule : IJintApiModule
         ApiMessaging messaging,
         SessionManager sessions,
         PanelRenderer renderer,
-        ILogger<AdminModule> logger)
+        ILogger<AdminModule> logger,
+        PropertyRegistry propertyRegistry,
+        TagRegistry tagRegistry)
     {
         _world = world;
         _messaging = messaging;
         _sessions = sessions;
         _renderer = renderer;
         _logger = logger;
+        _propertyRegistry = propertyRegistry;
+        _tagRegistry = tagRegistry;
+        _attributeWriter = new AttributeWriter(propertyRegistry, tagRegistry);
     }
 
     public string Namespace => "admin";
@@ -61,13 +62,10 @@ public class AdminModule : IJintApiModule
         {
             set = new
             {
-                register = new Action<JsValue>(def => RegisterSetType(engine, def)),
                 dispatch = new Action<string, JsValue>((adminIdStr, argsVal) =>
                 {
-                    DispatchSet(engine, adminIdStr, ConvertJsArgs(argsVal));
-                }),
-                listTypes = new Func<object[]>(ListSetTypes),
-                getType = new Func<string, string, object?>(GetSetType)
+                    DispatchSet(adminIdStr, ConvertJsArgs(argsVal));
+                })
             },
             grant = new
             {
@@ -98,28 +96,6 @@ public class AdminModule : IJintApiModule
         };
     }
 
-    private object[] ListSetTypes()
-    {
-        return _setTypes.Values
-            .OrderBy(r => r.Kind)
-            .ThenBy(r => r.Type)
-            .Select(r => (object)new
-            {
-                kind = r.Kind,
-                type = r.Type,
-                applies_to = r.AppliesTo.ToArray(),
-                help = r.Help,
-                pack = r.Pack
-            })
-            .ToArray();
-    }
-
-    private object? GetSetType(string kind, string type)
-    {
-        if (!_setTypes.TryGetValue((kind.ToLower(), type.ToLower()), out var reg)) { return null; }
-        return new { kind = reg.Kind, type = reg.Type, applies_to = reg.AppliesTo.ToArray(), help = reg.Help, pack = reg.Pack };
-    }
-
     private object[] ListGrantKinds()
     {
         return _grantKinds.Values
@@ -140,36 +116,6 @@ public class AdminModule : IJintApiModule
     {
         if (!_grantKinds.TryGetValue((kind.ToLower(), type.ToLower()), out var reg)) { return null; }
         return new { kind = reg.Kind, type = reg.Type, applies_to = reg.AppliesTo.ToArray(), help = reg.Help, pack = reg.Pack };
-    }
-
-    private void RegisterSetType(JintEngine engine, JsValue def)
-    {
-        if (def is not ObjectInstance obj) { return; }
-        var kind = obj.Get("kind").ToString().ToLower();
-        var type = obj.Get("type").ToString().ToLower();
-
-        if (!AllowedKinds.Contains(kind))
-        {
-            _logger.LogWarning("AdminModule: ignoring set.register for unknown kind '{Kind}'", kind);
-            return;
-        }
-
-        var appliesTo = ParseStringArray(obj.Get("applies_to"));
-        if (appliesTo.Count == 0) { appliesTo = ["*"]; }
-
-        var helpVal = obj.Get("help");
-        var help = helpVal.Type != Types.Undefined ? helpVal.ToString() : "";
-        var handler = obj.Get("handler");
-
-        var packNameVal = engine.GetValue("__currentPack");
-        var pack = packNameVal.Type != Types.Undefined ? packNameVal.ToString() : "";
-
-        var key = (kind, type);
-        if (_setTypes.ContainsKey(key))
-        {
-            _logger.LogWarning("AdminModule: duplicate set type ({Kind}, {Type}) - later registration wins", kind, type);
-        }
-        _setTypes[key] = new SetTypeRegistration(kind, type, appliesTo, help, pack, handler);
     }
 
     private void RegisterGrantKind(JintEngine engine, JsValue def)
@@ -202,7 +148,7 @@ public class AdminModule : IJintApiModule
         _grantKinds[key] = new GrantKindRegistration(kind, type, appliesTo, help, pack, handler);
     }
 
-    private void DispatchSet(JintEngine engine, string adminIdStr, string[] args)
+    private void DispatchSet(string adminIdStr, string[] args)
     {
         if (!Guid.TryParse(adminIdStr, out var adminId)) { return; }
 
@@ -221,38 +167,32 @@ public class AdminModule : IJintApiModule
 
         if (args.Length == 1 || args[1] == "?")
         {
-            SendKindTypesPanel(adminId, "set", kind);
+            SendKindAttributesPanel(adminId, kind);
             return;
         }
 
-        var arg2 = args[1].ToLower();
+        var attr = args[1].ToLower();
 
         if (args.Length >= 3 && args[2] == "?")
         {
-            if (_setTypes.TryGetValue((kind, arg2), out var typeReg))
+            if (IsDeclaredForKind(attr, kind))
             {
-                SendTypeUsagePanel(adminId, "set", kind, arg2, typeReg.Help, typeReg.AppliesTo);
+                SendAttributeUsagePanel(adminId, kind, attr);
                 return;
             }
-            var targetResult = ResolveTarget(adminId, args[1], kind);
-            if (targetResult.Ok)
+            var qTarget = ResolveTarget(adminId, args[1], kind);
+            if (qTarget.Ok)
             {
-                SendTargetTypesPanel(adminId, "set", kind, targetResult);
+                SendTargetAttributesPanel(adminId, kind, qTarget);
                 return;
             }
-            _messaging.Send(adminId, targetResult.Message + "\r\n");
-            return;
-        }
-
-        if (!_setTypes.TryGetValue((kind, arg2), out var reg))
-        {
-            _messaging.Send(adminId, $"Unknown {kind} type: {args[1]}. Try `set {kind} ?`.\r\n");
+            _messaging.Send(adminId, qTarget.Message + "\r\n");
             return;
         }
 
         if (args.Length < 3)
         {
-            _messaging.Send(adminId, $"Usage: {reg.Help}\r\n");
+            _messaging.Send(adminId, $"Usage: set {kind} {attr} <target> <value>\r\n");
             return;
         }
 
@@ -263,26 +203,20 @@ public class AdminModule : IJintApiModule
             return;
         }
 
-        if (!reg.AppliesTo.Contains("*"))
+        var entity = _world.GetEntity(targetRes.Id);
+        if (entity == null)
         {
-            var targetEntity = _world.GetEntity(targetRes.Id);
-            if (targetEntity != null)
-            {
-                var subtype = ReadSubtype(targetEntity, kind);
-                if (!reg.AppliesTo.Contains(subtype))
-                {
-                    _messaging.Send(adminId,
-                        $"Cannot set {arg2} on {targetRes.Name} - that field applies to " +
-                        $"{string.Join("/", reg.AppliesTo)} only.\r\n");
-                    return;
-                }
-            }
+            _messaging.Send(adminId, $"Could not resolve {targetRes.Name}.\r\n");
+            return;
         }
 
         var rest = args.Length > 3 ? args[3..] : Array.Empty<string>();
-        var adminObj = BuildAdminObj(adminId);
-        var targetObj = new { id = targetRes.Id.ToString(), name = targetRes.Name, entity_kind = kind };
-        engine.InvokeAsPack(reg.Pack, reg.Handler, null, new object[] { adminObj, targetObj, rest });
+
+        var result = rest.Length == 0
+            ? _attributeWriter.Describe(entity, attr)
+            : _attributeWriter.Write(entity, attr, rest);
+
+        _messaging.Send(adminId, result.Message + "\r\n");
     }
 
     private void DispatchGrant(JintEngine engine, string adminIdStr, string[] args)
@@ -346,14 +280,6 @@ public class AdminModule : IJintApiModule
         engine.InvokeAsPack(reg.Pack, reg.Handler, null, new object[] { adminObj, targetObj, rest });
     }
 
-    private static string ReadSubtype(Entity? entity, string kind)
-    {
-        if (kind != "item" || entity == null) { return "*"; }
-        var type = entity.Type;
-        var colonIdx = type.IndexOf(':');
-        return colonIdx >= 0 ? type[(colonIdx + 1)..] : "*";
-    }
-
     private void SendKindsPanel(Guid adminId, string verb)
     {
         var rows = new List<Row>
@@ -377,9 +303,7 @@ public class AdminModule : IJintApiModule
 
     private void SendKindTypesPanel(Guid adminId, string verb, string kind)
     {
-        var registry = verb == "set"
-            ? _setTypes.Values.Where(r => r.Kind == kind).Select(r => (r.Type, r.AppliesTo, r.Help))
-            : _grantKinds.Values.Where(r => r.Kind == kind).Select(r => (r.Type, r.AppliesTo, r.Help));
+        var registry = _grantKinds.Values.Where(r => r.Kind == kind).Select(r => (r.Type, r.AppliesTo, r.Help));
 
         var rows = new List<Row>();
         foreach (var t in registry.OrderBy(r => r.Type))
@@ -417,36 +341,82 @@ public class AdminModule : IJintApiModule
         SendPanel(adminId, $"{verb} {kind} {type}", rows, footer: null);
     }
 
-    private void SendTargetTypesPanel(Guid adminId, string verb, string kind, TargetResult target)
+    private IEnumerable<(string Name, string ValueType, string Help, bool IsTag)> AttributesForKind(string kind)
     {
-        var targetEntity = _world.GetEntity(target.Id);
-        var subtype = ReadSubtype(targetEntity, kind);
-        var subtypeDisplay = subtype == "*" ? "" : $" ({kind}:{subtype})";
-
-        var registry = verb == "set"
-            ? _setTypes.Values.Select(r => (r.Kind, r.Type, r.AppliesTo, r.Help))
-            : _grantKinds.Values.Select(r => (r.Kind, r.Type, r.AppliesTo, r.Help));
-
-        var applicable = registry
-            .Where(r => r.Kind == kind && (r.AppliesTo.Contains("*") || r.AppliesTo.Contains(subtype)))
-            .OrderBy(r => r.Type)
-            .ToList();
-
-        var rows = new List<Row>();
-        foreach (var t in applicable)
+        foreach (var p in _propertyRegistry.GetAll())
         {
-            var firstSentence = t.Help.Split(new[] { '.', '-' }, 2).First().Trim();
+            if (p.AppliesToType(kind))
+            {
+                yield return (p.Name, AttributeWriter.ValueTypeName(p.ValueType), p.Description, false);
+            }
+        }
+        foreach (var t in _tagRegistry.GetAll())
+        {
+            if (t.AppliesToType(kind))
+            {
+                yield return (t.Name, "tag", t.Description, true);
+            }
+        }
+    }
+
+    private bool IsDeclaredForKind(string attr, string kind) =>
+        AttributesForKind(kind).Any(a => a.Name.Equals(attr, StringComparison.OrdinalIgnoreCase));
+
+    private void SendKindAttributesPanel(Guid adminId, string kind)
+    {
+        var rows = new List<Row>();
+        foreach (var a in AttributesForKind(kind).OrderBy(a => a.Name))
+        {
+            var firstSentence = a.Help.Split(new[] { '.', '-' }, 2).First().Trim();
             rows.Add(new CellRow { Cells = [
-                new Cell { Content = "  " + t.Type, Width = CellWidth.Fixed(16) },
+                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(18) },
+                new Cell { Content = a.ValueType, Width = CellWidth.Fixed(12) },
                 new Cell { Content = firstSentence, Width = CellWidth.Fill }
             ]});
         }
         if (rows.Count == 0)
         {
-            rows.Add(new TextRow { Content = "  No applicable types for this target." });
+            rows.Add(new TextRow { Content = "  No settable attributes for this kind yet." });
         }
-        var footer = $"{verb} {kind} [type] {target.Name} [value]";
-        SendPanel(adminId, $"Editing: {target.Name}{subtypeDisplay}", rows, footer);
+        var footer = $"set {kind} [attr] [target] [value]   |   set {kind} [attr] ? - usage";
+        SendPanel(adminId, $"Admin: set {kind}", rows, footer);
+    }
+
+    private void SendAttributeUsagePanel(Guid adminId, string kind, string attr)
+    {
+        var info = AttributesForKind(kind).First(a => a.Name.Equals(attr, StringComparison.OrdinalIgnoreCase));
+        var hint = info.IsTag ? "<on|off>" : (info.ValueType == "bool" ? "<true|false>" : "<value>");
+        var rows = new List<Row>
+        {
+            new CellRow { Cells = [
+                new Cell { Content = "  Usage:", Width = CellWidth.Fixed(12) },
+                new Cell { Content = $"set {kind} {attr} <target> {hint}", Width = CellWidth.Fill }
+            ]},
+            new CellRow { Cells = [
+                new Cell { Content = "  Type:", Width = CellWidth.Fixed(12) },
+                new Cell { Content = info.ValueType, Width = CellWidth.Fill }
+            ]}
+        };
+        SendPanel(adminId, $"set {kind} {attr}", rows, footer: null);
+    }
+
+    private void SendTargetAttributesPanel(Guid adminId, string kind, TargetResult target)
+    {
+        var rows = new List<Row>();
+        foreach (var a in AttributesForKind(kind).OrderBy(a => a.Name))
+        {
+            var firstSentence = a.Help.Split(new[] { '.', '-' }, 2).First().Trim();
+            rows.Add(new CellRow { Cells = [
+                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(18) },
+                new Cell { Content = firstSentence, Width = CellWidth.Fill }
+            ]});
+        }
+        if (rows.Count == 0)
+        {
+            rows.Add(new TextRow { Content = "  No applicable attributes for this target." });
+        }
+        var footer = $"set {kind} [attr] {target.Name} [value]";
+        SendPanel(adminId, $"Editing: {target.Name}", rows, footer);
     }
 
     private void SendPanel(Guid adminId, string title, List<Row> bodyRows, string? footer)
