@@ -92,4 +92,53 @@ public class AttributeWriterTests
         Assert.False(result.Ok);
         Assert.Contains("command line", result.Message);
     }
+
+    [Fact]
+    public void Write_TagOn_AddsTag()
+    {
+        _tags.RegisterEngineTag("no_get", "Cannot be picked up", new[] { "item" });
+        var target = new Entity("item", "Anvil");
+
+        var result = Writer.Write(target, "no_get", new[] { "on" });
+
+        Assert.True(result.Ok);
+        Assert.True(target.HasTag("no_get"));
+    }
+
+    [Fact]
+    public void Write_TagOff_RemovesTag()
+    {
+        _tags.RegisterEngineTag("no_get", "Cannot be picked up", new[] { "item" });
+        var target = new Entity("item", "Anvil");
+        target.AddTag("no_get");
+
+        var result = Writer.Write(target, "no_get", new[] { "off" });
+
+        Assert.True(result.Ok);
+        Assert.False(target.HasTag("no_get"));
+    }
+
+    [Fact]
+    public void Write_ResolvesPropertyBeforeTag_WhenNameCollides()
+    {
+        // Same bare name declared as both a property and a tag: property wins.
+        _props.RegisterEngineProperty("shiny", "Shininess", PropertyValueType.Int, appliesTo: new[] { "item" });
+        _tags.RegisterEngineTag("shiny", "Is shiny", new[] { "item" });
+        var target = new Entity("item", "Coin");
+
+        var result = Writer.Write(target, "shiny", new[] { "7" });
+
+        Assert.True(result.Ok);
+        Assert.Equal(7, target.GetProperty<int>("shiny"));
+        Assert.False(target.HasTag("shiny"));
+    }
+
+    [Fact]
+    public void ValueTypeName_MapsEnumToSnakeStrings()
+    {
+        Assert.Equal("int", AttributeWriter.ValueTypeName(PropertyValueType.Int));
+        Assert.Equal("map_int", AttributeWriter.ValueTypeName(PropertyValueType.MapInt));
+        Assert.Equal("list_string", AttributeWriter.ValueTypeName(PropertyValueType.ListString));
+        Assert.Equal("bool", AttributeWriter.ValueTypeName(PropertyValueType.Bool));
+    }
 }
