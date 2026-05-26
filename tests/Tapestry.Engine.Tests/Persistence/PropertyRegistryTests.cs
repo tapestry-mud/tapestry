@@ -124,7 +124,7 @@ public class PropertyRegistryTests
         var entry = _registry.GetAll().Single(e => e.Name == "hunger");
         Assert.Equal(0, entry.Min);
         Assert.Equal(100, entry.Max);
-        Assert.Null(entry.Enum);
+        Assert.Null(entry.EnumValues);
     }
 
     [Fact]
@@ -133,7 +133,9 @@ public class PropertyRegistryTests
         _registry.RegisterPackProperty("my-pack", "tier", "Tier", PropertyValueType.String,
             enumValues: new[] { "novice", "master" });
         var entry = _registry.GetAll().Single(e => e.Name == "tier");
-        Assert.NotNull(entry.Enum);
-        Assert.Contains("novice", entry.Enum!);
+        Assert.NotNull(entry.EnumValues);
+        Assert.Contains("novice", entry.EnumValues!);
+        Assert.Null(entry.Min);
+        Assert.Null(entry.Max);
     }
 }
