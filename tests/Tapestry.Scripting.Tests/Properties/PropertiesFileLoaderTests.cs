@@ -90,4 +90,43 @@ public class PropertiesFileLoaderTests
         var registry = new PropertyRegistry();
         PropertiesFileLoader.LoadIntoRegistry("/nonexistent/path", "my-pack", registry);
     }
+
+    [Fact]
+    public void LoadFromYaml_ParsesMinMaxConstraints()
+    {
+        var yaml = """
+        properties:
+          sustenance:
+            description: "Hunger meter"
+            type: int
+            applies_to: [player]
+            min: 0
+            max: 100
+        """;
+        var registry = new PropertyRegistry();
+        PropertiesFileLoader.LoadFromYaml("survival", yaml, registry);
+
+        var entry = registry.GetAll().Single(e => e.Name == "sustenance");
+        Assert.Equal(0, entry.Min);
+        Assert.Equal(100, entry.Max);
+    }
+
+    [Fact]
+    public void LoadFromYaml_ParsesEnumConstraint()
+    {
+        var yaml = """
+        properties:
+          tier:
+            description: "Tier"
+            type: string
+            applies_to: [item]
+            enum: [novice, master]
+        """;
+        var registry = new PropertyRegistry();
+        PropertiesFileLoader.LoadFromYaml("my-pack", yaml, registry);
+
+        var entry = registry.GetAll().Single(e => e.Name == "tier");
+        Assert.NotNull(entry.EnumValues);
+        Assert.Contains("master", entry.EnumValues!);
+    }
 }

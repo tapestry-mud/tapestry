@@ -34,7 +34,9 @@ public static class PropertiesFileLoader
         {
             var valueType = ParseValueType(entry.Type);
             var appliesTo = entry.AppliesTo.Count > 0 ? entry.AppliesTo : null;
-            registry.RegisterPackProperty(packName, name, entry.Description, valueType, appliesTo);
+            var enumValues = entry.Enum.Count > 0 ? entry.Enum : null;
+            registry.RegisterPackProperty(packName, name, entry.Description, valueType, appliesTo,
+                entry.Min, entry.Max, enumValues);
         }
     }
 
