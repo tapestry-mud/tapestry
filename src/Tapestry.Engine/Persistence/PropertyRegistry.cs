@@ -13,14 +13,20 @@ public sealed class PropertyRegistry
         string description,
         PropertyValueType valueType,
         IEnumerable<string>? appliesTo = null,
-        bool transient = false)
+        bool transient = false,
+        double? min = null,
+        double? max = null,
+        IEnumerable<string>? enumValues = null)
     {
         ValidateSnakeCase(name);
         var key = name.ToLowerInvariant();
         var appliesSet = appliesTo != null
             ? (IReadOnlySet<string>)new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase)
             : null;
-        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient)))
+        var enumSet = enumValues != null
+            ? (IReadOnlySet<string>)new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase)
+            : null;
+        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet)))
         {
             throw new InvalidOperationException($"Engine property '{name}' is already registered.");
         }
@@ -31,7 +37,10 @@ public sealed class PropertyRegistry
         string name,
         string description,
         PropertyValueType valueType,
-        IEnumerable<string>? appliesTo = null)
+        IEnumerable<string>? appliesTo = null,
+        double? min = null,
+        double? max = null,
+        IEnumerable<string>? enumValues = null)
     {
         ValidateSnakeCase(name);
         if (_entries.TryGetValue(name.ToLowerInvariant(), out var existing) && existing.IsEngineProperty)
@@ -46,7 +55,10 @@ public sealed class PropertyRegistry
         var appliesSet = appliesTo != null
             ? (IReadOnlySet<string>)new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase)
             : null;
-        _entries[fullKey] = new PropertyRegistryEntry(name, packName, description, valueType, appliesSet, false);
+        var enumSet = enumValues != null
+            ? (IReadOnlySet<string>)new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase)
+            : null;
+        _entries[fullKey] = new PropertyRegistryEntry(name, packName, description, valueType, appliesSet, false, min, max, enumSet);
     }
 
     public void SetDependencyResolver(Func<string, IEnumerable<string>> resolver)

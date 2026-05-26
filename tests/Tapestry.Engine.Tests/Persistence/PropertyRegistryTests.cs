@@ -115,4 +115,25 @@ public class PropertyRegistryTests
     {
         Assert.Null(_registry.GetValueType("unknown_prop"));
     }
+
+    [Fact]
+    public void RegisterEngineProperty_CarriesConstraints_ThroughGetAll()
+    {
+        _registry.RegisterEngineProperty("hunger", "Hunger meter", PropertyValueType.Int,
+            appliesTo: new[] { "player" }, min: 0, max: 100);
+        var entry = _registry.GetAll().Single(e => e.Name == "hunger");
+        Assert.Equal(0, entry.Min);
+        Assert.Equal(100, entry.Max);
+        Assert.Null(entry.Enum);
+    }
+
+    [Fact]
+    public void RegisterPackProperty_CarriesEnumConstraint()
+    {
+        _registry.RegisterPackProperty("my-pack", "tier", "Tier", PropertyValueType.String,
+            enumValues: new[] { "novice", "master" });
+        var entry = _registry.GetAll().Single(e => e.Name == "tier");
+        Assert.NotNull(entry.Enum);
+        Assert.Contains("novice", entry.Enum!);
+    }
 }

@@ -6,7 +6,10 @@ public sealed record PropertyRegistryEntry(
     string Description,
     PropertyValueType ValueType,
     IReadOnlySet<string>? AppliesTo,
-    bool Transient
+    bool Transient,
+    double? Min = null,
+    double? Max = null,
+    IReadOnlySet<string>? Enum = null
 )
 {
     public string FullName => Scope == "engine" ? Name : $"{Scope}:{Name}";
