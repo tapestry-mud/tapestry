@@ -261,7 +261,7 @@ public class PackLoaderTests
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
-            new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry()),
+            new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer),

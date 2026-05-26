@@ -1,6 +1,7 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Races;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting.Services;
@@ -21,8 +22,9 @@ public class WorldModule : IJintApiModule
     private readonly MobAIManager _mobAIManager;
     private readonly IGmcpModuleAdapter _gmcp;
     private readonly TagRegistry _tagRegistry;
+    private readonly PropertyRegistry _propertyRegistry;
 
-    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry)
+    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry, PropertyRegistry propertyRegistry)
     {
         _messaging = messaging;
         _worldOps = worldOps;
@@ -33,6 +35,7 @@ public class WorldModule : IJintApiModule
         _mobAIManager = mobAIManager;
         _gmcp = gmcp;
         _tagRegistry = tagRegistry;
+        _propertyRegistry = propertyRegistry;
     }
 
     public static BuildInfo GetBuildInfo()
@@ -209,6 +212,25 @@ public class WorldModule : IJintApiModule
                         appliesTo = e.AppliesTo.ToArray(),
                         fullName = e.FullName,
                         isEngine = e.IsEngineTag
+                    })
+                    .ToArray();
+            }),
+            getPropertyRegistry = new Func<object[]>(() =>
+            {
+                return _propertyRegistry.GetAll()
+                    .Select(e => new
+                    {
+                        name = e.Name,
+                        scope = e.Scope,
+                        description = e.Description,
+                        appliesTo = e.AppliesTo?.ToArray() ?? Array.Empty<string>(),
+                        fullName = e.FullName,
+                        isEngine = e.IsEngineProperty,
+                        valueType = AttributeWriter.ValueTypeName(e.ValueType),
+                        transient = e.Transient,
+                        min = e.Min,
+                        max = e.Max,
+                        @enum = e.EnumValues?.ToArray()
                     })
                     .ToArray();
             }),
