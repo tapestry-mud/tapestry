@@ -34,6 +34,41 @@ public sealed class AttributeWriter
             $"Unknown attribute '{attr}' on {target.Name}. Try `set {BaseType(target.Type)} ?`.");
     }
 
+    /// <summary>Value-omitted read: echo current value + metadata + usage (the per-attribute read).</summary>
+    public AttributeWriteResult Describe(Entity target, string attr)
+    {
+        var prop = FindProperty(attr);
+        if (prop != null)
+        {
+            var current = target.GetProperty<object>(prop.Name);
+            var currentStr = current switch
+            {
+                null => "(unset)",
+                bool b => b ? "true" : "false",
+                _ => current.ToString() ?? "(unset)"
+            };
+            var applies = prop.AppliesTo == null ? "all" : string.Join("/", prop.AppliesTo);
+            var typeStr = ValueTypeName(prop.ValueType);
+            var hint = prop.ValueType == PropertyValueType.Bool ? "<true|false>" : "<value>";
+            return new AttributeWriteResult(true,
+                $"{prop.Name} on {target.Name} = {currentStr} ({typeStr}, applies to {applies}). " +
+                $"Usage: set {BaseType(target.Type)} {prop.Name} <target> {hint}");
+        }
+
+        var tag = FindTag(attr);
+        if (tag != null)
+        {
+            var present = target.HasTag(tag.Name) ? "true" : "false";
+            var applies = string.Join("/", tag.AppliesTo);
+            return new AttributeWriteResult(true,
+                $"{tag.Name} on {target.Name} = {present} (tag, applies to {applies}). " +
+                $"Usage: set {BaseType(target.Type)} {tag.Name} <target> <on|off>");
+        }
+
+        return new AttributeWriteResult(false,
+            $"Unknown attribute '{attr}' on {target.Name}. Try `set {BaseType(target.Type)} ?`.");
+    }
+
     // Admins address attributes by bare declared name, so we match across all scopes.
     // First-wins if two packs ever declare the same bare name (the engine's shadow-guard
     // already prevents engine/pack collisions; pack/pack collisions are an accepted edge today).

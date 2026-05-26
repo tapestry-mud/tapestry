@@ -141,4 +141,40 @@ public class AttributeWriterTests
         Assert.Equal("list_string", AttributeWriter.ValueTypeName(PropertyValueType.ListString));
         Assert.Equal("bool", AttributeWriter.ValueTypeName(PropertyValueType.Bool));
     }
+
+    [Fact]
+    public void Describe_Property_EchoesValueTypeAndUsage()
+    {
+        _props.RegisterEngineProperty("cookable", "Cookable", PropertyValueType.Bool, appliesTo: new[] { "item" });
+        var target = new Entity("item", "Steak");
+        target.SetProperty("cookable", true);
+
+        var result = Writer.Describe(target, "cookable");
+
+        Assert.True(result.Ok);
+        Assert.Contains("cookable on Steak = true", result.Message);
+        Assert.Contains("(bool, applies to item)", result.Message);
+        Assert.Contains("Usage: set item cookable <target> <true|false>", result.Message);
+    }
+
+    [Fact]
+    public void Describe_UnsetProperty_ShowsUnset()
+    {
+        _props.RegisterEngineProperty("cookable", "Cookable", PropertyValueType.Bool, appliesTo: new[] { "item" });
+        var target = new Entity("item", "Steak");
+
+        var result = Writer.Describe(target, "cookable");
+
+        Assert.True(result.Ok);
+        Assert.Contains("= (unset)", result.Message);
+    }
+
+    [Fact]
+    public void Describe_UnknownAttribute_Rejected()
+    {
+        var target = new Entity("item", "Steak");
+        var result = Writer.Describe(target, "nope");
+        Assert.False(result.Ok);
+        Assert.Contains("Unknown attribute", result.Message);
+    }
 }
