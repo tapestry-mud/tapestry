@@ -1,3 +1,4 @@
+using System.Globalization;
 using Tapestry.Engine.Tags;
 
 namespace Tapestry.Engine.Persistence;
@@ -77,8 +78,9 @@ public sealed class AttributeWriter
     {
         if (!entry.AppliesToType(BaseType(target.Type)))
         {
+            var applies = entry.AppliesTo.Count == 0 ? "all" : string.Join("/", entry.AppliesTo);
             return new AttributeWriteResult(false,
-                $"Cannot set {entry.Name} on {target.Name} - that tag applies to {string.Join("/", entry.AppliesTo)} only.");
+                $"Cannot set {entry.Name} on {target.Name} - that tag applies to {applies} only.");
         }
         if (tokens.Count == 0 || !TryParseBool(tokens[0], out var on))
         {
@@ -101,15 +103,15 @@ public sealed class AttributeWriter
                 value = string.Join(" ", tokens);
                 return true;
             case PropertyValueType.Int:
-                if (int.TryParse(tokens[0], out var i)) { value = i; return true; }
+                if (int.TryParse(tokens[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var i)) { value = i; return true; }
                 error = $"Expected a whole number, got '{tokens[0]}'.";
                 return false;
             case PropertyValueType.Long:
-                if (long.TryParse(tokens[0], out var l)) { value = l; return true; }
+                if (long.TryParse(tokens[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var l)) { value = l; return true; }
                 error = $"Expected a whole number, got '{tokens[0]}'.";
                 return false;
             case PropertyValueType.Double:
-                if (double.TryParse(tokens[0], out var d)) { value = d; return true; }
+                if (double.TryParse(tokens[0], NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var d)) { value = d; return true; }
                 error = $"Expected a number, got '{tokens[0]}'.";
                 return false;
             case PropertyValueType.Bool:
