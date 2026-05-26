@@ -139,7 +139,9 @@ public class PacksModule : IJintApiModule
 
         try
         {
-            return engine.Invoke(entry.Handler, null, args);
+            // Run the export body attributed to ITS pack, so a nested tapestry.packs.call
+            // from within is gated against the export's edges, not the stale outer caller's.
+            return engine.InvokeAsPack(entry.Pack, entry.Handler, null, args);
         }
         catch (JavaScriptException jsEx)
         {

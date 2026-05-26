@@ -203,7 +203,8 @@ public class QuestModule : IJintApiModule
                     _scriptLoader.JintEngine = engine;
                 }
 
-                _scriptLoader.Register(questId, hooksObj);
+                var packName = engine.GetValue("__currentPack").ToString();
+                _scriptLoader.Register(questId, hooksObj, packName);
             }),
         };
     }

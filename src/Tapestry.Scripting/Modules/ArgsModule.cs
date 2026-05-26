@@ -28,6 +28,10 @@ public class ArgsModule : IJintApiModule
         {
             registerType = new Action<string, JsValue>((name, jsResolver) =>
             {
+                // Captured at load time for the deferred resolver invocation below, so a
+                // resolver that calls tapestry.packs.* is attributed to its own pack.
+                var packName = engine.GetValue("__currentPack").ToString();
+
                 Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> csharpResolver =
                     (actor, def, token) =>
                     {
@@ -35,7 +39,7 @@ public class ArgsModule : IJintApiModule
                         {
                             var actorObj = new { entityId = actor.EntityId.ToString(), roomId = actor.RoomId ?? "" };
                             var defObj = new { type = def.Type, required = def.Required };
-                            var result = engine.Invoke(jsResolver, null, new object[] { actorObj, token, defObj });
+                            var result = engine.InvokeAsPack(packName, jsResolver, null, new object[] { actorObj, token, defObj });
 
                             if (result is not ObjectInstance obj)
                             {

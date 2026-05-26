@@ -16,7 +16,7 @@ public class MobsModule : IJintApiModule
     private readonly MobCommandRegistry _mobCommandRegistry;
     private readonly MobCommandQueue _mobCommandQueue;
     private readonly CommandRegistry _commandRegistry;
-    private readonly Dictionary<string, JsValue> _mobScriptRegistry = new();
+    private readonly Dictionary<string, (string Pack, JsValue Hooks)> _mobScriptRegistry = new();
     private readonly ILogger<MobsModule> _logger;
 
     public MobsModule(ApiMobs mobs, MobAIManager mobAIManager,
@@ -40,6 +40,7 @@ public class MobsModule : IJintApiModule
         {
             registerBehavior = new Action<string, JsValue>((name, handler) =>
             {
+                var packName = engine.GetValue("__currentPack").ToString();
                 _mobAIManager.RegisterBehavior(name, ctx =>
                 {
                     var contextObj = new
@@ -49,12 +50,13 @@ public class MobsModule : IJintApiModule
                         roomId = ctx.RoomId,
                         behavior = ctx.Behavior
                     };
-                    engine.Invoke(handler, JsValue.FromObject(engine, contextObj));
+                    engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
                 });
             }),
 
             registerCommand = new Action<string, JsValue>((verb, options) =>
             {
+                var packName = engine.GetValue("__currentPack").ToString();
                 var optObj = (ObjectInstance)options;
                 var handler = optObj.Get("handler");
                 var gmcpJs = optObj.Get("gmcp");
@@ -83,7 +85,7 @@ public class MobsModule : IJintApiModule
                             name = mob.Name,
                             roomId = mob.RoomId
                         };
-                        engine.Invoke(handler, JsValue.FromObject(engine, mobObj), text);
+                        engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
                     },
                     GmcpChannel = gmcpChannel,
                     PrependSender = prependSender
@@ -103,7 +105,7 @@ public class MobsModule : IJintApiModule
                         var text = string.Join(" ", actorCtx.RawArgs);
                         try
                         {
-                            engine.Invoke(handler, JsValue.FromObject(engine, mobObj), text);
+                            engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
                         }
                         catch (Exception ex)
                         {
@@ -137,17 +139,18 @@ public class MobsModule : IJintApiModule
 
             registerScript = new Action<string, JsValue>((templateId, hooks) =>
             {
-                _mobScriptRegistry[templateId] = hooks;
+                var packName = engine.GetValue("__currentPack").ToString();
+                _mobScriptRegistry[templateId] = (packName, hooks);
             }),
 
             invokeHook = new Action<string, string, JsValue, JsValue, JsValue>(
                 (templateId, hookName, mobObj, playerObj, extraArg) =>
             {
-                if (!_mobScriptRegistry.TryGetValue(templateId, out var hooks))
+                if (!_mobScriptRegistry.TryGetValue(templateId, out var script))
                 {
                     return;
                 }
-                var hooksObj = (ObjectInstance)hooks;
+                var hooksObj = (ObjectInstance)script.Hooks;
                 var fn = hooksObj.Get(hookName);
                 if (fn.Type == Types.Undefined || fn.Type == Types.Null)
                 {
@@ -155,7 +158,7 @@ public class MobsModule : IJintApiModule
                 }
                 try
                 {
-                    engine.Invoke(fn, mobObj, playerObj, extraArg);
+                    engine.InvokeAsPack(script.Pack, fn, mobObj, playerObj, extraArg);
                 }
                 catch (Exception ex)
                 {
