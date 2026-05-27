@@ -322,6 +322,12 @@ public class PackLoader : IPackManifestProvider
                     Value = m.Value
                 }).ToList()
             };
+            if (itemDef.SpawnOn != null && itemDef.SpawnOn.Count > 0)
+            {
+                template.SpawnOn = itemDef.SpawnOn
+                    .Select(YamlContentLoader.ParseSpawnOnEntry)
+                    .ToList();
+            }
             _itemRegistry.Register(template);
             _logger.LogDebug("  Item template: {Id}", template.Id);
         }

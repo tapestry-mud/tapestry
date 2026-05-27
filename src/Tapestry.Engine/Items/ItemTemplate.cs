@@ -1,3 +1,4 @@
+using Tapestry.Engine.Distribution;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Stats;
 
@@ -12,6 +13,7 @@ public class ItemTemplate
     public List<string> Keywords { get; set; } = new();
     public Dictionary<string, object?> Properties { get; set; } = new();
     public List<ModifierEntry> Modifiers { get; set; } = new();
+    public List<SpawnOnEntry> SpawnOn { get; set; } = new();
 
     public Entity CreateEntity()
     {

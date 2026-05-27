@@ -298,6 +298,33 @@ public static class YamlContentLoader
         return value;
     }
 
+    internal static Tapestry.Engine.Distribution.SpawnOnEntry ParseSpawnOnEntry(SpawnOnEntryModel model)
+    {
+        if (model.Rarity != null && model.Chance.HasValue)
+        {
+            throw new InvalidOperationException(
+                "spawn_on entry cannot specify both 'rarity' and 'chance'.");
+        }
+
+        var chance = model.Rarity != null
+            ? Tapestry.Engine.Distribution.SpawnOnEntry.RarityToChance(model.Rarity)
+            : model.Chance ?? 1.0;
+
+        var spec = new Tapestry.Engine.Distribution.SelectorSpec(
+            Id:   model.Id,
+            Type: model.Type,
+            Tag:  model.Tag,
+            Shop: model.Shop);
+
+        if (!spec.HasTargetingKey)
+        {
+            throw new InvalidOperationException(
+                "spawn_on entry must have exactly one targeting key: id, type, tag, or shop.");
+        }
+
+        return new Tapestry.Engine.Distribution.SpawnOnEntry(spec, chance, model.Count);
+    }
+
     private static Exit ParseExit(object exitValue)
     {
         // String shorthand: "core:inn"
@@ -488,6 +515,18 @@ public static class YamlContentLoader
         public List<string> Keywords { get; set; } = new();
         public Dictionary<string, object> Properties { get; set; } = new();
         public List<ModifierDef> Modifiers { get; set; } = new();
+        public List<SpawnOnEntryModel>? SpawnOn { get; set; }
+    }
+
+    public class SpawnOnEntryModel
+    {
+        public string? Id { get; set; }
+        public string? Type { get; set; }
+        public string? Tag { get; set; }
+        public bool Shop { get; set; }
+        public double? Chance { get; set; }
+        public int Count { get; set; } = 1;
+        public string? Rarity { get; set; }
     }
 
     public class ModifierDef
