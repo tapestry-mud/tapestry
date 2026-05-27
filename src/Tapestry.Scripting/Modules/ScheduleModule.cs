@@ -67,16 +67,19 @@ public class ScheduleModule : IJintApiModule
                 var name = NextHandlerName(packName);
 
                 var selectorObj = (ObjectInstance)selectorVal;
+                var idVal   = selectorObj.Get("id");
                 var typeVal = selectorObj.Get("type");
-                var tagVal = selectorObj.Get("tag");
-                var entityType = typeVal != JsValue.Undefined ? typeVal.ToString() : null;
-                var entityTag = tagVal != JsValue.Undefined ? tagVal.ToString() : null;
+                var tagVal  = selectorObj.Get("tag");
+
+                var spec = new Tapestry.Engine.Distribution.SelectorSpec(
+                    Id:   idVal   != JsValue.Undefined ? idVal.ToString()   : null,
+                    Type: typeVal != JsValue.Undefined ? typeVal.ToString() : null,
+                    Tag:  tagVal  != JsValue.Undefined ? tagVal.ToString()  : null);
 
                 _gameLoop.RegisterTickHandler(name, ticks, () =>
                 {
-                    IEnumerable<Entity> entities = entityType != null
-                        ? _world.GetEntitiesByType(entityType)
-                        : _world.GetEntitiesByTag(entityTag!);
+                    var entities = Tapestry.Engine.Distribution.EntitySelector
+                        .ResolveEntities(_world, spec);
 
                     foreach (var entity in entities.ToList())
                     {
