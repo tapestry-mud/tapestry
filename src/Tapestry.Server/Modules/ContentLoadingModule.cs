@@ -4,7 +4,9 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Color;
+using Tapestry.Engine.Distribution;
 using Tapestry.Engine.Help;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
@@ -29,6 +31,8 @@ public class ContentLoadingModule : IGameModule
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
+    private readonly ItemRegistry _itemRegistry;
+    private readonly DistributionService _distributionService;
     private readonly ILogger<ContentLoadingModule> _logger;
 
     public string Name => "ContentLoading";
@@ -47,6 +51,8 @@ public class ContentLoadingModule : IGameModule
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
         PackDependencyGraph dependencyGraph,
+        ItemRegistry itemRegistry,
+        DistributionService distributionService,
         ILogger<ContentLoadingModule> logger)
     {
         _config = config;
@@ -62,6 +68,8 @@ public class ContentLoadingModule : IGameModule
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
+        _itemRegistry = itemRegistry;
+        _distributionService = distributionService;
         _logger = logger;
     }
 
@@ -70,6 +78,11 @@ public class ContentLoadingModule : IGameModule
         LoadPacks();
         _abilityCommandBridge.WireAll();
         _packValidator.Validate();
+
+        // Initialize distribution cache and seed initial room scatter
+        _distributionService.Initialize(_itemRegistry.AllTemplates);
+        _distributionService.SeedAllRooms();
+
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd

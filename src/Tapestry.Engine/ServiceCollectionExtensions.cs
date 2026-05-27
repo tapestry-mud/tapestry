@@ -20,6 +20,7 @@ using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Rest;
+using Tapestry.Engine.Distribution;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Help;
 using Tapestry.Engine.Quests;
@@ -76,6 +77,9 @@ public static class ServiceCollectionExtensions
         // Items
         services.AddSingleton<ItemRegistry>();
         services.AddSingleton<LootTableResolver>();
+
+        // Distribution
+        services.AddSingleton<DistributionService>();
 
         // Mobs
         services.AddSingleton<SpawnManager>(sp => new SpawnManager(
