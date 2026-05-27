@@ -178,6 +178,13 @@ public class World : ITagObserver
         return _entities.Values.Where(e => string.Equals(e.Type, type, StringComparison.OrdinalIgnoreCase));
     }
 
+    public IEnumerable<Entity> GetEntitiesByTemplateId(string templateId) =>
+        _entities.Values.Where(e =>
+            string.Equals(
+                e.GetProperty<string>(CommonProperties.TemplateId),
+                templateId,
+                StringComparison.OrdinalIgnoreCase));
+
     public IEnumerable<Entity> GetEntitiesInRoom(string roomId)
     {
         var room = GetRoom(roomId);
