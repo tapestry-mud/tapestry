@@ -7,6 +7,7 @@ using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Scripting.Interop;
 using Tapestry.Shared;
 
 namespace Tapestry.Scripting;
@@ -22,6 +23,7 @@ public class PackValidator
     private readonly TagRegistry _tagRegistry;
     private readonly IPackManifestProvider _manifestProvider;
     private readonly PropertyRegistry _propertyRegistry;
+    private readonly PackDependencyGraph _dependencyGraph;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -32,7 +34,8 @@ public class PackValidator
         CommandRegistry commandRegistry,
         TagRegistry tagRegistry,
         IPackManifestProvider manifestProvider,
-        PropertyRegistry propertyRegistry)
+        PropertyRegistry propertyRegistry,
+        PackDependencyGraph dependencyGraph)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -43,6 +46,7 @@ public class PackValidator
         _tagRegistry = tagRegistry;
         _manifestProvider = manifestProvider;
         _propertyRegistry = propertyRegistry;
+        _dependencyGraph = dependencyGraph;
     }
 
     public void Validate()
@@ -165,7 +169,42 @@ public class PackValidator
 
         foreach (var template in _itemRegistry.AllTemplates)
         {
-            _ = template;
+            if (template.SpawnOn.Count == 0) { continue; }
+
+            var packName = template.Id.Contains(':')
+                ? template.Id.Split(':', 2)[0]
+                : null;
+
+            foreach (var entry in template.SpawnOn)
+            {
+                var selector = entry.Selector;
+
+                // {tag} — enforce cross-pack dep via TagRegistry resolver
+                if (selector.Tag != null)
+                {
+                    if (!_tagRegistry.TryResolve(selector.Tag, packName, out _))
+                    {
+                        var msg = $"Item '{template.Id}' spawn_on references tag '{selector.Tag}' " +
+                                  $"which is unknown or from another pack not declared as a dependency.";
+                        throw new InvalidOperationException(msg);
+                    }
+                }
+
+                // {id} — if cross-pack, enforce declared dep edge
+                if (selector.Id != null && selector.Id.Contains(':'))
+                {
+                    var targetPack = selector.Id.Split(':', 2)[0];
+                    if (!string.Equals(targetPack, packName, StringComparison.OrdinalIgnoreCase)
+                        && !_dependencyGraph.DeclaresEdge(packName ?? "", targetPack))
+                    {
+                        var msg = $"Item '{template.Id}' spawn_on references id '{selector.Id}' " +
+                                  $"from pack '{targetPack}' which is not a declared dependency.";
+                        throw new InvalidOperationException(msg);
+                    }
+                }
+
+                // {shop} — recognized + allowed (no dep check). {type} — engine-builtin, no cross-pack concern.
+            }
         }
 
         return count;

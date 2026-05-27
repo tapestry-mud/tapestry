@@ -7,6 +7,7 @@ using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Interop;
 using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests;
@@ -52,7 +53,8 @@ public class PackValidatorTagTests
             new CommandRegistry(),
             registry,
             manifests,
-            propertyRegistry);
+            propertyRegistry,
+            new PackDependencyGraph());
         return (validator, spawnManager, itemRegistry, world);
     }
 
