@@ -40,6 +40,10 @@ public sealed class AttributeWriter
         var prop = FindProperty(attr);
         if (prop != null)
         {
+            if (!prop.IsAdminSettable)
+            {
+                return new AttributeWriteResult(false, $"{prop.Name} is engine-managed and can't be set.");
+            }
             var current = target.GetProperty<object>(prop.Name);
             var currentStr = current switch
             {
@@ -86,6 +90,10 @@ public sealed class AttributeWriter
 
     private AttributeWriteResult WriteProperty(Entity target, PropertyRegistryEntry entry, IReadOnlyList<string> tokens)
     {
+        if (!entry.IsAdminSettable)
+        {
+            return new AttributeWriteResult(false, $"{entry.Name} is engine-managed and can't be set.");
+        }
         if (!entry.AppliesToType(BaseType(target.Type)))
         {
             var applies = entry.AppliesTo == null ? "all" : string.Join("/", entry.AppliesTo);

@@ -1,4 +1,5 @@
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine;
 
 namespace Tapestry.Engine.Combat;
 
@@ -14,13 +15,13 @@ public static class CombatProperties
 
     public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterEngineProperty(DamageType, "Damage type dealt by this entity", PropertyValueType.String);
-        registry.RegisterEngineProperty(DamageDice, "Damage dice expression (e.g. 2d6+4)", PropertyValueType.String);
-        registry.RegisterEngineProperty(HitBonus, "Bonus to hit rolls", PropertyValueType.Int);
-        registry.RegisterEngineProperty(CombatName, "Verb used in combat messages", PropertyValueType.String);
-        registry.RegisterEngineProperty(WimpyThreshold, "HP below which entity flees", PropertyValueType.Int);
-        registry.RegisterEngineProperty(AttackSpeed, "Attack speed modifier", PropertyValueType.Int);
+        registry.RegisterEngineProperty(DamageType, "Damage type dealt by this entity", PropertyValueType.String, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
+        registry.RegisterEngineProperty(DamageDice, "Damage dice expression (e.g. 2d6+4)", PropertyValueType.String, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
+        registry.RegisterEngineProperty(HitBonus, "Bonus to hit rolls", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
+        registry.RegisterEngineProperty(CombatName, "Verb used in combat messages", PropertyValueType.String, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
+        registry.RegisterEngineProperty(WimpyThreshold, "HP below which entity flees", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(AttackSpeed, "Attack speed modifier", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
         registry.RegisterEngineProperty(ArmorClass, "Armor class by damage type",
-            PropertyValueType.MapInt);
+            PropertyValueType.MapInt, appliesTo: new[] { EntityTypes.Item, EntityTypes.Npc });
     }
 }

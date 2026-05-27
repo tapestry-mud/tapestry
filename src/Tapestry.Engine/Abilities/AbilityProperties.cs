@@ -25,6 +25,6 @@ public static class AbilityProperties
         registry.RegisterEngineProperty(QueuedActions, "Queued ability actions",
             PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty(RescueCooldownUntil, "Tick until rescue ability can be used again",
-            PropertyValueType.Long, appliesTo: new[] { EntityTypes.Player });
+            PropertyValueType.Long, appliesTo: new[] { EntityTypes.Player }, transient: true);
     }
 }

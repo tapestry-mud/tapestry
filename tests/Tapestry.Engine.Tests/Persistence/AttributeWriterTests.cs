@@ -177,4 +177,33 @@ public class AttributeWriterTests
         Assert.False(result.Ok);
         Assert.Contains("Unknown attribute", result.Message);
     }
+
+    [Fact]
+    public void Write_RejectsTransientProperty_AsEngineManaged()
+    {
+        // Transient = engine-managed runtime bookkeeping; declared for type metadata but not hand-settable.
+        _props.RegisterEngineProperty("following", "Entity being followed", PropertyValueType.String,
+            appliesTo: new[] { "player" }, transient: true);
+        var target = new Entity("player", "Rocky");
+
+        var result = Writer.Write(target, "following", new[] { "someone" });
+
+        Assert.False(result.Ok);
+        Assert.Contains("engine-managed", result.Message);
+        Assert.Null(target.GetProperty<string>("following"));
+    }
+
+    [Fact]
+    public void Write_RejectsNonSettableProperty_AsEngineManaged()
+    {
+        // settable: false marks a persisted-but-not-hand-settable field (e.g. template_id).
+        _props.RegisterEngineProperty("template_id", "Template ID", PropertyValueType.String, settable: false);
+        var target = new Entity("item", "Sword");
+
+        var result = Writer.Write(target, "template_id", new[] { "core:other" });
+
+        Assert.False(result.Ok);
+        Assert.Contains("engine-managed", result.Message);
+        Assert.Null(target.GetProperty<string>("template_id"));
+    }
 }

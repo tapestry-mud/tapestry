@@ -16,7 +16,8 @@ public sealed class PropertyRegistry
         bool transient = false,
         double? min = null,
         double? max = null,
-        IEnumerable<string>? enumValues = null)
+        IEnumerable<string>? enumValues = null,
+        bool settable = true)
     {
         ValidateSnakeCase(name);
         var key = name.ToLowerInvariant();
@@ -26,7 +27,7 @@ public sealed class PropertyRegistry
         var enumSet = enumValues != null
             ? (IReadOnlySet<string>)new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase)
             : null;
-        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet)))
+        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet, settable)))
         {
             throw new InvalidOperationException($"Engine property '{name}' is already registered.");
         }

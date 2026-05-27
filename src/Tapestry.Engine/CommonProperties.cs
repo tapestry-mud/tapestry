@@ -20,19 +20,19 @@ public static class CommonProperties
 
     public static void Register(PropertyRegistry registry)
     {
-        registry.RegisterEngineProperty(TemplateId, "Template ID used to spawn this entity", PropertyValueType.String);
-        registry.RegisterEngineProperty(RegenHp, "HP regeneration per tick", PropertyValueType.Int);
-        registry.RegisterEngineProperty(RegenResource, "Resource regeneration per tick", PropertyValueType.Int);
-        registry.RegisterEngineProperty(RegenMovement, "Movement regeneration per tick", PropertyValueType.Int);
-        registry.RegisterEngineProperty(CorpseDecay, "Ticks until corpse decays", PropertyValueType.Int);
-        registry.RegisterEngineProperty(CorpseCreatedTick, "World tick when corpse was created", PropertyValueType.Long);
-        registry.RegisterEngineProperty(Class, "Character class", PropertyValueType.String);
-        registry.RegisterEngineProperty(Race, "Character race", PropertyValueType.String);
-        registry.RegisterEngineProperty(Alignment, "Alignment value (-1000 to 1000)", PropertyValueType.Int);
+        registry.RegisterEngineProperty(TemplateId, "Template ID used to spawn this entity", PropertyValueType.String, settable: false);
+        registry.RegisterEngineProperty(RegenHp, "HP regeneration per tick", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(RegenResource, "Resource regeneration per tick", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(RegenMovement, "Movement regeneration per tick", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(CorpseDecay, "Ticks until corpse decays", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Npc, EntityTypes.Item });
+        registry.RegisterEngineProperty(CorpseCreatedTick, "World tick when corpse was created", PropertyValueType.Long, appliesTo: new[] { EntityTypes.Item });
+        registry.RegisterEngineProperty(Class, "Character class", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(Race, "Character race", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
+        registry.RegisterEngineProperty(Alignment, "Alignment value (-1000 to 1000)", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Player, EntityTypes.Npc });
         registry.RegisterEngineProperty(Description, "Entity description text", PropertyValueType.String);
         registry.RegisterEngineProperty(SourcePack, "Pack that loaded this entity", PropertyValueType.String, transient: true);
-        registry.RegisterEngineProperty(LastTellFrom, "Last entity who sent a tell to this player", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player });
-        registry.RegisterEngineProperty(LastTellTo, "Last entity this player sent a tell to", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player });
+        registry.RegisterEngineProperty(LastTellFrom, "Last entity who sent a tell to this player", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player }, transient: true);
+        registry.RegisterEngineProperty(LastTellTo, "Last entity this player sent a tell to", PropertyValueType.String, appliesTo: new[] { EntityTypes.Player }, transient: true);
 
         registry.RegisterEngineProperty("alignment_history", "History of alignment shifts", PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty("no_follow", "Prevents entity from being followed", PropertyValueType.Bool, transient: true);

@@ -345,7 +345,7 @@ public class AdminModule : IJintApiModule
     {
         foreach (var p in _propertyRegistry.GetAll())
         {
-            if (p.AppliesToType(kind))
+            if (p.AppliesToType(kind) && p.IsAdminSettable && !p.IsCollectionType)
             {
                 yield return (p.Name, AttributeWriter.ValueTypeName(p.ValueType), p.Description, false);
             }
@@ -367,11 +367,10 @@ public class AdminModule : IJintApiModule
         var rows = new List<Row>();
         foreach (var a in AttributesForKind(kind).OrderBy(a => a.Name))
         {
-            var firstSentence = a.Help.Split(new[] { '.', '-' }, 2).First().Trim();
             rows.Add(new CellRow { Cells = [
-                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(18) },
+                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(24) },
                 new Cell { Content = a.ValueType, Width = CellWidth.Fixed(12) },
-                new Cell { Content = firstSentence, Width = CellWidth.Fill }
+                new Cell { Content = a.Help, Width = CellWidth.Fill }
             ]});
         }
         if (rows.Count == 0)
@@ -405,10 +404,9 @@ public class AdminModule : IJintApiModule
         var rows = new List<Row>();
         foreach (var a in AttributesForKind(kind).OrderBy(a => a.Name))
         {
-            var firstSentence = a.Help.Split(new[] { '.', '-' }, 2).First().Trim();
             rows.Add(new CellRow { Cells = [
-                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(18) },
-                new Cell { Content = firstSentence, Width = CellWidth.Fill }
+                new Cell { Content = "  " + a.Name, Width = CellWidth.Fixed(24) },
+                new Cell { Content = a.Help, Width = CellWidth.Fill }
             ]});
         }
         if (rows.Count == 0)
