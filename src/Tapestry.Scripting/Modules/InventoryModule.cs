@@ -721,6 +721,23 @@ public class InventoryModule : IJintApiModule
                 return new { denied = false, items = placed.ToArray(), containerName = container.Name, stopReason };
             }),
 
+            destroy = new Func<string, string, bool>((holderId, itemId) =>
+            {
+                if (!Guid.TryParse(holderId, out var hid) || !Guid.TryParse(itemId, out var iid))
+                {
+                    return false;
+                }
+
+                var holder = _world.GetEntity(hid);
+                var item = _world.GetEntity(iid);
+                if (holder == null || item == null)
+                {
+                    return false;
+                }
+
+                return _inventoryManager.Destroy(holder, item);
+            }),
+
             fillItem = new Func<string, string, string, object?>((entityId, targetKeyword, sourceKeyword) =>
             {
                 if (!Guid.TryParse(entityId, out var actorId)) { return null; }

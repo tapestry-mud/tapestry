@@ -262,6 +262,19 @@ public class InventoryManager : IQuestInventoryService
         return (true, null);
     }
 
+    /// <summary>
+    /// Destroy an item held in an entity's contents: detach from the holder and untrack from
+    /// the world. Returns false if the item is not actually held by the entity. Use this — not
+    /// consumables.consume — for non-consumable items (crafting materials, schematics).
+    /// </summary>
+    public bool Destroy(Entity holder, Entity item)
+    {
+        if (!holder.Contents.Contains(item)) { return false; }
+        holder.RemoveFromContents(item);
+        _world.UntrackEntity(item);
+        return true;
+    }
+
     public static int GetCarryWeight(Entity entity)
     {
         return entity.Contents.Sum(e => e.GetProperty<int>(InventoryProperties.Weight));
