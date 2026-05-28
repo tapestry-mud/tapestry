@@ -238,6 +238,35 @@ public class ApiWorld
         return room.Tags.ToArray();
     }
 
+    public Dictionary<string, object?> GetRoomProperties(string roomId)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null)
+        {
+            return new Dictionary<string, object?>();
+        }
+
+        var result = new Dictionary<string, object?>();
+        foreach (var key in room.GetAllPropertyKeys())
+        {
+            result[key] = room.GetRawProperty(key);
+        }
+        return result;
+    }
+
+    public object[] GetRoomOccupants(string roomId)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null)
+        {
+            return [];
+        }
+
+        return room.Entities
+            .Select(e => (object)new { id = e.Id.ToString(), name = e.Name, type = e.Type })
+            .ToArray();
+    }
+
     public bool SameArea(string roomA, string roomB)
     {
         return MobAIManager.GetAreaFromRoomId(roomA) == MobAIManager.GetAreaFromRoomId(roomB);

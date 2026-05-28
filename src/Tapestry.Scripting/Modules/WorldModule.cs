@@ -78,6 +78,37 @@ public class WorldModule : IJintApiModule
             sendMotd = new Action<string>(_messaging.SendMotd),
             getRoomTags = new Func<string, string[]>(_worldOps.GetRoomTags),
             getRoomArea = new Func<string, string?>(_worldOps.GetRoomArea),
+            getRoomProperties = new Func<string, object>(_worldOps.GetRoomProperties),
+            getRoomOccupants = new Func<string, object[]>(_worldOps.GetRoomOccupants),
+            getRoomBiome = new Func<string, string?>(roomId =>
+            {
+                var tags = _worldOps.GetRoomTags(roomId);
+                if (tags.Length == 0) { return null; }
+
+                // Room tags are stored as bare names (e.g. "forest"), but pack tags are
+                // registered under their full scoped key ("tapestry-biomes:forest").
+                // TryResolve(tag, null) only does a direct key lookup and skips dep
+                // resolution when currentPack is null — it would miss every pack tag.
+                // Match against GetAll() by bare Name instead.
+                var biomeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in _tagRegistry.GetAll())
+                {
+                    if (entry.Kind == "biome")
+                    {
+                        biomeNames.Add(entry.Name);
+                        biomeNames.Add(entry.FullName);
+                    }
+                }
+
+                foreach (var tag in tags)
+                {
+                    if (biomeNames.Contains(tag))
+                    {
+                        return tag;
+                    }
+                }
+                return null;
+            }),
             sameArea = new Func<string, string, bool>(_worldOps.SameArea),
             getExitTarget = new Func<string, string, string?>(_worldOps.GetExitTarget),
             getEntitiesInRoom = new Func<string, string, object[]>(_worldOps.GetEntitiesInRoomByTag),
