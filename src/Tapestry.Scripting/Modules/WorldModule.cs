@@ -71,6 +71,7 @@ public class WorldModule : IJintApiModule
             sendToAll = new Action<string, string>(_messaging.SendToAll),
             getEntityRoomId = new Func<string, string?>(_worldOps.GetEntityRoomId),
             getRoomExits = new Func<string, string[]>(_worldOps.GetRoomExits),
+            getRoomExitsById = new Func<string, string[]>(_worldOps.GetRoomExitsById),
             getRoomName = new Func<string, string?>(_worldOps.GetRoomName),
             getRoomDescription = new Func<string, string?>(_worldOps.GetRoomDescription),
             getOnlinePlayers = new Func<object[]>(_worldOps.GetOnlinePlayers),

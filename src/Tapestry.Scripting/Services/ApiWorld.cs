@@ -209,6 +209,17 @@ public class ApiWorld
         return room.AvailableExits().Select(d => d.ToString().ToLowerInvariant()).ToArray();
     }
 
+    public string[] GetRoomExitsById(string roomId)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null)
+        {
+            return [];
+        }
+
+        return room.AvailableExits().Select(d => d.ToString().ToLowerInvariant()).ToArray();
+    }
+
     public string? GetRoomName(string roomId)
     {
         var room = _world.GetRoom(roomId);
