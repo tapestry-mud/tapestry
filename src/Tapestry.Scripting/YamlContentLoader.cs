@@ -1,4 +1,5 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Quests;
 using Tapestry.Engine.Persistence;
@@ -12,7 +13,8 @@ public record RoomLoadResult(
     Room Room,
     List<RoomSpawnModel> Spawns,
     List<string> Fixtures,
-    int? ResetInterval);
+    int? ResetInterval,
+    IReadOnlyList<string> Warnings);
 
 public class RoomSpawnModel
 {
@@ -40,7 +42,7 @@ public static class YamlContentLoader
         return Deserializer.Deserialize<QuestDefinition>(yaml);
     }
 
-    public static RoomLoadResult LoadRoom(string yaml, PropertyRegistry? registry = null)
+    public static RoomLoadResult LoadRoom(string yaml, PropertyRegistry? registry = null, TagRegistry? tagRegistry = null)
     {
         var def = Deserializer.Deserialize<RoomDefinition>(yaml);
         if (def.Properties != null)
@@ -51,12 +53,28 @@ public static class YamlContentLoader
                 ExtractPackName(def.Id))
                 .ToDictionary(kv => kv.Key, kv => kv.Value!);
         }
-        var room = BuildRoom(def);
+        var room = BuildRoom(def, tagRegistry);
+
+        var warnings = new List<string>();
+        if (tagRegistry != null && def.Tags != null)
+        {
+            var packName = ExtractPackName(def.Id);
+            foreach (var tag in def.Tags)
+            {
+                if (tagRegistry.TryResolve(tag, packName, out var entry) && entry.Kind == "biome")
+                {
+                    warnings.Add(
+                        $"Room '{def.Id}': tag '{tag}' is a biome tag — use the 'biome:' field instead of 'tags:'.");
+                }
+            }
+        }
+
         return new RoomLoadResult(
             room,
             def.Spawns ?? new List<RoomSpawnModel>(),
             def.Fixtures ?? new List<string>(),
-            def.ResetInterval);
+            def.ResetInterval,
+            warnings);
     }
 
     public static ItemDefinition LoadItem(string yaml, PropertyRegistry? registry = null)
@@ -413,7 +431,7 @@ public static class YamlContentLoader
         }
     }
 
-    private static Room BuildRoom(RoomDefinition def)
+    private static Room BuildRoom(RoomDefinition def, TagRegistry? tagRegistry = null)
     {
         var room = new Room(def.Id, def.Name, def.Description);
 
@@ -442,6 +460,25 @@ public static class YamlContentLoader
             {
                 room.AddTag(tag);
             }
+        }
+
+        if (def.Biome != null)
+        {
+            if (tagRegistry != null)
+            {
+                var packName = ExtractPackName(def.Id);
+                if (!tagRegistry.TryResolve(def.Biome, packName, out var entry))
+                {
+                    throw new InvalidOperationException(
+                        $"Room '{def.Id}': biome '{def.Biome}' is not a known tag.");
+                }
+                if (entry.Kind != "biome")
+                {
+                    throw new InvalidOperationException(
+                        $"Room '{def.Id}': '{def.Biome}' is not a biome tag (kind: {entry.Kind ?? "none"}).");
+                }
+            }
+            room.AddTag(def.Biome);
         }
 
         if (def.Properties != null)
@@ -564,6 +601,7 @@ public static class YamlContentLoader
         public Dictionary<string, object>? Exits { get; set; }
         public Dictionary<string, object>? KeywordExits { get; set; }
         public List<string>? Tags { get; set; }
+        public string? Biome { get; set; }
         public Dictionary<string, object>? Properties { get; set; }
         public Dictionary<string, object?>? AlignmentRange { get; set; }
         public string? AlignmentBlockMessage { get; set; }

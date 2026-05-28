@@ -254,8 +254,13 @@ public class PackLoader : IPackManifestProvider
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
-            var result = YamlContentLoader.LoadRoom(yaml, _propertyRegistry);
+            var result = YamlContentLoader.LoadRoom(yaml, _propertyRegistry, _tagRegistry);
             var room = result.Room;
+
+            foreach (var warning in result.Warnings)
+            {
+                _logger.LogWarning("{Warning}", warning);
+            }
 
             ValidateEntityId(room.Id, file);
             if (!string.IsNullOrEmpty(packName)) { room.SetProperty("source_pack", packName); }
