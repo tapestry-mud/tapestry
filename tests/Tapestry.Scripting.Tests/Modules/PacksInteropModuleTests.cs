@@ -192,4 +192,33 @@ public class PacksInteropModuleTests
 
         rt.Evaluate("__nested").Should().Be("core-ran");
     }
+
+    // Regression: an OBJECT (or array) argument must pass through tapestry.packs.call intact.
+    // Jint cannot auto-marshal a JS Array containing a plain object into a CLR `JsValue[]`
+    // parameter -- it round-trips elements and throws "No valid constructors found for type
+    // Jint.Native.JsValue" on the object element. Primitives marshalled fine, so this path was
+    // unguarded until @tapestry/visitor called addRecipe({...}) over interop. The fix unpacks
+    // the args array in C# so each element stays a JsValue (objects/arrays included).
+    [Fact]
+    public void Call_WithObjectArgument_PassesObjectAndNestedArrayToExport()
+    {
+        var (rt, _) = CreateRuntime();
+        rt.Execute("""
+            globalThis.__received = null;
+            tapestry.packs.export('register', function (recipe) {
+                globalThis.__received = recipe;
+                return recipe.id;
+            }, { kind: 'command' });
+            """, "tapestry-survival");
+        rt.Execute("""
+            globalThis.__ret = tapestry.packs.call('@tapestry/survival', 'register', {
+                id: 'r1',
+                inputs: [{ material: 'wood', count: 2 }]
+            });
+            """, "tapestry-cooking");
+        rt.Evaluate("__ret").Should().Be("r1");
+        rt.Evaluate("__received.id").Should().Be("r1");
+        rt.Evaluate("__received.inputs[0].material").Should().Be("wood");
+        ((double)rt.Evaluate("__received.inputs[0].count")!).Should().Be(2);
+    }
 }

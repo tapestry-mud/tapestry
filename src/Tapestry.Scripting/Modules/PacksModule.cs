@@ -48,7 +48,7 @@ public class PacksModule : IJintApiModule
             new Action<string, JsValue, JsValue>((name, handler, metadata) =>
                 Export(engine, name, handler, metadata)));
         engine.SetValue("__packsCall__",
-            new Func<JsValue[], JsValue>(allArgs => Call(engine, allArgs)));
+            new Func<JsValue, JsValue>(argsArray => Call(engine, argsArray)));
         engine.SetValue("__packsHas__",
             new Func<string, JsValue, bool>((pack, name) => Has(engine, pack, name)));
         engine.SetValue("__packsGetExportRegistry__", new Func<object[]>(GetExportRegistry));
@@ -108,11 +108,26 @@ public class PacksModule : IJintApiModule
         _exports.Register(new ExportEntry(pack, name, handler, description, paramsList, returns, kind, appliesTo));
     }
 
-    private JsValue Call(JintEngine engine, JsValue[] allArgs)
+    private JsValue Call(JintEngine engine, JsValue argsArrayVal)
     {
-        // The JS shim (see Build) gathers call(pack, name, ...args) into one array and
-        // passes it here, so the first two entries are pack + export name and the rest
-        // are the export's arguments.
+        // The JS shim (see Build) gathers call(pack, name, ...args) into one JS array and hands
+        // it over as a single JsValue. We unpack the elements here rather than declaring a CLR
+        // `JsValue[]` parameter: Jint's Array -> JsValue[] marshalling round-trips each element
+        // and throws "No valid constructors found for type JsValue" on a plain-object element
+        // (primitives survive). Reading the array's indexed values keeps each element a JsValue
+        // -- objects and nested arrays included -- exactly as the export expects.
+        if (argsArrayVal is not ObjectInstance argsArray)
+        {
+            throw new InteropException("tapestry.packs.call requires (pack, exportName, ...args).");
+        }
+        var length = (int)TypeConverter.ToNumber(argsArray.Get("length"));
+        var allArgs = new JsValue[length];
+        for (var i = 0; i < length; i++)
+        {
+            allArgs[i] = argsArray.Get(i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // First two entries are pack + export name; the rest are the export's arguments.
         if (allArgs.Length < 2)
         {
             throw new InteropException("tapestry.packs.call requires (pack, exportName, ...args).");
