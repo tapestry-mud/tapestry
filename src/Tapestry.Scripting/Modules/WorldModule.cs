@@ -1,3 +1,4 @@
+using Jint.Native;
 using Tapestry.Engine;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Mobs;
@@ -98,12 +99,43 @@ public class WorldModule : IJintApiModule
             }),
             getProperty = new Func<string, string, object?>((entityIdStr, key) =>
             {
-                if (Guid.TryParse(entityIdStr, out var entityId))
+                if (!Guid.TryParse(entityIdStr, out var entityId))
                 {
-                    var entity = _world.GetEntity(entityId);
-                    return entity?.GetProperty<object>(key);
+                    return null;
                 }
-                return null;
+
+                var entity = _world.GetEntity(entityId);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                var value = entity.GetProperty<object>(key);
+
+                // Marshal CLR list/collection values into real Jint arrays so that
+                // Array.isArray(...) returns true in JS for list_string properties
+                // regardless of whether the value was set this session or reloaded
+                // from disk (both paths store a CLR List<string>).
+                if (value is System.Collections.IList list && value is not string)
+                {
+                    var items = new JsValue[list.Count];
+                    for (var i = 0; i < list.Count; i++)
+                    {
+                        var item = list[i];
+                        items[i] = item switch
+                        {
+                            null => JsValue.Null,
+                            string s => new JsString(s),
+                            bool b => b ? JsBoolean.True : JsBoolean.False,
+                            int n => new JsNumber(n),
+                            double d => new JsNumber(d),
+                            _ => JsValue.FromObject(engine, item)
+                        };
+                    }
+                    return engine.Intrinsics.Array.ConstructFast(items);
+                }
+
+                return value;
             }),
             setProperty = new Action<string, string, object?>(_worldOps.SetEntityProperty),
             placeEntity = new Action<string, string>(_worldOps.PlaceEntityInRoom),

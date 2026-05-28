@@ -171,10 +171,12 @@ public class PlayerSerializer
 
         foreach (var kvp in properties)
         {
-            if (_registry.IsTransient(kvp.Key)) { continue; }
-
-            if (_registry.IsKnown(kvp.Key))
+            // Use bare-name resolution so pack properties (stored as "pack:name") are found
+            // even when there is no pack context — they take the typed path, not the tagged path.
+            if (_registry.TryResolveByName(kvp.Key, out var entry))
             {
+                if (entry.Transient) { continue; }
+
                 result[kvp.Key] = kvp.Value switch
                 {
                     Dictionary<string, int> mapInt =>
@@ -182,11 +184,17 @@ public class PlayerSerializer
                     Dictionary<string, string> mapStr =>
                         mapStr.ToDictionary(e => e.Key, e => (object?)e.Value),
                     List<string> listStr => listStr.ToList(),
+                    // A JS-set list_string may arrive as a Jint array unwrapped to List<object>
+                    // or object[] — materialize it as List<string> so no CLR type tag is emitted.
+                    System.Collections.IEnumerable enumerable when entry.ValueType == PropertyValueType.ListString =>
+                        enumerable.Cast<object?>().Select(v => v?.ToString() ?? "").ToList(),
                     _ => kvp.Value
                 };
             }
             else
             {
+                // Fall back to the legacy transient check for truly-unknown keys, then tag.
+                if (_registry.IsTransient(kvp.Key)) { continue; }
                 result[kvp.Key] = SerializeTaggedValue(kvp.Value);
             }
         }
@@ -297,8 +305,12 @@ public class PlayerSerializer
             return CoerceToType(typeObj?.ToString(), innerValue);
         }
 
-        // Known property — coerce to registered type
-        var valueType = _registry.GetValueType(key);
+        // Known property (engine or pack) — coerce to registered type.
+        // Use TryResolveByName so pack properties stored as "{pack}:{name}" are found
+        // without requiring a pack context.
+        var valueType = _registry.TryResolveByName(key, out var resolvedEntry)
+            ? (PropertyValueType?)resolvedEntry.ValueType
+            : _registry.GetValueType(key);
         var registeredType = valueType.HasValue ? ValueTypeToClrType(valueType.Value) : null;
         if (registeredType != null)
         {

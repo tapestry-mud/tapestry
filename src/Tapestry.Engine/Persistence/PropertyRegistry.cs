@@ -98,6 +98,48 @@ public sealed class PropertyRegistry
 
     public bool IsKnown(string name, string? currentPack = null) => TryResolve(name, currentPack, out _);
 
+    /// <summary>
+    /// Resolve a property entry by bare name when no pack context is available (e.g. the
+    /// player serializer only sees the property key). Prefers an exact key match (engine
+    /// properties and already-qualified keys like "tapestry-tinkers:known_recipes"), then a
+    /// UNIQUE pack entry whose Name matches. Returns false if ambiguous (same bare name
+    /// declared by two or more packs) or unknown.
+    /// </summary>
+    public bool TryResolveByName(string name, out PropertyRegistryEntry entry)
+    {
+        // Exact key match covers engine properties (stored as bare name) and already-qualified
+        // pack keys (stored as "{pack}:{name}") — e.g. "tapestry-tinkers:known_recipes".
+        if (_entries.TryGetValue(name.ToLowerInvariant(), out entry!))
+        {
+            return true;
+        }
+
+        // Scan for a unique pack entry whose bare Name matches (case-insensitive).
+        PropertyRegistryEntry? found = null;
+        foreach (var candidate in _entries.Values)
+        {
+            if (string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                if (found != null)
+                {
+                    // Ambiguous — same bare name registered by two or more packs.
+                    entry = null!;
+                    return false;
+                }
+                found = candidate;
+            }
+        }
+
+        if (found != null)
+        {
+            entry = found;
+            return true;
+        }
+
+        entry = null!;
+        return false;
+    }
+
     public bool IsTransient(string name) =>
         _entries.TryGetValue(name.ToLowerInvariant(), out var entry) && entry.Transient;
 
