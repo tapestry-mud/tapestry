@@ -148,4 +148,68 @@ public class SpawnOnParseTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*targeting key*");
     }
+
+    [Fact]
+    public void ParseSpawnOnEntry_ScopeGlobal_ParsesGlobalScope()
+    {
+        var model = new YamlContentLoader.SpawnOnEntryModel
+        {
+            Tag = "forest_room",
+            Chance = 1.0,
+            Count = 3,
+            Scope = "global"
+        };
+
+        var entry = YamlContentLoader.ParseSpawnOnEntry(model);
+
+        entry.Scope.Should().Be(Tapestry.Engine.Distribution.SpawnScope.Global);
+    }
+
+    [Fact]
+    public void ParseSpawnOnEntry_ScopeAbsent_DefaultsToRoomScope()
+    {
+        var model = new YamlContentLoader.SpawnOnEntryModel
+        {
+            Tag = "forest_room",
+            Chance = 1.0,
+            Count = 3
+        };
+
+        var entry = YamlContentLoader.ParseSpawnOnEntry(model);
+
+        entry.Scope.Should().Be(Tapestry.Engine.Distribution.SpawnScope.Room);
+    }
+
+    [Fact]
+    public void ParseSpawnOnEntry_ScopeRoom_ExplicitRoomScope()
+    {
+        var model = new YamlContentLoader.SpawnOnEntryModel
+        {
+            Tag = "forest_room",
+            Chance = 1.0,
+            Count = 3,
+            Scope = "room"
+        };
+
+        var entry = YamlContentLoader.ParseSpawnOnEntry(model);
+
+        entry.Scope.Should().Be(Tapestry.Engine.Distribution.SpawnScope.Room);
+    }
+
+    [Fact]
+    public void ParseSpawnOnEntry_UnknownScope_ThrowsInvalidOperationException()
+    {
+        var model = new YamlContentLoader.SpawnOnEntryModel
+        {
+            Tag = "forest_room",
+            Chance = 1.0,
+            Count = 3,
+            Scope = "biome"
+        };
+
+        var act = () => YamlContentLoader.ParseSpawnOnEntry(model);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*unknown scope*biome*");
+    }
 }

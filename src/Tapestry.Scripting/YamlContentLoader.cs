@@ -322,7 +322,15 @@ public static class YamlContentLoader
                 "spawn_on entry must have exactly one targeting key: id, type, tag, or shop.");
         }
 
-        return new Tapestry.Engine.Distribution.SpawnOnEntry(spec, chance, model.Count);
+        var scope = (model.Scope ?? "").ToLowerInvariant() switch
+        {
+            "" or "room" => Tapestry.Engine.Distribution.SpawnScope.Room,
+            "global"     => Tapestry.Engine.Distribution.SpawnScope.Global,
+            _            => throw new InvalidOperationException(
+                $"spawn_on entry has unknown scope '{model.Scope}' (expected 'room' or 'global').")
+        };
+
+        return new Tapestry.Engine.Distribution.SpawnOnEntry(spec, chance, model.Count, scope);
     }
 
     private static Exit ParseExit(object exitValue)
@@ -527,6 +535,7 @@ public static class YamlContentLoader
         public double? Chance { get; set; }
         public int Count { get; set; } = 1;
         public string? Rarity { get; set; }
+        public string? Scope { get; set; }
     }
 
     public class ModifierDef

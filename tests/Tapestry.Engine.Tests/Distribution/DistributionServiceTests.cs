@@ -166,4 +166,106 @@ public class DistributionServiceTests
         var woodItems = room.Entities.Where(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk").ToList();
         Assert.Empty(woodItems);
     }
+
+    [Fact]
+    public void SeedAllRooms_GlobalScope_CapsTotalAcrossRooms()
+    {
+        Setup();
+        var wood = new ItemTemplate
+        {
+            Id = "test:wood-chunk", Name = "wood chunk", Type = "item",
+            SpawnOn = new List<SpawnOnEntry>
+            {
+                new(new SelectorSpec(Tag: "forest_room"), Chance: 1.0, Count: 3, SpawnScope.Global)
+            }
+        };
+        _items.Register(wood);
+        _svc.Initialize(_items.AllTemplates);
+        for (var i = 1; i <= 5; i++)
+        {
+            var room = new Room($"r{i}", $"Forest {i}", ".");
+            room.AddTag("forest_room");
+            _world.AddRoom(room);
+        }
+        _svc.SeedAllRooms();
+        var total = _world.AllRooms.Sum(r =>
+            r.Entities.Count(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk"));
+        Assert.Equal(3, total);
+    }
+
+    [Fact]
+    public void SeedAllRooms_GlobalScope_Idempotent()
+    {
+        Setup();
+        var wood = new ItemTemplate
+        {
+            Id = "test:wood-chunk", Name = "wood chunk", Type = "item",
+            SpawnOn = new List<SpawnOnEntry>
+            {
+                new(new SelectorSpec(Tag: "forest_room"), Chance: 1.0, Count: 3, SpawnScope.Global)
+            }
+        };
+        _items.Register(wood);
+        _svc.Initialize(_items.AllTemplates);
+        for (var i = 1; i <= 5; i++)
+        {
+            var room = new Room($"r{i}", $"Forest {i}", ".");
+            room.AddTag("forest_room");
+            _world.AddRoom(room);
+        }
+        _svc.SeedAllRooms();
+        _svc.SeedAllRooms();
+        var total = _world.AllRooms.Sum(r =>
+            r.Entities.Count(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk"));
+        Assert.Equal(3, total);
+    }
+
+    [Fact]
+    public void SeedAllRooms_GlobalScope_ChanceZero_PlacesNothing()
+    {
+        Setup();
+        var wood = new ItemTemplate
+        {
+            Id = "test:wood-chunk", Name = "wood chunk", Type = "item",
+            SpawnOn = new List<SpawnOnEntry>
+            {
+                new(new SelectorSpec(Tag: "forest_room"), Chance: 0.0, Count: 3, SpawnScope.Global)
+            }
+        };
+        _items.Register(wood);
+        _svc.Initialize(_items.AllTemplates);
+        for (var i = 1; i <= 5; i++)
+        {
+            var room = new Room($"r{i}", $"Forest {i}", ".");
+            room.AddTag("forest_room");
+            _world.AddRoom(room);
+        }
+        _svc.SeedAllRooms();
+        var total = _world.AllRooms.Sum(r =>
+            r.Entities.Count(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk"));
+        Assert.Equal(0, total);
+    }
+
+    [Fact]
+    public void SeedAllRooms_RoomScope_StillTopsEachRoom()
+    {
+        Setup();
+        var wood = new ItemTemplate
+        {
+            Id = "test:wood-chunk", Name = "wood chunk", Type = "item",
+            SpawnOn = new List<SpawnOnEntry>
+            {
+                new(new SelectorSpec(Tag: "forest_room"), Chance: 1.0, Count: 3)
+            }
+        };
+        _items.Register(wood);
+        _svc.Initialize(_items.AllTemplates);
+        var r1 = new Room("r1", "Forest A", "."); r1.AddTag("forest_room"); _world.AddRoom(r1);
+        var r2 = new Room("r2", "Forest B", "."); r2.AddTag("forest_room"); _world.AddRoom(r2);
+        _svc.SeedAllRooms();
+        var countR1 = r1.Entities.Count(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk");
+        var countR2 = r2.Entities.Count(e => e.GetProperty<string>(CommonProperties.TemplateId) == "test:wood-chunk");
+        Assert.Equal(3, countR1);
+        Assert.Equal(3, countR2);
+    }
 }

@@ -49,6 +49,7 @@ public class DistributionService
         {
             SeedRoom(room);
         }
+        SeedGlobalEntries();
     }
 
     private void OnMobSpawn(GameEvent evt)
@@ -86,6 +87,40 @@ public class DistributionService
         {
             SeedRoom(room);
         }
+        SeedGlobalEntries();
+    }
+
+    private void SeedGlobalEntries()
+    {
+        foreach (var template in _distributionTemplates)
+        {
+            foreach (var entry in template.SpawnOn)
+            {
+                if (entry.Scope != SpawnScope.Global) { continue; }
+                if (entry.Selector.Shop) { continue; }
+
+                var matchingRooms = _world.AllRooms
+                    .Where(r => EntitySelector.MatchesRoom(r, entry.Selector))
+                    .ToList();
+
+                if (matchingRooms.Count == 0) { continue; }
+
+                var existingTotal = matchingRooms.Sum(r => r.Entities.Count(e => string.Equals(
+                    e.GetProperty<string>(DistributedFromKey), template.Id, StringComparison.OrdinalIgnoreCase)));
+
+                var needed = entry.Count - existingTotal;
+                for (var i = 0; i < needed; i++)
+                {
+                    if (_random.NextDouble() > entry.Chance) { continue; }
+                    var room = matchingRooms[_random.Next(matchingRooms.Count)];
+                    var item = _itemRegistry.CreateItem(template.Id);
+                    if (item == null) { continue; }
+                    item.SetProperty(DistributedFromKey, template.Id);
+                    room.AddEntity(item);
+                    _world.TrackEntity(item);
+                }
+            }
+        }
     }
 
     private void SeedRoom(Room room)
@@ -94,6 +129,7 @@ public class DistributionService
         {
             foreach (var entry in template.SpawnOn)
             {
+                if (entry.Scope == SpawnScope.Global) { continue; }
                 if (entry.Selector.Shop) { continue; }
                 if (!EntitySelector.MatchesRoom(room, entry.Selector)) { continue; }
 
