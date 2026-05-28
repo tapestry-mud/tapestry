@@ -9,4 +9,5 @@ public class TagEntryModel
 {
     public string Description { get; set; } = "";
     public List<string> AppliesTo { get; set; } = new();
+    public string? Kind { get; set; }
 }

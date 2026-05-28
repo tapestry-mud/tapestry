@@ -243,7 +243,8 @@ public class WorldModule : IJintApiModule
                         description = e.Description,
                         appliesTo = e.AppliesTo.ToArray(),
                         fullName = e.FullName,
-                        isEngine = e.IsEngineTag
+                        isEngine = e.IsEngineTag,
+                        kind = e.Kind
                     })
                     .ToArray();
             }),

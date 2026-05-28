@@ -4,7 +4,8 @@ public sealed record TagRegistryEntry(
     string Name,
     string Scope,
     string Description,
-    IReadOnlySet<string> AppliesTo
+    IReadOnlySet<string> AppliesTo,
+    string? Kind = null
 )
 {
     public string FullName => Scope == "engine" ? Name : $"{Scope}:{Name}";

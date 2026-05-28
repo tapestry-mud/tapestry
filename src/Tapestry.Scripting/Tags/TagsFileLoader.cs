@@ -28,11 +28,11 @@ public static class TagsFileLoader
         {
             if (isEngine)
             {
-                registry.RegisterEngineTag(name, entry.Description, entry.AppliesTo);
+                registry.RegisterEngineTag(name, entry.Description, entry.AppliesTo, entry.Kind);
             }
             else
             {
-                registry.RegisterPackTag(packName, name, entry.Description, entry.AppliesTo);
+                registry.RegisterPackTag(packName, name, entry.Description, entry.AppliesTo, entry.Kind);
             }
         }
     }

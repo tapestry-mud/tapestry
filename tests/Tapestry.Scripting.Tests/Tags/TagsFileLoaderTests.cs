@@ -110,6 +110,47 @@ public class TagsFileLoaderTests
         finally { Directory.Delete(dir, true); }
     }
 
+    [Fact]
+    public void LoadIntoRegistry_StoresKindOnBiomeEntry()
+    {
+        var dir = MakeTempDir("my-pack", """
+            tags:
+              forest:
+                kind: biome
+                description: "Forest biome room."
+                applies_to: [room]
+            """);
+        try
+        {
+            var registry = new TagRegistry();
+            TagsFileLoader.LoadIntoRegistry(dir, "my-pack", registry);
+
+            registry.TryResolve("forest", "my-pack", out var entry);
+            entry.Kind.Should().Be("biome");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void LoadIntoRegistry_KindIsNullWhenOmitted()
+    {
+        var dir = MakeTempDir("my-pack", """
+            tags:
+              safe:
+                description: "Safe zone."
+                applies_to: [room]
+            """);
+        try
+        {
+            var registry = new TagRegistry();
+            TagsFileLoader.LoadIntoRegistry(dir, "my-pack", registry);
+
+            registry.TryResolve("safe", "my-pack", out var entry);
+            entry.Kind.Should().BeNull();
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     private static string MakeTempDir(string packName, string tagsYaml)
     {
         var dir = Path.Combine(Path.GetTempPath(),

@@ -8,7 +8,7 @@ public sealed class TagRegistry
     private readonly Dictionary<string, TagRegistryEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private Func<string, IEnumerable<string>>? _dependencyResolver;
 
-    public void RegisterEngineTag(string name, string description, IEnumerable<string> appliesTo)
+    public void RegisterEngineTag(string name, string description, IEnumerable<string> appliesTo, string? kind = null)
     {
         ValidateSnakeCase(name);
         var key = name.ToLowerInvariant();
@@ -16,13 +16,14 @@ public sealed class TagRegistry
             name,
             "engine",
             description,
-            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase))))
+            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase),
+            kind)))
         {
             throw new InvalidOperationException($"Engine tag '{name}' is already registered.");
         }
     }
 
-    public void RegisterPackTag(string packName, string name, string description, IEnumerable<string> appliesTo)
+    public void RegisterPackTag(string packName, string name, string description, IEnumerable<string> appliesTo, string? kind = null)
     {
         ValidateSnakeCase(name);
         if (_entries.TryGetValue(name.ToLowerInvariant(), out var existing) && existing.IsEngineTag)
@@ -38,7 +39,8 @@ public sealed class TagRegistry
             name,
             packName,
             description,
-            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase));
+            new HashSet<string>(appliesTo, StringComparer.OrdinalIgnoreCase),
+            kind);
     }
 
     public void SetDependencyResolver(Func<string, IEnumerable<string>> resolver)
