@@ -39,6 +39,7 @@ public class PackLoader : IPackManifestProvider
     private readonly PropertyRegistry _propertyRegistry;
     private readonly QuestRegistry _questRegistry;
     private readonly ScheduleModule _scheduleModule;
+    private readonly Tapestry.Scripting.Interop.InteropCallSiteRegistry _callSites;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -57,7 +58,8 @@ public class PackLoader : IPackManifestProvider
                      AreaRegistry areaRegistry, WeatherZoneRegistry weatherZoneRegistry,
                      HelpService helpService, TagRegistry tagRegistry,
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
-                     ScheduleModule scheduleModule)
+                     ScheduleModule scheduleModule,
+                     Tapestry.Scripting.Interop.InteropCallSiteRegistry callSites)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -74,6 +76,7 @@ public class PackLoader : IPackManifestProvider
         _propertyRegistry = propertyRegistry;
         _questRegistry = questRegistry;
         _scheduleModule = scheduleModule;
+        _callSites = callSites;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -500,7 +503,9 @@ public class PackLoader : IPackManifestProvider
         {
             var relative = Path.GetRelativePath(packDir, initFile).Replace('\\', '/');
             _logger.LogDebug("  Script (init): {File}", relative);
-            _runtime.Execute(File.ReadAllText(initFile), packName, relative);
+            var text = File.ReadAllText(initFile);
+            RecordCallSites(text, packName, relative);
+            _runtime.Execute(text, packName, relative);
             files = files.Where(f => f != initFile).ToList();
         }
 
@@ -508,7 +513,18 @@ public class PackLoader : IPackManifestProvider
         {
             var relative = Path.GetRelativePath(packDir, file).Replace('\\', '/');
             _logger.LogDebug("  Script: {File}", relative);
-            _runtime.Execute(File.ReadAllText(file), packName, relative);
+            var text = File.ReadAllText(file);
+            RecordCallSites(text, packName, relative);
+            _runtime.Execute(text, packName, relative);
+        }
+    }
+
+    private void RecordCallSites(string scriptText, string packNamespace, string relativeFile)
+    {
+        foreach (var site in Tapestry.Scripting.Interop.InteropCallSiteScanner.Extract(
+                     scriptText, packNamespace, relativeFile))
+        {
+            _callSites.Record(site);
         }
     }
 
