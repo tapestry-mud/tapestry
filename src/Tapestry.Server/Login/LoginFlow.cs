@@ -6,6 +6,7 @@ using Tapestry.Engine.Flow;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Prompt;
+using Tapestry.Server.GameEntry;
 using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Login;
@@ -175,48 +176,26 @@ public class LoginFlow
                 continue;
             }
 
-            var existingSession = _sessions.GetByPlayerName(name);
-            var otherCount = _sessions.ActiveCharacterCount(
-                data.AccountId, excludeEntityId: data.Entity.Id);
+            var resolver = new GameEntryResolver(_sessions, spawner, _config);
+            var confirmer = new InteractiveTakeoverConfirmer(
+                _adapter, _context, _loginHandler,
+                GetPhaseTimeout(LoginPhase.SessionTakeover));
 
-            if (otherCount >= _config.Accounts.MaxConcurrentCharacters)
-            {
-                _adapter.SendLine("You already have a character online. Disconnect first.");
-                return false;
-            }
+            var result = await resolver.ResolveAsync(
+                data.AccountId, name, data, _context.Connection, _context,
+                confirmer, _context.PhaseCts.Token);
 
-            if (existingSession != null)
+            switch (result)
             {
-                if (existingSession.Phase == LoginPhase.LinkDead)
-                {
-                    spawner.ReconnectLinkDead(existingSession, _context.Connection, _context);
+                case GameEntryResult.OverLimit:
+                    _adapter.SendLine("You already have a character online. Disconnect first.");
+                    return false;
+                case GameEntryResult.Declined:
+                    return false;
+                default: // Reconnected, TookOver, Spawned
                     return true;
-                }
-                return await HandleSessionTakeoverAsync(existingSession, spawner);
             }
-
-            spawner.RestoreWorldObjects(data);
-            spawner.CompleteLogin(data.Entity, _context.Connection, _context, data.AccountId);
-            return true;
         }
-    }
-
-    private async Task<bool> HandleSessionTakeoverAsync(PlayerSession existing, PlayerSpawner spawner)
-    {
-        SetPhase(LoginPhase.SessionTakeover);
-        _adapter.SendLine("That character is already connected. Reconnect? (y/n)");
-        SendGmcpPrompt("Character already connected. Reconnect?");
-
-        var ct = _context.PhaseCts.Token;
-        var confirm = (await _adapter.ReadLineAsync(ct)).Trim().ToLowerInvariant();
-
-        if (confirm is "y" or "yes")
-        {
-            spawner.TakeOverSession(existing, _context.Connection, _context);
-            return true;
-        }
-
-        return false;
     }
 
     private async Task<bool> HandleNewPlayerAsync(string name, PlayerSpawner spawner)
@@ -299,8 +278,8 @@ public class LoginFlow
                 return false;
             }
 
-            var otherCount = _sessions.ActiveCharacterCount(account.Id);
-            if (otherCount >= _config.Accounts.MaxConcurrentCharacters)
+            if (_sessions.IsAccountAtCharacterLimit(
+                    account.Id, _config.Accounts.MaxConcurrentCharacters))
             {
                 _adapter.SendLine("You already have a character online. Disconnect first.");
                 return false;
