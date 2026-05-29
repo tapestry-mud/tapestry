@@ -320,8 +320,9 @@ app.MapPost("/auth/select", async (HttpContext httpContext, AccountService accou
             return Results.Json(new { error = "Character not on this account" });
         }
 
-        var otherCount = sessions.ActiveCharacterCount(accountId);
-        if (otherCount >= config.Accounts.MaxConcurrentCharacters)
+        var targetEntityId = sessions.GetByPlayerName(charName)?.PlayerEntity.Id;
+        if (sessions.IsAccountAtCharacterLimit(
+                accountId, config.Accounts.MaxConcurrentCharacters, targetEntityId))
         {
             httpContext.Response.StatusCode = 409;
             return Results.Json(new { error = "Concurrent character limit reached" });
@@ -420,8 +421,8 @@ app.MapPost("/auth/login-by-character", async (HttpContext httpContext,
         return Results.Json(new { error = "Invalid password" });
     }
 
-    var activeCount = sessions.ActiveCharacterCount(account.Id);
-    if (activeCount >= config.Accounts.MaxConcurrentCharacters)
+    if (sessions.IsAccountAtCharacterLimit(
+            account.Id, config.Accounts.MaxConcurrentCharacters, playerData.Entity.Id))
     {
         httpContext.Response.StatusCode = 409;
         return Results.Json(new { error = "Concurrent character limit reached" });
