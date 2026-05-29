@@ -11,7 +11,7 @@ using Tapestry.Shared;
 
 namespace Tapestry.Server;
 
-public class PlayerSpawner
+public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
 {
     private static readonly string DefaultRecallRoom = "tapestry-core:recall";
 
