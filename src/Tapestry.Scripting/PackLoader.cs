@@ -13,6 +13,7 @@ using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
+using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Properties;
 using Tapestry.Scripting.Tags;
@@ -39,7 +40,7 @@ public class PackLoader : IPackManifestProvider
     private readonly PropertyRegistry _propertyRegistry;
     private readonly QuestRegistry _questRegistry;
     private readonly ScheduleModule _scheduleModule;
-    private readonly Tapestry.Scripting.Interop.InteropCallSiteRegistry _callSites;
+    private readonly InteropCallSiteRegistry _callSites;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -59,7 +60,7 @@ public class PackLoader : IPackManifestProvider
                      HelpService helpService, TagRegistry tagRegistry,
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
                      ScheduleModule scheduleModule,
-                     Tapestry.Scripting.Interop.InteropCallSiteRegistry callSites)
+                     InteropCallSiteRegistry callSites)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -519,10 +520,10 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void RecordCallSites(string scriptText, string packNamespace, string relativeFile)
+    private void RecordCallSites(string scriptText, string packName, string relativeFile)
     {
-        foreach (var site in Tapestry.Scripting.Interop.InteropCallSiteScanner.Extract(
-                     scriptText, packNamespace, relativeFile))
+        foreach (var site in InteropCallSiteScanner.Extract(
+                     scriptText, packName, relativeFile))
         {
             _callSites.Record(site);
         }
