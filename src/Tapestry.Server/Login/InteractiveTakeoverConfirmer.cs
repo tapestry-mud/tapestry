@@ -10,6 +10,15 @@ namespace Tapestry.Server.Login;
 /// PhaseCts reset + timeout + GMCP phase) that LoginFlow.SetPhase performed,
 /// then reads one line. Used by both telnet and web pre-auth.
 /// </summary>
+/// <remarks>
+/// The <c>ct</c> passed to <see cref="ConfirmAsync"/> MUST be an external
+/// lifetime/abort token (e.g. the web <c>context.RequestAborted</c>) and must
+/// NOT be derived from <c>_context.PhaseCts</c>: <see cref="ConfirmAsync"/>
+/// cancels and replaces <c>_context.PhaseCts</c> as its first action, so a
+/// phase-derived <c>ct</c> would make the takeover read self-cancel before the
+/// player can answer. Telnet callers that have no external abort token should
+/// pass <see cref="System.Threading.CancellationToken.None"/>.
+/// </remarks>
 public class InteractiveTakeoverConfirmer : ITakeoverConfirmer
 {
     private const string Prompt = "That character is already connected. Reconnect? (y/n)";

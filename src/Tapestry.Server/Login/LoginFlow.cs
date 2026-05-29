@@ -181,9 +181,15 @@ public class LoginFlow
                 _adapter, _context, _loginHandler,
                 GetPhaseTimeout(LoginPhase.SessionTakeover));
 
+            // Pass None, not _context.PhaseCts.Token: the confirmer cancels and
+            // replaces _context.PhaseCts as part of the SessionTakeover phase
+            // transition, so handing it the current phase token would make the
+            // takeover read self-cancel before the player can answer. The fresh
+            // takeover PhaseCts (created inside the confirmer) governs the read,
+            // and the adapter cancels a pending read on disconnect.
             var result = await resolver.ResolveAsync(
                 data.AccountId, name, data, _context.Connection, _context,
-                confirmer, _context.PhaseCts.Token);
+                confirmer, CancellationToken.None);
 
             switch (result)
             {
