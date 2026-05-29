@@ -316,6 +316,12 @@ public class SessionManager
         }
     }
 
+    public bool IsAccountAtCharacterLimit(
+        Guid accountId, int maxConcurrent, Guid? excludeEntityId = null)
+    {
+        return ActiveCharacterCount(accountId, excludeEntityId) >= maxConcurrent;
+    }
+
     public IEnumerable<PlayerSession> AllSessions => _byConnectionId.Values;
 
     public IEnumerable<PlayerSession> AllLinkDeadSessions =>
