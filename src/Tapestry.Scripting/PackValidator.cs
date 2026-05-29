@@ -24,6 +24,8 @@ public class PackValidator
     private readonly IPackManifestProvider _manifestProvider;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
+    private readonly PackExportRegistry _exports;
+    private readonly InteropCallSiteRegistry _callSites;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -35,7 +37,9 @@ public class PackValidator
         TagRegistry tagRegistry,
         IPackManifestProvider manifestProvider,
         PropertyRegistry propertyRegistry,
-        PackDependencyGraph dependencyGraph)
+        PackDependencyGraph dependencyGraph,
+        PackExportRegistry exports,
+        InteropCallSiteRegistry callSites)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -47,6 +51,8 @@ public class PackValidator
         _manifestProvider = manifestProvider;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
+        _exports = exports;
+        _callSites = callSites;
     }
 
     public void Validate()
@@ -58,6 +64,7 @@ public class PackValidator
         issueCount += ValidateRooms();
         issueCount += ValidateTags();
         issueCount += ValidateProperties();
+        ValidateDependenciesPresent();
 
         _logger.LogInformation("Pack validation complete: {Count} issue(s) found", issueCount);
     }
@@ -336,6 +343,26 @@ public class PackValidator
         }
 
         return count;
+    }
+
+    // Check 1: every required dependency a pack declares must resolve to a loaded pack.
+    // Optional dependencies that are absent are fine. Always fatal — a missing required dep is
+    // an unambiguous contract violation, not downgradable by strict/lenient.
+    private void ValidateDependenciesPresent()
+    {
+        foreach (var manifest in _manifestProvider.LoadedPacks)
+        {
+            var from = PackLoader.PackNamespace(manifest.Name);
+            foreach (var depKey in manifest.Dependencies.Keys)
+            {
+                var dep = PackLoader.PackNamespace(depKey);
+                if (!_dependencyGraph.IsLoaded(dep))
+                {
+                    throw new InvalidOperationException(
+                        $"{from}: declares a dependency on {dep}, which is not loaded");
+                }
+            }
+        }
     }
 
     private readonly HashSet<string> _loggedManifestWarnings = new(StringComparer.OrdinalIgnoreCase);

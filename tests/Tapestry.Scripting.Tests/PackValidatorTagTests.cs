@@ -54,7 +54,9 @@ public class PackValidatorTagTests
             registry,
             manifests,
             propertyRegistry,
-            new PackDependencyGraph());
+            new PackDependencyGraph(),
+            new PackExportRegistry(),
+            new InteropCallSiteRegistry());
         return (validator, spawnManager, itemRegistry, world);
     }
 
