@@ -548,6 +548,15 @@ app.MapFallback(async context =>
             var loginContext = new LoginContext(connection.Id, colorConn);
             sessionMgr.RegisterPreLogin(loginContext);
 
+            // Ensure the pre-login registration is cleaned up on every disconnect
+            // path. The session-aware Login branch resolves on a background task;
+            // its Declined / OverLimit / error / client-drop outcomes only
+            // disconnect (success paths remove it via the spawner), so without
+            // this hook those outcomes would leak the _preLogin entry (and inflate
+            // ConnectionCount). RemovePreLogin is idempotent, so this is a no-op on
+            // the success paths that already removed it.
+            connection.OnDisconnected += () => sessionMgr.RemovePreLogin(connection.Id);
+
             if (preAuthToken.Intent == PreAuthIntent.Login)
             {
                 var data = await persistence.LoadPlayer(preAuthToken.Name);
