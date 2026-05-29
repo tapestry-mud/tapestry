@@ -16,6 +16,7 @@ using Tapestry.Shared;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
 using Tapestry.Server;
+using Tapestry.Server.GameEntry;
 using Tapestry.Server.Login;
 using Tapestry.Server.Persistence;
 using Tapestry.Server.Modules;
@@ -550,14 +551,63 @@ app.MapFallback(async context =>
             if (preAuthToken.Intent == PreAuthIntent.Login)
             {
                 var data = await persistence.LoadPlayer(preAuthToken.Name);
-                if (data != null)
+                if (data == null)
                 {
-                    spawner.RestoreWorldObjects(data);
-                    spawner.CompleteLogin(data.Entity, colorConn, loginContext, preAuthToken.AccountId);
+                    // Save no longer exists -> existing fallback (resolver not reached).
+                    handler.HandleNewConnection(connection, connection.GmcpHandler);
                 }
                 else
                 {
-                    handler.HandleNewConnection(connection, connection.GmcpHandler);
+                    // Resolve game entry exactly as telnet does. The resolver may
+                    // await a takeover confirmation, which needs the WS input pump
+                    // (RunAsync, below) running concurrently -- so run it on a
+                    // background task, mirroring ConnectionHandler.HandleNewConnection.
+                    var loginHandlerGmcp = context.RequestServices
+                        .GetService<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
+                    var takeoverTimeout = config.Idle.PhaseTimeouts.SessionTakeover > 0
+                        ? config.Idle.PhaseTimeouts.SessionTakeover
+                        : config.Idle.PreLoginTimeoutSeconds;
+                    var adapter = new AsyncConnectionAdapter(colorConn);
+                    var confirmer = new InteractiveTakeoverConfirmer(
+                        adapter, loginContext, loginHandlerGmcp, takeoverTimeout);
+                    var resolver = new GameEntryResolver(sessionMgr, spawner, config);
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var result = await resolver.ResolveAsync(
+                                preAuthToken.AccountId, preAuthToken.Name, data,
+                                colorConn, loginContext, confirmer, context.RequestAborted);
+
+                            switch (result)
+                            {
+                                case GameEntryResult.OverLimit:
+                                    colorConn.SendLine("You already have a character online. Disconnect first.");
+                                    colorConn.Disconnect("concurrent character limit");
+                                    break;
+                                case GameEntryResult.Declined:
+                                    colorConn.Disconnect("takeover declined");
+                                    break;
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Connection dropped mid-resolution; teardown is handled elsewhere.
+                        }
+                        catch (Exception ex)
+                        {
+                            wsLogger.LogError(ex, "Game entry error for {Id}", connection.Id);
+                            if (connection.IsConnected)
+                            {
+                                connection.Disconnect("internal error");
+                            }
+                        }
+                        finally
+                        {
+                            adapter.Dispose();
+                        }
+                    });
                 }
             }
             else
