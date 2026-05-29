@@ -8,6 +8,8 @@ public enum InteropCallKind { Call, Has }
 /// A statically resolvable <c>tapestry.packs.call</c>/<c>has</c> site discovered at script-load
 /// time. Pack names are namespace form (e.g. "tapestry-survival"). Only sites whose first two
 /// arguments are string literals are recorded; dynamic-dispatch sites are skipped.
+/// A single-argument <c>tapestry.packs.has(pack)</c> probe (no export literal) is therefore not
+/// statically scanned and is enforced only at runtime.
 /// </summary>
 public sealed record InteropCallSite(
     string CallerPack,
