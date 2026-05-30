@@ -779,4 +779,142 @@ public class SpawnManagerTests
         room.Entities.Count(e =>
             e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
     }
+
+    [Fact]
+    public void RestorePlacements_SeedsThenTopsUpContainerContents()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = new ItemRegistry();
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:coin",
+            Name = "a coin",
+            Type = "item",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:chest",
+            Name = "a chest",
+            Type = "container",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>(),
+            Contents = new List<ItemTemplate.ContentEntry>
+            {
+                new() { TemplateId = "core:coin" }
+            }
+        });
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:chest" });
+
+        // First restore: places the chest (boot leaves it bare) and seeds its coin.
+        manager.RestorePlacements("test-area");
+        var room = world.GetRoom("core:test-room")!;
+        var chest = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:chest");
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(1);
+
+        // Loot the coin.
+        chest.RemoveFromContents(chest.Contents.Single());
+        chest.Contents.Should().BeEmpty();
+
+        // Second restore: tops up the coin without duplicating the chest.
+        manager.RestorePlacements("test-area");
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:chest").Should().Be(1);
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(1);
+    }
+
+    [Fact]
+    public void RestorePlacements_AuthoredCount_SeedsNAndTopsUpPartialLoot()
+    {
+        // case 7: chest authors contents: [{ item: coin, count: 3 }].
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = new ItemRegistry();
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:coin",
+            Name = "a coin",
+            Type = "item",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:chest",
+            Name = "a chest",
+            Type = "container",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>(),
+            Contents = new List<ItemTemplate.ContentEntry>
+            {
+                new() { TemplateId = "core:coin", Count = 3 }
+            }
+        });
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:chest" });
+
+        // Fresh reset seeds exactly 3.
+        manager.RestorePlacements("test-area");
+        var room = world.GetRoom("core:test-room")!;
+        var chest = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:chest");
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(3);
+
+        // Loot one (2 remain).
+        chest.RemoveFromContents(chest.Contents.First(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin"));
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(2);
+
+        // Reset tops back up to exactly 3 — not 4.
+        manager.RestorePlacements("test-area");
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(3);
+    }
+
+    [Fact]
+    public void RestorePlacements_RepeatedBareContents_AggregateToCount()
+    {
+        // contents: [coin, coin] (two bare entries, same template) => 2 coins, not 1.
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = new ItemRegistry();
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:coin", Name = "a coin", Type = "item",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:chest", Name = "a chest", Type = "container",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>(),
+            Contents = new List<ItemTemplate.ContentEntry>
+            {
+                new() { TemplateId = "core:coin" },
+                new() { TemplateId = "core:coin" }
+            }
+        });
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:chest" });
+
+        manager.RestorePlacements("test-area");
+
+        var room = world.GetRoom("core:test-room")!;
+        var chest = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:chest");
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(2);
+    }
 }
