@@ -12,6 +12,8 @@ public class FlowInstance
     private PlayerSession? _session;
     private int _currentStepIndex;
     private bool _awaitingEmptyAck;
+    private Task<object?>? _pendingAsync;
+    private Action<object?>? _onAsyncComplete;
 
     public Action? OnCompleted { get; set; }
     public Action<string>? OnAborted { get; set; }
@@ -35,8 +37,46 @@ public class FlowInstance
         Advance();
     }
 
+    /// <summary>True while the flow is paused awaiting an async result (not player input).</summary>
+    public bool IsAwaitingAsync => _pendingAsync is { IsCompleted: false };
+
+    /// <summary>Suspend the flow on an arbitrary async result. The continuation runs on the
+    /// game thread when <see cref="TryResumeAsync"/> observes completion.</summary>
+    public void SuspendOnAsync(Task<object?> pending, Action<object?> onComplete)
+    {
+        _pendingAsync = pending;
+        _onAsyncComplete = onComplete;
+    }
+
+    /// <summary>Called each tick by the resume sweep. Returns true if a resume fired this call.
+    /// Safe on the game thread: only reads Task.IsCompleted/Result here.</summary>
+    public bool TryResumeAsync()
+    {
+        if (_pendingAsync == null || !_pendingAsync.IsCompleted)
+        {
+            return false;
+        }
+        var pending = _pendingAsync;
+        var onComplete = _onAsyncComplete;
+        _pendingAsync = null;
+        _onAsyncComplete = null;
+
+        object? result = null;
+        if (pending.Status == TaskStatus.RanToCompletion)
+        {
+            result = pending.Result;
+        }
+        onComplete?.Invoke(result); // result == null signals failure/cancellation; caller renders gracefully
+        return true;
+    }
+
     public void HandleInput(string input)
     {
+        if (IsAwaitingAsync)
+        {
+            return;
+        }
+
         if (_currentStepIndex < 0 || _currentStepIndex >= _definition.Steps.Count)
         {
             return;

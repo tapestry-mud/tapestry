@@ -4,6 +4,9 @@ public abstract class FlowStepDefinition
 {
     public required string Id { get; init; }
     public Func<Entity, bool>? SkipIf { get; init; }
+
+    /// <summary>If set, this step offers a "recommend" side-action for the named room field.</summary>
+    public string? RecommendField { get; init; }
 }
 
 public class InfoStep : FlowStepDefinition
