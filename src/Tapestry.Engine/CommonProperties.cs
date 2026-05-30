@@ -43,22 +43,8 @@ public static class CommonProperties
         registry.RegisterEngineProperty("group_invite_from", "ID of entity who sent group invite", PropertyValueType.String, transient: true);
         registry.RegisterEngineProperty("group_invite_expires", "Tick when group invite expires", PropertyValueType.Long, transient: true);
 
-        registry.RegisterEngineProperty(
-            "terrain",
-            "Terrain type of the room (forest, indoors, road, ...).",
-            PropertyValueType.String,
-            appliesTo: new[] { EntityTypes.Room });
-
-        registry.RegisterEngineProperty(
-            "entry_point_description",
-            "Flavor text shown when entering the area via this room.",
-            PropertyValueType.String,
-            appliesTo: new[] { EntityTypes.Room });
-
-        registry.RegisterEngineProperty(
-            "entry_point_direction",
-            "Direction label for the area entry point.",
-            PropertyValueType.String,
-            appliesTo: new[] { EntityTypes.Room });
+        // Room properties (terrain, entry_point_*) are registered by RoomProperties.Register,
+        // invoked from ConfigurationModule.Configure — do NOT also declare them here (duplicate
+        // RegisterEngineProperty throws "already registered" at strict boot).
     }
 }
