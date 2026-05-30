@@ -253,6 +253,24 @@ public class WorldModule : IJintApiModule
                 var e = _world.GetEntity(entityId);
                 return e == null ? Array.Empty<string>() : e.Roles.ToArray();
             }),
+            addRole = new Action<string, string>((entityIdStr, role) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
+                var e = _world.GetEntity(entityId);
+                if (e != null)
+                {
+                    e.AddRole(role);
+                }
+            }),
+            removeRole = new Action<string, string>((entityIdStr, role) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
+                var e = _world.GetEntity(entityId);
+                if (e != null)
+                {
+                    e.RemoveRole(role);
+                }
+            }),
             getEntityDisposition = new Func<string, string?>((entityIdStr) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return null; }
