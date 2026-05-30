@@ -337,6 +337,7 @@ public class PackLoader : IPackManifestProvider
                     .Select(YamlContentLoader.ParseSpawnOnEntry)
                     .ToList();
             }
+            template.Contents = YamlContentLoader.ParseContents(itemDef.Contents);
             _itemRegistry.Register(template);
             _logger.LogDebug("  Item template: {Id}", template.Id);
         }

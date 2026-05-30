@@ -1,0 +1,5 @@
+id: "tapestry-example-pack:oak-chest"
+name: "an oak chest"
+type: container
+contents:
+  - "tapestry-example-pack:iron-sword"

@@ -81,6 +81,18 @@ public class PackLoaderTests
     }
 
     [Fact]
+    public void LoadPack_CarriesContentsOntoItemTemplate()
+    {
+        var (_, itemRegistry, _, loader) = CreateLoaderDepsWithSpawn();
+        loader.Load(ExamplePackPath());
+
+        var template = itemRegistry.GetTemplate("tapestry-example-pack:oak-chest");
+        template.Should().NotBeNull();
+        template!.Contents.Should().HaveCount(1);
+        template.Contents[0].TemplateId.Should().Be("tapestry-example-pack:iron-sword");
+    }
+
+    [Fact]
     public void LoadPack_RegistersMobTemplates()
     {
         var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
