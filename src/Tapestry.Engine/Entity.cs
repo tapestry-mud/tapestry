@@ -5,7 +5,7 @@ using Tapestry.Engine.Training;
 
 namespace Tapestry.Engine;
 
-public class Entity
+public class Entity : IAttributeTarget
 {
     public Guid Id { get; }
     public string Type { get; set; }
