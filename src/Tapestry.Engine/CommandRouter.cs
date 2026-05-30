@@ -37,10 +37,14 @@ public class CommandRouter
             return;
         }
 
-        if (registration.Roles.Contains("admin", StringComparer.OrdinalIgnoreCase))
+        var guardedRoles = registration.Roles
+            .Where(r => !string.Equals(r, "player", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (guardedRoles.Length > 0)
         {
             var entity = _world.GetEntity(ctx.PlayerEntityId);
-            if (entity == null || !entity.HasRole("admin"))
+            var hasAny = entity != null && guardedRoles.Any(role => entity.HasRole(role));
+            if (!hasAny)
             {
                 _sessions.SendToPlayer(ctx.PlayerEntityId, "Huh?\r\n");
                 return;
