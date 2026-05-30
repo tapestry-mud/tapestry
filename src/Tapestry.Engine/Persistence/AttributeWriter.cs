@@ -35,7 +35,7 @@ public sealed class AttributeWriter
     }
 
     /// <summary>Value-omitted read: echo current value + metadata + usage (the per-attribute read).</summary>
-    public AttributeWriteResult Describe(Entity target, string attr)
+    public AttributeWriteResult Describe(IAttributeTarget target, string attr)
     {
         var prop = FindProperty(attr);
         if (prop != null)
@@ -44,7 +44,7 @@ public sealed class AttributeWriter
             {
                 return new AttributeWriteResult(false, $"{prop.Name} is engine-managed and can't be set.");
             }
-            var current = target.GetProperty<object>(prop.Name);
+            var current = target.GetRawProperty(prop.Name);
             var currentStr = current switch
             {
                 null => "(unset)",

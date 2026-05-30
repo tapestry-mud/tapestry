@@ -58,4 +58,15 @@ public class AttributeWriterRoomTests
         Assert.True(writer.Write(room, "safe", new List<string> { "false" }).Ok);
         Assert.False(room.HasTag("safe"));
     }
+
+    [Fact]
+    public void Describe_reads_room_property()
+    {
+        var writer = Build(out _, out _);
+        var room = new Room("ns:r1", "Room", "desc");
+        writer.Write(room, "terrain", new List<string> { "forest" });
+        var result = writer.Describe(room, "terrain");
+        Assert.True(result.Ok);
+        Assert.Contains("forest", result.Message);
+    }
 }
