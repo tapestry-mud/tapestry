@@ -9,3 +9,4 @@ properties:
   terrain: city
 fixtures:
   - "tapestry-example-pack:fountain"
+  - "tapestry-example-pack:oak-chest"

@@ -577,6 +577,26 @@ public class PackLoaderTests
     }
 
     [Fact]
+    public void RestorePlacements_SeedsAuthoredContainerContentsFromYaml()
+    {
+        var (world, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        loader.Load(ExamplePackPath());
+
+        // The oak-chest is an authored fixture in town-square; its template declares
+        // contents: [iron-sword]. At boot the chest is placed bare (boot gap); the
+        // first reset tick seeds its authored contents.
+        var room = world.GetRoom("tapestry-example-pack:town-square")!;
+        var chest = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "tapestry-example-pack:oak-chest");
+
+        spawnManager.RestorePlacements("starter-town");
+
+        chest.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "tapestry-example-pack:iron-sword")
+            .Should().Be(1);
+    }
+
+    [Fact]
     public void LoadPack_RegistersRoomFixturesForRestore()
     {
         var (world, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
