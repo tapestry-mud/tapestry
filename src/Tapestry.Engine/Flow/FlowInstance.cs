@@ -11,8 +11,10 @@ public class FlowInstance
     private readonly PanelRenderer _panelRenderer;
     private PlayerSession? _session;
     private int _currentStepIndex;
+    private bool _awaitingEmptyAck;
 
     public Action? OnCompleted { get; set; }
+    public Action<string>? OnAborted { get; set; }
     public Action<string, string, object>? GmcpSend { get; set; }
     public Action<string>? CommandFallback { get; set; }
     public FlowDefinition Definition => _definition;
@@ -56,6 +58,14 @@ public class FlowInstance
         if (lower.StartsWith("help "))
         {
             CommandFallback?.Invoke(trimmed);
+            return;
+        }
+
+        if (_awaitingEmptyAck)
+        {
+            _awaitingEmptyAck = false;
+            _currentStepIndex = _definition.Steps.Count; // terminate this instance; ignore further input
+            OnAborted?.Invoke("empty_choice");
             return;
         }
 
@@ -158,6 +168,22 @@ public class FlowInstance
             }
         }
         while (_definition.Steps[_currentStepIndex].SkipIf?.Invoke(_entity) == true);
+
+        // #20: a required choice with zero eligible options is a content misconfiguration,
+        // not a valid state (legitimately-skippable steps use SkipIf). Surface it loudly
+        // and abort rather than render an impossible prompt the player can never satisfy.
+        if (_definition.Steps[_currentStepIndex] is ChoiceStep emptyCheck
+            && emptyCheck.Options(_entity).Count == 0)
+        {
+            var message = emptyCheck.HelpHint != null
+                ? $"There are no {emptyCheck.HelpHint} to choose from."
+                : "There are no options to choose from.";
+            _session!.SendLine(message);
+            _session!.SendLine("Press Enter to continue.");
+            GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "info", prompt = message });
+            _awaitingEmptyAck = true;
+            return;
+        }
 
         RenderCurrentStep();
 

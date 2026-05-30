@@ -60,6 +60,7 @@ public class FlowEngine
 
         var instance = new FlowInstance(definition, session.PlayerEntity, _panelRenderer);
         instance.OnCompleted = () => Complete(session);
+        instance.OnAborted = reason => Abort(session, reason);
         instance.GmcpSend = GmcpSend;
         instance.CommandFallback = input => session.EnqueueInput(input);
         session.CurrentFlow = instance;
@@ -114,6 +115,26 @@ public class FlowEngine
         if (session.Phase == LoginPhase.Creating)
         {
             FinalizeCreating(session);
+        }
+        else
+        {
+            session.CurrentFlow = null;
+            session.EnqueueInput("look");
+        }
+    }
+
+    /// Invoked when a flow cannot proceed (e.g. a required choice step resolved to zero
+    /// eligible options — a content misconfiguration). During creation we restart the flow
+    /// so the player can pick a different upstream option (e.g. another race); otherwise we
+    /// drop the flow and return the player to the world. The empty-options message has
+    /// already been shown by FlowInstance, so this is never a silent skip.
+    public void Abort(PlayerSession session, string reason)
+    {
+        if (session.CurrentFlow == null) { return; }
+
+        if (session.Phase == LoginPhase.Creating)
+        {
+            Restart(session, reason);
         }
         else
         {
