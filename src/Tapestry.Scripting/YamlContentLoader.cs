@@ -1,4 +1,5 @@
 using Tapestry.Engine;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Quests;
@@ -351,6 +352,54 @@ public static class YamlContentLoader
         return new Tapestry.Engine.Distribution.SpawnOnEntry(spec, chance, model.Count, scope);
     }
 
+    public static List<ItemTemplate.ContentEntry> ParseContents(List<object>? raw)
+    {
+        var result = new List<ItemTemplate.ContentEntry>();
+        if (raw == null)
+        {
+            return result;
+        }
+
+        foreach (var entry in raw)
+        {
+            if (entry is string id)
+            {
+                result.Add(new ItemTemplate.ContentEntry { TemplateId = id });
+            }
+            else if (entry is IDictionary<object, object> map)
+            {
+                var templateId = map.TryGetValue("item", out var idRaw)
+                    ? idRaw?.ToString() ?? ""
+                    : "";
+
+                // YamlDotNet deserializes scalars under a generic List<object> as strings,
+                // so countRaw is "10"; Convert.ToInt32 handles both string and boxed int.
+                // (Mirrors the Convert.ToDouble usage on shop buy_markup in LoadMobs.)
+                var count = 1;
+                if (map.TryGetValue("count", out var countRaw) && countRaw != null)
+                {
+                    count = Convert.ToInt32(countRaw);
+                }
+
+                List<object>? childRaw = null;
+                if (map.TryGetValue("contents", out var contentsRaw)
+                    && contentsRaw is List<object> childList)
+                {
+                    childRaw = childList;
+                }
+
+                result.Add(new ItemTemplate.ContentEntry
+                {
+                    TemplateId = templateId,
+                    Count = count,
+                    Contents = ParseContents(childRaw)
+                });
+            }
+        }
+
+        return result;
+    }
+
     private static Exit ParseExit(object exitValue)
     {
         // String shorthand: "core:inn"
@@ -561,6 +610,7 @@ public static class YamlContentLoader
         public Dictionary<string, object> Properties { get; set; } = new();
         public List<ModifierDef> Modifiers { get; set; } = new();
         public List<SpawnOnEntryModel>? SpawnOn { get; set; }
+        public List<object>? Contents { get; set; }
     }
 
     public class SpawnOnEntryModel

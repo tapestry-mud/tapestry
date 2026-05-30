@@ -14,6 +14,7 @@ public class ItemTemplate
     public Dictionary<string, object?> Properties { get; set; } = new();
     public List<ModifierEntry> Modifiers { get; set; } = new();
     public List<SpawnOnEntry> SpawnOn { get; set; } = new();
+    public List<ContentEntry> Contents { get; set; } = new();
 
     public Entity CreateEntity()
     {
@@ -71,5 +72,12 @@ public class ItemTemplate
     {
         public string Stat { get; set; } = "";
         public int Value { get; set; }
+    }
+
+    public class ContentEntry
+    {
+        public string TemplateId { get; set; } = "";
+        public int Count { get; set; } = 1;
+        public List<ContentEntry> Contents { get; set; } = new();
     }
 }
