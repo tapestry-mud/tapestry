@@ -40,15 +40,28 @@ public static class HitResolver
     public static int CalculateArmorClass(Entity defender, string damageType)
     {
         var dexMod = defender.Stats.Dexterity - 10;
-        var equipmentAC = 0;
 
+        // Innate/natural armor: the defender's own `ac` map (mobs author this directly).
+        var innateAC = 0;
         var acMap = defender.GetProperty<Dictionary<string, int>>(CombatProperties.ArmorClass);
-        if (acMap != null && acMap.TryGetValue(damageType, out var acValue))
+        if (acMap != null && acMap.TryGetValue(damageType, out var innateValue))
         {
-            equipmentAC = acValue;
+            innateAC = innateValue;
         }
 
-        return BaseAC + equipmentAC + dexMod;
+        // Worn armor: sum each equipped item's `ac[damageType]`. Stateless — reflects
+        // current Equipment, so unequipping removes the contribution for free.
+        var equippedAC = 0;
+        foreach (var item in defender.Equipment.Values)
+        {
+            var itemAc = item.GetProperty<Dictionary<string, int>>(CombatProperties.ArmorClass);
+            if (itemAc != null && itemAc.TryGetValue(damageType, out var itemValue))
+            {
+                equippedAC += itemValue;
+            }
+        }
+
+        return BaseAC + innateAC + equippedAC + dexMod;
     }
 
     public static HitResult ResolveHit(Entity attacker, Entity defender, Entity? weapon, Random? random = null)

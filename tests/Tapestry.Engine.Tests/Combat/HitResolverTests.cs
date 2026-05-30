@@ -40,6 +40,17 @@ public class HitResolverTests
         return weapon;
     }
 
+    // Creates an item entity carrying an `ac` map, ready to drop into a defender's Equipment.
+    private Entity CreateArmor(string name, Dictionary<string, int>? ac)
+    {
+        var item = new Entity("item:armor", name);
+        if (ac != null)
+        {
+            item.SetProperty(CombatProperties.ArmorClass, ac);
+        }
+        return item;
+    }
+
     [Fact]
     public void CalculateHitRoll_BaseCase_DexModifiesRoll()
     {
@@ -96,6 +107,88 @@ public class HitResolverTests
         // No ac_ properties set at all
         var ac = HitResolver.CalculateArmorClass(freshDefender, "slash");
         Assert.Equal(10, ac);
+    }
+
+    // Spec §5 case 1: a defender wearing one armor piece has AC raised by that piece's ac[type].
+    [Fact]
+    public void CalculateArmorClass_OneEquippedPiece_RaisesAC()
+    {
+        var defender = CreateDefender(dex: 10); // innate ac all 0, dexMod 0
+        var jerkin = CreateArmor("a hide jerkin", new Dictionary<string, int> { ["slash"] = 3 });
+        defender.SetEquipment("body", jerkin);
+
+        // AC = base(10) + innate(0) + equipped(3) + dexMod(0) = 13
+        Assert.Equal(13, HitResolver.CalculateArmorClass(defender, "slash"));
+    }
+
+    // Spec §5 case 2: two pieces stack additively for a shared damage type.
+    [Fact]
+    public void CalculateArmorClass_TwoEquippedPieces_StackAdditively()
+    {
+        var defender = CreateDefender(dex: 10);
+        defender.SetEquipment("body", CreateArmor("a hide jerkin", new Dictionary<string, int> { ["slash"] = 3 }));
+        defender.SetEquipment("head", CreateArmor("a leather cap", new Dictionary<string, int> { ["slash"] = 2 }));
+
+        // AC = base(10) + innate(0) + equipped(3+2) + dexMod(0) = 15
+        Assert.Equal(15, HitResolver.CalculateArmorClass(defender, "slash"));
+    }
+
+    // Spec §5 case 3: per-damage-type specificity — slash:2, pierce:0 raises slash but not pierce.
+    [Fact]
+    public void CalculateArmorClass_EquippedPiece_IsPerDamageType()
+    {
+        var defender = CreateDefender(dex: 10);
+        defender.SetEquipment("body", CreateArmor("a hide jerkin",
+            new Dictionary<string, int> { ["slash"] = 2, ["pierce"] = 0 }));
+
+        Assert.Equal(12, HitResolver.CalculateArmorClass(defender, "slash"));  // base10 + 2
+        Assert.Equal(10, HitResolver.CalculateArmorClass(defender, "pierce")); // base10 + 0
+    }
+
+    // Spec §5 case 4: innate + equipped stack (mob-style innate ac AND a worn piece).
+    [Fact]
+    public void CalculateArmorClass_InnateAndEquipped_Stack()
+    {
+        var defender = CreateDefender(dex: 10);
+        defender.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int> { ["slash"] = 4 }); // innate
+        defender.SetEquipment("body", CreateArmor("a hide jerkin", new Dictionary<string, int> { ["slash"] = 3 }));
+
+        // AC = base(10) + innate(4) + equipped(3) + dexMod(0) = 17
+        Assert.Equal(17, HitResolver.CalculateArmorClass(defender, "slash"));
+    }
+
+    // Spec §5 case 5: an equipped item with no ac map contributes 0 (no crash).
+    [Fact]
+    public void CalculateArmorClass_EquippedPieceWithNoAcMap_ContributesZero()
+    {
+        var defender = CreateDefender(dex: 10);
+        defender.SetEquipment("wield", CreateArmor("a plain stick", ac: null)); // no `ac` property at all
+
+        // AC = base(10) + innate(0) + equipped(0) + dexMod(0) = 10
+        Assert.Equal(10, HitResolver.CalculateArmorClass(defender, "slash"));
+    }
+
+    // Spec §5 case 6: unequipping removes the contribution (compute reflects current Equipment).
+    [Fact]
+    public void CalculateArmorClass_AfterUnequip_DropsContribution()
+    {
+        var defender = CreateDefender(dex: 10);
+        defender.SetEquipment("body", CreateArmor("a hide jerkin", new Dictionary<string, int> { ["slash"] = 3 }));
+        Assert.Equal(13, HitResolver.CalculateArmorClass(defender, "slash")); // worn
+
+        defender.RemoveEquipment("body");
+        Assert.Equal(10, HitResolver.CalculateArmorClass(defender, "slash")); // bare again
+    }
+
+    // Spec §5 case 7: dexMod still applies alongside equipped AC (regression).
+    [Fact]
+    public void CalculateArmorClass_DexModAppliesWithEquippedAC()
+    {
+        var defender = CreateDefender(dex: 14); // dexMod = +4
+        defender.SetEquipment("body", CreateArmor("a hide jerkin", new Dictionary<string, int> { ["slash"] = 3 }));
+
+        // AC = base(10) + innate(0) + equipped(3) + dexMod(4) = 17
+        Assert.Equal(17, HitResolver.CalculateArmorClass(defender, "slash"));
     }
 
     [Fact]
