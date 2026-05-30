@@ -161,7 +161,23 @@ public class ContentLoadingModule : IGameModule
         WireDependencyResolvers();
 
         // Phase 2: all packs load content (rooms, items, mobs, scripts, help, themes)
-        foreach (var (dir, manifest) in packDirs.Zip(manifests))
+        // in dependency order — every pack loads after the dependencies it declares,
+        // so load-time cross-pack interop (e.g. tapestry.packs.call into a dependency's
+        // exports) sees those exports already registered. Independent packs keep their
+        // legacy alphabetical order. (Directory order alone loaded @mallek before
+        // @tapestry, breaking world packs that depend on @tapestry/*.)
+        var topoRank = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var topoOrder = _dependencyGraph.TopologicalOrder();
+        for (var i = 0; i < topoOrder.Count; i++)
+        {
+            topoRank[topoOrder[i]] = i;
+        }
+
+        var orderedPacks = packDirs.Zip(manifests, (dir, manifest) => (dir, manifest))
+            .OrderBy(p => topoRank.TryGetValue(PackLoader.PackNamespace(p.manifest.Name), out var r) ? r : int.MaxValue)
+            .ToList();
+
+        foreach (var (dir, manifest) in orderedPacks)
         {
             _packLoader.LoadContent(dir, manifest);
             _logger.LogInformation("Loaded pack: {Pack}", Path.GetRelativePath(packsDir, dir));

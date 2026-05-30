@@ -29,4 +29,66 @@ public sealed class PackDependencyGraph
 
     /// <summary>True if the pack was loaded this boot.</summary>
     public bool IsLoaded(string packNamespace) => _loaded.Contains(packNamespace);
+
+    /// <summary>
+    /// Orders the loaded packs so every pack's dependencies appear before it
+    /// (Kahn's algorithm). Ties — packs with no ordering constraint between them —
+    /// break alphabetically for determinism, preserving the legacy directory order
+    /// for independent packs. Edges pointing at packs that were not loaded are
+    /// ignored. If a dependency cycle is present, its members are emitted
+    /// alphabetically (best-effort — the edge gate/validator surface the real
+    /// problem); the result always contains every loaded pack exactly once.
+    /// </summary>
+    public IReadOnlyList<string> TopologicalOrder()
+    {
+        // in-degree = number of this pack's dependencies that were actually loaded.
+        var indegree = _loaded.ToDictionary(p => p, _ => 0, StringComparer.OrdinalIgnoreCase);
+        foreach (var pack in _loaded)
+        {
+            foreach (var dep in _edges[pack])
+            {
+                if (_loaded.Contains(dep))
+                {
+                    indegree[pack]++;
+                }
+            }
+        }
+
+        // ready = packs whose loaded dependencies are all emitted, picked alphabetically.
+        var ready = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in indegree)
+        {
+            if (kv.Value == 0)
+            {
+                ready.Add(kv.Key);
+            }
+        }
+
+        var order = new List<string>(_loaded.Count);
+        while (order.Count < _loaded.Count)
+        {
+            if (ready.Count == 0)
+            {
+                // Cycle: no pack is fully satisfiable. Break it deterministically by
+                // releasing the alphabetically-smallest pack not yet emitted.
+                var emitted = new HashSet<string>(order, StringComparer.OrdinalIgnoreCase);
+                ready.Add(_loaded.Where(p => !emitted.Contains(p)).OrderBy(p => p, StringComparer.OrdinalIgnoreCase).First());
+            }
+
+            var next = ready.Min!;
+            ready.Remove(next);
+            order.Add(next);
+
+            // Releasing `next` may satisfy packs that depend on it.
+            foreach (var pack in _loaded)
+            {
+                if (!order.Contains(pack) && _edges[pack].Contains(next) && --indegree[pack] == 0)
+                {
+                    ready.Add(pack);
+                }
+            }
+        }
+
+        return order;
+    }
 }
