@@ -656,4 +656,127 @@ public class SpawnManagerTests
         mob.Should().NotBeNull();
         mob!.HasProperty("loot_items").Should().BeFalse();
     }
+
+    private static ItemRegistry RegistryWithItem(string id, string name)
+    {
+        var reg = new ItemRegistry();
+        reg.Register(new ItemTemplate
+        {
+            Id = id,
+            Name = name,
+            Type = "item",
+            Tags = new List<string> { "item" },
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        return reg;
+    }
+
+    [Fact]
+    public void RegisterRoomFixtures_ThenRestore_RecreatesMissingFixture()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:torch" });
+        manager.RestorePlacements("test-area");
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
+    }
+
+    [Fact]
+    public void RestorePlacements_DoesNotDuplicateAlreadyPresentFixture()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:torch" });
+        manager.RestorePlacements("test-area");
+        manager.RestorePlacements("test-area");
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
+    }
+
+    [Fact]
+    public void RestorePlacements_RestoresWhenAreaHasNoMobSpawnConfig()
+    {
+        // No RegisterAreaSpawns / RegisterRoomSpawns at all: RunAreaReset would early-return,
+        // but the placement pass must still run.
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+
+        manager.RegisterRoomFixtures("fixtures-only", "core:test-room", new[] { "core:torch" });
+        manager.RestorePlacements("fixtures-only");
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
+    }
+
+    [Fact]
+    public void RestorePlacements_UnknownArea_IsNoOp()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var manager = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry());
+
+        var act = () => manager.RestorePlacements("does-not-exist");
+
+        act.Should().NotThrow();
+        world.GetRoom("core:test-room")!.Entities.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RestorePlacements_RepeatedFixtures_MaintainsMultiplicity()
+    {
+        // [torch, torch] authors 2 torches — must not collapse to 1 (boot/reset parity).
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:torch", "core:torch" });
+
+        manager.RestorePlacements("test-area");
+        manager.RestorePlacements("test-area"); // idempotent
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(2);
+    }
+
+    [Fact]
+    public void AreaTick_TriggersPlacementRestore()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:torch" });
+
+        eventBus.Publish(new GameEvent
+        {
+            Type = "area.tick",
+            Data = new Dictionary<string, object?> { ["areaId"] = "test-area" }
+        });
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
+    }
 }

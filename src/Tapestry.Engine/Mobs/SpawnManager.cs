@@ -23,6 +23,7 @@ public class SpawnManager
     private readonly Dictionary<string, LootTable> _lootTables = new();
     private readonly Dictionary<string, AreaSpawnConfig> _areaConfigs = new();
     private readonly Dictionary<Guid, (string area, int spawnIndex)> _spawnTracking = new();
+    private readonly Dictionary<string, List<(string RoomId, List<string> FixtureTemplateIds)>> _areaFixtures = new();
 
     public SpawnManager(World world, EventBus eventBus, LootTableResolver lootResolver,
                         ItemRegistry itemRegistry, ClassRegistry? classes = null, RaceRegistry? races = null,
@@ -46,6 +47,7 @@ public class SpawnManager
         if (areaId != null)
         {
             RunAreaReset(areaId);
+            RestorePlacements(areaId);
         }
     }
 
@@ -97,6 +99,17 @@ public class SpawnManager
                 Tags = rule.Tags.ToList()
             });
         }
+    }
+
+    public void RegisterRoomFixtures(string areaId, string roomId, IEnumerable<string> fixtureTemplateIds)
+    {
+        if (!_areaFixtures.TryGetValue(areaId, out var rooms))
+        {
+            rooms = new List<(string, List<string>)>();
+            _areaFixtures[areaId] = rooms;
+        }
+
+        rooms.Add((roomId, fixtureTemplateIds.ToList()));
     }
 
     public Entity? SpawnMob(string templateId, string roomId)
@@ -253,6 +266,97 @@ public class SpawnManager
                 {
                     _spawnTracking[entity.Id] = (areaName, i);
                 }
+            }
+        }
+    }
+
+    public void RestorePlacements(string areaName)
+    {
+        if (!_areaFixtures.TryGetValue(areaName, out var rooms))
+        {
+            return;
+        }
+
+        foreach (var (roomId, fixtureTemplateIds) in rooms)
+        {
+            var room = _world.GetRoom(roomId);
+            if (room == null)
+            {
+                continue;
+            }
+
+            var authored = fixtureTemplateIds
+                .Select(id => new ItemTemplate.ContentEntry
+                {
+                    TemplateId = id,
+                    Count = 1,
+                    Contents = _itemRegistry.GetTemplate(id)?.Contents
+                        ?? new List<ItemTemplate.ContentEntry>()
+                })
+                .ToList();
+
+            RestoreChildren(room.Entities, room.AddEntity, authored);
+        }
+    }
+
+    private void RestoreInto(Entity container, List<ItemTemplate.ContentEntry> authoredChildren)
+    {
+        RestoreChildren(container.Contents, container.AddToContents, authoredChildren);
+    }
+
+    // Top up the children of a target (room or container) to the authored quantity.
+    // Children are grouped by template_id; desiredCount = sum Count across entries of that
+    // template; the FIRST entry's subtree is authoritative for the whole group (two same-
+    // template entries with different nested contents collapse to the first — use two
+    // templates to vary contents). Presence is counted, not boolean, so N-stacks seed and
+    // partial loot tops back up without ever overfilling.
+    private void RestoreChildren(
+        IReadOnlyList<Entity> currentChildren,
+        Action<Entity> addChild,
+        List<ItemTemplate.ContentEntry> authoredChildren)
+    {
+        var groups = new List<(string TemplateId, int Count, List<ItemTemplate.ContentEntry> Subtree)>();
+        var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in authoredChildren)
+        {
+            var count = entry.Count < 1 ? 1 : entry.Count;
+            if (index.TryGetValue(entry.TemplateId, out var gi))
+            {
+                var g = groups[gi];
+                groups[gi] = (g.TemplateId, g.Count + count, g.Subtree);
+            }
+            else
+            {
+                index[entry.TemplateId] = groups.Count;
+                groups.Add((entry.TemplateId, count, entry.Contents));
+            }
+        }
+
+        foreach (var (templateId, desiredCount, subtree) in groups)
+        {
+            var present = currentChildren
+                .Where(e => string.Equals(
+                    e.GetProperty<string>(CommonProperties.TemplateId),
+                    templateId,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            for (int i = present.Count; i < desiredCount; i++)
+            {
+                var instance = _itemRegistry.CreateItem(templateId);
+                if (instance == null)
+                {
+                    break;
+                }
+
+                addChild(instance);
+                _world.TrackEntity(instance);
+                present.Add(instance);
+            }
+
+            foreach (var instance in present.Take(desiredCount))
+            {
+                RestoreInto(instance, subtree);
             }
         }
     }

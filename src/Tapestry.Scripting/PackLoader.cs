@@ -284,6 +284,11 @@ public class PackLoader : IPackManifestProvider
                 _pendingFixtures.Add((room.Id, fixtureId));
             }
 
+            if (result.Fixtures.Count > 0)
+            {
+                _spawnManager.RegisterRoomFixtures(room.Area ?? "", room.Id, result.Fixtures);
+            }
+
             if (result.Spawns.Count > 0)
             {
                 var areaId = room.Area ?? "";

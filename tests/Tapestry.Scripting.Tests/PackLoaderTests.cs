@@ -576,6 +576,24 @@ public class PackLoaderTests
             propertyRegistry, questRegistry, scheduleModule, registry);
     }
 
+    [Fact]
+    public void LoadPack_RegistersRoomFixturesForRestore()
+    {
+        var (world, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        loader.Load(ExamplePackPath());
+
+        var room = world.GetRoom("tapestry-example-pack:town-square")!;
+        var fountain = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "tapestry-example-pack:fountain");
+        room.RemoveEntity(fountain);
+
+        spawnManager.RestorePlacements("starter-town");
+
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "tapestry-example-pack:fountain")
+            .Should().Be(1);
+    }
+
     private sealed class NullFlowPersistence : IFlowPersistence
     {
         public bool PlayerExists(string name) { return false; }
