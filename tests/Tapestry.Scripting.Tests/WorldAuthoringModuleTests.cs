@@ -65,6 +65,7 @@ public class WorldAuthoringModuleTests
         mod.CreateRoom("lf-test", "legends-forgotten:b", "B", "db");
         Assert.True(mod.SetRoomExit("legends-forgotten:a", "north", "legends-forgotten:b"));
         var yaml = File.ReadAllText(Path.Combine(root, "lf-test", "rooms", "a.yaml"));
+        Assert.DoesNotContain("neighbors", yaml);  // suppression guard: room 'a' HAS a neighbor, so this has teeth
         var reloaded = Tapestry.Scripting.YamlContentLoader.LoadRoom(yaml).Room;
         Assert.Equal("legends-forgotten:b", reloaded.GetExit(Tapestry.Shared.Direction.North)!.TargetRoomId);
         Directory.Delete(root, recursive: true);
