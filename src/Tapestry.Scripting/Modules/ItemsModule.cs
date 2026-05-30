@@ -71,6 +71,42 @@ public class ItemsModule : IJintApiModule
                 };
             }),
 
+            spawnToContainer = new Func<string, string, object?>((templateId, entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId))
+                {
+                    return null;
+                }
+
+                var entity = _world.GetEntity(entityId);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                if (entity.Type != EntityTypes.Container)
+                {
+                    return null;
+                }
+
+                var item = _itemRegistry.CreateItem(templateId);
+                if (item == null)
+                {
+                    return null;
+                }
+
+                _world.TrackEntity(item);
+                entity.AddToContents(item);
+
+                return new
+                {
+                    id = item.Id.ToString(),
+                    name = item.Name,
+                    type = item.Type,
+                    templateId = templateId
+                };
+            }),
+
             hasTemplate = new Func<string, bool>(templateId =>
             {
                 return _itemRegistry.HasTemplate(templateId);

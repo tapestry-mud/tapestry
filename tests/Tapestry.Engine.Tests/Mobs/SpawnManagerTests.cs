@@ -918,6 +918,50 @@ public class SpawnManagerTests
             e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(2);
     }
 
+    [Fact]
+    public void RestorePlacements_DoesNotRestoreRuntimePlacedContainerItem()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = new ItemRegistry();
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:coin",
+            Name = "a coin",
+            Type = "item",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        // chest is an authored fixture but its template authors NO contents.
+        itemRegistry.Register(new ItemTemplate
+        {
+            Id = "core:chest",
+            Name = "a chest",
+            Type = "container",
+            Properties = new Dictionary<string, object?>(),
+            Modifiers = new List<ItemTemplate.ModifierEntry>()
+        });
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:chest" });
+
+        manager.RestorePlacements("test-area");
+        var room = world.GetRoom("core:test-room")!;
+        var chest = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:chest");
+
+        // Simulate runtime spawnToContainer: a live item that is not part of the authored tree.
+        var runtimeCoin = itemRegistry.CreateItem("core:coin")!;
+        chest.AddToContents(runtimeCoin);
+        world.TrackEntity(runtimeCoin);
+
+        // Loot it, then reset.
+        chest.RemoveFromContents(runtimeCoin);
+        manager.RestorePlacements("test-area");
+
+        chest.Contents.Should().BeEmpty(); // never restored
+    }
+
     private static SpawnManager BuildNestedManager(World world, EventBus eventBus)
     {
         var itemRegistry = new ItemRegistry();
