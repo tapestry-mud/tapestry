@@ -1,3 +1,5 @@
+using Tapestry.Engine.Authoring;
+using Tapestry.Engine.Recommend;
 using Tapestry.Engine.Ui;
 
 namespace Tapestry.Engine.Flow;
@@ -9,11 +11,14 @@ public class FlowInstance
     private readonly FlowDefinition _definition;
     private readonly Entity _entity;
     private readonly PanelRenderer _panelRenderer;
+    private readonly RecommendBroker? _recommend;
+    private readonly Func<Entity, RoomData>? _recommendContext;
     private PlayerSession? _session;
     private int _currentStepIndex;
     private bool _awaitingEmptyAck;
     private Task<object?>? _pendingAsync;
     private Action<object?>? _onAsyncComplete;
+    private IReadOnlyList<string>? _pendingSuggestions;
 
     public Action? OnCompleted { get; set; }
     public Action<string>? OnAborted { get; set; }
@@ -23,11 +28,18 @@ public class FlowInstance
     public Entity Entity => _entity;
     public int CurrentStepIndex => _currentStepIndex;
 
-    public FlowInstance(FlowDefinition definition, Entity entity, PanelRenderer? panelRenderer = null)
+    public FlowInstance(
+        FlowDefinition definition,
+        Entity entity,
+        PanelRenderer? panelRenderer = null,
+        RecommendBroker? recommend = null,
+        Func<Entity, RoomData>? recommendContext = null)
     {
         _definition = definition;
         _entity = entity;
         _panelRenderer = panelRenderer ?? new PanelRenderer();
+        _recommend = recommend;
+        _recommendContext = recommendContext;
         _currentStepIndex = -1;
     }
 
@@ -154,6 +166,34 @@ public class FlowInstance
 
     private void HandleTextInput(TextStep step, string input)
     {
+        // (1) A multi-suggestion selection is pending?
+        if (_pendingSuggestions != null)
+        {
+            if (int.TryParse(input.Trim(), out var pick) && pick >= 1 && pick <= _pendingSuggestions.Count)
+            {
+                var chosen = _pendingSuggestions[pick - 1];
+                _pendingSuggestions = null;
+                step.OnInput(_entity, chosen);
+                Advance();
+                return;
+            }
+            _session?.SendLine("Pick a number from the list, or type your own value.");
+            return;
+        }
+
+        // (2) Recommend side-action.
+        if (step.RecommendField != null && _recommend != null && _recommendContext != null
+            && string.Equals(input.Trim(), "recommend", StringComparison.OrdinalIgnoreCase))
+        {
+            var request = new RecommendRequest(step.RecommendField, _recommendContext(_entity));
+            _session?.SendLine("Thinking...");
+            SuspendOnAsync(
+                _recommend.RecommendAsync(request).ContinueWith(t =>
+                    t.Status == TaskStatus.RanToCompletion ? (object?)t.Result : null),
+                result => OnRecommendComplete(step, result as RecommendResult));
+            return;
+        }
+
         if (step.Secret)
         {
             _session!.Connection.RestoreEcho();
@@ -173,6 +213,30 @@ public class FlowInstance
 
         step.OnInput(_entity, input);
         Advance();
+    }
+
+    private void OnRecommendComplete(TextStep step, RecommendResult? result)
+    {
+        var suggestions = result?.Suggestions;
+        if (suggestions == null || suggestions.Count == 0)
+        {
+            _session?.SendLine("No suggestions available. Enter a value:");
+            return;
+        }
+        if (suggestions.Count == 1)
+        {
+            step.OnInput(_entity, suggestions[0]);
+            Advance();
+            return;
+        }
+        _pendingSuggestions = suggestions;
+        var sb = new System.Text.StringBuilder("Suggestions:\r\n");
+        for (var i = 0; i < suggestions.Count; i++)
+        {
+            sb.Append($"  {i + 1}. {suggestions[i]}\r\n");
+        }
+        sb.Append("Pick a number, or type your own value:");
+        _session?.SendLine(sb.ToString());
     }
 
     private void HandleConfirmInput(ConfirmStep step, string input)

@@ -263,6 +263,9 @@ public class FlowsModule : IJintApiModule
         var secretVal = obj.Get("secret");
         var secret = secretVal.Type == Types.Boolean && (bool)secretVal.ToObject()!;
 
+        var recommendFieldVal = obj.Get("recommend_field");
+        string? recommendField = recommendFieldVal.Type == Types.String ? recommendFieldVal.ToString() : null;
+
         var onInputJs = obj.Get("on_input");
         Action<Entity, string> onInput = (entity, value) =>
         {
@@ -278,7 +281,8 @@ public class FlowsModule : IJintApiModule
             Validate = validate,
             InvalidMessage = invalidMessage,
             OnInput = onInput,
-            Secret = secret
+            Secret = secret,
+            RecommendField = recommendField
         };
     }
 
