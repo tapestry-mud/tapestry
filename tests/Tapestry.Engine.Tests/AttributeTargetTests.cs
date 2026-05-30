@@ -18,4 +18,20 @@ public class AttributeTargetTests
         Assert.True(target.HasTag("shop"));
         Assert.Equal(EntityTypes.Npc, target.Type);
     }
+
+    [Fact]
+    public void Room_is_an_attribute_target_and_supports_remove_tag()
+    {
+        var room = new Room("ns:r1", "Room One", "A room.");
+        IAttributeTarget target = room; // compiles only if Room : IAttributeTarget
+
+        target.SetProperty("terrain", "forest");
+        target.AddTag("safe");
+        Assert.True(target.HasTag("safe"));
+        Assert.Equal("forest", room.GetRawProperty("terrain"));
+        Assert.Equal(EntityTypes.Room, target.Type);
+
+        target.RemoveTag("safe");
+        Assert.False(target.HasTag("safe"));
+    }
 }

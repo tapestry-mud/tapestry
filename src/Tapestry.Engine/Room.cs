@@ -3,9 +3,10 @@ using Tapestry.Shared;
 
 namespace Tapestry.Engine;
 
-public class Room
+public class Room : IAttributeTarget
 {
     public string Id { get; }
+    public string Type => EntityTypes.Room;
     public string Name { get; set; }
     public string Description { get; set; }
 
@@ -96,6 +97,11 @@ public class Room
     public void AddTag(string tag)
     {
         _tags.Add(tag);
+    }
+
+    public void RemoveTag(string tag)
+    {
+        _tags.Remove(tag);
     }
 
     public bool HasTag(string tag)
