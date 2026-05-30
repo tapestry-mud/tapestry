@@ -33,7 +33,7 @@ public class AdminModule : IJintApiModule
     private readonly Dictionary<(string Kind, string Type), GrantKindRegistration> _grantKinds = new();
 
     private static readonly HashSet<string> AllowedKinds =
-        new(StringComparer.OrdinalIgnoreCase) { "player", "npc", "item" };
+        new(StringComparer.OrdinalIgnoreCase) { "player", "npc", "item", "room" };
 
     public AdminModule(
         World world,
@@ -187,6 +187,33 @@ public class AdminModule : IJintApiModule
                 return;
             }
             _messaging.Send(adminId, qTarget.Message + "\r\n");
+            return;
+        }
+
+        if (kind == "room")
+        {
+            // Rooms aren't name-resolvable: the target is always the admin's current room,
+            // so there is no target token -- value tokens start at args[2].
+            var roomRes = ResolveTarget(adminId, "", kind);
+            if (!roomRes.Ok)
+            {
+                _messaging.Send(adminId, roomRes.Message + "\r\n");
+                return;
+            }
+
+            var room = _world.GetRoom(roomRes.RoomId ?? "");
+            if (room == null)
+            {
+                _messaging.Send(adminId, "Room not found.\r\n");
+                return;
+            }
+
+            var roomRest = args.Length > 2 ? args[2..] : Array.Empty<string>();
+            var roomResult = roomRest.Length == 0
+                ? _attributeWriter.Describe(room, attr)
+                : _attributeWriter.Write(room, attr, roomRest);
+
+            _messaging.Send(adminId, roomResult.Message + "\r\n");
             return;
         }
 
@@ -459,16 +486,28 @@ public class AdminModule : IJintApiModule
         };
     }
 
-    private record TargetResult(bool Ok, Guid Id, string Name, string Error, string Message)
+    private record TargetResult(bool Ok, Guid Id, string Name, string Error, string Message, string? RoomId = null)
     {
         public static TargetResult Success(Guid id, string name) =>
             new(true, id, name, "", "");
+        public static TargetResult SuccessRoom(string roomId) =>
+            new(true, Guid.Empty, roomId, "", "", roomId);
         public static TargetResult Failure(string error, string message) =>
             new(false, Guid.Empty, "", error, message);
     }
 
     private TargetResult ResolveTarget(Guid adminId, string keyword, string kind)
     {
+        if (kind == "room")
+        {
+            var adminEntity = _world.GetEntity(adminId);
+            if (string.IsNullOrEmpty(adminEntity?.LocationRoomId))
+            {
+                return TargetResult.Failure("no_room", "You are not in a room.");
+            }
+            return TargetResult.SuccessRoom(adminEntity.LocationRoomId);
+        }
+
         var ordinal = 1;
         var match = System.Text.RegularExpressions.Regex.Match(keyword, @"^(\d+)\.(.+)$");
         if (match.Success)
