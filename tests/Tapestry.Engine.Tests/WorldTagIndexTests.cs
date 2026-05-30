@@ -113,6 +113,42 @@ public class WorldTagIndexTests
     }
 
     [Fact]
+    public void RemoveTag_OnDirtyPrunedTag_DoesNotThrow_AndIndexConsistent()
+    {
+        // Regression: RemoveFromWriteIndex must tolerate the "dirty-but-pruned" state
+        // (tag in _dirtyTags, key absent from _writeIndex) the same way AddToWriteIndex
+        // does. Manufacture that state, then drive a further tag removal for "x".
+        //
+        // Production manifestation: link-dead reconnect calls entity.RemoveTag("linkdead")
+        // (or UntrackEntity on a disconnecting session) for a tag already pruned-dirty this
+        // tick -> KeyNotFoundException -> reconnect aborts -> player bounced back to link-dead
+        // -> cleanup timer reset -> ghost session never expires.
+        var world = new World();
+        var a = new Entity("npc", "A");
+        a.AddTag("x");
+        world.TrackEntity(a);
+        world.SwapTagBuffers();   // read "x"->{a}, write clone {a}, dirty cleared
+        world.GetEntitiesByTag("x").Should().Contain(a);
+
+        // Within one tick (no swap): empty the write set for "x" so its key is pruned
+        // out of _writeIndex while "x" stays in _dirtyTags.
+        a.RemoveTag("x");         // dirty clone {a} -> remove a -> {} -> key pruned, "x" dirty
+
+        // A further "x" removal now reaches RemoveFromWriteIndex with the key absent.
+        // b holds "x" but is not part of the index set, mirroring an entity whose tag
+        // was already pruned this tick (e.g. a disconnecting session being untracked).
+        var b = new Entity("npc", "B");
+        b.AddTag("x");
+        Action act = () => world.UntrackEntity(b);
+
+        act.Should().NotThrow<KeyNotFoundException>();
+
+        // Index stays consistent: "x" has no live holders after the swap.
+        world.SwapTagBuffers();
+        world.GetEntitiesByTag("x").Should().BeEmpty();
+    }
+
+    [Fact]
     public void CoW_UndirtiedTag_SharesSetReference_AcrossSwaps()
     {
         var world = new World();

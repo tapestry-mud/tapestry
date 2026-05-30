@@ -236,6 +236,12 @@ public class World : ITagObserver
                 : new HashSet<Entity>();
             _dirtyTags.Add(tag);
         }
+        else if (!_writeIndex.ContainsKey(tag))
+        {
+            // Tag is dirty (mutated this tick) but its set was pruned to empty --
+            // there is nothing to remove. (Symmetric with AddToWriteIndex.)
+            return;
+        }
         _writeIndex[tag].Remove(entity);
         if (_writeIndex[tag].Count == 0)
         {
