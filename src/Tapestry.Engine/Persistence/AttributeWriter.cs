@@ -22,7 +22,7 @@ public sealed class AttributeWriter
         _tags = tags;
     }
 
-    public AttributeWriteResult Write(Entity target, string attr, IReadOnlyList<string> valueTokens)
+    public AttributeWriteResult Write(IAttributeTarget target, string attr, IReadOnlyList<string> valueTokens)
     {
         var prop = FindProperty(attr);
         if (prop != null) { return WriteProperty(target, prop, valueTokens); }
@@ -88,7 +88,7 @@ public sealed class AttributeWriter
         return idx >= 0 ? entityType[..idx] : entityType;
     }
 
-    private AttributeWriteResult WriteProperty(Entity target, PropertyRegistryEntry entry, IReadOnlyList<string> tokens)
+    private AttributeWriteResult WriteProperty(IAttributeTarget target, PropertyRegistryEntry entry, IReadOnlyList<string> tokens)
     {
         if (!entry.IsAdminSettable)
         {
@@ -117,7 +117,7 @@ public sealed class AttributeWriter
         return new AttributeWriteResult(true, $"{target.Name}'s {entry.Name} set to {coerced}.");
     }
 
-    private AttributeWriteResult WriteTag(Entity target, TagRegistryEntry entry, IReadOnlyList<string> tokens)
+    private AttributeWriteResult WriteTag(IAttributeTarget target, TagRegistryEntry entry, IReadOnlyList<string> tokens)
     {
         if (!entry.AppliesToType(BaseType(target.Type)))
         {
