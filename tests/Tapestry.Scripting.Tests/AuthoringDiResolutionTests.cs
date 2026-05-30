@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Recommend;
@@ -72,7 +73,22 @@ public class AuthoringDiResolutionTests
     {
         // The module must hold the SAME HashSet the holder exposes, so namespaces
         // populated by PackLoader after construction are visible at a runtime createRoom.
-        using var provider = BuildProvider();
+        //
+        // CreateRoom writes a room side-car to the configured RoomsPath. We point that at
+        // an absolute temp dir (registered BEFORE AddTapestryEngine, whose TryAddSingleton
+        // then yields to ours) so the write lands under our temp root and cleanup removes
+        // it -- otherwise the default "./data/areas" leaks a stray file into the test dir.
+        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "authdi-" + System.IO.Path.GetRandomFileName());
+        var cfg = new ServerConfig();
+        cfg.Persistence.RoomsPath = root; // absolute -> ResolveDataPath returns it verbatim
+
+        var services = new ServiceCollection();
+        services.AddSingleton(cfg);
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        using var provider = services.BuildServiceProvider();
+
         var holder = provider.GetRequiredService<LoadedPackNamespaces>();
         var module = provider.GetRequiredService<WorldAuthoringModule>();
 
@@ -81,16 +97,15 @@ public class AuthoringDiResolutionTests
         // accepts a namespace added to the shared set after the module was constructed.
         Assert.False(module.CreateRoom("x", "late-pack:room", "Room", "desc"));
         holder.Add("late-pack");
-        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "authdi-" + System.IO.Path.GetRandomFileName());
         var world = provider.GetRequiredService<World>();
         try
         {
-            // CreateRoom writes a side-car to the configured rooms root; the default
-            // ./data/areas may not be writable in all CI layouts, but the namespace gate
-            // and world mutation happen before the write succeeds or throws. We assert the
-            // gate passed by checking the room landed in the world.
+            // The namespace gate and world mutation happen before the side-car write.
+            // The gate passing is proven by the room landing in the world; the write
+            // now lands under our temp root rather than polluting the test working dir.
             module.CreateRoom("late-area", "late-pack:room", "Room", "desc");
             Assert.NotNull(world.GetRoom("late-pack:room"));
+            Assert.True(System.IO.Directory.Exists(System.IO.Path.Combine(root, "late-area")));
         }
         finally
         {
