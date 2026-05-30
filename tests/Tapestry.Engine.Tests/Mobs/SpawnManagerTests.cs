@@ -1043,4 +1043,43 @@ public class SpawnManagerTests
         box.Contents.Count(e =>
             e.GetProperty<string>(CommonProperties.TemplateId) == "core:ring").Should().Be(1);
     }
+
+    [Fact]
+    public void AreaTick_MobReset_And_FixtureRestore_Coexist()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var lootResolver = new LootTableResolver();
+        var itemRegistry = RegistryWithItem("core:torch", "a torch");
+        var manager = new SpawnManager(world, eventBus, lootResolver, itemRegistry);
+
+        // Mob spawn rule for the area...
+        manager.RegisterTemplate(CreateGoblinTemplate());
+        manager.RegisterAreaSpawns(new AreaSpawnConfig
+        {
+            Area = "test-area",
+            ResetInterval = 300,
+            Spawns = new List<SpawnRule>
+            {
+                new() { Room = "core:test-room", Mob = "core:goblin", Count = 2 }
+            }
+        });
+        // ...and a room fixture in the same area.
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:torch" });
+
+        // Two ticks: mob count holds at 2 (no over-spawn), fixture holds at 1 (no duplicate).
+        for (int i = 0; i < 2; i++)
+        {
+            eventBus.Publish(new GameEvent
+            {
+                Type = "area.tick",
+                Data = new Dictionary<string, object?> { ["areaId"] = "test-area" }
+            });
+        }
+
+        var room = world.GetRoom("core:test-room")!;
+        room.Entities.Count(e => e.Type == "npc").Should().Be(2);
+        room.Entities.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:torch").Should().Be(1);
+    }
 }
