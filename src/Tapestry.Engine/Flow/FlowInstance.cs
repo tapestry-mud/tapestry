@@ -166,7 +166,9 @@ public class FlowInstance
 
     private void HandleTextInput(TextStep step, string input)
     {
-        // (1) A multi-suggestion selection is pending?
+        // (1) A multi-suggestion selection is pending? A list index picks a suggestion;
+        // anything else is honored as the player's own typed value (the prompt promises
+        // "or type your own value"), falling through to the normal validate/OnInput path.
         if (_pendingSuggestions != null)
         {
             if (int.TryParse(input.Trim(), out var pick) && pick >= 1 && pick <= _pendingSuggestions.Count)
@@ -177,21 +179,25 @@ public class FlowInstance
                 Advance();
                 return;
             }
-            _session?.SendLine("Pick a number from the list, or type your own value.");
-            return;
+            _pendingSuggestions = null;
         }
 
-        // (2) Recommend side-action.
+        // (2) Recommend side-action — resolves the field per-entity so a generic
+        // field-picker recommends the field the player actually selected.
         if (step.RecommendField != null && _recommend != null && _recommendContext != null
             && string.Equals(input.Trim(), "recommend", StringComparison.OrdinalIgnoreCase))
         {
-            var request = new RecommendRequest(step.RecommendField, _recommendContext(_entity));
-            _session?.SendLine("Thinking...");
-            SuspendOnAsync(
-                _recommend.RecommendAsync(request).ContinueWith(t =>
-                    t.Status == TaskStatus.RanToCompletion ? (object?)t.Result : null),
-                result => OnRecommendComplete(step, result as RecommendResult));
-            return;
+            var field = step.RecommendField(_entity);
+            if (!string.IsNullOrEmpty(field))
+            {
+                var request = new RecommendRequest(field, _recommendContext(_entity));
+                _session?.SendLine("Thinking...");
+                SuspendOnAsync(
+                    _recommend.RecommendAsync(request).ContinueWith(t =>
+                        t.Status == TaskStatus.RanToCompletion ? (object?)t.Result : null),
+                    result => OnRecommendComplete(step, result as RecommendResult));
+                return;
+            }
         }
 
         if (step.Secret)

@@ -5,8 +5,11 @@ public abstract class FlowStepDefinition
     public required string Id { get; init; }
     public Func<Entity, bool>? SkipIf { get; init; }
 
-    /// <summary>If set, this step offers a "recommend" side-action for the named room field.</summary>
-    public string? RecommendField { get; init; }
+    /// <summary>If set, resolves (per entity) the room field this step's "recommend"
+    /// side-action should suggest for — evaluated when the player types "recommend".
+    /// Returns null/empty to disable recommend for the current field. A resolver lets a
+    /// generic field-picker flow recommend the field the player actually selected.</summary>
+    public Func<Entity, string?>? RecommendField { get; init; }
 }
 
 public class InfoStep : FlowStepDefinition

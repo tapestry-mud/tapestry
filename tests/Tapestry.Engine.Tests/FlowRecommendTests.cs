@@ -33,7 +33,7 @@ public class FlowRecommendTests
                 new TextStep
                 {
                     Id = "desc",
-                    RecommendField = "description",
+                    RecommendField = _ => "description",
                     Prompt = _ => "Enter the room description:",
                     OnInput = (_, val) => { capturedList.Add(val); }
                 }
@@ -82,5 +82,23 @@ public class FlowRecommendTests
         instance.HandleInput("1");
 
         captured.Should().ContainSingle().Which.Should().Be(FirstDescription);
+    }
+
+    [Fact]
+    public async Task Typing_own_value_while_suggestions_pending_is_accepted_not_reprompted()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+        var (instance, session, conn) = Setup(broker, out var captured);
+
+        instance.Start(session);
+        instance.HandleInput("recommend");
+        await ResumeWhenReady(instance);
+
+        // The prompt promises "or type your own value" — a non-index value must be honored,
+        // not bounced back with "Pick a number from the list".
+        instance.HandleInput("A quiet stone chamber.");
+
+        captured.Should().ContainSingle().Which.Should().Be("A quiet stone chamber.");
     }
 }

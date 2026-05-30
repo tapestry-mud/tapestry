@@ -263,8 +263,25 @@ public class FlowsModule : IJintApiModule
         var secretVal = obj.Get("secret");
         var secret = secretVal.Type == Types.Boolean && (bool)secretVal.ToObject()!;
 
+        // recommend_field may be a literal string OR a function (entity) => fieldName, so a
+        // generic field-picker flow can recommend the field the player just selected.
         var recommendFieldVal = obj.Get("recommend_field");
-        string? recommendField = recommendFieldVal.Type == Types.String ? recommendFieldVal.ToString() : null;
+        Func<Entity, string?>? recommendField = null;
+        if (recommendFieldVal.Type == Types.String)
+        {
+            var fieldName = recommendFieldVal.ToString();
+            recommendField = _ => fieldName;
+        }
+        else if (recommendFieldVal.Type != Types.Undefined && recommendFieldVal.Type != Types.Null)
+        {
+            var captured = recommendFieldVal;
+            recommendField = entity =>
+            {
+                var entityProxy = BuildEntityProxy(jint, entity);
+                var res = jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
+                return res.Type == Types.String ? res.ToString() : null;
+            };
+        }
 
         var onInputJs = obj.Get("on_input");
         Action<Entity, string> onInput = (entity, value) =>
