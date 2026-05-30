@@ -238,6 +238,19 @@ public class ApiWorld
         return room?.Area;
     }
 
+    public string[] GetRoomsInArea(string area)
+    {
+        if (string.IsNullOrEmpty(area))
+        {
+            return [];
+        }
+
+        return _world.AllRooms
+            .Where(r => string.Equals(r.Area, area, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Id)
+            .ToArray();
+    }
+
     public string[] GetRoomTags(string roomId)
     {
         var room = _world.GetRoom(roomId);

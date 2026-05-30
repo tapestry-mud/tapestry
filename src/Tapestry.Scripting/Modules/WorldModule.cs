@@ -79,6 +79,7 @@ public class WorldModule : IJintApiModule
             sendMotd = new Action<string>(_messaging.SendMotd),
             getRoomTags = new Func<string, string[]>(_worldOps.GetRoomTags),
             getRoomArea = new Func<string, string?>(_worldOps.GetRoomArea),
+            getRoomsInArea = new Func<string, string[]>(_worldOps.GetRoomsInArea),
             getRoomProperties = new Func<string, object>(_worldOps.GetRoomProperties),
             getRoomOccupants = new Func<string, object[]>(_worldOps.GetRoomOccupants),
             getRoomBiome = new Func<string, string?>(roomId =>
