@@ -917,4 +917,86 @@ public class SpawnManagerTests
         chest.Contents.Count(e =>
             e.GetProperty<string>(CommonProperties.TemplateId) == "core:coin").Should().Be(2);
     }
+
+    private static SpawnManager BuildNestedManager(World world, EventBus eventBus)
+    {
+        var itemRegistry = new ItemRegistry();
+        foreach (var (id, type) in new[]
+        {
+            ("core:ring", "item"),
+            ("core:box", "container"),
+            ("core:vault", "container")
+        })
+        {
+            itemRegistry.Register(new ItemTemplate
+            {
+                Id = id,
+                Name = id,
+                Type = type,
+                Properties = new Dictionary<string, object?>(),
+                Modifiers = new List<ItemTemplate.ModifierEntry>()
+            });
+        }
+        // vault authors: box -> ring (inline subtree)
+        itemRegistry.GetTemplate("core:vault")!.Contents = new List<ItemTemplate.ContentEntry>
+        {
+            new()
+            {
+                TemplateId = "core:box",
+                Contents = new List<ItemTemplate.ContentEntry>
+                {
+                    new() { TemplateId = "core:ring" }
+                }
+            }
+        };
+
+        var manager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
+        manager.RegisterRoomFixtures("test-area", "core:test-room", new[] { "core:vault" });
+        return manager;
+    }
+
+    [Fact]
+    public void RestorePlacements_Nested_RebuildsLootedInnerSubtree()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var manager = BuildNestedManager(world, eventBus);
+
+        manager.RestorePlacements("test-area"); // seed vault -> box -> ring
+        var room = world.GetRoom("core:test-room")!;
+        var vault = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:vault");
+        var box = vault.Contents.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:box");
+
+        // Loot the box (its ring goes with it).
+        vault.RemoveFromContents(box);
+        vault.Contents.Should().BeEmpty();
+
+        manager.RestorePlacements("test-area");
+
+        var newBox = vault.Contents.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:box");
+        newBox.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:ring").Should().Be(1);
+    }
+
+    [Fact]
+    public void RestorePlacements_Nested_RecreatesAbsentContainerWithFullSubtree()
+    {
+        var world = CreateWorldWithRoom("core:test-room");
+        var eventBus = new EventBus();
+        var manager = BuildNestedManager(world, eventBus);
+
+        // Nothing seeded yet: vault, box, ring all absent.
+        manager.RestorePlacements("test-area");
+
+        var room = world.GetRoom("core:test-room")!;
+        var vault = room.Entities.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:vault");
+        var box = vault.Contents.Single(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:box");
+        box.Contents.Count(e =>
+            e.GetProperty<string>(CommonProperties.TemplateId) == "core:ring").Should().Be(1);
+    }
 }
