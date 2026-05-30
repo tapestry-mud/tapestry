@@ -143,6 +143,7 @@ public class PersistenceSection
 {
     public string SavePath { get; set; } = "./data/saves";
     public string ConnectionsPath { get; set; } = "./data/connections";
+    public string RoomsPath { get; set; } = "./data/areas";
     public int AutosaveInterval { get; set; } = 300;
     public int PasswordMinLength { get; set; } = 6;
     public int MaxLoginAttempts { get; set; } = 5;

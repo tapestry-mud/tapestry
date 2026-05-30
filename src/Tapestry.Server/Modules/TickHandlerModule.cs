@@ -92,6 +92,17 @@ public class TickHandlerModule : IGameModule
             restConfig: _restConfig);
 
         _gameLoop.RegisterTickHandler("gmcp-vitals-flush", 1, () => _dirtyVitalsBatcher.FlushDirtyVitals());
+
+        // Resume any flow that is awaiting an async result (e.g. a recommend side-action).
+        // TryResumeAsync is a no-op when nothing is pending, so sweeping every session each
+        // tick is cheap; the continuation runs here on the game thread.
+        _gameLoop.RegisterTickHandler("flow-async-resume", 1, () =>
+        {
+            foreach (var session in _sessions.AllSessions)
+            {
+                session.CurrentFlow?.TryResumeAsync();
+            }
+        });
     }
 
     private void RegisterCorpseDecay()

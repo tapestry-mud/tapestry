@@ -10,6 +10,7 @@ using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Authoring;
 using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Services;
@@ -23,6 +24,7 @@ public class ContentLoadingModule : IGameModule
     private readonly PackLoader _packLoader;
     private readonly PackValidator _packValidator;
     private readonly ConnectionLoader _connectionLoader;
+    private readonly AuthoredRoomLoader _authoredRoomLoader;
     private readonly ThemeRegistry _themeRegistry;
     private readonly AbilityCommandBridge _abilityCommandBridge;
     private readonly CommandRegistry _commandRegistry;
@@ -43,6 +45,7 @@ public class ContentLoadingModule : IGameModule
         PackLoader packLoader,
         PackValidator packValidator,
         ConnectionLoader connectionLoader,
+        AuthoredRoomLoader authoredRoomLoader,
         ThemeRegistry themeRegistry,
         AbilityCommandBridge abilityCommandBridge,
         CommandRegistry commandRegistry,
@@ -60,6 +63,7 @@ public class ContentLoadingModule : IGameModule
         _packLoader = packLoader;
         _packValidator = packValidator;
         _connectionLoader = connectionLoader;
+        _authoredRoomLoader = authoredRoomLoader;
         _themeRegistry = themeRegistry;
         _abilityCommandBridge = abilityCommandBridge;
         _commandRegistry = commandRegistry;
@@ -83,6 +87,9 @@ public class ContentLoadingModule : IGameModule
         _distributionService.Initialize(_itemRegistry.AllTemplates);
         _distributionService.SeedAllRooms();
 
+        // Authored rooms (data/areas/<area>/rooms/*.yaml) must exist before connections
+        // wire onto them, and after pack rooms/fixtures have loaded.
+        _authoredRoomLoader.Load();
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd

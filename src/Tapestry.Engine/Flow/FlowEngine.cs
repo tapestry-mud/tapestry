@@ -1,7 +1,9 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Recommend;
 using Tapestry.Engine.Ui;
 using Tapestry.Shared;
 
@@ -19,6 +21,8 @@ public class FlowEngine
     private readonly AlignmentManager _alignmentManager;
     private readonly PlayerCreator _playerCreator;
     private readonly EventBus _eventBus;
+    private readonly RecommendBroker? _recommendBroker;
+    private readonly RoomProjector? _roomProjector;
     private readonly object _commitLock = new();
 
     public string DefaultSpawnRoomId { get; set; } = "tapestry-core:recall";
@@ -39,7 +43,9 @@ public class FlowEngine
         RaceRegistry raceRegistry,
         AlignmentManager alignmentManager,
         PlayerCreator playerCreator,
-        EventBus eventBus)
+        EventBus eventBus,
+        RecommendBroker? recommendBroker = null,
+        RoomProjector? roomProjector = null)
     {
         _registry = registry;
         _sessions = sessions;
@@ -51,6 +57,8 @@ public class FlowEngine
         _alignmentManager = alignmentManager;
         _playerCreator = playerCreator;
         _eventBus = eventBus;
+        _recommendBroker = recommendBroker;
+        _roomProjector = roomProjector;
     }
 
     public void Start(PlayerSession session, string flowId)
@@ -58,7 +66,21 @@ public class FlowEngine
         var definition = _registry.Get(flowId);
         if (definition == null) { return; }
 
-        var instance = new FlowInstance(definition, session.PlayerEntity, _panelRenderer);
+        // Recommend side-action context: project the entity's current room to RoomData.
+        // Only wired when both the broker and projector are available (live engine);
+        // in test/standalone construction these are null and the flow has no recommend.
+        Func<Entity, RoomData>? recommendContext = null;
+        if (_recommendBroker != null && _roomProjector != null)
+        {
+            recommendContext = e =>
+            {
+                var room = !string.IsNullOrEmpty(e.LocationRoomId) ? _world.GetRoom(e.LocationRoomId!) : null;
+                return room != null ? _roomProjector.Project(room) : new RoomData();
+            };
+        }
+
+        var instance = new FlowInstance(
+            definition, session.PlayerEntity, _panelRenderer, _recommendBroker, recommendContext);
         instance.OnCompleted = () => Complete(session);
         instance.OnAborted = reason => Abort(session, reason);
         instance.GmcpSend = GmcpSend;

@@ -41,6 +41,7 @@ public class PackLoader : IPackManifestProvider
     private readonly QuestRegistry _questRegistry;
     private readonly ScheduleModule _scheduleModule;
     private readonly InteropCallSiteRegistry _callSites;
+    private readonly LoadedPackNamespaces _loadedNamespaces;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -60,7 +61,8 @@ public class PackLoader : IPackManifestProvider
                      HelpService helpService, TagRegistry tagRegistry,
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
                      ScheduleModule scheduleModule,
-                     InteropCallSiteRegistry callSites)
+                     InteropCallSiteRegistry callSites,
+                     LoadedPackNamespaces loadedNamespaces)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -78,6 +80,7 @@ public class PackLoader : IPackManifestProvider
         _questRegistry = questRegistry;
         _scheduleModule = scheduleModule;
         _callSites = callSites;
+        _loadedNamespaces = loadedNamespaces;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -116,6 +119,10 @@ public class PackLoader : IPackManifestProvider
 
         _logger.LogInformation("Loading declarations for pack: {Name} v{Version}", manifest.Name, manifest.Version);
         LoadedPacks.Add(manifest);
+        // Record the live namespace so runtime authoring calls (createRoom, post-boot)
+        // can validate against the set of actually-loaded packs. Shares one mutable set
+        // with WorldAuthoringModule (see LoadedPackNamespaces).
+        _loadedNamespaces.Add(packNamespace);
 
         if (!string.IsNullOrEmpty(manifest.Content.Motd) && _packMotd == null)
         {

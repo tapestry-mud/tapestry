@@ -318,7 +318,8 @@ public class PackLoaderTests
         var scheduleModule = new ScheduleModule(gameLoop, world);
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
-            propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry());
+            propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry(),
+            new LoadedPackNamespaces());
 
         return (world, itemRegistry, spawnManager, loader);
     }
@@ -573,7 +574,8 @@ public class PackLoaderTests
 
         return new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
-            propertyRegistry, questRegistry, scheduleModule, registry);
+            propertyRegistry, questRegistry, scheduleModule, registry,
+            new LoadedPackNamespaces());
     }
 
     [Fact]

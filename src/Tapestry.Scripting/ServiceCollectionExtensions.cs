@@ -3,9 +3,13 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Recommend;
 using Tapestry.Engine.Tags;
+using Tapestry.Scripting.Authoring;
 using Tapestry.Scripting.Connections;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
@@ -109,6 +113,50 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<RoomsModule>();
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<RoomsModule>());
+
+        // Authoring keystone — recommend seam, room projection, authored-room boot
+        // re-apply, and the in-MUD authoring JS module (tapestry.authoring.*).
+        services.AddSingleton<RecommendBroker>(_ =>
+        {
+            var broker = new RecommendBroker();
+            broker.Register(new StaticStubRecommendProvider());
+            return broker;
+        });
+
+        // AttributeWriter is registry-driven (PropertyRegistry + TagRegistry). Not
+        // registered by AddTapestryEngine, so register it here for the authoring module.
+        services.TryAddSingleton<AttributeWriter>();
+
+        services.AddSingleton<RoomProjector>();
+
+        // Shared live set of loaded pack namespaces. PackLoader fills it during load;
+        // WorldAuthoringModule holds the SAME HashSet so a post-boot createRoom sees it.
+        services.AddSingleton<LoadedPackNamespaces>();
+
+        services.AddSingleton<AuthoredRoomLoader>(sp =>
+        {
+            var world = sp.GetRequiredService<World>();
+            var logger = sp.GetRequiredService<ILogger<AuthoredRoomLoader>>();
+            var config = sp.GetRequiredService<ServerConfig>();
+            var roomsRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory);
+            return new AuthoredRoomLoader(
+                world, logger, roomsRoot,
+                sp.GetRequiredService<PropertyRegistry>(),
+                sp.GetRequiredService<TagRegistry>());
+        });
+
+        services.AddSingleton<WorldAuthoringModule>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            var roomsRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory);
+            return new WorldAuthoringModule(
+                sp.GetRequiredService<World>(),
+                sp.GetRequiredService<RoomProjector>(),
+                sp.GetRequiredService<AttributeWriter>(),
+                roomsRoot,
+                sp.GetRequiredService<LoadedPackNamespaces>().Namespaces);
+        });
+        services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 
         services.AddSingleton<FsModule>(sp =>
         {
