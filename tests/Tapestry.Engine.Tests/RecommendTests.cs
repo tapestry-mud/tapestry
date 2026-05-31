@@ -70,4 +70,11 @@ public class RecommendTests
         var withHint = new RecommendRequest("description", new RoomData(), "a hallway to the gate");
         Assert.Equal("a hallway to the gate", withHint.Hint);
     }
+
+    [Fact]
+    public void Stub_is_enabled_by_default_and_can_be_constructed_disabled()
+    {
+        Assert.True(new StaticStubRecommendProvider(delayMs: 0).IsEnabled);
+        Assert.False(new StaticStubRecommendProvider(delayMs: 0, enabled: false).IsEnabled);
+    }
 }

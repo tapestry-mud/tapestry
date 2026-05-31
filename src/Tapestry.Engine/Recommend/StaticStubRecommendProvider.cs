@@ -8,11 +8,15 @@ namespace Tapestry.Engine.Recommend;
 public sealed class StaticStubRecommendProvider : IRecommendProvider
 {
     private readonly int _delayMs;
+    private readonly bool _enabled;
 
-    public StaticStubRecommendProvider(int delayMs = 2000)
+    public StaticStubRecommendProvider(int delayMs = 2000, bool enabled = true)
     {
         _delayMs = delayMs;
+        _enabled = enabled;
     }
+
+    public bool IsEnabled => _enabled;
 
     public async Task<RecommendResult> RecommendAsync(RecommendRequest request)
     {

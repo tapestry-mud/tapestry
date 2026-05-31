@@ -15,5 +15,10 @@ public sealed record RecommendResult(IReadOnlyList<string> Suggestions)
 /// The real OpenAPI/LLM provider swaps in here with no caller changes.</summary>
 public interface IRecommendProvider
 {
+    /// <summary>Can this provider produce real suggestions right now? False when
+    /// misconfigured/unusable (no key where one is required, missing base_url/model, ...).
+    /// A cheap synchronous check — no I/O; never pings the endpoint.</summary>
+    bool IsEnabled { get; }
+
     Task<RecommendResult> RecommendAsync(RecommendRequest request);
 }
