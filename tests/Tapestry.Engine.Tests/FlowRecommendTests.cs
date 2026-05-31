@@ -84,6 +84,25 @@ public class FlowRecommendTests
         captured.Should().ContainSingle().Which.Should().Be(FirstDescription);
     }
 
+    [Theory]
+    [InlineData("~")]
+    [InlineData("rec")]
+    [InlineData("RECOMMEND")]
+    public void Recommend_aliases_trigger_the_side_action(string trigger)
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+        var (instance, session, _) = Setup(broker, out _);
+
+        instance.Start(session);
+        instance.HandleInput(trigger);
+
+        // Triggering the async side-action puts the flow into the awaiting-async state
+        // (or it already completed at delayMs:0 — either way a pending async was set).
+        var fired = instance.IsAwaitingAsync || instance.TryResumeAsync();
+        fired.Should().BeTrue();
+    }
+
     [Fact]
     public async Task Typing_own_value_while_suggestions_pending_is_accepted_not_reprompted()
     {

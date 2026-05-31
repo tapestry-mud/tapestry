@@ -184,8 +184,12 @@ public class FlowInstance
 
         // (2) Recommend side-action — resolves the field per-entity so a generic
         // field-picker recommends the field the player actually selected.
-        if (step.RecommendField != null && _recommend != null && _recommendContext != null
-            && string.Equals(input.Trim(), "recommend", StringComparison.OrdinalIgnoreCase))
+        // Triggers: "recommend", the short alias "rec", or the "~" symbol.
+        var trimmed = input.Trim();
+        var isRecommend = string.Equals(trimmed, "recommend", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "rec", StringComparison.OrdinalIgnoreCase)
+            || trimmed == "~";
+        if (step.RecommendField != null && _recommend != null && _recommendContext != null && isRecommend)
         {
             var field = step.RecommendField(_entity);
             if (!string.IsNullOrEmpty(field))
