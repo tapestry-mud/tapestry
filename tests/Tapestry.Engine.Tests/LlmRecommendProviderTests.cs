@@ -1,4 +1,8 @@
 using System;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Tapestry.Authoring;
@@ -100,5 +104,53 @@ public class LlmRecommendProviderTests
         var provider = Provider(new FakeLlmClient(),
             Config(enabled: enabled, baseUrl: baseUrl, model: model, apiKey: apiKey, requiresKey: requiresKey));
         Assert.Equal(expected, provider.IsEnabled);
+    }
+}
+
+public class OpenAiCompatibleLlmClientTests
+{
+    // Captures the outgoing request and returns a canned chat-completions response.
+    private sealed class CapturingHandler : HttpMessageHandler
+    {
+        private readonly string _responseContent;
+        public HttpRequestMessage? LastRequest { get; private set; }
+        public string? LastBody { get; private set; }
+
+        public CapturingHandler(string assistantText)
+        {
+            _responseContent = JsonSerializer.Serialize(new
+            {
+                choices = new[] { new { message = new { role = "assistant", content = assistantText } } }
+            });
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastRequest = request;
+            LastBody = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(_responseContent, Encoding.UTF8, "application/json")
+            };
+        }
+    }
+
+    [Fact]
+    public async Task Posts_to_chat_completions_with_bearer_and_parses_sanitized_content()
+    {
+        var handler = new CapturingHandler("<|im_start|>A still, vaulted hall.<|im_end|>");
+        var client = new OpenAiCompatibleLlmClient(new HttpClient(handler));
+        var opts = new LlmOptions("qwen2.5:7b", 0.8, 30, "http://localhost:11434/v1", "sk-test");
+
+        var text = await client.CompleteAsync("sys", "usr", opts);
+
+        Assert.Equal("A still, vaulted hall.", text); // sanitized + trimmed
+        Assert.Equal("http://localhost:11434/v1/chat/completions", handler.LastRequest!.RequestUri!.ToString());
+        Assert.Equal("Bearer", handler.LastRequest.Headers.Authorization!.Scheme);
+        Assert.Equal("sk-test", handler.LastRequest.Headers.Authorization.Parameter);
+        Assert.Contains("\"model\":\"qwen2.5:7b\"", handler.LastBody);
+        Assert.Contains("\"sys\"", handler.LastBody);
+        Assert.Contains("\"usr\"", handler.LastBody);
     }
 }
