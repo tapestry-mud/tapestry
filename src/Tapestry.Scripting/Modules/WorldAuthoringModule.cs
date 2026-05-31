@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Recommend;
 using Tapestry.Shared;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -25,6 +26,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly AttributeWriter _writer;
     private readonly string _root;
     private readonly HashSet<string> _loadedPackNamespaces;
+    private readonly RecommendBroker? _recommend;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
     // recommend-only Neighbors list (cleared before serialization) and any other
@@ -41,13 +43,15 @@ public sealed class WorldAuthoringModule : IJintApiModule
         RoomProjector projector,
         AttributeWriter writer,
         string root,
-        HashSet<string> loadedPackNamespaces)
+        HashSet<string> loadedPackNamespaces,
+        RecommendBroker? recommend = null)
     {
         _world = world;
         _projector = projector;
         _writer = writer;
         _root = root;
         _loadedPackNamespaces = loadedPackNamespaces;
+        _recommend = recommend;
     }
 
     public string Namespace => "authoring";
@@ -63,7 +67,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
             removeRoomExit = new Func<string, string, bool>(RemoveRoomExit),
             setRoomAttribute = new Func<string, string, JsValue, string>(SetRoomAttribute),
             clearRoomAttribute = new Func<string, string, string>(ClearRoomAttribute),
-            deleteRoom = new Func<string, bool>(DeleteRoom)
+            deleteRoom = new Func<string, bool>(DeleteRoom),
+            recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true)
         };
     }
 
