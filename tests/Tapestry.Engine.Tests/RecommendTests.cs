@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Tapestry.Engine.Authoring;
@@ -76,5 +77,55 @@ public class RecommendTests
     {
         Assert.True(new StaticStubRecommendProvider(delayMs: 0).IsEnabled);
         Assert.False(new StaticStubRecommendProvider(delayMs: 0, enabled: false).IsEnabled);
+    }
+
+    // A provider that records whether RecommendAsync was called — proves the broker
+    // short-circuits without touching the provider when disabled.
+    private sealed class CountingProvider : IRecommendProvider
+    {
+        public int Calls { get; private set; }
+        public bool IsEnabled { get; }
+        public CountingProvider(bool isEnabled) { IsEnabled = isEnabled; }
+        public Task<RecommendResult> RecommendAsync(RecommendRequest request)
+        {
+            Calls++;
+            return Task.FromResult(new RecommendResult(new List<string> { "x" }));
+        }
+    }
+
+    [Fact]
+    public void Broker_is_disabled_with_no_provider()
+    {
+        Assert.False(new RecommendBroker().IsEnabled);
+    }
+
+    [Fact]
+    public void Broker_is_enabled_when_provider_is_enabled()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new CountingProvider(isEnabled: true));
+        Assert.True(broker.IsEnabled);
+    }
+
+    [Fact]
+    public void Broker_SetEnabled_false_overrides_an_enabled_provider()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new CountingProvider(isEnabled: true));
+        broker.SetEnabled(false);
+        Assert.False(broker.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Broker_short_circuits_to_empty_without_calling_disabled_provider()
+    {
+        var broker = new RecommendBroker();
+        var provider = new CountingProvider(isEnabled: false);
+        broker.Register(provider);
+
+        var result = await broker.RecommendAsync(new RecommendRequest("name", new RoomData()));
+
+        Assert.Empty(result.Suggestions);
+        Assert.Equal(0, provider.Calls);
     }
 }
