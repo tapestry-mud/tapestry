@@ -107,6 +107,37 @@ public class LlmRecommendProviderTests
     }
 }
 
+public class LlmProviderFactoryTests
+{
+    private static RecommendLlmConfig Cfg(bool enabled, bool useStub) =>
+        new(Enabled: enabled, UseStub: useStub, BaseUrl: "http://x/v1", Model: "m", ApiKey: "",
+            RequiresKey: false, Temperature: 0.8, MaxSentences: 2, Candidates: 3, TimeoutSeconds: 30);
+
+    [Fact]
+    public void Enabled_binds_the_llm_provider()
+    {
+        var p = LlmProviderFactory.Create(Cfg(enabled: true, useStub: false),
+            RecommendPromptConfig.Default, () => new System.Net.Http.HttpClient());
+        Assert.IsType<LlmRecommendProvider>(p);
+    }
+
+    [Fact]
+    public void Disabled_without_stub_binds_nothing()
+    {
+        var p = LlmProviderFactory.Create(Cfg(enabled: false, useStub: false),
+            RecommendPromptConfig.Default, () => new System.Net.Http.HttpClient());
+        Assert.Null(p);
+    }
+
+    [Fact]
+    public void Disabled_with_use_stub_binds_the_stub()
+    {
+        var p = LlmProviderFactory.Create(Cfg(enabled: false, useStub: true),
+            RecommendPromptConfig.Default, () => new System.Net.Http.HttpClient());
+        Assert.IsType<Tapestry.Engine.Recommend.StaticStubRecommendProvider>(p);
+    }
+}
+
 public class OpenAiCompatibleLlmClientTests
 {
     // Captures the outgoing request and returns a canned chat-completions response.
