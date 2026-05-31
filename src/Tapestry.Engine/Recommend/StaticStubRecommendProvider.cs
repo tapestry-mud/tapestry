@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Tapestry.Engine.Recommend;
@@ -9,7 +7,6 @@ namespace Tapestry.Engine.Recommend;
 /// Deliberate non-blocking delay (Task.Delay) — NEVER Thread.Sleep on the tick thread.</summary>
 public sealed class StaticStubRecommendProvider : IRecommendProvider
 {
-    private static readonly string[] AllDirections = { "north", "south", "east", "west", "up", "down" };
     private readonly int _delayMs;
 
     public StaticStubRecommendProvider(int delayMs = 2000)
@@ -37,10 +34,7 @@ public sealed class StaticStubRecommendProvider : IRecommendProvider
                     "Roots knuckle up through the earth, and somewhere water trickles unseen.",
                 });
             case "exits":
-                var used = new HashSet<string>(
-                    request.Context.Exits.Keys.Select(k => k.ToLowerInvariant()),
-                    StringComparer.OrdinalIgnoreCase);
-                return new RecommendResult(AllDirections.Where(d => !used.Contains(d)).ToList());
+                return ExitHeuristic.Suggest(request.Context);
             default:
                 return RecommendResult.Empty;
         }

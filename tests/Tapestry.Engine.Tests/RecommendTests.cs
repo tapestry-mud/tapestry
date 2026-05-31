@@ -45,6 +45,23 @@ public class RecommendTests
     }
 
     [Fact]
+    public void ExitHeuristic_offers_unused_directions_only()
+    {
+        var data = new RoomData();
+        data.Exits["north"] = "ns:x";
+        data.Exits["UP"] = "ns:y"; // case-insensitive
+
+        var result = Tapestry.Engine.Recommend.ExitHeuristic.Suggest(data);
+
+        Assert.DoesNotContain("north", result.Suggestions);
+        Assert.DoesNotContain("up", result.Suggestions);
+        Assert.Contains("south", result.Suggestions);
+        Assert.Contains("east", result.Suggestions);
+        Assert.Contains("west", result.Suggestions);
+        Assert.Contains("down", result.Suggestions);
+    }
+
+    [Fact]
     public void RecommendRequest_hint_defaults_to_null_and_round_trips()
     {
         var noHint = new RecommendRequest("description", new RoomData());
