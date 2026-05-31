@@ -106,10 +106,24 @@ public class DatabaseSection
 
 public class LlmSection
 {
-    public string Provider { get; set; } = "none";
-    public string ApiKeyEnv { get; set; } = "";
-    public bool BuilderEnabled { get; set; }
-    public bool FlavorEnabled { get; set; }
+    /// <summary>Off by default (the prod droplet can't reach a local GPU).</summary>
+    public bool Enabled { get; set; } = false;
+    /// <summary>Dev/demo only: bind the static stub when enabled:false.</summary>
+    public bool UseStub { get; set; } = false;
+    public string BaseUrl { get; set; } = "http://localhost:11434/v1";
+    public string Model { get; set; } = "qwen2.5:7b";
+    /// <summary>Name of the env var holding the API key. The key itself never lives in YAML.</summary>
+    public string ApiKeyEnv { get; set; } = "TAPESTRY_LLM_API_KEY";
+    /// <summary>True for OpenAI/Anthropic — provider reports IsEnabled:false if the env key is missing.</summary>
+    public bool RequiresKey { get; set; } = false;
+    public double Temperature { get; set; } = 0.8;
+    public int MaxSentences { get; set; } = 2;
+    public int Candidates { get; set; } = 3;
+    public int TimeoutSeconds { get; set; } = 30;
+    public string SystemPrompt { get; set; } =
+        "You are a terse MUD area author. Second person, present tense. No preamble, no 'Sure!'.";
+    /// <summary>Optional per-field task-line overrides; empty means use the built-in defaults.</summary>
+    public Dictionary<string, string> TaskLines { get; set; } = new();
 }
 
 public class LoggingSection
