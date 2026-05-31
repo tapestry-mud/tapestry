@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Tapestry.Authoring\Tapestry.Authoring.csproj" />
     <ProjectReference Include="..\..\src\Tapestry.Engine\Tapestry.Engine.csproj" />
     <ProjectReference Include="..\..\src\Tapestry.Server\Tapestry.Server.csproj" />
     <ProjectReference Include="..\..\src\Tapestry.Shared\Tapestry.Shared.csproj" />
