@@ -29,12 +29,16 @@ public class AuthoringDiResolutionTests
     }
 
     [Fact]
-    public void RecommendBroker_resolves_with_stub_bound()
+    public void RecommendBroker_resolves_but_binds_nothing_by_default()
     {
+        // Default config has llm.enabled:false and llm.use_stub:false, so the broker binds
+        // no provider. The stub is no longer the unconditional prod fallback (see plan Task 13);
+        // it's a test fixture + opt-in use_stub escape hatch.
         using var provider = BuildProvider();
         var broker = provider.GetRequiredService<RecommendBroker>();
         Assert.NotNull(broker);
-        Assert.True(broker.HasProvider);
+        Assert.False(broker.HasProvider);
+        Assert.False(broker.IsEnabled);
     }
 
     [Fact]

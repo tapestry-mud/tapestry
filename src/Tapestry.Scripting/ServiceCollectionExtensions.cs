@@ -1,6 +1,9 @@
+using System;
+using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Tapestry.Authoring;
 using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
@@ -116,10 +119,16 @@ public static class ServiceCollectionExtensions
 
         // Authoring keystone — recommend seam, room projection, authored-room boot
         // re-apply, and the in-MUD authoring JS module (tapestry.authoring.*).
-        services.AddSingleton<RecommendBroker>(_ =>
+        services.AddSingleton<RecommendBroker>(sp =>
         {
             var broker = new RecommendBroker();
-            broker.Register(new StaticStubRecommendProvider());
+            var llm = sp.GetRequiredService<ServerConfig>().Llm;
+            var provider = BuildRecommendProvider(llm, Environment.GetEnvironmentVariable);
+            if (provider != null)
+            {
+                broker.Register(provider);
+            }
+            // else: nothing bound -> broker.IsEnabled == false -> consumers hide the affordance.
             return broker;
         });
 
@@ -166,6 +175,37 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FsModule>());
 
         return services;
+    }
+
+    /// <summary>Maps the server's llm: config to the Authoring provider config (resolving the
+    /// API key from the environment, never YAML) and returns the config-gated provider, or null
+    /// when nothing should be bound. <paramref name="getEnv"/> is injectable for tests.</summary>
+    internal static IRecommendProvider? BuildRecommendProvider(LlmSection llm, Func<string, string?> getEnv)
+    {
+        var apiKey = string.IsNullOrEmpty(llm.ApiKeyEnv) ? "" : (getEnv(llm.ApiKeyEnv) ?? "");
+
+        var llmConfig = new RecommendLlmConfig(
+            Enabled: llm.Enabled,
+            UseStub: llm.UseStub,
+            BaseUrl: llm.BaseUrl,
+            Model: llm.Model,
+            ApiKey: apiKey,
+            RequiresKey: llm.RequiresKey,
+            Temperature: llm.Temperature,
+            MaxSentences: llm.MaxSentences,
+            Candidates: llm.Candidates,
+            TimeoutSeconds: llm.TimeoutSeconds);
+
+        var promptConfig = new RecommendPromptConfig(
+            SystemPrompt: string.IsNullOrWhiteSpace(llm.SystemPrompt)
+                ? RecommendPromptConfig.DefaultSystemPrompt
+                : llm.SystemPrompt,
+            TaskLines: (llm.TaskLines != null && llm.TaskLines.Count > 0)
+                ? llm.TaskLines
+                : RecommendPromptConfig.DefaultTaskLines,
+            MaxSentences: llm.MaxSentences);
+
+        return LlmProviderFactory.Create(llmConfig, promptConfig, () => new HttpClient());
     }
 
     private static string ResolveDataPath(string configuredPath, string configDirectory)
