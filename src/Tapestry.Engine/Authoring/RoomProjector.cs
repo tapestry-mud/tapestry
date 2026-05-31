@@ -71,6 +71,7 @@ public sealed class RoomProjector
                     Id = neighbor.Id,
                     Name = neighbor.Name,
                     Biome = neighbor.Tags.FirstOrDefault(t => biomeTagNames.Contains(t)),
+                    Description = neighbor.Description,
                 });
             }
         }

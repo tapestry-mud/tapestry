@@ -34,7 +34,8 @@ public class AuthoringPromptTests
         ctx.Exits["south"] = "castle:courtyard"; // dug but unnamed (no neighbor entry)
         ctx.Neighbors.Add(new RoomNeighbor
         {
-            Direction = "north", Id = "castle:gate", Name = "Castle Gate", Biome = "stone"
+            Direction = "north", Id = "castle:gate", Name = "Castle Gate", Biome = "stone",
+            Description = "A heavy iron portcullis bars the way, its bars slick with cold dew."
         });
         return ctx;
     }
@@ -94,5 +95,46 @@ public class AuthoringPromptTests
         var (_, user) = builder.Build("description", ctx, "a hall");
 
         Assert.Contains("Name: The Gate Approach", user);
+    }
+
+    [Fact]
+    public void Builder_includes_neighbor_description_snippet_and_guidance()
+    {
+        var builder = new RoomPromptBuilder(RecommendPromptConfig.Default);
+        var (_, user) = builder.Build("description", CastleContext(), null);
+
+        Assert.Contains("Castle Gate", user);
+        Assert.Contains("A heavy iron portcullis bars the way", user);     // neighbor snippet present
+        Assert.Contains(RecommendPromptConfig.DefaultNeighborGuidance, user); // stay-on-theme guidance present
+    }
+
+    [Fact]
+    public void Builder_truncates_long_neighbor_description_to_first_sentence()
+    {
+        var ctx = new RoomData { Id = "a:1", Area = "a" };
+        ctx.Exits["east"] = "a:2";
+        ctx.Neighbors.Add(new RoomNeighbor
+        {
+            Direction = "east", Id = "a:2", Name = "Hall",
+            Description = "Neon light floods the dance floor. A second sentence that must not appear at all."
+        });
+        var builder = new RoomPromptBuilder(RecommendPromptConfig.Default);
+        var (_, user) = builder.Build("description", ctx, null);
+
+        Assert.Contains("Neon light floods the dance floor.", user);
+        Assert.DoesNotContain("must not appear", user);
+    }
+
+    [Fact]
+    public void Builder_omits_guidance_when_no_neighbor_has_a_description()
+    {
+        var ctx = new RoomData { Id = "a:1", Area = "a" };
+        ctx.Exits["east"] = "a:2";
+        ctx.Neighbors.Add(new RoomNeighbor { Direction = "east", Id = "a:2", Name = "Plain Room" }); // no Description
+        var builder = new RoomPromptBuilder(RecommendPromptConfig.Default);
+        var (_, user) = builder.Build("description", ctx, null);
+
+        Assert.Contains("Plain Room", user);
+        Assert.DoesNotContain(RecommendPromptConfig.DefaultNeighborGuidance, user);
     }
 }

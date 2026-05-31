@@ -124,6 +124,8 @@ public class LlmSection
         "You are a terse MUD area author. Second person, present tense. No preamble, no 'Sure!'.";
     /// <summary>Optional per-field task-line overrides; empty means use the built-in defaults.</summary>
     public Dictionary<string, string> TaskLines { get; set; } = new();
+    /// <summary>Instruction appended after neighbor context: stay on-theme but make the room distinct. Empty = built-in default.</summary>
+    public string NeighborGuidance { get; set; } = "";
 }
 
 public class LoggingSection

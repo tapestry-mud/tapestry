@@ -53,4 +53,27 @@ public class ServerConfigLlmTests
     {
         new ServerConfig().Llm.Enabled.Should().BeFalse();
     }
+
+    [Fact]
+    public void Llm_neighbor_guidance_deserializes_from_snake_case()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-llm-cfg-ng-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "server.yaml");
+        File.WriteAllText(path, """
+            llm:
+              enabled: true
+              neighbor_guidance: "Stay on theme, but make it yours."
+            """);
+
+        try
+        {
+            var config = ServerConfig.Load(path);
+            config.Llm.NeighborGuidance.Should().Be("Stay on theme, but make it yours.");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
 }

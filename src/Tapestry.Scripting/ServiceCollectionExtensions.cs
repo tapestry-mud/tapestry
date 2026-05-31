@@ -204,7 +204,10 @@ public static class ServiceCollectionExtensions
             TaskLines: (llm.TaskLines != null && llm.TaskLines.Count > 0)
                 ? llm.TaskLines
                 : RecommendPromptConfig.DefaultTaskLines,
-            MaxSentences: llm.MaxSentences);
+            MaxSentences: llm.MaxSentences,
+            NeighborGuidance: string.IsNullOrWhiteSpace(llm.NeighborGuidance)
+                ? RecommendPromptConfig.DefaultNeighborGuidance
+                : llm.NeighborGuidance);
 
         return LlmProviderFactory.Create(llmConfig, promptConfig, () => new HttpClient());
     }

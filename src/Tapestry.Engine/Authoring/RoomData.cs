@@ -30,4 +30,6 @@ public sealed class RoomNeighbor
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string? Biome { get; set; }
+    /// <summary>The neighbor's description (recommend context only) — lets adjacency propagate theme.</summary>
+    public string? Description { get; set; }
 }

@@ -47,4 +47,20 @@ public class RoomProjectorTests
         Assert.Single(data.Neighbors);
         Assert.Equal("North Room", data.Neighbors[0].Name);
     }
+
+    [Fact]
+    public void Projects_neighbor_description_into_roomdata()
+    {
+        var world = new World();
+        var neighbor = new Room("ns:n2", "Disco Hall", "Neon light floods the dance floor.");
+        var room = new Room("ns:r2", "Corridor", "A narrow corridor.") { Area = "ns-area" };
+        room.SetExit(Direction.East, new Exit("ns:n2"));
+        world.AddRoom(neighbor);
+        world.AddRoom(room);
+
+        var data = BuildProjector(world).Project(room);
+
+        Assert.Single(data.Neighbors);
+        Assert.Equal("Neon light floods the dance floor.", data.Neighbors[0].Description);
+    }
 }
