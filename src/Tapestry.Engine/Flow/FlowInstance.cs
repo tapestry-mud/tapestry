@@ -182,26 +182,36 @@ public class FlowInstance
             _pendingSuggestions = null;
         }
 
-        // (2) Recommend side-action — resolves the field per-entity so a generic
-        // field-picker recommends the field the player actually selected.
-        // Triggers: "recommend", the short alias "rec", or the "~" symbol.
+        // (2) Recommend side-action — resolves the field per-entity so a generic field-picker
+        // recommends the field the player actually selected. The "~" sigil is the ONLY trigger;
+        // text after "~" (trimmed) is the author's intent hint. Anything not starting with "~"
+        // is a literal field value.
         var trimmed = input.Trim();
-        var isRecommend = string.Equals(trimmed, "recommend", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "rec", StringComparison.OrdinalIgnoreCase)
-            || trimmed == "~";
+        var isRecommend = trimmed.StartsWith("~");
         if (step.RecommendField != null && _recommend != null && _recommendContext != null && isRecommend)
         {
-            var field = step.RecommendField(_entity);
-            if (!string.IsNullOrEmpty(field))
+            if (!_recommend.IsEnabled)
             {
-                var request = new RecommendRequest(field, _recommendContext(_entity));
-                _session?.SendLine("Thinking...");
-                SuspendOnAsync(
-                    _recommend.RecommendAsync(request).ContinueWith(t =>
-                        t.Status == TaskStatus.RanToCompletion ? (object?)t.Result : null),
-                    result => OnRecommendComplete(step, result as RecommendResult));
+                _session?.SendLine("Recommendation is currently unavailable. Enter a value:");
                 return;
             }
+            var field = step.RecommendField(_entity);
+            if (string.IsNullOrEmpty(field))
+            {
+                // The step opted into recommend, but not for THIS field (edit-room only
+                // recommends name/description). Don't silently set the field to "~".
+                _session?.SendLine("Recommendation isn't available for this field. Enter a value:");
+                return;
+            }
+            var rest = trimmed[1..].Trim();
+            var hint = string.IsNullOrWhiteSpace(rest) ? null : rest;
+            var request = new RecommendRequest(field, _recommendContext(_entity), hint);
+            _session?.SendLine("Thinking...");
+            SuspendOnAsync(
+                _recommend.RecommendAsync(request).ContinueWith(t =>
+                    t.Status == TaskStatus.RanToCompletion ? (object?)t.Result : null),
+                result => OnRecommendComplete(step, result as RecommendResult));
+            return;
         }
 
         if (step.Secret)

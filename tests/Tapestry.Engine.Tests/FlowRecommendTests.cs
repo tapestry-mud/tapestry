@@ -15,7 +15,7 @@ public class FlowRecommendTests
         "Moss carpets the stones underfoot, and the air hangs cool and still.";
 
     private static (FlowInstance instance, PlayerSession session, FakeConnection conn) Setup(
-        RecommendBroker broker, out List<string> captured)
+        RecommendBroker broker, out List<string> captured, Func<Entity, string?>? recommendField = null)
     {
         var capturedList = new List<string>();
         captured = capturedList;
@@ -33,7 +33,7 @@ public class FlowRecommendTests
                 new TextStep
                 {
                     Id = "desc",
-                    RecommendField = _ => "description",
+                    RecommendField = recommendField ?? (_ => "description"),
                     Prompt = _ => "Enter the room description:",
                     OnInput = (_, val) => { capturedList.Add(val); }
                 }
@@ -69,8 +69,8 @@ public class FlowRecommendTests
 
         instance.Start(session);
 
-        // The literal "recommend" triggers the side-action and suspends on the async.
-        instance.HandleInput("recommend");
+        // "~" is the only trigger for the recommend side-action.
+        instance.HandleInput("~");
 
         await ResumeWhenReady(instance);
 
@@ -84,23 +84,37 @@ public class FlowRecommendTests
         captured.Should().ContainSingle().Which.Should().Be(FirstDescription);
     }
 
-    [Theory]
-    [InlineData("~")]
-    [InlineData("rec")]
-    [InlineData("RECOMMEND")]
-    public void Recommend_aliases_trigger_the_side_action(string trigger)
+    [Fact]
+    public void Only_tilde_triggers_the_side_action()
     {
         var broker = new RecommendBroker();
         broker.Register(new StaticStubRecommendProvider(delayMs: 0));
         var (instance, session, _) = Setup(broker, out _);
 
         instance.Start(session);
-        instance.HandleInput(trigger);
+        instance.HandleInput("~");
 
-        // Triggering the async side-action puts the flow into the awaiting-async state
-        // (or it already completed at delayMs:0 — either way a pending async was set).
+        // Triggering the async side-action puts the flow into awaiting-async (or it already
+        // completed at delayMs:0 — either way a pending async was set).
         var fired = instance.IsAwaitingAsync || instance.TryResumeAsync();
         fired.Should().BeTrue();
+    }
+
+    // "rec"/"recommend" are no longer triggers — they are ordinary literal field values.
+    [Theory]
+    [InlineData("rec")]
+    [InlineData("recommend")]
+    public void Former_keyword_aliases_are_now_literal_values(string literal)
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+        var (instance, session, _) = Setup(broker, out var captured);
+
+        instance.Start(session);
+        instance.HandleInput(literal);
+
+        instance.IsAwaitingAsync.Should().BeFalse();                  // no side-action fired
+        captured.Should().ContainSingle().Which.Should().Be(literal); // taken as the field value
     }
 
     [Fact]
@@ -111,7 +125,7 @@ public class FlowRecommendTests
         var (instance, session, conn) = Setup(broker, out var captured);
 
         instance.Start(session);
-        instance.HandleInput("recommend");
+        instance.HandleInput("~");
         await ResumeWhenReady(instance);
 
         // The prompt promises "or type your own value" — a non-index value must be honored,
@@ -119,5 +133,82 @@ public class FlowRecommendTests
         instance.HandleInput("A quiet stone chamber.");
 
         captured.Should().ContainSingle().Which.Should().Be("A quiet stone chamber.");
+    }
+
+    // Records the request the broker received, so we can assert the hint was threaded.
+    private sealed class CapturingProvider : IRecommendProvider
+    {
+        public RecommendRequest? Last { get; private set; }
+        public bool IsEnabled { get; }
+        public CapturingProvider(bool isEnabled = true) { IsEnabled = isEnabled; }
+        public Task<RecommendResult> RecommendAsync(RecommendRequest request)
+        {
+            Last = request;
+            return Task.FromResult(new RecommendResult(new List<string> { "one suggestion" }));
+        }
+    }
+
+    [Fact]
+    public async Task Tilde_threads_trailing_text_as_the_hint()
+    {
+        var provider = new CapturingProvider();
+        var broker = new RecommendBroker();
+        broker.Register(provider);
+        var (instance, session, _) = Setup(broker, out _);
+
+        instance.Start(session);
+        instance.HandleInput("~ a hallway leading to the castle gate");
+        await ResumeWhenReady(instance);
+
+        provider.Last.Should().NotBeNull();
+        provider.Last!.Hint.Should().Be("a hallway leading to the castle gate");
+    }
+
+    [Fact]
+    public async Task Bare_tilde_sends_a_null_hint()
+    {
+        var provider = new CapturingProvider();
+        var broker = new RecommendBroker();
+        broker.Register(provider);
+        var (instance, session, _) = Setup(broker, out _);
+
+        instance.Start(session);
+        instance.HandleInput("~");
+        await ResumeWhenReady(instance);
+
+        provider.Last!.Hint.Should().BeNull();
+    }
+
+    [Fact]
+    public void Tilde_when_broker_disabled_reports_unavailable_and_does_not_fire()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new CapturingProvider(isEnabled: true));
+        broker.SetEnabled(false); // admin gate off
+        var (instance, session, conn) = Setup(broker, out var captured);
+
+        instance.Start(session);
+        instance.HandleInput("~");
+
+        instance.IsAwaitingAsync.Should().BeFalse();               // no async fired
+        conn.SentText.Should().Contain(s => s.Contains("unavailable"));
+        captured.Should().BeEmpty();                               // "~" not consumed as a value
+    }
+
+    [Fact]
+    public void Tilde_on_a_non_recommendable_field_reports_not_available_and_is_not_literal()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new CapturingProvider(isEnabled: true));
+        // This step opted into recommend, but resolves no field for the current selection
+        // (mirrors edit-room.js returning null for anything but name/description).
+        var (instance, session, conn) = Setup(broker, out var captured, recommendField: _ => null);
+
+        instance.Start(session);
+        instance.HandleInput("~ desert");
+
+        instance.IsAwaitingAsync.Should().BeFalse();                        // no async fired
+        conn.SentText.Should().Contain(s => s.Contains("isn't available")); // honest message
+        captured.Should().BeEmpty();                                        // not set to "~ desert"
     }
 }

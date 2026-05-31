@@ -6,7 +6,7 @@ public abstract class FlowStepDefinition
     public Func<Entity, bool>? SkipIf { get; init; }
 
     /// <summary>If set, resolves (per entity) the room field this step's "recommend"
-    /// side-action should suggest for — evaluated when the player types "recommend".
+    /// side-action should suggest for — evaluated when the player types "~".
     /// Returns null/empty to disable recommend for the current field. A resolver lets a
     /// generic field-picker flow recommend the field the player actually selected.</summary>
     public Func<Entity, string?>? RecommendField { get; init; }
