@@ -43,4 +43,14 @@ public class RecommendTests
         Assert.Contains("west", result.Suggestions);
         Assert.Contains("down", result.Suggestions);
     }
+
+    [Fact]
+    public void RecommendRequest_hint_defaults_to_null_and_round_trips()
+    {
+        var noHint = new RecommendRequest("description", new RoomData());
+        Assert.Null(noHint.Hint);
+
+        var withHint = new RecommendRequest("description", new RoomData(), "a hallway to the gate");
+        Assert.Equal("a hallway to the gate", withHint.Hint);
+    }
 }

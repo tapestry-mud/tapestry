@@ -4,7 +4,7 @@ using Tapestry.Engine.Authoring;
 
 namespace Tapestry.Engine.Recommend;
 
-public sealed record RecommendRequest(string Field, RoomData Context);
+public sealed record RecommendRequest(string Field, RoomData Context, string? Hint = null);
 
 public sealed record RecommendResult(IReadOnlyList<string> Suggestions)
 {
