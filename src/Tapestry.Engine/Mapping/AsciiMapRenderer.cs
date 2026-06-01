@@ -107,7 +107,10 @@ public sealed class AsciiMapRenderer
         var labels = new Dictionary<string, char>();
         for (var i = 0; i < planeCells.Count; i++)
         {
-            labels[planeCells[i].Id] = i < LabelChars.Length ? LabelChars[i] : '?';
+            if (!labels.ContainsKey(planeCells[i].Id))
+            {
+                labels[planeCells[i].Id] = i < LabelChars.Length ? LabelChars[i] : '?';
+            }
         }
         return labels;
     }
@@ -190,7 +193,7 @@ public sealed class AsciiMapRenderer
         {
             foreach (var marker in cell.Markers)
             {
-                if (opts.Legend.ContainsKey(marker))
+                if (opts.Legend.TryGetValue(marker, out var glyph) && glyph.Length > 0)
                 {
                     if (!used.Contains(marker))
                     {

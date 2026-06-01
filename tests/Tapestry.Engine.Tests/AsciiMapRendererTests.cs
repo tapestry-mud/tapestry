@@ -62,4 +62,41 @@ public class AsciiMapRendererTests
 
         Assert.Equal("[ ]", result);
     }
+
+    [Fact]
+    public void Empty_legend_glyph_value_is_ignored_not_crashing()
+    {
+        var cells = new[] { Cell("ns:a", "A", 0, 0, markers: new[] { "forest" }) };
+        var map = new AreaMap("ns-area", "ns:a", cells, Array.Empty<string>());
+        var opts = new ViewOptions
+        {
+            Label = LabelMode.Dot,
+            ShowCurrent = false,
+            Legend = new Dictionary<string, string> { ["forest"] = "" },
+        };
+
+        var result = Renderer.Render(map, opts);
+
+        // Empty glyph value: marker can't render, cell falls back to blank, no legend, no crash.
+        Assert.Equal("[ ]", result);
+    }
+
+    [Fact]
+    public void Duplicate_cell_ids_keep_first_label()
+    {
+        // The model doesn't forbid duplicate ids; the renderer's contract is first-seen-wins
+        // (same as position dedup). Both occurrences resolve to the first label.
+        var cells = new[]
+        {
+            Cell("ns:a", "A", 0, 0),
+            Cell("ns:a", "A again", 1, 0),
+        };
+        var map = new AreaMap("ns-area", "ns:a", cells, Array.Empty<string>());
+        var opts = new ViewOptions { Label = LabelMode.Id, ShowCurrent = false };
+
+        var lines = Renderer.Render(map, opts).Split("\r\n");
+
+        // Both cells render with label '1' (first-seen id wins the label assignment).
+        Assert.Equal("[1] [1]", lines[0]);
+    }
 }
