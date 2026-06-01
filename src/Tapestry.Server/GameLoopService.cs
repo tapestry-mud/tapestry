@@ -70,7 +70,7 @@ public class GameLoopService : IHostedService
 
         _gameLoop.OnSlowTick += (tick, total, events, commands, handlers) =>
         {
-            var msg = $"[TICK] Tick {tick}: {total:F0}ms (budget {_config.Server.TickRateMs}ms) — events: {events:F0}ms, commands: {commands:F0}ms, handlers: {handlers:F0}ms\r\n";
+            var msg = $"[TICK] Tick {tick}: {total:F0}ms (budget {_config.Server.TickRateMs}ms) - events: {events:F0}ms, commands: {commands:F0}ms, handlers: {handlers:F0}ms\r\n";
             _sessions.SendToTag(_config.Telemetry.AdminChannel.Tag, msg);
         };
 
