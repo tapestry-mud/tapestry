@@ -159,9 +159,52 @@ public sealed class WorldAuthoringModule : IJintApiModule
     /// connection fixup, edge warnings.</summary>
     private SetRoomNameResult RekeyAndPersist(Room room, string ns, string newKey)
     {
-        // Cycle B/C implementation lands here.
+        var oldId = room.Id;
+        var newId = $"{ns}:{newKey}";
+
+        // Capture the old side-car path BEFORE the rekey (SideCarPath derives from room.Id).
+        var oldSideCarPath = SideCarPath(room);
+
+        // 5. In-memory referential integrity (dictionary, exits, entities).
+        var rekey = _world.RekeyRoom(oldId, newId);
+        if (!rekey.Ok)
+        {
+            // Defensive: Disambiguate guarantees the target id is free; only a race lands here.
+            // Name is already set; id stays unchanged.
+            WriteSideCar(room);
+            return new SetRoomNameResult { Ok = false, Id = oldId };
+        }
+
+        // 6a. Own side-car: write under the new key, delete the old file.
         WriteSideCar(room);
-        return new SetRoomNameResult { Ok = true, Id = room.Id };
+        if (File.Exists(oldSideCarPath))
+        {
+            File.Delete(oldSideCarPath);
+        }
+
+        // 6b. Same-area neighbors whose exits were retargeted: rewrite their side-cars.
+        foreach (var neighborId in rekey.RetargetedRoomIds)
+        {
+            var neighbor = _world.GetRoom(neighborId);
+            if (neighbor != null)
+            {
+                WriteSideCar(neighbor);
+            }
+        }
+
+        // 6c-7. Edge triage: link-backed edges are connections (fix record + exit);
+        // hardcoded edges become warnings. (Cycle C.)
+        var warnings = BuildEdgeWarnings(rekey, oldId, newId);
+
+        return new SetRoomNameResult { Ok = true, Id = newId, Renamed = true, Warnings = warnings };
+    }
+
+    /// <summary>Edge triage: connection-backed referencers get their record + in-memory exit
+    /// fixed; everything else (hardcoded pack exits, other-area authored exits) is warned about.</summary>
+    private List<string> BuildEdgeWarnings(RekeyResult rekey, string oldId, string newId)
+    {
+        // Cycle C implementation lands here.
+        return new List<string>();
     }
 
     public bool SetRoomDescription(string roomId, string description)

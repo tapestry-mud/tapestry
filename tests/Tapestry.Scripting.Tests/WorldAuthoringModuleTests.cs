@@ -141,4 +141,103 @@ public class WorldAuthoringModuleTests
         Assert.Equal("The Gatehouse", world.GetRoom("legends-forgotten:gatehouse")!.Name);
         Directory.Delete(root, recursive: true);
     }
+
+    // ----- SetRoomName: re-key + side-car persistence -----
+
+    [Fact]
+    public void SetRoomName_rekeys_id_and_renames_sidecar()
+    {
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "A bare room.");
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Ok);
+        Assert.True(result.Renamed);
+        Assert.Equal("legends-forgotten:gatehouse", result.Id);
+        Assert.Empty(result.Warnings);
+
+        // Live world re-keyed:
+        Assert.Null(world.GetRoom("legends-forgotten:lf-test-1"));
+        Assert.NotNull(world.GetRoom("legends-forgotten:gatehouse"));
+
+        // Side-car renamed on disk:
+        Assert.False(File.Exists(Path.Combine(root, "lf-test", "rooms", "lf-test-1.yaml")));
+        var newFile = Path.Combine(root, "lf-test", "rooms", "gatehouse.yaml");
+        Assert.True(File.Exists(newFile));
+        Assert.Contains("legends-forgotten:gatehouse", File.ReadAllText(newFile));
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomName_rewrites_neighbor_sidecars()
+    {
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-2", "Neighbor", "d");
+        mod.SetRoomExit("legends-forgotten:lf-test-2", "north", "legends-forgotten:lf-test-1");
+        mod.SetRoomExit("legends-forgotten:lf-test-1", "south", "legends-forgotten:lf-test-2");
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+
+        // Neighbor's live exit retargeted (RekeyRoom):
+        var neighbor = world.GetRoom("legends-forgotten:lf-test-2")!;
+        Assert.Equal("legends-forgotten:gatehouse",
+            neighbor.GetExit(Direction.North)!.TargetRoomId);
+
+        // Neighbor's side-car rewritten on disk — round-trip through the real loader:
+        var neighborYaml = File.ReadAllText(Path.Combine(root, "lf-test", "rooms", "lf-test-2.yaml"));
+        var reloaded = YamlContentLoader.LoadRoom(neighborYaml).Room;
+        Assert.Equal("legends-forgotten:gatehouse",
+            reloaded.GetExit(Direction.North)!.TargetRoomId);
+
+        // The renamed room's own side-car keeps its outgoing exit:
+        var ownYaml = File.ReadAllText(Path.Combine(root, "lf-test", "rooms", "gatehouse.yaml"));
+        var reloadedOwn = YamlContentLoader.LoadRoom(ownYaml).Room;
+        Assert.Equal("legends-forgotten:lf-test-2",
+            reloadedOwn.GetExit(Direction.South)!.TargetRoomId);
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomName_collision_appends_suffix()
+    {
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:gatehouse", "The Gatehouse", "d");
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-2", "New Room", "d");
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-2", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+        Assert.Equal("legends-forgotten:gatehouse-2", result.Id);
+        Assert.NotNull(world.GetRoom("legends-forgotten:gatehouse-2"));
+        Assert.True(File.Exists(Path.Combine(root, "lf-test", "rooms", "gatehouse-2.yaml")));
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomName_resaving_same_name_on_suffixed_room_is_noop()
+    {
+        // gatehouse-2's own key must not count as "taken" — otherwise every re-save of
+        // the same name walks the suffix up (-3, -4, ...).
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:gatehouse", "The Gatehouse", "d");
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-2", "New Room", "d");
+        mod.SetRoomName("legends-forgotten:lf-test-2", "The Gatehouse"); // -> gatehouse-2
+
+        var result = mod.SetRoomName("legends-forgotten:gatehouse-2", "The Gatehouse");
+
+        Assert.True(result.Ok);
+        Assert.False(result.Renamed);
+        Assert.Equal("legends-forgotten:gatehouse-2", result.Id);
+        Assert.NotNull(world.GetRoom("legends-forgotten:gatehouse-2"));
+        Assert.Null(world.GetRoom("legends-forgotten:gatehouse-3"));
+
+        Directory.Delete(root, recursive: true);
+    }
 }
