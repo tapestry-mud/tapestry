@@ -17,6 +17,7 @@ public class RoomSluggerTests
     [InlineData("Room #3 (East Wing)", "room-3-east-wing")]     // punctuation runs -> single hyphen
     [InlineData("UPPERCASE", "uppercase")]                      // lowercase rule
     [InlineData("The", "the")]                                  // bare article: nothing follows, keep it
+    [InlineData("Dragon's Lair", "dragons-lair")]               // curly apostrophe
     public void Slugify_AppliesAllRules(string name, string expected)
     {
         RoomSlugger.Slugify(name).Should().Be(expected);
@@ -27,7 +28,8 @@ public class RoomSluggerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("---")]
-    public void Slugify_ReturnsNull_WhenNothingUsableSurvives(string name)
+    [InlineData(null)]
+    public void Slugify_ReturnsNull_WhenNothingUsableSurvives(string? name)
     {
         RoomSlugger.Slugify(name).Should().BeNull();
     }

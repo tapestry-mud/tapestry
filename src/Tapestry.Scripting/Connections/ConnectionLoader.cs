@@ -45,6 +45,7 @@ public class ConnectionLoader
             .Where(r => r.From.Room == oldRoomId || r.To.Room == oldRoomId)
             .ToList();
 
+        Directory.CreateDirectory(_connectionsPath);
         foreach (var record in affected)
         {
             if (record.From.Room == oldRoomId)

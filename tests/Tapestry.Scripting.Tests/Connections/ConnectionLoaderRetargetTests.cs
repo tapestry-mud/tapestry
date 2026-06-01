@@ -81,4 +81,22 @@ public class ConnectionLoaderRetargetTests : IDisposable
         affected.Should().BeEmpty();
         File.ReadAllText(Path.Combine(_connectionsDir, "rec-3.yaml")).Should().Be("untouched-marker");
     }
+
+    [Fact]
+    public void RetargetRoom_RewrittenFile_RoundTripsThroughLoad()
+    {
+        // The rewritten YAML must be loadable by a fresh loader (serializer/deserializer parity).
+        _world.AddRoom(new Room("ns:gatehouse", "Gatehouse", "d"));
+        _world.AddRoom(new Room("lf:cellar", "Cellar", "d"));
+        AddRecord("rec-rt", "ns:old-room", "lf:cellar");
+
+        _loader.RetargetRoom("ns:old-room", "ns:gatehouse");
+
+        var freshLoader = new ConnectionLoader(_world, NullLogger<ConnectionLoader>.Instance, _connectionsDir);
+        freshLoader.Load();
+
+        var reloaded = freshLoader.Loaded.Should().ContainSingle().Subject;
+        reloaded.From.Room.Should().Be("ns:gatehouse");
+        reloaded.To.Room.Should().Be("lf:cellar");
+    }
 }

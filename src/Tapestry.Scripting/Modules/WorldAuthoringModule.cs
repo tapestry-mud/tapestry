@@ -131,8 +131,15 @@ public sealed class WorldAuthoringModule : IJintApiModule
         // 3-4. Slug the name; bail to a name-only change when nothing usable survives
         // or the key wouldn't actually change.
         var idx = room.Id.IndexOf(':');
-        var ns = idx >= 0 ? room.Id[..idx] : "";
-        var oldKey = idx >= 0 ? room.Id[(idx + 1)..] : room.Id;
+        if (idx < 0)
+        {
+            // Defensive: authored ids are always namespace:key (CreateRoom enforces it).
+            // A namespace-less id can't be re-keyed into one — name-only change.
+            WriteSideCar(room);
+            return new SetRoomNameResult { Ok = true, Id = room.Id };
+        }
+        var ns = room.Id[..idx];
+        var oldKey = room.Id[(idx + 1)..];
 
         var slug = RoomSlugger.Slugify(name);
         if (slug == null || slug == oldKey)
@@ -170,7 +177,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         if (!rekey.Ok)
         {
             // Defensive: Disambiguate guarantees the target id is free; only a race lands here.
-            // Name is already set; id stays unchanged.
+            // Name is already set; id stays unchanged. (Deliberately untested — unreachable
+            // through the single-threaded authoring surface.)
             WriteSideCar(room);
             return new SetRoomNameResult { Ok = false, Id = oldId };
         }

@@ -5,6 +5,9 @@ namespace Tapestry.Engine;
 
 public class Room : IAttributeTarget
 {
+    /// <summary>The room's unique id (namespace:key). The setter is internal and must
+    /// only be used by <see cref="World.RekeyRoom"/>, which pairs the mutation with a
+    /// dictionary re-key — setting it anywhere else desyncs the World index.</summary>
     public string Id { get; internal set; }
     public string Type => EntityTypes.Room;
     public string Name { get; set; }

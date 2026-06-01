@@ -59,4 +59,27 @@ public class RoomExitRetargetTests
 
         room.RetargetExits("ns:old", "ns:new").Should().BeFalse();
     }
+
+    [Fact]
+    public void HasExitTo_ReturnsFalse_ForKeywordExitToOtherTarget()
+    {
+        var room = new Room("ns:a", "A", "desc");
+        room.SetKeywordExit("gate", new Exit("ns:target"));
+
+        room.HasExitTo("ns:other").Should().BeFalse();
+    }
+
+    [Fact]
+    public void RetargetExits_RepointsBothExitTypes_WhenBothTargetOldId()
+    {
+        var room = new Room("ns:a", "A", "desc");
+        room.SetExit(Direction.North, new Exit("ns:old"));
+        room.SetKeywordExit("gate", new Exit("ns:old"));
+
+        var changed = room.RetargetExits("ns:old", "ns:new");
+
+        changed.Should().BeTrue();
+        room.GetExit(Direction.North)!.TargetRoomId.Should().Be("ns:new");
+        room.GetKeywordExit("gate")!.TargetRoomId.Should().Be("ns:new");
+    }
 }

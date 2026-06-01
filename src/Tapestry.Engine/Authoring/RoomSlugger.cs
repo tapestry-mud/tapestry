@@ -10,7 +10,9 @@ public static class RoomSlugger
 {
     private static readonly string[] Articles = ["the-", "a-", "an-"];
 
-    /// <summary>Slugify a room name; null when nothing usable survives (e.g. "!!!").</summary>
+    /// <summary>Slugify a room name; null when nothing usable survives (e.g. "!!!").
+    /// Non-ASCII characters are treated as separators and dropped, so an all-non-ASCII
+    /// name also returns null (caller keeps the current id).</summary>
     public static string? Slugify(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -52,7 +54,9 @@ public static class RoomSlugger
     }
 
     /// <summary>Append -2, -3, … until <paramref name="taken"/> reports the slug free.
-    /// Never fails — a rename is never blocked by a name collision.</summary>
+    /// Never fails — a rename is never blocked by a name collision. The predicate must
+    /// report "taken" for only finitely many candidates (e.g. live World room keys),
+    /// otherwise this loops forever.</summary>
     public static string Disambiguate(string slug, Func<string, bool> taken)
     {
         if (!taken(slug))
