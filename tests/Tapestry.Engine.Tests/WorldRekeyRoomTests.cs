@@ -141,4 +141,24 @@ public class WorldRekeyRoomTests
         edge.Id.Should().Be("lf:cellar");
         edge.IsPackRoom.Should().BeTrue();
     }
+
+    // ----- Cycle C: entities standing in the room follow the id -----
+
+    [Fact]
+    public void RekeyRoom_RelocatesEntitiesStandingInTheRoom()
+    {
+        var world = new World();
+        var room = AddRoom(world, "ns:target", "Target");
+        var player = new Entity("player", "Builder");
+        var item = new Entity("item", "Dropped Sword");
+        room.AddEntity(player);
+        room.AddEntity(item);
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        result.Ok.Should().BeTrue();
+        player.LocationRoomId.Should().Be("ns:gatehouse");
+        item.LocationRoomId.Should().Be("ns:gatehouse");
+        room.Entities.Should().HaveCount(2, "relocation must not remove entities from the room");
+    }
 }

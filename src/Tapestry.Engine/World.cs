@@ -83,6 +83,12 @@ public class World : ITagObserver
             }
         }
 
+        // Entities standing in the room (players, NPCs, floor items) follow the id.
+        foreach (var entity in room.Entities)
+        {
+            entity.LocationRoomId = newId;
+        }
+
         return new RekeyResult
         {
             Ok = true,
