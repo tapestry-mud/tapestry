@@ -184,7 +184,9 @@ public sealed class WorldAuthoringModule : IJintApiModule
         }
 
         // 6a. Own side-car: write under the new key, delete the old file.
-        WriteSideCar(room);
+        // Pass oldId so connection-record matching works: records still reference the
+        // pre-rekey id at this point (RetargetRoom runs in step 6c).
+        WriteSideCar(room, previousId: oldId);
         if (File.Exists(oldSideCarPath))
         {
             File.Delete(oldSideCarPath);
@@ -350,17 +352,56 @@ public sealed class WorldAuthoringModule : IJintApiModule
         return true;
     }
 
-    private void WriteSideCar(Room room)
+    private void WriteSideCar(Room room, string? previousId = null)
     {
         var data = _projector.Project(room);
         // Neighbors is recommend-context only; clear it so it never serializes.
         // (OmitEmptyCollections then drops the now-empty list entirely.)
         data.Neighbors.Clear();
 
+        // Connection-backed exits live in connection records, never in room source.
+        // Persisting them here would leak hardcoded cross-pack exits into the side-car
+        // (and from there into export-area pack output), breaking pack composition.
+        RemoveConnectionBackedExits(room.Id, previousId, data);
+
         var path = SideCarPath(room);
         var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);
         File.WriteAllText(path, Serializer.Serialize(data));
+    }
+
+    /// <summary>Strip directional exits that are backed by a connection record for this
+    /// room. Keyword exits are never in RoomData; one-way connection sides apply no exit.
+    /// <paramref name="previousId"/> is the room's id before a rekey: connection records
+    /// may still reference the old id when this is called during a rename flow.</summary>
+    private void RemoveConnectionBackedExits(string roomId, string? previousId, RoomData data)
+    {
+        if (_connections == null)
+        {
+            return;
+        }
+
+        foreach (var record in _connections.Loaded)
+        {
+            ConnectionSide? side = null;
+            if (record.From.Room == roomId || record.From.Room == previousId)
+            {
+                side = record.From;
+            }
+            else if (record.To.Room == roomId || record.To.Room == previousId)
+            {
+                side = record.To;
+            }
+
+            if (side == null
+                || !string.Equals(side.Type, "direction", StringComparison.OrdinalIgnoreCase)
+                || !DirectionExtensions.TryParse(side.Direction ?? "", out var dir))
+            {
+                continue;
+            }
+
+            data.Exits.Remove(dir.ToString().ToLowerInvariant());
+        }
     }
 
     private string SideCarPath(Room room)

@@ -327,4 +327,73 @@ public class WorldAuthoringModuleTests
 
         Directory.Delete(root, recursive: true);
     }
+
+    // ----- Side-car writes never persist connection-backed exits (composition leak guard) -----
+
+    [Fact]
+    public void SetRoomName_does_not_bake_connection_backed_exit_into_sidecar()
+    {
+        var (mod, world, root, connections) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-2", "Neighbor", "d");
+        // An authored exit (should persist):
+        mod.SetRoomExit("legends-forgotten:lf-test-1", "north", "legends-forgotten:lf-test-2");
+
+        // A connection-backed exit (should NOT persist): link lf-test-1 south to a pack room.
+        var packRoom = new Room("tapestry-core:recall", "Recall", "d") { Area = "core-area" };
+        packRoom.SetProperty("source_pack", "tapestry-core");
+        world.AddRoom(packRoom);
+        var room = world.GetRoom("legends-forgotten:lf-test-1")!;
+        room.SetExit(Direction.South, new Exit("tapestry-core:recall"));
+        connections.AddLoaded(new ConnectionRecord
+        {
+            Id = "lf-test-1--south--recall",
+            From = new ConnectionSide { Room = "legends-forgotten:lf-test-1", Type = "direction", Direction = "South" },
+            To = new ConnectionSide { Room = "tapestry-core:recall", Type = "direction", Direction = "North" },
+            CreatedBy = "test",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        Directory.CreateDirectory(Path.Combine(root, "connections"));
+
+        // Rename triggers WriteSideCar on the renamed room.
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+        var yaml = File.ReadAllText(Path.Combine(root, "lf-test", "rooms", "gatehouse.yaml"));
+        // The authored north exit persists; the connection-backed south exit does not.
+        Assert.Contains("legends-forgotten:lf-test-2", yaml);
+        Assert.DoesNotContain("tapestry-core:recall", yaml);
+
+        // The in-memory exit is untouched (still walkable live):
+        Assert.Equal("tapestry-core:recall",
+            world.GetRoom("legends-forgotten:gatehouse")!.GetExit(Direction.South)!.TargetRoomId);
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomDescription_also_does_not_bake_connection_backed_exit()
+    {
+        // The leak guard applies to every authoring write, not just rename.
+        var (mod, world, root, connections) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        var room = world.GetRoom("legends-forgotten:lf-test-1")!;
+        room.SetExit(Direction.South, new Exit("tapestry-core:recall"));
+        connections.AddLoaded(new ConnectionRecord
+        {
+            Id = "lf-test-1--south--recall",
+            From = new ConnectionSide { Room = "legends-forgotten:lf-test-1", Type = "direction", Direction = "south" },
+            To = new ConnectionSide { Room = "tapestry-core:recall", Type = "direction", Direction = "north" },
+            CreatedBy = "test",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        mod.SetRoomDescription("legends-forgotten:lf-test-1", "A described room.");
+
+        var yaml = File.ReadAllText(Path.Combine(root, "lf-test", "rooms", "lf-test-1.yaml"));
+        Assert.DoesNotContain("tapestry-core:recall", yaml);
+        Assert.Contains("A described room.", yaml);
+
+        Directory.Delete(root, recursive: true);
+    }
 }
