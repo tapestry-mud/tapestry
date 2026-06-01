@@ -417,6 +417,12 @@ public class WorldModule : IJintApiModule
             {
                 var radiusVal = obj.Get("radius");
                 var radius = radiusVal.Type == Types.Number ? (int)(double)radiusVal.ToObject()! : 3;
+                if (radius <= 0)
+                {
+                    // NaN casts to 0, Infinity to int.MinValue, and negatives are meaningless —
+                    // fall back to the default 3-hop radius rather than a degenerate 1-room map.
+                    radius = 3;
+                }
                 scope = MapScope.Radius(radius);
             }
 

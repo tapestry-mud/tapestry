@@ -144,4 +144,30 @@ public class WorldMapJsSurfaceTests
         firstXType?.ToString().Should().Be("number",
             "the x coordinate of every cell should be a JS number");
     }
+
+    // -----------------------------------------------------------------------
+    // Test 4: renderAreaMap clamps a NaN radius to the default 3-hop radius
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void RenderAreaMap_clamps_degenerate_radius_to_default()
+    {
+        // NaN radius must not produce a degenerate single-room map — it falls back to
+        // the default 3-hop radius, so the neighboring room is still visible.
+        var (rt, world) = BuildRuntime();
+        AddCastleBox(world);
+
+        var result = rt.Evaluate("""
+            tapestry.world.renderAreaMap('castle:castle-0', {
+                scope: 'radius',
+                radius: NaN,
+                label: 'name',
+                showCurrent: true
+            });
+            """);
+
+        var text = result?.ToString() ?? "";
+        text.Should().Contain("East Tower",
+            "with a clamped 3-hop radius the east neighbour (castle-1) is reachable and its name appears in the legend");
+    }
 }
