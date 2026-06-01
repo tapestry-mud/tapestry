@@ -199,9 +199,33 @@ public class AsciiMapRendererTests
     }
 
     [Fact]
+    public void Multiple_marker_kinds_each_get_a_legend_line()
+    {
+        var cells = new[]
+        {
+            Cell("ns:a", "A", 0, 0, markers: new[] { "forest" }),
+            Cell("ns:b", "B", 1, 0, markers: new[] { "water" }),
+        };
+        var map = new AreaMap("ns-area", "ns:a", cells, Array.Empty<string>());
+        var opts = new ViewOptions
+        {
+            Label = LabelMode.Dot,
+            ShowCurrent = false,
+            Legend = new Dictionary<string, string> { ["forest"] = "f", ["water"] = "w" },
+        };
+
+        var lines = Renderer.Render(map, opts).Split("\r\n");
+
+        Assert.Equal("[f] [w]", lines[0]);
+        Assert.Contains(" f = forest", lines);
+        Assert.Contains(" w = water", lines);
+    }
+
+    [Fact]
     public void First_marker_with_legend_entry_wins()
     {
-        // Markers are ordered; "water" has no legend entry, "forest" does -> 'f'.
+        // Cell.Markers iterate in order; the first marker WITH a legend entry wins.
+        // "water" is first but has no legend entry, so "forest" supplies the glyph.
         var cells = new[] { Cell("ns:a", "A", 0, 0, markers: new[] { "water", "forest" }) };
         var map = new AreaMap("ns-area", "ns:a", cells, Array.Empty<string>());
         var opts = new ViewOptions
@@ -292,6 +316,8 @@ public class AsciiMapRendererTests
 
         var lines = Renderer.Render(map, opts).Split("\r\n");
 
+        // Single cell -> grid is one row; lines[1] is the blank separator before the legend.
+        Assert.Equal("", lines[1]);
         Assert.Equal(" 1) a  Glade  ()  [forest]", lines[2]);
     }
 
@@ -306,7 +332,12 @@ public class AsciiMapRendererTests
         };
 
         var result = Renderer.Render(BoxMap(), opts);
+        var lines = result.Split("\r\n");
 
+        // Name mode renders the same indexed grid as Id mode (current room gets * brackets).
+        Assert.Equal("*1*-[2]", lines[0]);
+        Assert.Equal(" |   |", lines[1]);
+        Assert.Equal("[4]-[3]", lines[2]);
         Assert.Contains(" 1) Castle Gate  <- you", result);
         Assert.Contains(" 2) East Wall", result);
         // No ids anywhere in name mode output:
@@ -339,8 +370,8 @@ public class AsciiMapRendererTests
     {
         var cells = new[]
         {
-            Cell("ns:a", "A", 0, 0, collision: true),
-            Cell("ns:b", "B", 0, 0, collision: true), // same position -> not drawn
+            Cell("ns:a", "A", 0, 0),
+            Cell("ns:b", "B", 0, 0), // same position -> not drawn, regardless of any Collision flag
         };
         var map = new AreaMap("ns-area", "ns:a", cells, Array.Empty<string>());
         var opts = new ViewOptions { Label = LabelMode.Dot, ShowCurrent = false };
