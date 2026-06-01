@@ -169,7 +169,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<AttributeWriter>(),
                 roomsRoot,
                 sp.GetRequiredService<LoadedPackNamespaces>().Namespaces,
-                sp.GetRequiredService<RecommendBroker>());
+                sp.GetRequiredService<RecommendBroker>(),
+                sp.GetRequiredService<ConnectionLoader>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 
