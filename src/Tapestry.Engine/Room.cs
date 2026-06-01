@@ -5,7 +5,7 @@ namespace Tapestry.Engine;
 
 public class Room : IAttributeTarget
 {
-    public string Id { get; }
+    public string Id { get; internal set; }
     public string Type => EntityTypes.Room;
     public string Name { get; set; }
     public string Description { get; set; }
@@ -74,6 +74,38 @@ public class Room : IAttributeTarget
     public bool HasKeywordExit(string keyword)
     {
         return _keywordExits.ContainsKey(keyword);
+    }
+
+    /// <summary>True when any exit (directional or keyword) targets <paramref name="targetRoomId"/>.</summary>
+    public bool HasExitTo(string targetRoomId)
+    {
+        return _exits.Values.Any(e => e.TargetRoomId == targetRoomId)
+            || _keywordExits.Values.Any(e => e.TargetRoomId == targetRoomId);
+    }
+
+    /// <summary>Repoint every exit (directional + keyword) whose target is
+    /// <paramref name="oldTargetId"/> at <paramref name="newTargetId"/>.
+    /// Returns true when at least one exit was retargeted.</summary>
+    public bool RetargetExits(string oldTargetId, string newTargetId)
+    {
+        var changed = false;
+        foreach (var exit in _exits.Values)
+        {
+            if (exit.TargetRoomId == oldTargetId)
+            {
+                exit.TargetRoomId = newTargetId;
+                changed = true;
+            }
+        }
+        foreach (var exit in _keywordExits.Values)
+        {
+            if (exit.TargetRoomId == oldTargetId)
+            {
+                exit.TargetRoomId = newTargetId;
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     public void AddEntity(Entity entity)
