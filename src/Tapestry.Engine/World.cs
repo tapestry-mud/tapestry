@@ -57,7 +57,38 @@ public class World : ITagObserver
         room.Id = newId;
         _rooms[newId] = room;
 
-        return new RekeyResult { Ok = true };
+        // Global scan: every other room's exits. Same-area authored rooms are fixed;
+        // pack rooms and other-area rooms are reported as edges, untouched.
+        var retargeted = new List<string>();
+        var edges = new List<RoomRef>();
+        foreach (var other in _rooms.Values)
+        {
+            if (ReferenceEquals(other, room) || !other.HasExitTo(oldId))
+            {
+                continue;
+            }
+
+            var isPackRoom = other.GetRawProperty(CommonProperties.SourcePack) != null;
+            var sameArea = !isPackRoom
+                && other.Area != null
+                && string.Equals(other.Area, room.Area, StringComparison.OrdinalIgnoreCase);
+            if (sameArea)
+            {
+                other.RetargetExits(oldId, newId);
+                retargeted.Add(other.Id);
+            }
+            else
+            {
+                edges.Add(new RoomRef(other.Id, other.Name, isPackRoom));
+            }
+        }
+
+        return new RekeyResult
+        {
+            Ok = true,
+            RetargetedRoomIds = retargeted,
+            EdgeReferences = edges
+        };
     }
 
     public IEnumerable<Room> AllRooms => _rooms.Values;

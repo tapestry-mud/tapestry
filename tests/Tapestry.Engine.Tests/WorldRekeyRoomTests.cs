@@ -73,4 +73,72 @@ public class WorldRekeyRoomTests
         result.RetargetedRoomIds.Should().BeEmpty();
         result.EdgeReferences.Should().BeEmpty();
     }
+
+    // ----- Cycle B: exit retargeting + edge classification -----
+
+    [Fact]
+    public void RekeyRoom_RetargetsSameAreaDirectionalExits()
+    {
+        var world = new World();
+        AddRoom(world, "ns:target", "Target");
+        var neighbor = AddRoom(world, "ns:neighbor", "Neighbor");
+        neighbor.SetExit(Direction.North, new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        result.Ok.Should().BeTrue();
+        neighbor.GetExit(Direction.North)!.TargetRoomId.Should().Be("ns:gatehouse");
+        result.RetargetedRoomIds.Should().ContainSingle().Which.Should().Be("ns:neighbor");
+        result.EdgeReferences.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RekeyRoom_RetargetsSameAreaKeywordExits()
+    {
+        var world = new World();
+        AddRoom(world, "ns:target", "Target");
+        var neighbor = AddRoom(world, "ns:neighbor", "Neighbor");
+        neighbor.SetKeywordExit("gate", new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        neighbor.GetKeywordExit("gate")!.TargetRoomId.Should().Be("ns:gatehouse");
+        result.RetargetedRoomIds.Should().ContainSingle().Which.Should().Be("ns:neighbor");
+    }
+
+    [Fact]
+    public void RekeyRoom_OtherAreaReferencer_BecomesEdge_AndIsUntouched()
+    {
+        var world = new World();
+        AddRoom(world, "ns:target", "Target", area: "test-area");
+        var outsider = AddRoom(world, "ns:outsider", "Outsider", area: "other-area");
+        outsider.SetExit(Direction.West, new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        outsider.GetExit(Direction.West)!.TargetRoomId.Should().Be("ns:target",
+            "edge references must never be touched");
+        result.RetargetedRoomIds.Should().BeEmpty();
+        var edge = result.EdgeReferences.Should().ContainSingle().Subject;
+        edge.Id.Should().Be("ns:outsider");
+        edge.Name.Should().Be("Outsider");
+        edge.IsPackRoom.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RekeyRoom_PackRoomReferencer_BecomesEdge_WithIsPackRoom()
+    {
+        var world = new World();
+        AddRoom(world, "ns:target", "Target", area: "test-area");
+        // Same area string, but it's pack source — still an edge.
+        var packRoom = AddRoom(world, "lf:cellar", "Cellar", area: "test-area", sourcePack: "legends-forgotten");
+        packRoom.SetExit(Direction.Up, new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        packRoom.GetExit(Direction.Up)!.TargetRoomId.Should().Be("ns:target");
+        var edge = result.EdgeReferences.Should().ContainSingle().Subject;
+        edge.Id.Should().Be("lf:cellar");
+        edge.IsPackRoom.Should().BeTrue();
+    }
 }
