@@ -203,8 +203,36 @@ public sealed class WorldAuthoringModule : IJintApiModule
     /// fixed; everything else (hardcoded pack exits, other-area authored exits) is warned about.</summary>
     private List<string> BuildEdgeWarnings(RekeyResult rekey, string oldId, string newId)
     {
-        // Cycle C implementation lands here.
-        return new List<string>();
+        // Connections are the supported cross-boundary mechanism: fix every record that
+        // references the old id, and retarget the in-memory exit of the room on the
+        // other side of each fixed record.
+        var fixedByLink = new HashSet<string>();
+        if (_connections != null)
+        {
+            foreach (var record in _connections.RetargetRoom(oldId, newId))
+            {
+                // After RetargetRoom the renamed side reads newId; the other side names
+                // the referencing room.
+                var otherRoomId = record.From.Room == newId ? record.To.Room : record.From.Room;
+                _world.GetRoom(otherRoomId)?.RetargetExits(oldId, newId);
+                fixedByLink.Add(otherRoomId);
+            }
+        }
+
+        // Whatever edges remain are hardcoded references we must not touch — name them.
+        var warnings = new List<string>();
+        foreach (var edge in rekey.EdgeReferences)
+        {
+            if (fixedByLink.Contains(edge.Id))
+            {
+                continue;
+            }
+            var kind = edge.IsPackRoom ? "pack room" : "room in another area";
+            // Player-facing string: strict ASCII only (em-dashes mojibake over telnet).
+            warnings.Add(
+                $"{edge.Id} ({kind}) has an exit to this room - not updated; use 'link' or fix the pack.");
+        }
+        return warnings;
     }
 
     public bool SetRoomDescription(string roomId, string description)

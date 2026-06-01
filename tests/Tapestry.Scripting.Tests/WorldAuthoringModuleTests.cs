@@ -240,4 +240,91 @@ public class WorldAuthoringModuleTests
 
         Directory.Delete(root, recursive: true);
     }
+
+    // ----- SetRoomName: edge triage (connections fixed, hardcoded edges warned) -----
+
+    [Fact]
+    public void SetRoomName_pack_room_referencer_warns_and_is_untouched()
+    {
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        // A pack room with a hardcoded exit into the authored room:
+        var packRoom = new Room("legends-forgotten:cellar", "Cellar", "d") { Area = "lf-pack-area" };
+        packRoom.SetProperty("source_pack", "legends-forgotten");
+        packRoom.SetExit(Direction.Up, new Exit("legends-forgotten:lf-test-1"));
+        world.AddRoom(packRoom);
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+        var warning = Assert.Single(result.Warnings);
+        Assert.Contains("legends-forgotten:cellar", warning);
+        Assert.Contains("pack room", warning);
+        // The pack room's exit is untouched (dangles visibly, by design):
+        Assert.Equal("legends-forgotten:lf-test-1", packRoom.GetExit(Direction.Up)!.TargetRoomId);
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomName_other_area_referencer_warns()
+    {
+        var (mod, world, root, _) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        mod.CreateRoom("other-area", "legends-forgotten:far-room", "Far Room", "d");
+        mod.SetRoomExit("legends-forgotten:far-room", "west", "legends-forgotten:lf-test-1");
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+        var warning = Assert.Single(result.Warnings);
+        Assert.Contains("legends-forgotten:far-room", warning);
+        // Other-area exit untouched in memory and on disk:
+        Assert.Equal("legends-forgotten:lf-test-1",
+            world.GetRoom("legends-forgotten:far-room")!.GetExit(Direction.West)!.TargetRoomId);
+
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void SetRoomName_link_backed_referencer_fixed_with_no_warning()
+    {
+        var (mod, world, root, connections) = Build();
+        mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
+        mod.CreateRoom("other-area", "legends-forgotten:plaza", "Plaza", "d");
+
+        // A link (connection) between the two: plaza --north--> lf-test-1.
+        var plaza = world.GetRoom("legends-forgotten:plaza")!;
+        plaza.SetExit(Direction.North, new Exit("legends-forgotten:lf-test-1"));
+        var record = new ConnectionRecord
+        {
+            Id = "legends-forgotten_plaza--north--legends-forgotten_lf-test-1",
+            From = new ConnectionSide { Room = "legends-forgotten:plaza", Type = "direction", Direction = "north" },
+            To = new ConnectionSide { Room = "legends-forgotten:lf-test-1", Type = "direction", Direction = "south" },
+            CreatedBy = "test",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        connections.AddLoaded(record);
+        // The Build() fixture constructs the loader with this path — compute it the same
+        // way rather than relying on a ConnectionsDirectory property.
+        var connDir = Path.Combine(root, "connections");
+        Directory.CreateDirectory(connDir);
+        File.WriteAllText(Path.Combine(connDir, $"{record.Id}.yaml"), "placeholder");
+
+        var result = mod.SetRoomName("legends-forgotten:lf-test-1", "The Gatehouse");
+
+        Assert.True(result.Renamed);
+        Assert.Empty(result.Warnings);
+
+        // Connection record updated + persisted:
+        Assert.Equal("legends-forgotten:gatehouse", record.To.Room);
+        var recordYaml = File.ReadAllText(Path.Combine(connDir, $"{record.Id}.yaml"));
+        Assert.Contains("legends-forgotten:gatehouse", recordYaml);
+
+        // The link-backed room's in-memory exit retargeted:
+        Assert.Equal("legends-forgotten:gatehouse",
+            plaza.GetExit(Direction.North)!.TargetRoomId);
+
+        Directory.Delete(root, recursive: true);
+    }
 }
