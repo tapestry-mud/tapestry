@@ -142,6 +142,35 @@ public class WorldRekeyRoomTests
         edge.IsPackRoom.Should().BeTrue();
     }
 
+    // ----- Self-loop exits: the renamed room's own exits that target itself -----
+
+    [Fact]
+    public void RekeyRoom_RetargetsSelfLoopDirectionalExit()
+    {
+        var world = new World();
+        var room = AddRoom(world, "ns:target", "Target");
+        room.SetExit(Direction.North, new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        result.Ok.Should().BeTrue();
+        room.GetExit(Direction.North)!.TargetRoomId.Should().Be("ns:gatehouse",
+            "the renamed room's own self-referencing exit must follow the new id");
+    }
+
+    [Fact]
+    public void RekeyRoom_RetargetsSelfLoopKeywordExit()
+    {
+        var world = new World();
+        var room = AddRoom(world, "ns:target", "Target");
+        room.SetKeywordExit("mirror", new Exit("ns:target"));
+
+        var result = world.RekeyRoom("ns:target", "ns:gatehouse");
+
+        result.Ok.Should().BeTrue();
+        room.GetKeywordExit("mirror")!.TargetRoomId.Should().Be("ns:gatehouse");
+    }
+
     // ----- Cycle C: entities standing in the room follow the id -----
 
     [Fact]

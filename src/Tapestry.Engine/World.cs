@@ -57,6 +57,10 @@ public class World : ITagObserver
         room.Id = newId;
         _rooms[newId] = room;
 
+        // The renamed room's own self-loop exits (an exit targeting itself) must follow
+        // the new id too — the global scan below skips this room.
+        room.RetargetExits(oldId, newId);
+
         // Global scan: every other room's exits. Same-area authored rooms are fixed;
         // pack rooms and other-area rooms are reported as edges, untouched.
         var retargeted = new List<string>();
