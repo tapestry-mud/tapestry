@@ -80,6 +80,22 @@ public class AreaMapProjectorTests
     }
 
     [Fact]
+    public void Null_area_rooms_do_not_join_another_areas_map()
+    {
+        var world = new World();
+        AddRoom(world, "castle:castle-0", "Gate", "castle");
+        // A room with NO area (orphaned/staging room) — must not appear in castle's map.
+        world.AddRoom(new Room("orphan:lost", "Lost Room", "desc"));
+
+        var map = BuildProjector(world)
+            .Project(world.GetRoom("castle:castle-0")!, MapScope.WholeArea);
+
+        var cell = Assert.Single(map.Cells);
+        Assert.Equal("castle:castle-0", cell.Id);
+        Assert.Empty(map.UnpositionedRoomIds);
+    }
+
+    [Fact]
     public void North_and_south_move_y_not_x()
     {
         var world = new World();

@@ -79,7 +79,11 @@ public sealed class AreaMapProjector
                     continue; // a room first reached wins its cell
                 }
 
-                var (dx, dy, dz) = Deltas[dir];
+                if (!Deltas.TryGetValue(dir, out var delta))
+                {
+                    continue;
+                }
+                var (dx, dy, dz) = delta;
                 var cell = (pos.X + dx, pos.Y + dy, pos.Z + dz);
                 if (occupied.TryGetValue(cell, out var holder))
                 {
@@ -91,6 +95,11 @@ public sealed class AreaMapProjector
                 {
                     occupied[cell] = target.Id;
                 }
+                // The colliding room is still positioned and enqueued so its subtree gets
+                // mapped (relative to the shared cell). Rooms reachable only through a
+                // collider have correct RELATIVE positions but an approximate absolute
+                // origin — only the immediate collision pair is flagged. Consumers should
+                // treat positions downstream of a Collision cell as approximate.
                 positions[target.Id] = cell;
                 depths[target.Id] = depth + 1;
                 queue.Enqueue(target);
@@ -135,6 +144,10 @@ public sealed class AreaMapProjector
 
     private static bool SameAreaAs(Room a, Room b)
     {
+        if (a.Area == null || b.Area == null)
+        {
+            return false;
+        }
         return string.Equals(a.Area, b.Area, StringComparison.OrdinalIgnoreCase);
     }
 
