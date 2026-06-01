@@ -37,6 +37,29 @@ public class World : ITagObserver
         _rooms.Remove(id);
     }
 
+    /// <summary>
+    /// Re-key a room: re-index the dictionary, retarget exits of rooms in the SAME area,
+    /// relocate entities standing in the room, and report (without touching) every
+    /// pack-room or out-of-area referencer. In-memory only — side-car and connection
+    /// persistence belong to the authoring layer.
+    /// </summary>
+    public RekeyResult RekeyRoom(string oldId, string newId)
+    {
+        var room = GetRoom(oldId);
+        if (room == null || GetRoom(newId) != null)
+        {
+            return RekeyResult.Failed;
+        }
+
+        // Re-index first, inside this method body, so no caller can ever observe a
+        // dictionary key that disagrees with room.Id.
+        _rooms.Remove(oldId);
+        room.Id = newId;
+        _rooms[newId] = room;
+
+        return new RekeyResult { Ok = true };
+    }
+
     public IEnumerable<Room> AllRooms => _rooms.Values;
 
     public bool MoveEntity(Entity entity, Direction direction)
