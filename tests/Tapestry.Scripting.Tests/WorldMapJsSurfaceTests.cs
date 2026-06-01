@@ -65,6 +65,16 @@ public class WorldMapJsSurfaceTests
         world.AddRoom(r3);
     }
 
+    /// <summary>Add a fifth room one level above castle-1 (Up/Down exits) so the
+    /// area has a non-zero z-plane.</summary>
+    private static void AddTowerAbove(World world)
+    {
+        var tower = new Room("castle:tower-top", "Tower Top", "The top of the tower.") { Area = "castle" };
+        tower.SetExit(Direction.Down, new Exit("castle:castle-1"));
+        world.GetRoom("castle:castle-1")!.SetExit(Direction.Up, new Exit("castle:tower-top"));
+        world.AddRoom(tower);
+    }
+
     // -----------------------------------------------------------------------
     // Test 1: renderAreaMap returns ASCII that contains room id + name + current marker
     // -----------------------------------------------------------------------
@@ -169,5 +179,52 @@ public class WorldMapJsSurfaceTests
         var text = result?.ToString() ?? "";
         text.Should().Contain("East Tower",
             "with a clamped 3-hop radius the east neighbour (castle-1) is reachable and its name appears in the legend");
+    }
+
+    // -----------------------------------------------------------------------
+    // Plane fix: whole-area renders follow the viewer's z-plane
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void RenderAreaMap_WholeArea_FollowsViewersPlane()
+    {
+        var (rt, world) = BuildRuntime();
+        AddCastleBox(world);
+        AddTowerAbove(world);
+
+        // The whole-area projection roots at the lexicographically lowest id
+        // (castle:castle-0, plane 0); the viewer stands on the tower (plane 1).
+        var result = rt.Evaluate("""
+            tapestry.world.renderAreaMap('castle:tower-top', {
+                scope: 'area',
+                label: 'name',
+                showCurrent: true
+            });
+            """);
+
+        var text = result?.ToString() ?? "";
+        text.Should().Contain("Tower Top",
+            "the rendered plane must be the one the viewer is standing on");
+        text.Should().NotContain("There is nothing to map on this level.");
+    }
+
+    [Fact]
+    public void RenderAreaMap_WholeArea_GroundFloorViewer_StillRendersPlaneZero()
+    {
+        var (rt, world) = BuildRuntime();
+        AddCastleBox(world);
+        AddTowerAbove(world);
+
+        var result = rt.Evaluate("""
+            tapestry.world.renderAreaMap('castle:castle-0', {
+                scope: 'area',
+                label: 'name',
+                showCurrent: true
+            });
+            """);
+
+        var text = result?.ToString() ?? "";
+        text.Should().Contain("Castle Gate",
+            "a ground-floor viewer still gets plane 0 (regression guard)");
     }
 }

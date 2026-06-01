@@ -365,6 +365,16 @@ public class WorldModule : IJintApiModule
                     return "There is nothing to map here.";
                 }
                 var map = _areaMapProjector.Project(room, scope);
+
+                // Render the plane the viewer is standing on. Whole-area projections root
+                // deterministically (not at the viewer), so the viewer's room may sit on a
+                // non-zero z-plane; radius projections root at the viewer (always plane 0).
+                var currentCell = map.Cells.FirstOrDefault(c => c.Id == rootRoomId);
+                if (currentCell != null)
+                {
+                    viewOpts = viewOpts with { Plane = currentCell.Z };
+                }
+
                 return _mapRenderer.Render(map, viewOpts);
             }),
             projectArea = new Func<string, JsValue, object?>((rootRoomId, optsVal) =>
