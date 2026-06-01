@@ -8,6 +8,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Mapping;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Quests;
 using Tapestry.Engine.Recommend;
@@ -137,6 +138,10 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<AttributeWriter>();
 
         services.AddSingleton<RoomProjector>();
+
+        // Area-map projection + rendering (builder rooms / player map / future GMCP Area.Map)
+        services.AddSingleton<AreaMapProjector>();
+        services.AddSingleton<AsciiMapRenderer>();
 
         // Shared live set of loaded pack namespaces. PackLoader fills it during load;
         // WorldAuthoringModule holds the SAME HashSet so a post-boot createRoom sees it.

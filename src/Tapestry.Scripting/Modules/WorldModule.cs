@@ -1,6 +1,9 @@
 using Jint.Native;
+using Jint.Native.Object;
+using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Classes;
+using Tapestry.Engine.Mapping;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Races;
@@ -24,8 +27,10 @@ public class WorldModule : IJintApiModule
     private readonly IGmcpModuleAdapter _gmcp;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
+    private readonly AreaMapProjector _areaMapProjector;
+    private readonly AsciiMapRenderer _mapRenderer;
 
-    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry, PropertyRegistry propertyRegistry)
+    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry, PropertyRegistry propertyRegistry, AreaMapProjector areaMapProjector, AsciiMapRenderer mapRenderer)
     {
         _messaging = messaging;
         _worldOps = worldOps;
@@ -37,6 +42,8 @@ public class WorldModule : IJintApiModule
         _gmcp = gmcp;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
+        _areaMapProjector = areaMapProjector;
+        _mapRenderer = mapRenderer;
     }
 
     public static BuildInfo GetBuildInfo()
@@ -344,7 +351,115 @@ public class WorldModule : IJintApiModule
                     engineVersion = info.EngineVersion,
                     packBuildRef = info.PackBuildRef
                 };
+            }),
+            renderAreaMap = new Func<string, JsValue, string>((rootRoomId, optsVal) =>
+            {
+                var room = _world.GetRoom(rootRoomId);
+                if (room == null)
+                {
+                    return "There is nothing to map here.";
+                }
+                var (scope, viewOpts) = ParseMapOptions(rootRoomId, optsVal);
+                if (scope.MaxHops == null && string.IsNullOrEmpty(room.Area))
+                {
+                    return "There is nothing to map here.";
+                }
+                var map = _areaMapProjector.Project(room, scope);
+                return _mapRenderer.Render(map, viewOpts);
+            }),
+            projectArea = new Func<string, JsValue, object?>((rootRoomId, optsVal) =>
+            {
+                var room = _world.GetRoom(rootRoomId);
+                if (room == null)
+                {
+                    return null;
+                }
+                var (scope, _) = ParseMapOptions(rootRoomId, optsVal);
+                var map = _areaMapProjector.Project(room, scope);
+                return new
+                {
+                    areaId = map.AreaId,
+                    rootRoomId = map.RootRoomId,
+                    unpositionedRoomIds = map.UnpositionedRoomIds.ToArray(),
+                    cells = map.Cells.Select(c => new
+                    {
+                        id = c.Id,
+                        name = c.Name,
+                        x = c.X,
+                        y = c.Y,
+                        z = c.Z,
+                        exits = c.Exits.ToArray(),
+                        markers = c.Markers.ToArray(),
+                        hasVertical = c.HasVertical,
+                        collision = c.Collision
+                    }).ToArray()
+                };
             })
         };
+    }
+
+    /// <summary>Unpack the JS opts object: { scope: 'area'|'radius', radius: n,
+    /// label: 'id'|'name'|'dot', showCurrent: bool, legend: { markerKey: glyph } }.
+    /// Mirrors CommandsModule's obj.GetOwnProperties() idiom for JS-object parsing:
+    /// type checks via Types.*, casts via .ToObject()!, string values via .ToString().</summary>
+    private static (MapScope Scope, ViewOptions Opts) ParseMapOptions(string currentRoomId, JsValue optsVal)
+    {
+        var scope = MapScope.WholeArea;
+        var label = LabelMode.Dot;
+        var showCurrent = true;
+        var legend = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (optsVal is ObjectInstance obj)
+        {
+            var scopeVal = obj.Get("scope");
+            if (scopeVal.Type == Types.String
+                && string.Equals(scopeVal.ToString(), "radius", StringComparison.OrdinalIgnoreCase))
+            {
+                var radiusVal = obj.Get("radius");
+                var radius = radiusVal.Type == Types.Number ? (int)(double)radiusVal.ToObject()! : 3;
+                scope = MapScope.Radius(radius);
+            }
+
+            var labelVal = obj.Get("label");
+            if (labelVal.Type == Types.String)
+            {
+                label = labelVal.ToString().ToLowerInvariant() switch
+                {
+                    "id" => LabelMode.Id,
+                    "name" => LabelMode.Name,
+                    _ => LabelMode.Dot,
+                };
+            }
+
+            var showVal = obj.Get("showCurrent");
+            if (showVal.Type == Types.Boolean)
+            {
+                showCurrent = (bool)showVal.ToObject()!;
+            }
+
+            var legendVal = obj.Get("legend");
+            if (legendVal is ObjectInstance legendObj)
+            {
+                foreach (var prop in legendObj.GetOwnProperties())
+                {
+                    var keyStr = prop.Key.ToString();
+                    var glyph = prop.Value.Value?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(keyStr) && !string.IsNullOrEmpty(glyph))
+                    {
+                        legend[keyStr] = glyph;
+                    }
+                }
+            }
+        }
+
+        var viewOpts = new ViewOptions
+        {
+            CurrentRoomId = currentRoomId,
+            Label = label,
+            Legend = legend,
+            ShowCurrent = showCurrent,
+            Plane = 0,
+        };
+        return (scope, viewOpts);
     }
 }
