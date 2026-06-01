@@ -150,9 +150,10 @@ public class AreaMapProjectorTests
     [Fact]
     public void Room_first_reached_wins_its_cell()
     {
-        // Two paths to the same room: A-e->B-s->C and A-s->D-e->C.
-        // Whoever the BFS reaches first owns C's position; the geometry agrees here
-        // (both paths put C at (1,-1)), so this is purely about not re-assigning.
+        // BFS from A: exits are iterated in enum order (North=0, South=1, East=2, West=3),
+        // so A's South->D is expanded before East->B. D-e->C places C at (1,-1) first.
+        // When B is later dequeued, B-s->C finds C already positioned (first-reach-wins)
+        // and skips it. No collision -- C stays at (1,-1).
         var world = new World();
         AddRoom(world, "ns:a", "A", "ns-area");
         AddRoom(world, "ns:b", "B", "ns-area");
@@ -284,6 +285,9 @@ public class AreaMapProjectorTests
         Assert.Equal((0, 0), (r1.X, r1.Y));
         var r0 = map.Cells.Single(c => c.Id == "ns:r0");
         Assert.Equal((-1, 0), (r0.X, r0.Y));
+        var r2 = map.Cells.Single(c => c.Id == "ns:r2");
+        Assert.Equal((1, 0), (r2.X, r2.Y));
+        Assert.Equal(3, map.Cells.Count);
     }
 
     // ── Batch 4 (Task 6): whole-area determinism + area filter + unpositioned ─
