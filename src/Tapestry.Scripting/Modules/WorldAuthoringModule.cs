@@ -70,6 +70,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         return new
         {
             createArea = new Func<string, string, bool>((id, name) => CreateArea(id, name)),
+            // object (not AreaInfo) so Jint marshals the record's public props to a JS object.
             getArea = new Func<string, object>(id => GetArea(id)),
             createRoom = new Func<string, string, string, string, bool>(CreateRoom),
             setRoomName = new Func<string, string, object>((roomId, name) =>
@@ -448,7 +449,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
     {
         var idPart = areaId.Contains(':') ? areaId[(areaId.IndexOf(':') + 1)..] : areaId;
         var words = idPart.Replace('-', ' ').Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+        var joined = string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+        return string.IsNullOrWhiteSpace(joined) ? areaId : joined;
     }
 
     public bool CreateArea(string areaId, string? name)
