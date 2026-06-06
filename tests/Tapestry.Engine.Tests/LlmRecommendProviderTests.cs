@@ -44,8 +44,23 @@ public class LlmRecommendProviderTests
         new(Enabled: enabled, UseStub: false, BaseUrl: baseUrl, Model: model, ApiKey: apiKey,
             RequiresKey: requiresKey, Temperature: 0.8, MaxSentences: 2, Candidates: candidates, TimeoutSeconds: 30);
 
+    // Records the last user prompt so tests can assert which builder path was taken.
+    private sealed class CapturingLlmClient : ILlmClient
+    {
+        private readonly string _response;
+        public string? LastUser { get; private set; }
+
+        public CapturingLlmClient(string response = "ok") { _response = response; }
+
+        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default)
+        {
+            LastUser = user;
+            return Task.FromResult(_response);
+        }
+    }
+
     private static LlmRecommendProvider Provider(FakeLlmClient client, RecommendLlmConfig config) =>
-        new(client, new RoomPromptBuilder(RecommendPromptConfig.Default), config);
+        new(client, new RoomPromptBuilder(RecommendPromptConfig.Default), new AreaPromptBuilder(RecommendPromptConfig.Default), config);
 
     [Fact]
     public async Task Description_returns_candidates_count_suggestions()
@@ -104,6 +119,23 @@ public class LlmRecommendProviderTests
         var provider = Provider(new FakeLlmClient(),
             Config(enabled: enabled, baseUrl: baseUrl, model: model, apiKey: apiKey, requiresKey: requiresKey));
         Assert.Equal(expected, provider.IsEnabled);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AreaContext_UsesAreaPromptBuilder()
+    {
+        var captured = new CapturingLlmClient("ok");
+        var provider = new LlmRecommendProvider(
+            captured,
+            new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default),
+            Config());
+
+        var area = new AreaData { Id = "road-to-tar-valon", Name = "Road to Tar Valon", Theme = "Grim." };
+        await provider.RecommendAsync(new RecommendRequest("short", area, null));
+
+        // AreaPromptBuilder always emits "Area: <Name>." — RoomPromptBuilder never would.
+        Assert.Contains("Road to Tar Valon", captured.LastUser);
     }
 }
 

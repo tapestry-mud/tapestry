@@ -15,8 +15,9 @@ public static class LlmProviderFactory
         if (config.Enabled)
         {
             var client = new OpenAiCompatibleLlmClient(httpClientFactory());
-            var builder = new RoomPromptBuilder(promptConfig);
-            return new LlmRecommendProvider(client, builder, config);
+            var roomBuilder = new RoomPromptBuilder(promptConfig);
+            var areaBuilder = new AreaPromptBuilder(promptConfig);
+            return new LlmRecommendProvider(client, roomBuilder, areaBuilder, config);
         }
         if (config.UseStub)
         {

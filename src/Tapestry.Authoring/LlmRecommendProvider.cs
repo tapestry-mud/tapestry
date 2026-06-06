@@ -14,18 +14,21 @@ public sealed record RecommendLlmConfig(
     bool RequiresKey, double Temperature, int MaxSentences, int Candidates, int TimeoutSeconds);
 
 /// <summary>Author-intent-seeded recommendation. Name/description go to the LLM; exits stay
-/// structural. Never throws into the caller — all client failures degrade to Empty.</summary>
+/// structural (rooms only). Never throws into the caller — all client failures degrade to Empty.</summary>
 public sealed class LlmRecommendProvider : IRecommendProvider
 {
     private readonly ILlmClient _client;
-    private readonly RoomPromptBuilder _builder;
+    private readonly RoomPromptBuilder _roomBuilder;
+    private readonly AreaPromptBuilder _areaBuilder;
     private readonly RecommendLlmConfig _config;
     private readonly LlmOptions _opts;
 
-    public LlmRecommendProvider(ILlmClient client, RoomPromptBuilder builder, RecommendLlmConfig config)
+    public LlmRecommendProvider(ILlmClient client, RoomPromptBuilder roomBuilder,
+        AreaPromptBuilder areaBuilder, RecommendLlmConfig config)
     {
         _client = client;
-        _builder = builder;
+        _roomBuilder = roomBuilder;
+        _areaBuilder = areaBuilder;
         _config = config;
         _opts = new LlmOptions(config.Model, config.Temperature, config.TimeoutSeconds, config.BaseUrl, config.ApiKey);
     }
@@ -40,13 +43,22 @@ public sealed class LlmRecommendProvider : IRecommendProvider
     {
         var field = (request.Field ?? "").ToLowerInvariant();
 
-        // Exits stay structural — never burn an LLM call on direction math.
-        if (field == "exits")
+        string system, user;
+        if (request.Context is AreaData area)
         {
-            return ExitHeuristic.Suggest((RoomData)request.Context);
+            (system, user) = _areaBuilder.Build(field, area, request.Hint);
+        }
+        else
+        {
+            var room = (RoomData)request.Context;
+            // Exits stay structural — never burn an LLM call on direction math.
+            if (field == "exits")
+            {
+                return ExitHeuristic.Suggest(room);
+            }
+            (system, user) = _roomBuilder.Build(field, room, request.Hint);
         }
 
-        var (system, user) = _builder.Build(field, (RoomData)request.Context, request.Hint);
         var n = field == "description" ? _config.Candidates : 1;
         var picks = new List<string>();
         for (var i = 0; i < n; i++)
