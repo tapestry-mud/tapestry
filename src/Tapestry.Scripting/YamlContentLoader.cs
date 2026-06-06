@@ -41,6 +41,7 @@ public static class YamlContentLoader
 
     public static string SerializeAreaDefinition(AreaDefinition def)
     {
+        // Domain type uses "" not null; coerce empties to null so OmitNull drops them (OmitNull does not suppress "").
         var model = new AreaDefinitionModel
         {
             Id = def.Id,
@@ -53,7 +54,13 @@ public static class YamlContentLoader
             ResetInterval = def.ResetInterval,
             OccupiedModifier = def.OccupiedModifier,
             WeatherZone = def.WeatherZone,
-            Flags = def.Flags.Count > 0 ? def.Flags : null
+            Flags = def.Flags.Count > 0 ? def.Flags : null,
+            WeatherMessages = def.WeatherMessages.Count > 0
+                ? def.WeatherMessages.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => new WeatherMessagesModel { Start = kvp.Value.Start, Ongoing = kvp.Value.Ongoing, End = kvp.Value.End })
+                : null,
+            TimeMessages = def.TimeMessages.Count > 0 ? def.TimeMessages : null
         };
         return AreaSerializer.Serialize(new AreaFileModel { Area = model });
     }

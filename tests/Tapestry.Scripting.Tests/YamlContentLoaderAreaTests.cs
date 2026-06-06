@@ -47,10 +47,28 @@ public class YamlContentLoaderAreaTests
     [Fact]
     public void Serialize_OmitsEmptyTextFields()
     {
-        var def = new AreaDefinition { Id = "x", Name = "X" }; // theme/lore/etc empty
+        var def = new AreaDefinition { Id = "x", Name = "X" }; // theme/lore/short/description empty
         var yaml = YamlContentLoader.SerializeAreaDefinition(def);
         Assert.DoesNotContain("theme:", yaml);
         Assert.DoesNotContain("lore:", yaml);
+        Assert.DoesNotContain("short:", yaml);
+        Assert.DoesNotContain("description:", yaml);
+    }
+
+    [Fact]
+    public void Serialize_Then_Load_PreservesWeatherAndTimeMessages()
+    {
+        var def = new AreaDefinition { Id = "blight", Name = "The Blight" };
+        def.WeatherMessages["rain"] = new WeatherMessages("It begins to rain.", "Rain falls.", "The rain stops.");
+        def.TimeMessages["dawn"] = "Light creeps over the horizon.";
+
+        var loaded = YamlContentLoader.LoadAreaDefinition(YamlContentLoader.SerializeAreaDefinition(def));
+
+        Assert.True(loaded.WeatherMessages.ContainsKey("rain"));
+        Assert.Equal("It begins to rain.", loaded.WeatherMessages["rain"].Start);
+        Assert.Equal("Rain falls.", loaded.WeatherMessages["rain"].Ongoing);
+        Assert.Equal("The rain stops.", loaded.WeatherMessages["rain"].End);
+        Assert.Equal("Light creeps over the horizon.", loaded.TimeMessages["dawn"]);
     }
 
     [Fact]
