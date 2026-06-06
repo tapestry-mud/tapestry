@@ -159,6 +159,17 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<TagRegistry>());
         });
 
+        services.AddSingleton<AuthoredAreaLoader>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            var areasRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory);
+            var logger = sp.GetRequiredService<ILogger<AuthoredAreaLoader>>();
+            return new AuthoredAreaLoader(
+                areasRoot,
+                sp.GetRequiredService<AreaRegistry>(),
+                logger);
+        });
+
         services.AddSingleton<WorldAuthoringModule>(sp =>
         {
             var config = sp.GetRequiredService<ServerConfig>();

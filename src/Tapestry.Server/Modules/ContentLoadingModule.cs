@@ -25,6 +25,7 @@ public class ContentLoadingModule : IGameModule
     private readonly PackValidator _packValidator;
     private readonly ConnectionLoader _connectionLoader;
     private readonly AuthoredRoomLoader _authoredRoomLoader;
+    private readonly AuthoredAreaLoader _authoredAreaLoader;
     private readonly ThemeRegistry _themeRegistry;
     private readonly AbilityCommandBridge _abilityCommandBridge;
     private readonly CommandRegistry _commandRegistry;
@@ -46,6 +47,7 @@ public class ContentLoadingModule : IGameModule
         PackValidator packValidator,
         ConnectionLoader connectionLoader,
         AuthoredRoomLoader authoredRoomLoader,
+        AuthoredAreaLoader authoredAreaLoader,
         ThemeRegistry themeRegistry,
         AbilityCommandBridge abilityCommandBridge,
         CommandRegistry commandRegistry,
@@ -64,6 +66,7 @@ public class ContentLoadingModule : IGameModule
         _packValidator = packValidator;
         _connectionLoader = connectionLoader;
         _authoredRoomLoader = authoredRoomLoader;
+        _authoredAreaLoader = authoredAreaLoader;
         _themeRegistry = themeRegistry;
         _abilityCommandBridge = abilityCommandBridge;
         _commandRegistry = commandRegistry;
@@ -90,6 +93,9 @@ public class ContentLoadingModule : IGameModule
         // Authored rooms (data/areas/<area>/rooms/*.yaml) must exist before connections
         // wire onto them, and after pack rooms/fixtures have loaded.
         _authoredRoomLoader.Load();
+        // Authored area side-cars (data/areas/<area>/area.yaml) overlay pack areas or
+        // register authored-only areas. Always runs so edits load even without the builder pack.
+        _authoredAreaLoader.Load();
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd
