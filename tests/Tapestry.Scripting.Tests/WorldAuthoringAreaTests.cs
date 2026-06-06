@@ -133,4 +133,25 @@ public class WorldAuthoringAreaTests
 
         Assert.Equal(300, h.Registry.Get("road-to-tar-valon")!.ResetInterval);
     }
+
+    [Fact]
+    public void GetAreas_ReturnsSummaries_WithProvenanceTags_SortedByLevel()
+    {
+        var h = AreaAuthoringHarness.New();
+        // Authored area (side-car written by CreateArea, no source_pack)
+        h.Module.CreateArea("low", "Low");
+        h.Module.SetAreaAttribute("low", "level_range", "1,5");
+        // Packed area registered directly (source_pack, no side-car)
+        h.Registry.Register(new AreaDefinition { Id = "high", Name = "High", LevelRange = new[] { 20, 30 }, SourcePack = "@mallek/lf" });
+
+        var list = h.Module.GetAreas();
+
+        Assert.Equal(2, list.Count);
+        Assert.Equal("low", list[0].Id);                  // sorted by level range low->high
+        Assert.Equal("[authored]", list[0].Provenance);
+        Assert.Equal("high", list[1].Id);
+        Assert.Equal("[pack]", list[1].Provenance);
+
+        Directory.Delete(h.Root, recursive: true);
+    }
 }

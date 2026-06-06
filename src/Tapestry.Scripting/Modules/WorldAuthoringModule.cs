@@ -114,7 +114,18 @@ public sealed class WorldAuthoringModule : IJintApiModule
             setRoomAttribute = new Func<string, string, JsValue, string>(SetRoomAttribute),
             clearRoomAttribute = new Func<string, string, string>(ClearRoomAttribute),
             deleteRoom = new Func<string, bool>(DeleteRoom),
-            recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true)
+            recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true),
+            // Jint exposes CLR members by exact (PascalCase) name; project to camelCase for pack JS.
+            getAreas = new Func<object>(() => GetAreas().Select(a => new
+            {
+                id = a.Id,
+                name = a.Name,
+                @short = a.Short,
+                levelRange = a.LevelRange,
+                provenance = a.Provenance,
+                roomCount = a.RoomCount,
+                overrideCount = a.OverrideCount
+            }).ToArray())
         };
     }
 
@@ -532,6 +543,38 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _areaRegistry.Register(def);
         WriteAreaSideCar(def);
         return "Set " + attr + ".";
+    }
+
+    public IReadOnlyList<AreaSummary> GetAreas()
+    {
+        var list = new List<AreaSummary>();
+        foreach (var def in _areaRegistry.All())
+        {
+            var areaSideCar = File.Exists(AreaSideCarPath(def.Id));
+            var provenance = ProvenanceClassifier.Classify(def.SourcePack, areaSideCar);
+            var rooms = _world.AllRooms
+                .Where(r => string.Equals(r.Area, def.Id, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var overrideCount = rooms.Count(r =>
+            {
+                if (string.IsNullOrEmpty(r.GetProperty<string>(CommonProperties.SourcePack)))
+                {
+                    return false;
+                }
+                // Derive the room side-car path the same way SideCarPath(Room) does.
+                var idx = r.Id.IndexOf(':');
+                var key = idx >= 0 ? r.Id[(idx + 1)..] : r.Id;
+                var roomSideCar = Path.Combine(_root, r.Area ?? "", "rooms", $"{key}.yaml");
+                return File.Exists(roomSideCar);
+            });
+            list.Add(new AreaSummary(
+                def.Id, def.Name, def.Short ?? "", def.LevelRange,
+                provenance, rooms.Count, overrideCount));
+        }
+        return list
+            .OrderBy(a => a.LevelRange is { Length: > 0 } ? a.LevelRange[0] : int.MaxValue)
+            .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public bool CreateArea(string areaId, string? name)

@@ -94,4 +94,27 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         (sourcePack == null || sourcePack.ToString() == "")
             .Should().BeTrue("sourcePack should be null/undefined for an authored area");
     }
+
+    /// <summary>Proves that getAreas() returns a camelCase-projected array through Jint.
+    /// Raw AreaSummary records expose PascalCase members (Id, Name, LevelRange, Provenance),
+    /// which resolve to undefined in JS — this test proves the projection is correct.</summary>
+    [Fact]
+    public void GetAreas_FromJs_ReturnsCamelCaseProjection()
+    {
+        _mod.CreateArea("tar-valon", "Tar Valon");
+
+        var name = _runtime.Evaluate(
+            "tapestry.authoring.getAreas()[0].name");
+        var provenance = _runtime.Evaluate(
+            "tapestry.authoring.getAreas()[0].provenance");
+        var levelRange = _runtime.Evaluate(
+            "tapestry.authoring.getAreas()[0].levelRange");
+
+        name?.ToString().Should().Be("Tar Valon",
+            "camelCase 'name' key must resolve (not undefined) through Jint");
+        provenance?.ToString().Should().Be("[authored]",
+            "camelCase 'provenance' key must resolve with the correct tag");
+        // levelRange is an int[] — Jint exposes it as an array-like object; it must not be undefined.
+        levelRange.Should().NotBeNull("camelCase 'levelRange' key must resolve (not undefined)");
+    }
 }

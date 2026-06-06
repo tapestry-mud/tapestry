@@ -9,3 +9,11 @@ public sealed record AreaInfo(
     public static AreaInfo Missing(string id) =>
         new(id, "", "", "", "", "", new[] { 1, 99 }, 0, null, false, false);
 }
+
+/// <summary>
+/// One-line area summary returned by <see cref="WorldAuthoringModule.GetAreas"/> for the
+/// builder <c>areas</c> command. Includes provenance tag, room count, and override count.
+/// </summary>
+public sealed record AreaSummary(
+    string Id, string Name, string Short, int[] LevelRange,
+    string Provenance, int RoomCount, int OverrideCount);
