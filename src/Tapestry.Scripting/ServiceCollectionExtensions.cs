@@ -162,7 +162,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AuthoredAreaLoader>(sp =>
         {
             var config = sp.GetRequiredService<ServerConfig>();
-            var areasRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory);
+            var areasRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory); // areas + rooms share the same data/areas root
             var logger = sp.GetRequiredService<ILogger<AuthoredAreaLoader>>();
             return new AuthoredAreaLoader(
                 areasRoot,

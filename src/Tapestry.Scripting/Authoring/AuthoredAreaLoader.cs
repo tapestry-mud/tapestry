@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 
 namespace Tapestry.Scripting.Authoring;
@@ -17,13 +16,13 @@ public class AuthoredAreaLoader
 {
     private readonly string _root;
     private readonly AreaRegistry _registry;
-    private readonly ILogger _logger;
+    private readonly ILogger<AuthoredAreaLoader> _logger;
 
-    public AuthoredAreaLoader(string root, AreaRegistry registry, ILogger? logger = null)
+    public AuthoredAreaLoader(string root, AreaRegistry registry, ILogger<AuthoredAreaLoader> logger)
     {
         _root = root;
         _registry = registry;
-        _logger = logger ?? NullLogger.Instance;
+        _logger = logger;
     }
 
     public void Load()

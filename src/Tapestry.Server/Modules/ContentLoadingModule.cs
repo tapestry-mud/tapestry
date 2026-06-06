@@ -90,12 +90,10 @@ public class ContentLoadingModule : IGameModule
         _distributionService.Initialize(_itemRegistry.AllTemplates);
         _distributionService.SeedAllRooms();
 
-        // Authored rooms (data/areas/<area>/rooms/*.yaml) must exist before connections
-        // wire onto them, and after pack rooms/fixtures have loaded.
-        _authoredRoomLoader.Load();
-        // Authored area side-cars (data/areas/<area>/area.yaml) overlay pack areas or
-        // register authored-only areas. Always runs so edits load even without the builder pack.
+        // Authored side-cars overlay packed content. Areas before rooms (parents first);
+        // both after packs so SourcePack is already stamped for [pack +edits] overlay.
         _authoredAreaLoader.Load();
+        _authoredRoomLoader.Load();
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd

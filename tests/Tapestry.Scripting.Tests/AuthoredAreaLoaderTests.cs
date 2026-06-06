@@ -1,4 +1,5 @@
 using System.IO;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Scripting.Authoring;
 using Xunit;
@@ -28,7 +29,7 @@ public class AuthoredAreaLoaderTests
         WriteArea(root, "blight", "area:\n  id: blight\n  name: The Blight\n  theme: Corruption.\n");
         var registry = new AreaRegistry();
 
-        new AuthoredAreaLoader(root, registry).Load();
+        new AuthoredAreaLoader(root, registry, NullLogger<AuthoredAreaLoader>.Instance).Load();
 
         var def = registry.Get("blight");
         Assert.NotNull(def);
@@ -50,7 +51,7 @@ public class AuthoredAreaLoaderTests
             SourcePack = "@mallek/legends-forgotten"
         });
 
-        new AuthoredAreaLoader(root, registry).Load();
+        new AuthoredAreaLoader(root, registry, NullLogger<AuthoredAreaLoader>.Instance).Load();
 
         var def = registry.Get("blight")!;
         Assert.Equal("New theme.", def.Theme);                      // side-car overlays
