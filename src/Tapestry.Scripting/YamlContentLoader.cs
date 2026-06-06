@@ -33,6 +33,31 @@ public static class YamlContentLoader
         .IgnoreUnmatchedProperties()
         .Build();
 
+    private static readonly ISerializer AreaSerializer = new SerializerBuilder()
+        .WithNamingConvention(UnderscoredNamingConvention.Instance)
+        .ConfigureDefaultValuesHandling(
+            DefaultValuesHandling.OmitNull | DefaultValuesHandling.OmitEmptyCollections)
+        .Build();
+
+    public static string SerializeAreaDefinition(AreaDefinition def)
+    {
+        var model = new AreaDefinitionModel
+        {
+            Id = def.Id,
+            Name = def.Name,
+            Short = string.IsNullOrEmpty(def.Short) ? null : def.Short,
+            Description = string.IsNullOrEmpty(def.Description) ? null : def.Description,
+            Theme = string.IsNullOrEmpty(def.Theme) ? null : def.Theme,
+            Lore = string.IsNullOrEmpty(def.Lore) ? null : def.Lore,
+            LevelRange = def.LevelRange,
+            ResetInterval = def.ResetInterval,
+            OccupiedModifier = def.OccupiedModifier,
+            WeatherZone = def.WeatherZone,
+            Flags = def.Flags.Count > 0 ? def.Flags : null
+        };
+        return AreaSerializer.Serialize(new AreaFileModel { Area = model });
+    }
+
     public static PackManifest LoadManifest(string yaml)
     {
         return Deserializer.Deserialize<PackManifest>(yaml);
@@ -186,6 +211,10 @@ public static class YamlContentLoader
         {
             Id = m.Id,
             Name = m.Name,
+            Short = m.Short ?? "",
+            Description = m.Description ?? "",
+            Theme = m.Theme ?? "",
+            Lore = m.Lore ?? "",
             LevelRange = m.LevelRange ?? [1, 99],
             ResetInterval = m.ResetInterval,
             OccupiedModifier = m.OccupiedModifier,
@@ -676,6 +705,10 @@ public static class YamlContentLoader
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? Short { get; set; }
+        public string? Description { get; set; }
+        public string? Theme { get; set; }
+        public string? Lore { get; set; }
         public int[]? LevelRange { get; set; }
         public int ResetInterval { get; set; } = 3000;
         public float OccupiedModifier { get; set; } = 3.0f;
