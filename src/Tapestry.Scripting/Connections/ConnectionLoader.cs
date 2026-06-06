@@ -18,6 +18,11 @@ public class ConnectionLoader
         .IgnoreUnmatchedProperties()
         .Build();
 
+    private static readonly ISerializer Serializer = new SerializerBuilder()
+        .WithNamingConvention(UnderscoredNamingConvention.Instance)
+        .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+        .Build();
+
     public IReadOnlyList<ConnectionRecord> Loaded => _loaded;
 
     public void AddLoaded(ConnectionRecord record)
@@ -28,6 +33,35 @@ public class ConnectionLoader
     public void RemoveLoaded(ConnectionRecord record)
     {
         _loaded.Remove(record);
+    }
+
+    /// <summary>Repoint every loaded connection record that references
+    /// <paramref name="oldRoomId"/> at <paramref name="newRoomId"/> and rewrite its
+    /// YAML file. Returns the affected (already-updated) records. The record id and
+    /// filename are an opaque identity — intentionally NOT re-derived from room ids.</summary>
+    public IReadOnlyList<ConnectionRecord> RetargetRoom(string oldRoomId, string newRoomId)
+    {
+        var affected = _loaded
+            .Where(r => r.From.Room == oldRoomId || r.To.Room == oldRoomId)
+            .ToList();
+
+        Directory.CreateDirectory(_connectionsPath);
+        foreach (var record in affected)
+        {
+            if (record.From.Room == oldRoomId)
+            {
+                record.From.Room = newRoomId;
+            }
+            if (record.To.Room == oldRoomId)
+            {
+                record.To.Room = newRoomId;
+            }
+
+            var filePath = Path.Combine(_connectionsPath, $"{record.Id}.yaml");
+            File.WriteAllText(filePath, Serializer.Serialize(record));
+        }
+
+        return affected;
     }
 
     public string ConnectionsDirectory => _connectionsPath;

@@ -37,6 +37,70 @@ public class World : ITagObserver
         _rooms.Remove(id);
     }
 
+    /// <summary>
+    /// Re-key a room: re-index the dictionary, retarget exits of rooms in the SAME area,
+    /// relocate entities standing in the room, and report (without touching) every
+    /// pack-room or out-of-area referencer. In-memory only — side-car and connection
+    /// persistence belong to the authoring layer.
+    /// </summary>
+    public RekeyResult RekeyRoom(string oldId, string newId)
+    {
+        var room = GetRoom(oldId);
+        if (room == null || GetRoom(newId) != null)
+        {
+            return RekeyResult.Failed;
+        }
+
+        // Re-index first, inside this method body, so no caller can ever observe a
+        // dictionary key that disagrees with room.Id.
+        _rooms.Remove(oldId);
+        room.Id = newId;
+        _rooms[newId] = room;
+
+        // The renamed room's own self-loop exits (an exit targeting itself) must follow
+        // the new id too — the global scan below skips this room.
+        room.RetargetExits(oldId, newId);
+
+        // Global scan: every other room's exits. Same-area authored rooms are fixed;
+        // pack rooms and other-area rooms are reported as edges, untouched.
+        var retargeted = new List<string>();
+        var edges = new List<RoomRef>();
+        foreach (var other in _rooms.Values)
+        {
+            if (ReferenceEquals(other, room) || !other.HasExitTo(oldId))
+            {
+                continue;
+            }
+
+            var isPackRoom = other.GetRawProperty(CommonProperties.SourcePack) != null;
+            var sameArea = !isPackRoom
+                && other.Area != null
+                && string.Equals(other.Area, room.Area, StringComparison.OrdinalIgnoreCase);
+            if (sameArea)
+            {
+                other.RetargetExits(oldId, newId);
+                retargeted.Add(other.Id);
+            }
+            else
+            {
+                edges.Add(new RoomRef(other.Id, other.Name, isPackRoom));
+            }
+        }
+
+        // Entities standing in the room (players, NPCs, floor items) follow the id.
+        foreach (var entity in room.Entities)
+        {
+            entity.LocationRoomId = newId;
+        }
+
+        return new RekeyResult
+        {
+            Ok = true,
+            RetargetedRoomIds = retargeted,
+            EdgeReferences = edges
+        };
+    }
+
     public IEnumerable<Room> AllRooms => _rooms.Values;
 
     public bool MoveEntity(Entity entity, Direction direction)
