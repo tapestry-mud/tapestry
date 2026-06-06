@@ -53,8 +53,16 @@ public sealed class RoomPromptBuilder
         var f = (field ?? "").ToLowerInvariant();
         var sb = new StringBuilder();
 
-        // 1. Structural grounding (RoomData has no Theme; use Area + Biome).
-        if (!string.IsNullOrWhiteSpace(ctx.Area))
+        // 1. Structural grounding. Prefer the area's display name + creative theme when known.
+        if (!string.IsNullOrWhiteSpace(ctx.AreaName) && !string.IsNullOrWhiteSpace(ctx.AreaTheme))
+        {
+            sb.Append("Area: ").Append(ctx.AreaName).Append(". Theme: ").Append(ctx.AreaTheme).Append('\n');
+        }
+        else if (!string.IsNullOrWhiteSpace(ctx.AreaName))
+        {
+            sb.Append("Area: ").Append(ctx.AreaName).Append(".\n");
+        }
+        else if (!string.IsNullOrWhiteSpace(ctx.Area))
         {
             sb.Append("Area: ").Append(ctx.Area).Append(".\n");
         }
