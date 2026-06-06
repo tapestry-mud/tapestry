@@ -24,6 +24,16 @@ public sealed record RecommendPromptConfig(
         ["description"] = "Task: write the room description. Output only the description.",
     };
 
+    public IReadOnlyDictionary<string, string> AreaTaskLines { get; init; } = DefaultAreaTaskLines;
+
+    public static IReadOnlyDictionary<string, string> DefaultAreaTaskLines => new Dictionary<string, string>
+    {
+        ["short"] = "Task: write a one-line blurb for this area (a single sentence). Output only the blurb.",
+        ["description"] = "Task: write the player-facing area description. Output only the description.",
+        ["theme"] = "Task: write a theme/mood brief that captures this area's atmosphere and motifs for an author (1-2 sentences). Output only the brief.",
+        ["lore"] = "Task: write a short background/lore note for this area. Output only the note."
+    };
+
     public static RecommendPromptConfig Default { get; } =
         new(DefaultSystemPrompt, DefaultTaskLines, MaxSentences: 2);
 }
