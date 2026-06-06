@@ -17,3 +17,9 @@ public sealed record AreaInfo(
 public sealed record AreaSummary(
     string Id, string Name, string Short, int[] LevelRange,
     string Provenance, int RoomCount, int OverrideCount);
+
+/// <summary>
+/// Per-room summary returned by <see cref="WorldAuthoringModule.GetAreaRooms"/> for the
+/// builder <c>rooms &lt;area&gt;</c> command. Includes provenance tag for each room.
+/// </summary>
+public sealed record RoomSummary(string Id, string Name, string Provenance);

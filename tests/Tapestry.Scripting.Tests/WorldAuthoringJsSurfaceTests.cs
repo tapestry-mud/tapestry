@@ -117,4 +117,29 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         // levelRange is an int[] — Jint exposes it as an array-like object; it must not be undefined.
         levelRange.Should().NotBeNull("camelCase 'levelRange' key must resolve (not undefined)");
     }
+
+    /// <summary>Proves that getAreaRooms() returns a camelCase-projected array through Jint.
+    /// Raw RoomSummary records would expose PascalCase members (Id, Name, Provenance),
+    /// which resolve to undefined in JS — this test proves the camelCase projection is correct.</summary>
+    [Fact]
+    public void GetAreaRooms_FromJs_ReturnsCamelCaseProjection()
+    {
+        _mod.CreateArea("road-to-tar-valon", "Road to Tar Valon");
+        // CreateRoom requires a namespaced roomId; "legends-forgotten" is in loadedPackNamespaces.
+        _mod.CreateRoom("road-to-tar-valon", "legends-forgotten:road-track-1", "The Track", "A dusty track.");
+
+        var id = _runtime.Evaluate(
+            "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].id");
+        var name = _runtime.Evaluate(
+            "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].name");
+        var provenance = _runtime.Evaluate(
+            "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].provenance");
+
+        id?.ToString().Should().Be("legends-forgotten:road-track-1",
+            "camelCase 'id' key must resolve (not undefined) through Jint");
+        name?.ToString().Should().Be("The Track",
+            "camelCase 'name' key must resolve (not undefined) through Jint");
+        provenance?.ToString().Should().Be("[authored]",
+            "camelCase 'provenance' key must resolve with the correct tag — authored room has a side-car and no source_pack");
+    }
 }

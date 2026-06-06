@@ -154,4 +154,23 @@ public class WorldAuthoringAreaTests
 
         Directory.Delete(h.Root, recursive: true);
     }
+
+    [Fact]
+    public void GetAreaRooms_TagsEachRoomProvenance()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+        // Authored room: CreateRoom writes a side-car, no source_pack.
+        // roomId must be namespaced (ns:key) and the ns must be in loadedPackNamespaces.
+        h.Module.CreateRoom("road-to-tar-valon", "legends-forgotten:road-to-tar-valon-1", "Track", "A dusty track.");
+
+        var rooms = h.Module.GetAreaRooms("road-to-tar-valon");
+
+        Assert.Single(rooms);
+        Assert.Equal("legends-forgotten:road-to-tar-valon-1", rooms[0].Id);
+        Assert.Equal("Track", rooms[0].Name);
+        Assert.Equal("[authored]", rooms[0].Provenance);
+
+        Directory.Delete(h.Root, recursive: true);
+    }
 }

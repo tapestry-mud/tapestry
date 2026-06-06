@@ -125,6 +125,12 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 provenance = a.Provenance,
                 roomCount = a.RoomCount,
                 overrideCount = a.OverrideCount
+            }).ToArray()),
+            getAreaRooms = new Func<string, object>(id => GetAreaRooms(id).Select(r => new
+            {
+                id = r.Id,
+                name = r.Name,
+                provenance = r.Provenance
             }).ToArray())
         };
     }
@@ -575,6 +581,21 @@ public sealed class WorldAuthoringModule : IJintApiModule
             .OrderBy(a => a.LevelRange is { Length: > 0 } ? a.LevelRange[0] : int.MaxValue)
             .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    public IReadOnlyList<RoomSummary> GetAreaRooms(string areaId)
+    {
+        var rooms = _world.AllRooms
+            .Where(r => string.Equals(r.Area, areaId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => r.Id, StringComparer.OrdinalIgnoreCase);
+        var list = new List<RoomSummary>();
+        foreach (var room in rooms)
+        {
+            var sourcePack = room.GetProperty<string>(CommonProperties.SourcePack);
+            var sideCarExists = File.Exists(SideCarPath(room));
+            list.Add(new RoomSummary(room.Id, room.Name, ProvenanceClassifier.Classify(sourcePack, sideCarExists)));
+        }
+        return list;
     }
 
     public bool CreateArea(string areaId, string? name)
