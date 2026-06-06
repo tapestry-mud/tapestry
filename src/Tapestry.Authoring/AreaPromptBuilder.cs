@@ -50,19 +50,19 @@ public sealed class AreaPromptBuilder
             }
         }
 
-        // 4. Per-field task line.
+        // 4. Author intent — placed prominently, when supplied.
+        if (!string.IsNullOrWhiteSpace(hint))
+        {
+            sb.Append("Intent: ").Append(hint!.Trim()).Append(".\n");
+        }
+
+        // 5. Per-field task line.
         if (_config.AreaTaskLines.TryGetValue(f, out var taskLine) && !string.IsNullOrWhiteSpace(taskLine))
         {
             sb.Append(taskLine).Append('\n');
         }
 
-        // 5. Optional author hint.
-        if (!string.IsNullOrWhiteSpace(hint))
-        {
-            sb.Append("Author hint: ").Append(hint).Append('\n');
-        }
-
-        return (_config.SystemPrompt, sb.ToString());
+        return (_config.SystemPrompt, sb.ToString().TrimEnd('\n'));
     }
 
     private static void AppendSibling(StringBuilder sb, string current, string key, string label, string value)
