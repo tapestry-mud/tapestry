@@ -69,4 +69,29 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
 
         Convert.ToBoolean(ok).Should().BeFalse();
     }
+
+    /// <summary>Proves that getArea returns camelCase keys through Jint.
+    /// Raw AreaInfo would expose PascalCase members (Exists/Name/SourcePack),
+    /// which resolve to undefined in JS — this test would fail on those.</summary>
+    [Fact]
+    public void GetArea_FromJs_ReturnsCamelCaseProjection()
+    {
+        // Use the C# method to create the area so the state is set up through the
+        // same module (mirrors SetRoomName_FromJs which uses _mod.CreateRoom).
+        _mod.CreateArea("road-to-tar-valon", "The Road to Tar Valon");
+
+        var exists = _runtime.Evaluate(
+            "tapestry.authoring.getArea('road-to-tar-valon').exists");
+        var name = _runtime.Evaluate(
+            "tapestry.authoring.getArea('road-to-tar-valon').name");
+        var sourcePack = _runtime.Evaluate(
+            "tapestry.authoring.getArea('road-to-tar-valon').sourcePack");
+
+        Convert.ToBoolean(exists).Should().BeTrue("camelCase 'exists' key must resolve (not undefined)");
+        name?.ToString().Should().Be("The Road to Tar Valon",
+            "camelCase 'name' key must resolve to the created area name");
+        // sourcePack is null/undefined for an authored (non-pack) area.
+        (sourcePack == null || sourcePack.ToString() == "")
+            .Should().BeTrue("sourcePack should be null/undefined for an authored area");
+    }
 }

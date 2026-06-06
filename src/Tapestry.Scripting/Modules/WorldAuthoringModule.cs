@@ -70,8 +70,26 @@ public sealed class WorldAuthoringModule : IJintApiModule
         return new
         {
             createArea = new Func<string, string, bool>((id, name) => CreateArea(id, name)),
-            // object (not AreaInfo) so Jint marshals the record's public props to a JS object.
-            getArea = new Func<string, object>(id => GetArea(id)),
+            // Jint exposes CLR members by exact (PascalCase) name; pack JS reads camelCase,
+            // so project AreaInfo into a camelCase anon object (matches the ShopModule convention).
+            getArea = new Func<string, object>(id =>
+            {
+                var a = GetArea(id);
+                return new
+                {
+                    id = a.Id,
+                    name = a.Name,
+                    @short = a.Short,
+                    description = a.Description,
+                    theme = a.Theme,
+                    lore = a.Lore,
+                    levelRange = a.LevelRange,
+                    resetInterval = a.ResetInterval,
+                    sourcePack = a.SourcePack,
+                    sideCar = a.SideCar,
+                    exists = a.Exists
+                };
+            }),
             createRoom = new Func<string, string, string, string, bool>(CreateRoom),
             setRoomName = new Func<string, string, object>((roomId, name) =>
             {
