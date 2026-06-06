@@ -567,11 +567,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 {
                     return false;
                 }
-                // Derive the room side-car path the same way SideCarPath(Room) does.
-                var idx = r.Id.IndexOf(':');
-                var key = idx >= 0 ? r.Id[(idx + 1)..] : r.Id;
-                var roomSideCar = Path.Combine(_root, r.Area ?? "", "rooms", $"{key}.yaml");
-                return File.Exists(roomSideCar);
+                return File.Exists(SideCarPath(r));
             });
             list.Add(new AreaSummary(
                 def.Id, def.Name, def.Short ?? "", def.LevelRange,
