@@ -5,6 +5,8 @@ using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Recommend;
+using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Tags;
 using Xunit;
 
 namespace Tapestry.Engine.Tests;
@@ -210,5 +212,133 @@ public class FlowRecommendTests
         instance.IsAwaitingAsync.Should().BeFalse();                        // no async fired
         conn.SentText.Should().Contain(s => s.Contains("isn't available")); // honest message
         captured.Should().BeEmpty();                                        // not set to "~ desert"
+    }
+
+    // ---- BuildRecommendContext routing (FlowEngine internal static) ----
+
+    /// <summary>
+    /// Builds the minimal plumbing needed to exercise FlowEngine.BuildRecommendContext.
+    /// Approach: extracted static method, avoids the heavy FlowEngine constructor
+    /// (FlowRegistry + SessionManager + PlayerCreator + ClassRegistry + ... x10).
+    /// </summary>
+    private static (World world, RoomProjector roomProjector, AreaRegistry areaRegistry, AreaProjector areaProjector)
+        BuildProjectorFixture()
+    {
+        var world = new World();
+        var areas = new AreaRegistry();
+        var rp = new RoomProjector(world, new PropertyRegistry(), new TagRegistry(), areas);
+        var ap = new AreaProjector(world, rp);
+        return (world, rp, areas, ap);
+    }
+
+    [Fact]
+    public void BuildRecommendContext_area_kind_with_edit_area_property_returns_AreaData()
+    {
+        var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
+
+        var areaDef = new AreaDefinition
+        {
+            Id = "road-to-tar-valon",
+            Name = "Road to Tar Valon",
+            Short = "road",
+            Description = "A long road heading east.",
+            Theme = "wheel-of-time",
+            Lore = "",
+            LevelRange = [1, 50]
+        };
+        areaRegistry.Register(areaDef);
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        var factory = FlowEngine.BuildRecommendContext("area", broker, world, rp, areaRegistry, areaProjector);
+
+        factory.Should().NotBeNull("area kind with all deps present must produce a context func");
+
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("__edit_area", "road-to-tar-valon");
+
+        var ctx = factory!(entity);
+
+        ctx.Should().BeOfType<AreaData>();
+        ((AreaData)ctx).Id.Should().Be("road-to-tar-valon");
+    }
+
+    [Fact]
+    public void BuildRecommendContext_room_kind_returns_RoomData()
+    {
+        var (world, rp, _, _) = BuildProjectorFixture();
+
+        var room = new Room("test:hall", "The Hall", "A long hallway.");
+        world.AddRoom(room);
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        var factory = FlowEngine.BuildRecommendContext("room", broker, world, rp, null, null);
+
+        factory.Should().NotBeNull();
+
+        var entity = new Entity("player", "Rand");
+        entity.LocationRoomId = "test:hall";
+
+        var ctx = factory!(entity);
+
+        ctx.Should().BeOfType<RoomData>();
+        ((RoomData)ctx).Id.Should().Be("test:hall");
+    }
+
+    [Fact]
+    public void BuildRecommendContext_null_kind_falls_back_to_room()
+    {
+        var (world, rp, _, _) = BuildProjectorFixture();
+
+        var room = new Room("test:hall", "The Hall", "A long hallway.");
+        world.AddRoom(room);
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        var factory = FlowEngine.BuildRecommendContext(null, broker, world, rp, null, null);
+
+        factory.Should().NotBeNull();
+
+        var entity = new Entity("player", "Rand");
+        entity.LocationRoomId = "test:hall";
+
+        var ctx = factory!(entity);
+
+        ctx.Should().BeOfType<RoomData>();
+    }
+
+    [Fact]
+    public void BuildRecommendContext_null_broker_returns_null()
+    {
+        var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
+
+        var factory = FlowEngine.BuildRecommendContext("area", null, world, rp, areaRegistry, areaProjector);
+
+        factory.Should().BeNull("no broker means no recommend — context func must be null");
+    }
+
+    [Fact]
+    public void BuildRecommendContext_area_kind_missing_area_def_returns_empty_AreaData()
+    {
+        var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
+        // areaRegistry is empty — "unknown-area" does not exist
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        var factory = FlowEngine.BuildRecommendContext("area", broker, world, rp, areaRegistry, areaProjector);
+        factory.Should().NotBeNull();
+
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("__edit_area", "unknown-area");
+
+        var ctx = factory!(entity);
+
+        ctx.Should().BeOfType<AreaData>("falls back to empty AreaData when def not found");
+        ((AreaData)ctx).Id.Should().Be("", "empty fallback has blank Id");
     }
 }

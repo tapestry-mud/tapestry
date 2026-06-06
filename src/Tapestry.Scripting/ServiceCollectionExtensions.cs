@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<AttributeWriter>();
 
         services.AddSingleton<RoomProjector>();
+        services.AddSingleton<AreaProjector>();
 
         // Area-map projection + rendering (builder rooms / player map / future GMCP Area.Map)
         services.AddSingleton<AreaMapProjector>();

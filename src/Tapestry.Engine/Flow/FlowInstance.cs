@@ -12,7 +12,7 @@ public class FlowInstance
     private readonly Entity _entity;
     private readonly PanelRenderer _panelRenderer;
     private readonly RecommendBroker? _recommend;
-    private readonly Func<Entity, RoomData>? _recommendContext;
+    private readonly Func<Entity, IRecommendContext>? _recommendContext;
     private PlayerSession? _session;
     private int _currentStepIndex;
     private bool _awaitingEmptyAck;
@@ -33,7 +33,7 @@ public class FlowInstance
         Entity entity,
         PanelRenderer? panelRenderer = null,
         RecommendBroker? recommend = null,
-        Func<Entity, RoomData>? recommendContext = null)
+        Func<Entity, IRecommendContext>? recommendContext = null)
     {
         _definition = definition;
         _entity = entity;

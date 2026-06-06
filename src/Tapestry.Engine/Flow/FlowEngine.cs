@@ -23,6 +23,8 @@ public class FlowEngine
     private readonly EventBus _eventBus;
     private readonly RecommendBroker? _recommendBroker;
     private readonly RoomProjector? _roomProjector;
+    private readonly AreaRegistry? _areaRegistry;
+    private readonly AreaProjector? _areaProjector;
     private readonly object _commitLock = new();
 
     public string DefaultSpawnRoomId { get; set; } = "tapestry-core:recall";
@@ -45,7 +47,9 @@ public class FlowEngine
         PlayerCreator playerCreator,
         EventBus eventBus,
         RecommendBroker? recommendBroker = null,
-        RoomProjector? roomProjector = null)
+        RoomProjector? roomProjector = null,
+        AreaRegistry? areaRegistry = null,
+        AreaProjector? areaProjector = null)
     {
         _registry = registry;
         _sessions = sessions;
@@ -59,6 +63,8 @@ public class FlowEngine
         _eventBus = eventBus;
         _recommendBroker = recommendBroker;
         _roomProjector = roomProjector;
+        _areaRegistry = areaRegistry;
+        _areaProjector = areaProjector;
     }
 
     public void Start(PlayerSession session, string flowId)
@@ -66,18 +72,12 @@ public class FlowEngine
         var definition = _registry.Get(flowId);
         if (definition == null) { return; }
 
-        // Recommend side-action context: project the entity's current room to RoomData.
-        // Only wired when both the broker and projector are available (live engine);
+        // Recommend side-action context: project the entity's current room (or editing area)
+        // to the appropriate IRecommendContext. Only wired when the broker is available;
         // in test/standalone construction these are null and the flow has no recommend.
-        Func<Entity, RoomData>? recommendContext = null;
-        if (_recommendBroker != null && _roomProjector != null)
-        {
-            recommendContext = e =>
-            {
-                var room = !string.IsNullOrEmpty(e.LocationRoomId) ? _world.GetRoom(e.LocationRoomId!) : null;
-                return room != null ? _roomProjector.Project(room) : new RoomData();
-            };
-        }
+        var recommendContext = BuildRecommendContext(
+            definition.RecommendContextKind, _recommendBroker, _world,
+            _roomProjector, _areaRegistry, _areaProjector);
 
         var instance = new FlowInstance(
             definition, session.PlayerEntity, _panelRenderer, _recommendBroker, recommendContext);
@@ -241,5 +241,49 @@ public class FlowEngine
 
         session.EnqueueInput("motd");
         session.EnqueueInput("look");
+    }
+
+    /// <summary>
+    /// Selects the recommend-context factory for a flow based on its
+    /// <paramref name="contextKind"/> declaration (<c>"room"</c> or <c>"area"</c>).
+    /// Returns <c>null</c> when the broker is absent (no recommend in this deployment)
+    /// or when the required projector for the requested kind is unavailable.
+    /// Internal so tests can exercise the selection logic directly.
+    /// </summary>
+    internal static Func<Entity, IRecommendContext>? BuildRecommendContext(
+        string? contextKind,
+        RecommendBroker? broker,
+        World world,
+        RoomProjector? roomProjector,
+        AreaRegistry? areaRegistry,
+        AreaProjector? areaProjector)
+    {
+        if (broker == null)
+        {
+            return null;
+        }
+
+        var kind = contextKind ?? "room";
+        if (kind == "area" && areaRegistry != null && areaProjector != null)
+        {
+            return e =>
+            {
+                var areaId = e.GetProperty<string>("__edit_area")
+                    ?? (!string.IsNullOrEmpty(e.LocationRoomId) ? world.GetRoom(e.LocationRoomId!)?.Area : null);
+                var def = !string.IsNullOrEmpty(areaId) ? areaRegistry.Get(areaId!) : null;
+                return def != null ? areaProjector.Project(def) : new AreaData();
+            };
+        }
+
+        if (roomProjector != null)
+        {
+            return e =>
+            {
+                var room = !string.IsNullOrEmpty(e.LocationRoomId) ? world.GetRoom(e.LocationRoomId!) : null;
+                return room != null ? roomProjector.Project(room) : new RoomData();
+            };
+        }
+
+        return null;
     }
 }

@@ -47,6 +47,11 @@ public class FlowsModule : IJintApiModule
                 var stepsVal = obj.Get("steps");
                 var steps = ParseSteps(jint, stepsVal, packName);
 
+                var recommendContextKindVal = obj.Get("recommend_context");
+                var recommendContextKind = (recommendContextKindVal.Type != Types.Undefined && recommendContextKindVal.Type != Types.Null)
+                    ? recommendContextKindVal.ToString()
+                    : null;
+
                 var wizardStepsVal = obj.Get("wizard_steps");
                 IReadOnlyList<WizardStep>? wizardSteps = null;
                 if (wizardStepsVal is JsArray wizardStepsArr)
@@ -94,7 +99,8 @@ public class FlowsModule : IJintApiModule
                     Steps = steps,
                     OnComplete = onComplete,
                     PackName = packName,
-                    WizardSteps = wizardSteps
+                    WizardSteps = wizardSteps,
+                    RecommendContextKind = recommendContextKind
                 });
             }),
 

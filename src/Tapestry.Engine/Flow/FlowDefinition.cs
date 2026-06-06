@@ -10,4 +10,10 @@ public class FlowDefinition
     public string PackName { get; init; } = "";
     public IReadOnlyList<WizardStep>? WizardSteps { get; init; }
     public bool Cancellable { get; init; } = false;
+
+    /// <summary>
+    /// Selects which <see cref="Recommend.IRecommendContext"/> the flow's <c>~</c> side-action
+    /// builds. Accepted values: <c>"room"</c> (default, or null), <c>"area"</c>.
+    /// </summary>
+    public string? RecommendContextKind { get; init; }
 }
