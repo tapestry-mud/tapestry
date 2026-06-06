@@ -78,6 +78,16 @@ public sealed class RoomProjector
             }
         }
 
+        if (!string.IsNullOrEmpty(room.Area))
+        {
+            var areaDef = _areas.Get(room.Area!);
+            if (areaDef != null)
+            {
+                data.AreaName = areaDef.Name;
+                data.AreaTheme = string.IsNullOrEmpty(areaDef.Theme) ? null : areaDef.Theme;
+            }
+        }
+
         return data;
     }
 }

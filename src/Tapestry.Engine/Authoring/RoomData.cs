@@ -1,6 +1,7 @@
 // src/Tapestry.Engine/Authoring/RoomData.cs
 using System.Collections.Generic;
 using Tapestry.Engine.Recommend;
+using YamlDotNet.Serialization;
 
 namespace Tapestry.Engine.Authoring;
 
@@ -23,6 +24,11 @@ public sealed class RoomData : IRecommendContext
     public Dictionary<string, string> Exits { get; set; } = new();
     /// <summary>1-hop neighbor summaries (recommend context only; not serialized to the side-car).</summary>
     public List<RoomNeighbor> Neighbors { get; set; } = new();
+
+    /// <summary>Theme string from the area definition — recommend context only; never serialized.</summary>
+    [YamlIgnore] public string? AreaTheme { get; set; }
+    /// <summary>Human-readable area name from the area definition — recommend context only; never serialized.</summary>
+    [YamlIgnore] public string? AreaName { get; set; }
 }
 
 public sealed class RoomNeighbor
