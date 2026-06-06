@@ -28,7 +28,7 @@ public class WorldAuthoringModuleTests
             world, NullLogger<ConnectionLoader>.Instance, Path.Combine(root, "connections"));
         var mod = new WorldAuthoringModule(
             world, projector, writer, root, loadedPackNamespaces,
-            recommend: null, connections: connections);
+            new AreaRegistry(), recommend: null, connections: connections);
         return (mod, world, root, connections);
     }
 

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Persistence;
@@ -27,6 +29,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly AttributeWriter _writer;
     private readonly string _root;
     private readonly HashSet<string> _loadedPackNamespaces;
+    private readonly AreaRegistry _areaRegistry;
     private readonly RecommendBroker? _recommend;
     private readonly ConnectionLoader? _connections;
 
@@ -46,6 +49,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         AttributeWriter writer,
         string root,
         HashSet<string> loadedPackNamespaces,
+        AreaRegistry areaRegistry,
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null)
     {
@@ -54,6 +58,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _writer = writer;
         _root = root;
         _loadedPackNamespaces = loadedPackNamespaces;
+        _areaRegistry = areaRegistry;
         _recommend = recommend;
         _connections = connections;
     }
@@ -64,6 +69,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
     {
         return new
         {
+            createArea = new Func<string, string, bool>((id, name) => CreateArea(id, name)),
+            getArea = new Func<string, object>(id => GetArea(id)),
             createRoom = new Func<string, string, string, string, bool>(CreateRoom),
             setRoomName = new Func<string, string, object>((roomId, name) =>
             {
@@ -410,6 +417,66 @@ public sealed class WorldAuthoringModule : IJintApiModule
         var idx = room.Id.IndexOf(':');
         var key = idx >= 0 ? room.Id[(idx + 1)..] : room.Id;
         return Path.Combine(_root, area, "rooms", $"{key}.yaml");
+    }
+
+    // ---- Area authoring ----
+
+    private string AreaSideCarPath(string areaId)
+    {
+        // Defensive: area ids are bare slugs today (no colon), but never let an id char
+        // break a path segment on Windows. Loading reads the real id from the YAML body,
+        // so the directory name need not equal the id.
+        return Path.Combine(_root, SafeSegment(areaId), "area.yaml");
+    }
+
+    private static string SafeSegment(string id)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = id.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
+        return new string(chars);
+    }
+
+    private void WriteAreaSideCar(AreaDefinition def)
+    {
+        var path = AreaSideCarPath(def.Id);
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
+        File.WriteAllText(path, YamlContentLoader.SerializeAreaDefinition(def));
+    }
+
+    private static string SlugToName(string areaId)
+    {
+        var idPart = areaId.Contains(':') ? areaId[(areaId.IndexOf(':') + 1)..] : areaId;
+        var words = idPart.Replace('-', ' ').Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+    }
+
+    public bool CreateArea(string areaId, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(areaId) || _areaRegistry.Contains(areaId))
+        {
+            return false;
+        }
+        var def = new AreaDefinition
+        {
+            Id = areaId,
+            Name = string.IsNullOrWhiteSpace(name) ? SlugToName(areaId) : name!
+        };
+        _areaRegistry.Register(def);
+        WriteAreaSideCar(def);
+        return true;
+    }
+
+    public AreaInfo GetArea(string areaId)
+    {
+        var def = _areaRegistry.Get(areaId);
+        if (def == null)
+        {
+            return AreaInfo.Missing(areaId);
+        }
+        var sideCar = File.Exists(AreaSideCarPath(areaId));
+        return new AreaInfo(def.Id, def.Name, def.Short, def.Description, def.Theme, def.Lore,
+            def.LevelRange, def.ResetInterval, def.SourcePack, sideCar, true);
     }
 }
 

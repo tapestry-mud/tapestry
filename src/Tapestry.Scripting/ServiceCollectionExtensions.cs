@@ -180,6 +180,7 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<AttributeWriter>(),
                 roomsRoot,
                 sp.GetRequiredService<LoadedPackNamespaces>().Namespaces,
+                sp.GetRequiredService<AreaRegistry>(),
                 sp.GetRequiredService<RecommendBroker>(),
                 sp.GetRequiredService<ConnectionLoader>());
         });

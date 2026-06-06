@@ -27,7 +27,8 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         var projector = new RoomProjector(_world, props, tags);
         var writer = new AttributeWriter(props, tags);
         _mod = new WorldAuthoringModule(
-            _world, projector, writer, _root, new HashSet<string> { "legends-forgotten" });
+            _world, projector, writer, _root, new HashSet<string> { "legends-forgotten" },
+            new AreaRegistry());
 
         _runtime = new JintRuntime(
             new IJintApiModule[] { _mod },
