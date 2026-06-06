@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Tapestry.Engine.Authoring;
 
 namespace Tapestry.Engine.Recommend;
 
@@ -38,7 +39,7 @@ public sealed class StaticStubRecommendProvider : IRecommendProvider
                     "Roots knuckle up through the earth, and somewhere water trickles unseen.",
                 });
             case "exits":
-                return ExitHeuristic.Suggest(request.Context);
+                return ExitHeuristic.Suggest((RoomData)request.Context);
             default:
                 return RecommendResult.Empty;
         }

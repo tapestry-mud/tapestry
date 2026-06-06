@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Recommend;
 
 namespace Tapestry.Authoring;
@@ -42,10 +43,10 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         // Exits stay structural — never burn an LLM call on direction math.
         if (field == "exits")
         {
-            return ExitHeuristic.Suggest(request.Context);
+            return ExitHeuristic.Suggest((RoomData)request.Context);
         }
 
-        var (system, user) = _builder.Build(field, request.Context, request.Hint);
+        var (system, user) = _builder.Build(field, (RoomData)request.Context, request.Hint);
         var n = field == "description" ? _config.Candidates : 1;
         var picks = new List<string>();
         for (var i = 0; i < n; i++)

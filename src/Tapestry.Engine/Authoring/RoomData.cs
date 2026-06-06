@@ -1,12 +1,13 @@
 // src/Tapestry.Engine/Authoring/RoomData.cs
 using System.Collections.Generic;
+using Tapestry.Engine.Recommend;
 
 namespace Tapestry.Engine.Authoring;
 
 /// <summary>Plain-object projection of a <see cref="Room"/> — the single
 /// serialization/recommendation/map source. Field order/casing matches the
 /// pack room YAML schema so export is a near file-move.</summary>
-public sealed class RoomData
+public sealed class RoomData : IRecommendContext
 {
     public string Id { get; set; } = "";
     public string? Area { get; set; }
