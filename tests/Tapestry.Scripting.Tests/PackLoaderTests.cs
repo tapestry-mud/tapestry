@@ -48,7 +48,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_ParsesManifestAndLoadsRooms()
     {
-        var (world, _, _, loader) = CreateLoaderDepsWithSpawn();
+        var (world, _, _, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         world.GetRoom("tapestry-example-pack:test-arena").Should().NotBeNull();
@@ -56,12 +56,24 @@ public class PackLoaderTests
         world.GetRoom("tapestry-example-pack:town-square").Should().NotBeNull();
     }
 
+    [Fact]
+    public void LoadPack_StampsSourcePackOnLoadedAreas()
+    {
+        var (_, _, _, loader, areaRegistry) = CreateLoaderDepsWithSpawn();
+        loader.Load(ExamplePackPath());
+
+        // The fixture pack is "@tapestry/example-pack"; PackNamespace converts to "tapestry-example-pack".
+        // starter-town uses a bare id; test area uses a namespaced id.
+        areaRegistry.Get("starter-town")!.SourcePack.Should().Be("tapestry-example-pack");
+        areaRegistry.Get("tapestry-example-pack:test")!.SourcePack.Should().Be("tapestry-example-pack");
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]
     public void LoadDeclarations_NullOrEmptyDirectory_Throws(string? packDirectory)
     {
-        var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn();
 
         var act = () => loader.LoadDeclarations(packDirectory!);
 
@@ -71,7 +83,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_RegistersItemTemplates()
     {
-        var (_, itemRegistry, _, loader) = CreateLoaderDepsWithSpawn();
+        var (_, itemRegistry, _, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         itemRegistry.HasTemplate("tapestry-example-pack:iron-sword").Should().BeTrue();
@@ -83,7 +95,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_CarriesContentsOntoItemTemplate()
     {
-        var (_, itemRegistry, _, loader) = CreateLoaderDepsWithSpawn();
+        var (_, itemRegistry, _, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         var template = itemRegistry.GetTemplate("tapestry-example-pack:oak-chest");
@@ -95,7 +107,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_RegistersMobTemplates()
     {
-        var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        var (_, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         spawnManager.GetTemplate("tapestry-example-pack:goblin").Should().NotBeNull();
@@ -105,7 +117,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_RegistersInlineLootTable_ForGoblin()
     {
-        var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        var (_, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         var loot = spawnManager.GetLootTable("tapestry-example-pack:goblin");
@@ -117,7 +129,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_PlacesFixturesInRooms()
     {
-        var (world, _, _, loader) = CreateLoaderDepsWithSpawn();
+        var (world, _, _, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         var townSquare = world.GetRoom("tapestry-example-pack:town-square");
@@ -128,7 +140,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_RegistersRoomSpawns()
     {
-        var (_, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        var (_, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         var config = spawnManager.GetAreaConfig("starter-town");
@@ -140,7 +152,7 @@ public class PackLoaderTests
     public void LoadPack_PopulatesTagRegistry_WithOwnPackTags()
     {
         var tagRegistry = new TagRegistry();
-        var (_, _, _, loader) = CreateLoaderDepsWithSpawn(tagRegistry);
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn(tagRegistry);
 
         loader.Load(ExamplePackPath());
 
@@ -192,7 +204,7 @@ public class PackLoaderTests
             """);
         try
         {
-            var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+            var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn();
             var act = () => loader.Load(dir);
             act.Should().Throw<InvalidOperationException>().WithMessage("*Duplicate*test:sword*");
         }
@@ -202,7 +214,7 @@ public class PackLoaderTests
         }
     }
 
-    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null)
+    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader, AreaRegistry AreaRegistry) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null)
     {
         var world = new World();
         var eventBus = new EventBus();
@@ -321,7 +333,7 @@ public class PackLoaderTests
             propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry(),
             new LoadedPackNamespaces());
 
-        return (world, itemRegistry, spawnManager, loader);
+        return (world, itemRegistry, spawnManager, loader, areaRegistry);
     }
 
     [Fact]
@@ -344,7 +356,7 @@ public class PackLoaderTests
                   motd: "data/motd.txt"
                 """);
 
-            var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+            var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn();
             loader.LoadDeclarations(packDir);
 
             loader.PackMotd.Should().Be("Hello from pack!");
@@ -358,7 +370,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadDeclarations_PackMotdIsNull_WhenNoMotdDeclared()
     {
-        var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn();
         loader.LoadDeclarations(ExamplePackPath());
 
         loader.PackMotd.Should().BeNull();
@@ -398,7 +410,7 @@ public class PackLoaderTests
                   motd: "data/motd.txt"
                 """);
 
-            var (_, _, _, loader) = CreateLoaderDepsWithSpawn();
+            var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn();
             loader.LoadDeclarations(packDir1);
             loader.LoadDeclarations(packDir2);
 
@@ -581,7 +593,7 @@ public class PackLoaderTests
     [Fact]
     public void RestorePlacements_SeedsAuthoredContainerContentsFromYaml()
     {
-        var (world, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        var (world, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         // The oak-chest is an authored fixture in town-square; its template declares
@@ -601,7 +613,7 @@ public class PackLoaderTests
     [Fact]
     public void LoadPack_RegistersRoomFixturesForRestore()
     {
-        var (world, _, spawnManager, loader) = CreateLoaderDepsWithSpawn();
+        var (world, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
         loader.Load(ExamplePackPath());
 
         var room = world.GetRoom("tapestry-example-pack:town-square")!;

@@ -176,7 +176,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.AreaDefinitions))
         {
-            LoadAreaDefinitions(packDirectory, manifest.Content.AreaDefinitions);
+            LoadAreaDefinitions(packDirectory, manifest.Content.AreaDefinitions, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Rooms))
@@ -566,14 +566,15 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadAreaDefinitions(string packDir, string glob)
+    private void LoadAreaDefinitions(string packDir, string glob, string packName = "")
     {
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
             var def = YamlContentLoader.LoadAreaDefinition(yaml);
+            if (!string.IsNullOrEmpty(packName)) { def.SourcePack = packName; }
             _areaRegistry.Register(def);
-            _logger.LogDebug("  Area: {Id}", def.Id);
+            _logger.LogDebug("  Area: {Id} (pack {Pack})", def.Id, packName);
         }
     }
 
