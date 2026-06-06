@@ -90,6 +90,12 @@ public sealed class WorldAuthoringModule : IJintApiModule
                     exists = a.Exists
                 };
             }),
+            setAreaName = new Func<string, string, bool>((id, v) => SetAreaName(id, v)),
+            setAreaShort = new Func<string, string, bool>((id, v) => SetAreaShort(id, v)),
+            setAreaDescription = new Func<string, string, bool>((id, v) => SetAreaDescription(id, v)),
+            setAreaTheme = new Func<string, string, bool>((id, v) => SetAreaTheme(id, v)),
+            setAreaLore = new Func<string, string, bool>((id, v) => SetAreaLore(id, v)),
+            setAreaAttribute = new Func<string, string, string, string>((id, a, v) => SetAreaAttribute(id, a, v)),
             createRoom = new Func<string, string, string, string, bool>(CreateRoom),
             setRoomName = new Func<string, string, object>((roomId, name) =>
             {
@@ -469,6 +475,63 @@ public sealed class WorldAuthoringModule : IJintApiModule
         var words = idPart.Replace('-', ' ').Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var joined = string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
         return string.IsNullOrWhiteSpace(joined) ? areaId : joined;
+    }
+
+    private bool MutateArea(string areaId, Action<AreaDefinition> mutate)
+    {
+        var def = _areaRegistry.Get(areaId);
+        if (def == null)
+        {
+            return false;
+        }
+        mutate(def);
+        _areaRegistry.Register(def);
+        WriteAreaSideCar(def);
+        return true;
+    }
+
+    public bool SetAreaName(string areaId, string name)        { return MutateArea(areaId, d => d.Name = name); }
+    public bool SetAreaShort(string areaId, string text)       { return MutateArea(areaId, d => d.Short = text); }
+    public bool SetAreaDescription(string areaId, string text) { return MutateArea(areaId, d => d.Description = text); }
+    public bool SetAreaTheme(string areaId, string text)       { return MutateArea(areaId, d => d.Theme = text); }
+    public bool SetAreaLore(string areaId, string text)        { return MutateArea(areaId, d => d.Lore = text); }
+
+    public string SetAreaAttribute(string areaId, string attr, string value)
+    {
+        var def = _areaRegistry.Get(areaId);
+        if (def == null)
+        {
+            return "No such area: " + areaId;
+        }
+        switch (attr)
+        {
+            case "level_range":
+            {
+                var parts = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2 || !int.TryParse(parts[0], out var lo) || !int.TryParse(parts[1], out var hi))
+                {
+                    return "level_range expects \"min,max\" (e.g. 5,12).";
+                }
+                def.LevelRange = new[] { lo, hi };
+                break;
+            }
+            case "reset_interval":
+            {
+                if (!int.TryParse(value, out var ri))
+                {
+                    return "reset_interval expects an integer (seconds).";
+                }
+                def.ResetInterval = ri;
+                break;
+            }
+            default:
+            {
+                return "Unknown area attribute: " + attr;
+            }
+        }
+        _areaRegistry.Register(def);
+        WriteAreaSideCar(def);
+        return "Set " + attr + ".";
     }
 
     public bool CreateArea(string areaId, string? name)

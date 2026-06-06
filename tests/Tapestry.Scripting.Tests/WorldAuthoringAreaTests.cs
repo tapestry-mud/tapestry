@@ -89,4 +89,48 @@ public class WorldAuthoringAreaTests
 
         Directory.Delete(h.Root, recursive: true);
     }
+
+    [Fact]
+    public void SetAreaTheme_UpdatesRegistry_AndRewritesSideCar()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+
+        var ok = h.Module.SetAreaTheme("road-to-tar-valon", "Grim pilgrimage under a watchful Tower.");
+
+        Assert.True(ok);
+        Assert.Equal("Grim pilgrimage under a watchful Tower.", h.Registry.Get("road-to-tar-valon")!.Theme);
+        var yaml = System.IO.File.ReadAllText(System.IO.Path.Combine(h.Root, "road-to-tar-valon", "area.yaml"));
+        Assert.Contains("Grim pilgrimage", yaml);
+    }
+
+    [Fact]
+    public void SetAreaX_OnMissingArea_ReturnsFalse()
+    {
+        var h = AreaAuthoringHarness.New();
+        Assert.False(h.Module.SetAreaTheme("nope", "x"));
+    }
+
+    [Fact]
+    public void SetAreaAttribute_LevelRange_ParsesPair()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+
+        var msg = h.Module.SetAreaAttribute("road-to-tar-valon", "level_range", "5,12");
+
+        Assert.Equal(new[] { 5, 12 }, h.Registry.Get("road-to-tar-valon")!.LevelRange);
+        Assert.Contains("level_range", msg);
+    }
+
+    [Fact]
+    public void SetAreaAttribute_ResetInterval_ParsesInt()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+
+        h.Module.SetAreaAttribute("road-to-tar-valon", "reset_interval", "300");
+
+        Assert.Equal(300, h.Registry.Get("road-to-tar-valon")!.ResetInterval);
+    }
 }
