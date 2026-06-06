@@ -21,7 +21,7 @@ public class WorldAuthoringModuleTests
         var props = new PropertyRegistry();
         props.RegisterEngineProperty("terrain", "t", PropertyValueType.String, appliesTo: new[] { EntityTypes.Room });
         var tags = new TagRegistry();
-        var projector = new RoomProjector(world, props, tags);
+        var projector = new RoomProjector(world, props, tags, new AreaRegistry());
         var writer = new AttributeWriter(props, tags);
         var loadedPackNamespaces = new HashSet<string> { "legends-forgotten" };
         var connections = new ConnectionLoader(

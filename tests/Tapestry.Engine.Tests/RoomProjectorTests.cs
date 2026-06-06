@@ -18,7 +18,7 @@ public class RoomProjectorTests
         var tags = new TagRegistry();
         tags.RegisterEngineTag("forest", "forest", new[] { EntityTypes.Room }, kind: "biome");
         tags.RegisterEngineTag("safe", "safe", new[] { EntityTypes.Room });
-        return new RoomProjector(world, props, tags);
+        return new RoomProjector(world, props, tags, new AreaRegistry());
     }
 
     [Fact]

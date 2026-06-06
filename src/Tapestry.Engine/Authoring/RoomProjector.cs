@@ -13,12 +13,14 @@ public sealed class RoomProjector
     private readonly World _world;
     private readonly PropertyRegistry _properties;
     private readonly TagRegistry _tags;
+    private readonly AreaRegistry _areas;
 
-    public RoomProjector(World world, PropertyRegistry properties, TagRegistry tags)
+    public RoomProjector(World world, PropertyRegistry properties, TagRegistry tags, AreaRegistry areas)
     {
         _world = world;
         _properties = properties;
         _tags = tags;
+        _areas = areas;
     }
 
     public RoomData Project(Room room)

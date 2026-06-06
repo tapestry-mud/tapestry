@@ -31,7 +31,7 @@ internal sealed class AreaAuthoringHarness
         var world = new World();
         var props = new PropertyRegistry();
         var tags = new TagRegistry();
-        var projector = new RoomProjector(world, props, tags);
+        var projector = new RoomProjector(world, props, tags, new AreaRegistry());
         var writer = new AttributeWriter(props, tags);
         var loadedPackNamespaces = new HashSet<string> { "legends-forgotten" };
         var connections = new ConnectionLoader(

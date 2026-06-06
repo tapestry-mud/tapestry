@@ -24,7 +24,7 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         _world = new World();
         var props = new PropertyRegistry();
         var tags = new TagRegistry();
-        var projector = new RoomProjector(_world, props, tags);
+        var projector = new RoomProjector(_world, props, tags, new AreaRegistry());
         var writer = new AttributeWriter(props, tags);
         _mod = new WorldAuthoringModule(
             _world, projector, writer, _root, new HashSet<string> { "legends-forgotten" },
