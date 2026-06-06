@@ -40,6 +40,33 @@ public class CommandRouterRoleTests
         }
     }
 
+    [Fact]
+    public void Route_PlayerMobCommand_DispatchesForPlainPlayer()
+    {
+        // 'mob' is an actor-type role (mobs may also invoke), NOT a privilege grant.
+        // A normal player holds 'player' but not 'mob' — get/drop/say/etc. must still dispatch.
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var dispatched = false;
+        registry.Register("get", _ => { dispatched = true; }, roles: ["player", "mob"]);
+
+        var router = new CommandRouter(registry, sessions, world, MakeTracker());
+
+        var connection = new FakeConnection();
+        var entity = new Entity("player", "Tester");
+        entity.AddRole("player");
+        var session = new PlayerSession(connection, entity);
+        sessions.Add(session);
+        world.TrackEntity(entity);
+
+        var ctx = MakeContext("get sword", entity.Id);
+        router.Route(ctx);
+
+        dispatched.Should().BeTrue();
+        string.Join("", connection.SentText).Should().NotContain("Huh?");
+    }
+
     private static CommandContext MakeContext(string input, Guid? entityId = null)
     {
         var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);

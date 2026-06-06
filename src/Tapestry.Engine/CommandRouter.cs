@@ -4,6 +4,11 @@ namespace Tapestry.Engine;
 
 public class CommandRouter
 {
+    // Roles that describe the kind of actor invoking a command rather than a privilege
+    // the actor must hold. These never gate dispatch.
+    private static readonly HashSet<string> ActorTypeRoles =
+        new(["player", "mob"], StringComparer.OrdinalIgnoreCase);
+
     private readonly CommandRegistry _registry;
     private readonly SessionManager _sessions;
     private readonly World _world;
@@ -37,8 +42,12 @@ public class CommandRouter
             return;
         }
 
+        // 'player' and 'mob' are actor-type roles (they describe who/what may invoke a
+        // command), not privilege grants. Only genuine privilege roles (admin, builder, ...)
+        // gate dispatch. Sweeping 'mob' into the guard set breaks every command a mob can
+        // also perform — get/drop/say/etc. — for normal players who lack the 'mob' role.
         var guardedRoles = registration.Roles
-            .Where(r => !string.Equals(r, "player", StringComparison.OrdinalIgnoreCase))
+            .Where(r => !ActorTypeRoles.Contains(r))
             .ToArray();
         if (guardedRoles.Length > 0)
         {
