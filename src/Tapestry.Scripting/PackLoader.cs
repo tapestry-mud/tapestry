@@ -566,13 +566,13 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadAreaDefinitions(string packDir, string glob, string packName = "")
+    private void LoadAreaDefinitions(string packDir, string glob, string packName)
     {
         foreach (var file in MatchFiles(packDir, glob))
         {
             var yaml = File.ReadAllText(file);
             var def = YamlContentLoader.LoadAreaDefinition(yaml);
-            if (!string.IsNullOrEmpty(packName)) { def.SourcePack = packName; }
+            def.SourcePack = packName;
             _areaRegistry.Register(def);
             _logger.LogDebug("  Area: {Id} (pack {Pack})", def.Id, packName);
         }
