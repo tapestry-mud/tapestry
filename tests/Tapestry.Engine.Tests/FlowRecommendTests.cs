@@ -265,6 +265,40 @@ public class FlowRecommendTests
     }
 
     [Fact]
+    public void BuildRecommendContext_area_kind_capitalized_is_case_insensitive()
+    {
+        var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
+
+        var areaDef = new AreaDefinition
+        {
+            Id = "road-to-tar-valon",
+            Name = "Road to Tar Valon",
+            Short = "road",
+            Description = "A long road heading east.",
+            Theme = "wheel-of-time",
+            Lore = "",
+            LevelRange = [1, 50]
+        };
+        areaRegistry.Register(areaDef);
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        // "Area" (capitalized) must match the same as "area"
+        var factory = FlowEngine.BuildRecommendContext("Area", broker, world, rp, areaRegistry, areaProjector);
+
+        factory.Should().NotBeNull("capitalized kind must still route to area context");
+
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("__edit_area", "road-to-tar-valon");
+
+        var ctx = factory!(entity);
+
+        ctx.Should().BeOfType<AreaData>();
+        ((AreaData)ctx).Id.Should().Be("road-to-tar-valon");
+    }
+
+    [Fact]
     public void BuildRecommendContext_room_kind_returns_RoomData()
     {
         var (world, rp, _, _) = BuildProjectorFixture();

@@ -263,7 +263,7 @@ public class FlowEngine
             return null;
         }
 
-        var kind = contextKind ?? "room";
+        var kind = (contextKind ?? "room").Trim().ToLowerInvariant();
         if (kind == "area" && areaRegistry != null && areaProjector != null)
         {
             return e =>
