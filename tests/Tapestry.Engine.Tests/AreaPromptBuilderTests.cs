@@ -23,11 +23,22 @@ public class AreaPromptBuilderTests
         var builder = new AreaPromptBuilder(RecommendPromptConfig.Default);
         var (system, user) = builder.Build("theme", Sample(), null);
 
-        Assert.Contains("terse MUD area author", system);
+        // Area authoring uses the region-voice system prompt, NOT the room prompt.
+        Assert.Contains("AREA", system);
+        Assert.DoesNotContain("Second person", system);
         Assert.Contains("Road to Tar Valon", user);
         Assert.Contains("Dusty Track", user);
         Assert.Contains("5", user);
         Assert.Contains("theme", user.ToLowerInvariant());
+    }
+
+    [Fact]
+    public void Build_UsesAreaSystemPrompt_NotRoomSystemPrompt()
+    {
+        var builder = new AreaPromptBuilder(RecommendPromptConfig.Default);
+        var (system, _) = builder.Build("description", Sample(), null);
+        Assert.Equal(RecommendPromptConfig.DefaultAreaSystemPrompt, system);
+        Assert.NotEqual(RecommendPromptConfig.DefaultSystemPrompt, system);
     }
 
     [Fact]

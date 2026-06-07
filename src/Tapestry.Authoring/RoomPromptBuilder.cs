@@ -15,6 +15,15 @@ public sealed record RecommendPromptConfig(
     public const string DefaultSystemPrompt =
         "You are a terse MUD area author. Second person, present tense. No preamble, no 'Sure!'.";
 
+    // Areas describe a whole region, not a single room -- a different authoring voice than
+    // DefaultSystemPrompt (which is room-voice: second person, "you are here"). Each authored
+    // entity type (mob, item, quest...) will want its own prompt; this is the first.
+    public const string DefaultAreaSystemPrompt =
+        "You are a terse MUD world-builder describing an AREA: a region spanning many rooms, not a single room. " +
+        "Write about the area as a whole -- its overall character, mood, and what defines it as a place. " +
+        "Do NOT address the player or use 'you', do NOT describe a single spot, immediate surroundings, or exits. " +
+        "No preamble, no 'Sure!'.";
+
     public const string DefaultNeighborGuidance =
         "Match the theme and tone of the adjacent rooms above, but make this room its own distinct place — do not copy their specific details or wording.";
 
@@ -25,6 +34,8 @@ public sealed record RecommendPromptConfig(
     };
 
     public IReadOnlyDictionary<string, string> AreaTaskLines { get; init; } = DefaultAreaTaskLines;
+
+    public string AreaSystemPrompt { get; init; } = DefaultAreaSystemPrompt;
 
     public static IReadOnlyDictionary<string, string> DefaultAreaTaskLines => new Dictionary<string, string>
     {

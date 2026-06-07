@@ -226,7 +226,12 @@ public static class ServiceCollectionExtensions
             MaxSentences: llm.MaxSentences,
             NeighborGuidance: string.IsNullOrWhiteSpace(llm.NeighborGuidance)
                 ? RecommendPromptConfig.DefaultNeighborGuidance
-                : llm.NeighborGuidance);
+                : llm.NeighborGuidance)
+        {
+            AreaSystemPrompt = string.IsNullOrWhiteSpace(llm.AreaSystemPrompt)
+                ? RecommendPromptConfig.DefaultAreaSystemPrompt
+                : llm.AreaSystemPrompt
+        };
 
         return LlmProviderFactory.Create(llmConfig, promptConfig, () => new HttpClient());
     }

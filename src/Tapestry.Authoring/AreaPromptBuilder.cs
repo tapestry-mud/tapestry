@@ -62,7 +62,8 @@ public sealed class AreaPromptBuilder
             sb.Append(taskLine).Append('\n');
         }
 
-        return (_config.SystemPrompt, sb.ToString().TrimEnd('\n'));
+        // Area authoring uses its own region-voice system prompt, not the room one.
+        return (_config.AreaSystemPrompt, sb.ToString().TrimEnd('\n'));
     }
 
     private static void AppendSibling(StringBuilder sb, string current, string key, string label, string value)
