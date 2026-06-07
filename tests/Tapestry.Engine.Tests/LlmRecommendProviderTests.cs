@@ -102,6 +102,24 @@ public class LlmRecommendProviderTests
     }
 
     [Fact]
+    public async Task Strips_a_surrounding_quote_pair_from_a_suggestion()
+    {
+        // Models wrap short names/titles in quotes; the value must not keep them.
+        var client = new CapturingLlmClient("\"Burnt Heel Turn\"");
+        var provider = new LlmRecommendProvider(
+            client,
+            new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default),
+            Config());
+
+        var result = await provider.RecommendAsync(
+            new RecommendRequest("name", new RoomData(), null));
+
+        Assert.Single(result.Suggestions);
+        Assert.Equal("Burnt Heel Turn", result.Suggestions[0]);
+    }
+
+    [Fact]
     public async Task Exits_served_by_heuristic_without_calling_the_client()
     {
         var client = new FakeLlmClient();

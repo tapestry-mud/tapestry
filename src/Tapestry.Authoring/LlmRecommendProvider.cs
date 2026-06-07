@@ -69,7 +69,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
                 var text = await _client.CompleteAsync(system, user, _opts, cts.Token);
                 if (!string.IsNullOrWhiteSpace(text))
                 {
-                    picks.Add(CollapseWhitespace(text));
+                    picks.Add(NormalizeSuggestion(text));
                 }
             }
             catch (Exception)
@@ -81,11 +81,23 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         return picks.Count > 0 ? new RecommendResult(picks) : RecommendResult.Empty;
     }
 
-    // MUD descriptions are a single block the client word-wraps. Models often emit multi-paragraph
-    // text with embedded newlines, which render as a staircase over telnet (bare LF). Collapse all
-    // whitespace runs (incl. newlines) to single spaces so the suggestion is one clean line.
-    private static string CollapseWhitespace(string text)
+    // Normalize a raw LLM suggestion for MUD use:
+    //  (1) collapse all whitespace runs (incl. the newlines models love) to single spaces -- a
+    //      description is one block the client word-wraps, and bare LF staircases over telnet;
+    //  (2) strip ONE surrounding pair of quotes -- models wrap short names/titles in "..." which
+    //      would otherwise be stored as part of the value (e.g. a room name of '"Burnt Heel Turn"').
+    private static string NormalizeSuggestion(string text)
     {
-        return System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ");
+        var s = System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ").Trim();
+        if (s.Length >= 2)
+        {
+            var first = s[0];
+            var last = s[^1];
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\''))
+            {
+                s = s.Substring(1, s.Length - 2).Trim();
+            }
+        }
+        return s;
     }
 }
