@@ -87,6 +87,24 @@ public class FlowRecommendTests
     }
 
     [Fact]
+    public async Task Single_suggestion_echoes_applied_value_so_the_builder_sees_it()
+    {
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+        // "name" yields exactly one suggestion -> the auto-apply path (no picker).
+        var (instance, session, conn) = Setup(broker, out var captured, recommendField: _ => "name");
+
+        instance.Start(session);
+        instance.HandleInput("~");
+        await ResumeWhenReady(instance);
+
+        // The single suggestion is applied to the field...
+        captured.Should().ContainSingle().Which.Should().Be("The Forgotten Hollow");
+        // ...AND echoed to the session so the builder sees what was picked (no silent apply).
+        conn.SentText.Should().Contain(s => s.Contains("The Forgotten Hollow"));
+    }
+
+    [Fact]
     public void Only_tilde_triggers_the_side_action()
     {
         var broker = new RecommendBroker();

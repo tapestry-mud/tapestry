@@ -245,6 +245,10 @@ public class FlowInstance
         }
         if (suggestions.Count == 1)
         {
+            // Echo what was applied. A single suggestion auto-applies with no picker, so
+            // without this the builder can't see what was set (a room is visible in-place,
+            // but an area field has nowhere to show it).
+            _session?.SendLine("Applied: " + suggestions[0]);
             step.OnInput(_entity, suggestions[0]);
             Advance();
             return;
