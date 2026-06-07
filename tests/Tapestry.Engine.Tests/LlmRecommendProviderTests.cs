@@ -83,6 +83,25 @@ public class LlmRecommendProviderTests
     }
 
     [Fact]
+    public async Task Collapses_multiline_llm_output_to_a_single_line()
+    {
+        // Models emit multi-paragraph prose with embedded newlines; over telnet bare LF staircases.
+        var client = new CapturingLlmClient("First paragraph.\n\n  Second paragraph.\nThird.");
+        var provider = new LlmRecommendProvider(
+            client,
+            new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default),
+            Config());
+
+        var result = await provider.RecommendAsync(
+            new RecommendRequest("short", new AreaData { Id = "a", Name = "A" }, null));
+
+        Assert.Single(result.Suggestions);
+        Assert.Equal("First paragraph. Second paragraph. Third.", result.Suggestions[0]);
+        Assert.DoesNotContain("\n", result.Suggestions[0]);
+    }
+
+    [Fact]
     public async Task Exits_served_by_heuristic_without_calling_the_client()
     {
         var client = new FakeLlmClient();

@@ -69,7 +69,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
                 var text = await _client.CompleteAsync(system, user, _opts, cts.Token);
                 if (!string.IsNullOrWhiteSpace(text))
                 {
-                    picks.Add(text);
+                    picks.Add(CollapseWhitespace(text));
                 }
             }
             catch (Exception)
@@ -79,5 +79,13 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         }
 
         return picks.Count > 0 ? new RecommendResult(picks) : RecommendResult.Empty;
+    }
+
+    // MUD descriptions are a single block the client word-wraps. Models often emit multi-paragraph
+    // text with embedded newlines, which render as a staircase over telnet (bare LF). Collapse all
+    // whitespace runs (incl. newlines) to single spaces so the suggestion is one clean line.
+    private static string CollapseWhitespace(string text)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ");
     }
 }
