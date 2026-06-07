@@ -243,16 +243,9 @@ public class FlowInstance
             _session?.SendLine("No suggestions available. Enter a value:");
             return;
         }
-        if (suggestions.Count == 1)
-        {
-            // Echo what was applied. A single suggestion auto-applies with no picker, so
-            // without this the builder can't see what was set (a room is visible in-place,
-            // but an area field has nowhere to show it).
-            _session?.SendLine("Applied: " + suggestions[0]);
-            step.OnInput(_entity, suggestions[0]);
-            Advance();
-            return;
-        }
+        // Present suggestions in the picker whether there's one or many, so the value is
+        // always shown BEFORE commit and can be declined (type your own value, or cancel).
+        // One display path -- a single suggestion is no longer silently auto-applied.
         _pendingSuggestions = suggestions;
         var sb = new System.Text.StringBuilder("Suggestions:\r\n");
         for (var i = 0; i < suggestions.Count; i++)

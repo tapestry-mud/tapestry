@@ -87,21 +87,26 @@ public class FlowRecommendTests
     }
 
     [Fact]
-    public async Task Single_suggestion_echoes_applied_value_so_the_builder_sees_it()
+    public async Task Single_suggestion_is_shown_in_the_picker_not_auto_applied()
     {
         var broker = new RecommendBroker();
         broker.Register(new StaticStubRecommendProvider(delayMs: 0));
-        // "name" yields exactly one suggestion -> the auto-apply path (no picker).
+        // "name" yields exactly one suggestion. It must still go through the picker (shown
+        // before commit, rejectable) -- not be silently auto-applied.
         var (instance, session, conn) = Setup(broker, out var captured, recommendField: _ => "name");
 
         instance.Start(session);
         instance.HandleInput("~");
         await ResumeWhenReady(instance);
 
-        // The single suggestion is applied to the field...
+        // Shown for confirmation...
+        conn.SentText.Should().Contain(s => s.Contains("Suggestions:") && s.Contains("The Forgotten Hollow"));
+        // ...but NOT committed yet.
+        captured.Should().BeEmpty();
+
+        // Picking it applies it.
+        instance.HandleInput("1");
         captured.Should().ContainSingle().Which.Should().Be("The Forgotten Hollow");
-        // ...AND echoed to the session so the builder sees what was picked (no silent apply).
-        conn.SentText.Should().Contain(s => s.Contains("The Forgotten Hollow"));
     }
 
     [Fact]
