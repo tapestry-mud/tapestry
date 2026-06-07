@@ -327,6 +327,22 @@ public class SessionManager
     public IEnumerable<PlayerSession> AllLinkDeadSessions =>
         _byEntityId.Values.Where(s => s.Phase == LoginPhase.LinkDead);
 
+    /// <summary>Distinct room ids that hold at least one logged-in player. A cheap
+    /// occupancy source (O(online players)) so callers can drive per-room work from the
+    /// few populated rooms instead of scanning the whole world.</summary>
+    public IEnumerable<string> OccupiedRoomIds()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var session in _byEntityId.Values)
+        {
+            var roomId = session.PlayerEntity.LocationRoomId;
+            if (roomId != null && seen.Add(roomId))
+            {
+                yield return roomId;
+            }
+        }
+    }
+
     public void SendToTag(string tag, string text)
     {
         foreach (var session in AllSessions)

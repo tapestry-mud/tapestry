@@ -39,10 +39,34 @@ public class WeatherService
         _currentWeather[areaId] = state;
     }
 
+    // Group the few occupied rooms (those holding a logged-in player) by area id.
+    // Weather/time messages only matter to rooms someone is standing in, so this is the
+    // work set -- it avoids the old O(areas x all-rooms) scan that grew with world content.
+    private Dictionary<string, List<Room>> OccupiedRoomsByArea()
+    {
+        var byArea = new Dictionary<string, List<Room>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var roomId in _sessions.OccupiedRoomIds())
+        {
+            var room = _world.GetRoom(roomId);
+            if (room?.Area == null) { continue; }
+            if (!byArea.TryGetValue(room.Area, out var list))
+            {
+                list = new List<Room>();
+                byArea[room.Area] = list;
+            }
+            list.Add(room);
+        }
+        return byArea;
+    }
+
     private void OnHourChange(GameEvent evt)
     {
         var hour = Convert.ToInt32(evt.Data["hour"]);
         if (hour % _config.Game.WeatherRollIntervalHours != 0) { return; }
+
+        // Weather state still rolls for every zoned area (cheap, keeps the world consistent),
+        // but messages only go to occupied rooms.
+        var occupiedByArea = OccupiedRoomsByArea();
 
         foreach (var area in _areaRegistry.All())
         {
@@ -69,7 +93,10 @@ public class WeatherService
                 }
             });
 
-            SendWeatherMessages(area, zone, previousState, nextState);
+            if (occupiedByArea.TryGetValue(area.Id, out var rooms))
+            {
+                SendWeatherMessages(area, zone, previousState, nextState, rooms);
+            }
         }
     }
 
@@ -78,11 +105,11 @@ public class WeatherService
         var period = evt.Data.GetValueOrDefault("period") as string;
         if (period == null) { return; }
 
-        foreach (var area in _areaRegistry.All())
+        foreach (var (areaId, rooms) in OccupiedRoomsByArea())
         {
+            var area = _areaRegistry.Get(areaId);
+            if (area == null) { continue; }
             var zone = area.WeatherZone != null ? _zoneRegistry.Get(area.WeatherZone) : null;
-            var rooms = _world.AllRooms.Where(r =>
-                string.Equals(r.Area, area.Id, StringComparison.OrdinalIgnoreCase));
 
             foreach (var room in rooms)
             {
@@ -110,11 +137,8 @@ public class WeatherService
     }
 
     private void SendWeatherMessages(AreaDefinition area, WeatherZoneDefinition zone,
-        string previousState, string nextState)
+        string previousState, string nextState, IReadOnlyList<Room> rooms)
     {
-        var rooms = _world.AllRooms.Where(r =>
-            string.Equals(r.Area, area.Id, StringComparison.OrdinalIgnoreCase));
-
         foreach (var room in rooms)
         {
             if (!ShouldReceiveWeather(room)) { continue; }

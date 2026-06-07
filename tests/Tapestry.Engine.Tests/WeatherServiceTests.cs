@@ -80,6 +80,42 @@ public class WeatherServiceTests
         return room;
     }
 
+    private FakeConnection AddPlayerInRoom(string roomId, string name = "Tester")
+    {
+        var conn = new FakeConnection();
+        var entity = new Entity("player", name) { LocationRoomId = roomId };
+        _sessions.Add(new PlayerSession(conn, entity));
+        return conn;
+    }
+
+    // --- Occupancy-driven dispatch (only rooms with players) ---
+
+    [Fact]
+    public void OccupiedRoomIds_ReturnsDistinctPlayerRooms()
+    {
+        AddPlayerInRoom("r1", "A");
+        AddPlayerInRoom("r1", "B"); // same room -> deduped
+        AddPlayerInRoom("r2", "C");
+
+        _sessions.OccupiedRoomIds().Should().BeEquivalentTo(new[] { "r1", "r2" });
+    }
+
+    [Fact]
+    public void OnPeriodChange_SendsTimeMessage_ToOccupiedRoom()
+    {
+        AddRoom("occ", terrain: "outdoors");
+        AddRoom("empty", terrain: "outdoors"); // no player -> never processed
+        var conn = AddPlayerInRoom("occ", "P");
+
+        _eventBus.Publish(new GameEvent
+        {
+            Type = "time.period.change",
+            Data = new Dictionary<string, object?> { ["period"] = "dawn" }
+        });
+
+        conn.SentLines.Should().Contain(l => l.Contains("The sky brightens in the east."));
+    }
+
     // --- ShouldReceiveWeather ---
 
     [Fact]
