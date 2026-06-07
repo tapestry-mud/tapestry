@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Persistence;
@@ -40,5 +44,57 @@ public class AuthoredRoomLoaderTests
         Assert.NotNull(room.GetExit(Tapestry.Shared.Direction.North));
 
         Directory.Delete(dir, recursive: true);
+    }
+
+    [Fact]
+    public void Skips_area_sidecar_does_not_parse_it_as_a_room()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "authrooms-" + Path.GetRandomFileName());
+        var areaDir = Path.Combine(dir, "lonely-road");
+        var roomsDir = Path.Combine(areaDir, "rooms");
+        Directory.CreateDirectory(roomsDir);
+        // An area side-car sits next to the rooms/ dir; the room loader must NOT parse it.
+        File.WriteAllText(Path.Combine(areaDir, "area.yaml"),
+            "area:\n  id: lonely-road\n  name: Lonely Road\n  theme: A quiet road.\n");
+        // A real authored room (no exits -> no exit warnings to confuse the assertion).
+        File.WriteAllText(Path.Combine(roomsDir, "anchor.yaml"),
+            "id: \"legends-forgotten:lonely-road-anchor\"\n" +
+            "area: lonely-road\n" +
+            "name: \"Anchor\"\n" +
+            "description: |\n  The anchor.\n");
+
+        var world = new World();
+        var logger = new CapturingLogger<AuthoredRoomLoader>();
+        var loader = new AuthoredRoomLoader(world, logger, dir, new PropertyRegistry(), new TagRegistry());
+        loader.Load();
+
+        // The real room loads...
+        Assert.NotNull(world.GetRoom("legends-forgotten:lonely-road-anchor"));
+        // ...and the area side-car is skipped, not failed-to-parse as a room (the boot warning).
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("area.yaml"));
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("Failed to load authored room"));
+
+        Directory.Delete(dir, recursive: true);
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public readonly List<string> Entries = new();
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(formatter(state, exception));
+        }
+
+        private sealed class NullScope : IDisposable
+        {
+            public static readonly NullScope Instance = new();
+            public void Dispose() { }
+        }
     }
 }

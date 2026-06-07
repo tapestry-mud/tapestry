@@ -42,6 +42,9 @@ public class AuthoredRoomLoader
         }
 
         var files = Directory.GetFiles(_roomsRoot, "*.yaml", SearchOption.AllDirectories)
+            // Area side-cars (<area>/area.yaml) live in the same tree but are loaded by
+            // AuthoredAreaLoader, not here. Skip them so we never parse an area as a room.
+            .Where(f => !string.Equals(Path.GetFileName(f), "area.yaml", System.StringComparison.OrdinalIgnoreCase))
             .OrderBy(f => f)
             .ToList();
 
