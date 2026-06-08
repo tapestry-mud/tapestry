@@ -212,6 +212,7 @@ public class ConnectionHandlerLoginPhaseTests
             flowEngine,
             new ColorRenderer(new ThemeRegistry()),
             new Tapestry.Engine.Text.OutputWrapper(),
+            new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig()),
             new LoginGateRegistry(),
             connectionManager,
             loginHandler,

@@ -545,11 +545,12 @@ app.MapFallback(async context =>
             // output (innermost) where ANSI escapes are zero-width.
             var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
             var outputWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWrapper>();
+            var outputWidthService = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWidthService>();
             var colorConn = new ColorRenderingConnection(
                 new Tapestry.Engine.Text.WrappingConnection(
                     connection,
                     outputWrapper,
-                    () => OutputWidthResolver.Resolve(connection, sessionMgr, config.Output.WrapWidth)),
+                    () => OutputWidthResolver.Resolve(connection, sessionMgr, outputWidthService)),
                 colorRenderer);
 
             // Create and register LoginContext
