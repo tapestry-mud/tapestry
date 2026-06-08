@@ -21,28 +21,43 @@ public static class ThreadCpuClock
     /// </summary>
     public static TimeSpan GetCurrentThreadCpuTime()
     {
-        if (OperatingSystem.IsLinux())
+        // Telemetry must never crash the game loop. Any native failure -- a failed syscall,
+        // or libc/kernel32 not resolving on an unexpected base image -- degrades to Zero.
+        // A Zero reading makes a slow handler classify as "preempted" rather than
+        // "cpu-bound": a safe, conservative default for a missing measurement.
+        try
         {
-            var ts = default(Timespec);
-            if (clock_gettime(ClockThreadCpuTimeId, ref ts) != 0)
+            if (OperatingSystem.IsLinux())
             {
-                return TimeSpan.Zero;
+                var ts = default(Timespec);
+                if (clock_gettime(ClockThreadCpuTimeId, ref ts) != 0)
+                {
+                    return TimeSpan.Zero;
+                }
+                long nanos = (ts.tv_sec * 1_000_000_000L) + ts.tv_nsec;
+                return new TimeSpan(nanos / 100); // TimeSpan ticks are 100ns
             }
-            long nanos = (ts.tv_sec * 1_000_000_000L) + ts.tv_nsec;
-            return new TimeSpan(nanos / 100); // TimeSpan ticks are 100ns
-        }
 
-        if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
+            {
+                if (!GetThreadTimes(GetCurrentThread(), out _, out _, out long kernel, out long user))
+                {
+                    return TimeSpan.Zero;
+                }
+                // kernel/user are FILETIME values already in 100ns units.
+                return new TimeSpan(kernel + user);
+            }
+
+            return TimeSpan.Zero;
+        }
+        catch (DllNotFoundException)
         {
-            if (!GetThreadTimes(GetCurrentThread(), out _, out _, out long kernel, out long user))
-            {
-                return TimeSpan.Zero;
-            }
-            // kernel/user are FILETIME values already in 100ns units.
-            return new TimeSpan(kernel + user);
+            return TimeSpan.Zero;
         }
-
-        return TimeSpan.Zero;
+        catch (EntryPointNotFoundException)
+        {
+            return TimeSpan.Zero;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
