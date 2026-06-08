@@ -23,6 +23,49 @@ public class PanelRendererTests
     private static string[] Lines(string rendered) =>
         rendered.Split("\r\n");
 
+    // ── MinimumWidth ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void MinimumWidth_ScoreShapedCellRow_Is56()
+    {
+        // Mirrors score's vitals row: 16 + 22(progress) + 14 + 2 fixed (+ fill), no dividers.
+        var panel = new Panel
+        {
+            Width = 80,
+            Sections = new[]
+            {
+                new Section { Rows = new Row[]
+                {
+                    new CellRow { Cells = new Cell[]
+                    {
+                        new Cell { Content = "hp", Width = CellWidth.Fixed(16) },
+                        new ProgressCell { Value = 1, Max = 1, Width = CellWidth.Fixed(22) },
+                        new Cell { Content = "x", Width = CellWidth.Fixed(14) },
+                        new Cell { Content = "", Width = CellWidth.Fixed(2) },
+                        new Cell { Content = "y", Width = CellWidth.Fill }
+                    } }
+                } }
+            }
+        };
+
+        Renderer().MinimumWidth(panel).Should().Be(56); // 54 fixed + 2 frame
+    }
+
+    [Fact]
+    public void MinimumWidth_PlainTextPanel_IsSmall()
+    {
+        var panel = new Panel
+        {
+            Width = 80,
+            Sections = new[]
+            {
+                new Section { Rows = new Row[] { new TextRow { Content = "hello there" } } }
+            }
+        };
+
+        Renderer().MinimumWidth(panel).Should().Be(4); // text truncates; no hard min
+    }
+
     // ── Structural ─────────────────────────────────────────────────────────────
 
     [Fact]
