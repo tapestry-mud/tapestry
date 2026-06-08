@@ -25,6 +25,7 @@ public class ServerConfig
     public AdminSeedSection? Admin { get; set; }
     public FloodProtectionSection FloodProtection { get; set; } = new();
     public LinkDeadSection LinkDead { get; set; } = new();
+    public OutputSection Output { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -87,6 +88,15 @@ public class ServerConfig
             }
         }
     }
+}
+
+public class OutputSection
+{
+    /// <summary>Default server-side word-wrap width (columns) for player output.
+    /// 0 disables wrapping. A per-player <c>screen_width</c> overrides this; for telnet,
+    /// a narrower NAWS-reported terminal width caps it further. Clamped to a sane range
+    /// by OutputWidthResolver at send time.</summary>
+    public int WrapWidth { get; set; } = 80;
 }
 
 public class ServerSection

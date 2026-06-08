@@ -6,6 +6,7 @@ using Tapestry.Engine.Color;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Text;
 using Tapestry.Server.Gmcp.Handlers;
 using Tapestry.Server.Login;
 using Tapestry.Shared;
@@ -23,6 +24,8 @@ public class ConnectionHandler
     private readonly ILogger<LoginFlow> _loginFlowLogger;
     private readonly FlowEngine _flowEngine;
     private readonly ColorRenderer _colorRenderer;
+    private readonly OutputWrapper _outputWrapper;
+    private readonly OutputWidthService _outputWidthService;
     private readonly LoginGateRegistry _loginGates;
     private readonly IGmcpConnectionManager _connectionManager;
     private readonly LoginHandler _loginHandler;
@@ -38,6 +41,8 @@ public class ConnectionHandler
         ILogger<LoginFlow> loginFlowLogger,
         FlowEngine flowEngine,
         ColorRenderer colorRenderer,
+        OutputWrapper outputWrapper,
+        OutputWidthService outputWidthService,
         LoginGateRegistry loginGates,
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
@@ -52,6 +57,8 @@ public class ConnectionHandler
         _loginFlowLogger = loginFlowLogger;
         _flowEngine = flowEngine;
         _colorRenderer = colorRenderer;
+        _outputWrapper = outputWrapper;
+        _outputWidthService = outputWidthService;
         _loginGates = loginGates;
         _connectionManager = connectionManager;
         _loginHandler = loginHandler;
@@ -71,7 +78,15 @@ public class ConnectionHandler
             rawConnection.OnDisconnected += () => _connectionManager.UnregisterHandler(rawConnection.Id);
         }
 
-        IConnection connection = new ColorRenderingConnection(rawConnection, _colorRenderer);
+        // Color renders first (outermost), then the word-wrapper runs on the rendered
+        // output (innermost, just above the raw transport) where ANSI escapes are
+        // zero-width -- so wrap width matches exactly what the terminal shows.
+        IConnection connection = new ColorRenderingConnection(
+            new WrappingConnection(
+                rawConnection,
+                _outputWrapper,
+                () => OutputWidthResolver.Resolve(rawConnection, _sessions, _outputWidthService)),
+            _colorRenderer);
         var loginContext = new LoginContext(rawConnection.Id, connection);
         _sessions.RegisterPreLogin(loginContext);
 

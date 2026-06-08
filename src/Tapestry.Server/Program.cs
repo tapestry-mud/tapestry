@@ -542,9 +542,17 @@ app.MapFallback(async context =>
             connectionManager.RegisterHandler(connection.Id, connection.GmcpHandler);
             connection.OnDisconnected += () => connectionManager.UnregisterHandler(connection.Id);
 
-            // Wrap connection for color rendering
+            // Color renders first (outermost); the word-wrapper runs on the rendered
+            // output (innermost) where ANSI escapes are zero-width.
             var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
-            var colorConn = new ColorRenderingConnection(connection, colorRenderer);
+            var outputWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWrapper>();
+            var outputWidthService = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWidthService>();
+            var colorConn = new ColorRenderingConnection(
+                new Tapestry.Engine.Text.WrappingConnection(
+                    connection,
+                    outputWrapper,
+                    () => OutputWidthResolver.Resolve(connection, sessionMgr, outputWidthService)),
+                colorRenderer);
 
             // Create and register LoginContext
             var loginContext = new LoginContext(connection.Id, colorConn);

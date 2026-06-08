@@ -195,6 +195,33 @@ public class PanelRenderer
 
     // ── Width helpers ──────────────────────────────────────────────────────────
 
+    /// <summary>The smallest width at which this panel renders without throwing: 2 (frame)
+    /// plus the widest row's hard requirement. Cell rows need their fixed-cell sum + dividers
+    /// (see RenderCellRow); a title row with a Right needs its visible length plus headroom
+    /// (see RenderTitleRow). Other row types truncate their content, so impose no hard floor.</summary>
+    public int MinimumWidth(Panel panel)
+    {
+        var min = 4;
+        foreach (var section in panel.Sections)
+        {
+            foreach (var row in section.Rows)
+            {
+                switch (row)
+                {
+                    case CellRow cr:
+                        var dividers = cr.ShowDividers ? cr.Cells.Count - 1 : 0;
+                        var fixedSum = cr.Cells.Where(c => !c.Width.IsFill).Sum(c => c.Width.Value);
+                        min = Math.Max(min, fixedSum + dividers + 2);
+                        break;
+                    case TitleRow tr when tr.Right != null:
+                        min = Math.Max(min, VisibleLength(tr.Right) + 5);
+                        break;
+                }
+            }
+        }
+        return min;
+    }
+
     /// Pads content to targetWidth visible chars. visLen is the pre-computed visible length of content.
     internal static string PadToVisible(string content, int targetWidth, int visLen)
     {

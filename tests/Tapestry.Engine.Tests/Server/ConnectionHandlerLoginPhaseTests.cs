@@ -211,6 +211,8 @@ public class ConnectionHandlerLoginPhaseTests
             NullLogger<Tapestry.Server.Login.LoginFlow>.Instance,
             flowEngine,
             new ColorRenderer(new ThemeRegistry()),
+            new Tapestry.Engine.Text.OutputWrapper(),
+            new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig()),
             new LoginGateRegistry(),
             connectionManager,
             loginHandler,

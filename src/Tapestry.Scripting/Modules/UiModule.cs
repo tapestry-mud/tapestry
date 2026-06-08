@@ -2,6 +2,8 @@ using Jint.Native;
 using Jint.Native.Array;
 using Jint.Native.Object;
 using Jint.Runtime;
+using Tapestry.Engine;
+using Tapestry.Engine.Text;
 using Tapestry.Engine.Ui;
 using JintEngine = Jint.Engine;
 
@@ -10,10 +12,26 @@ namespace Tapestry.Scripting.Modules;
 public class UiModule : IJintApiModule
 {
     private readonly PanelRenderer _renderer;
+    private readonly World _world;
+    private readonly OutputWidthService _widthService;
 
-    public UiModule(PanelRenderer renderer)
+    public UiModule(PanelRenderer renderer, World world, OutputWidthService widthService)
     {
         _renderer = renderer;
+        _world = world;
+        _widthService = widthService;
+    }
+
+    /// <summary>Caps a panel's preferred width to the player's effective width without going
+    /// below the panel's minimum renderable width (no fill, no throw). effective &lt;= 0
+    /// (wrapping off) → preferred.</summary>
+    public static int CapWidth(int preferred, int effective, int minWidth)
+        => effective <= 0 ? preferred : Math.Max(Math.Min(preferred, effective), minWidth);
+
+    private Entity? ResolveEntity(JsValue val)
+    {
+        var idStr = val.ToString();
+        return Guid.TryParse(idStr, out var gid) ? _world.GetEntity(gid) : null;
     }
 
     public string Namespace => "ui";
@@ -23,7 +41,8 @@ public class UiModule : IJintApiModule
         return new
         {
             panel = new Func<JsValue, string>(RenderPanel),
-            help = new Func<JsValue, string>(RenderHelp)
+            help = new Func<JsValue, string>(RenderHelp),
+            width = new Func<JsValue, int>(entityVal => _widthService.Resolve(ResolveEntity(entityVal)))
         };
     }
 
@@ -74,7 +93,20 @@ public class UiModule : IJintApiModule
             sections.Add(new Section { Rows = rows, SeparatorAbove = separatorAbove });
         }
 
-        return _renderer.Render(new Panel { Width = width, Sections = sections });
+        var panel = new Panel { Width = width, Sections = sections };
+
+        var forEntityVal = spec.Get("forEntity");
+        if (forEntityVal.Type != Types.Undefined && forEntityVal.Type != Types.Null)
+        {
+            var effective = _widthService.Resolve(ResolveEntity(forEntityVal));
+            var renderWidth = CapWidth(width, effective, _renderer.MinimumWidth(panel));
+            if (renderWidth != width)
+            {
+                panel = new Panel { Width = renderWidth, Sections = sections };
+            }
+        }
+
+        return _renderer.Render(panel);
     }
 
     private static RuleStyle ParseRuleStyle(JsValue val, uint si)
