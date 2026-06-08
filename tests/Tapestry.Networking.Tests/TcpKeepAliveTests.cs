@@ -49,4 +49,14 @@ public class TcpKeepAliveTests
 
         act.Should().NotThrow();
     }
+
+    [Fact]
+    public void Apply_sets_send_timeout_cross_platform()
+    {
+        using var socket = CreateSocket();
+
+        TcpKeepAlive.Apply(socket, idleSeconds: 30, intervalSeconds: 10, retryCount: 3, userTimeoutMs: 30000);
+
+        socket.SendTimeout.Should().Be(30000);
+    }
 }

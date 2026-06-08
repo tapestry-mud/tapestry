@@ -31,6 +31,11 @@ public static class TcpKeepAlive
         socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, intervalSeconds);
         socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, retryCount);
 
+        if (userTimeoutMs > 0)
+        {
+            socket.SendTimeout = userTimeoutMs;
+        }
+
         if (userTimeoutMs > 0 && OperatingSystem.IsLinux())
         {
             socket.SetRawSocketOption(IpprotoTcp, TcpUserTimeout, BitConverter.GetBytes(userTimeoutMs));
