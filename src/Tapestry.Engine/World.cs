@@ -242,6 +242,38 @@ public class World : ITagObserver
         return _entities.Values.Where(e => string.Equals(e.Type, type, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// One-pass snapshot of world content size for diagnostics metrics. Computed on
+    /// demand (metric scrape), not cached. Allocation-light: one WorldCensus + the
+    /// per-type dictionary.
+    /// </summary>
+    public WorldCensus SampleCensus()
+    {
+        var census = new WorldCensus();
+        foreach (var entity in _entities.Values)
+        {
+            census.EntitiesByType.TryGetValue(entity.Type, out var count);
+            census.EntitiesByType[entity.Type] = count + 1;
+
+            var propertyCount = entity.PropertyCount;
+            census.PropertiesTotal += propertyCount;
+            if (propertyCount > census.MaxEntityProperties)
+            {
+                census.MaxEntityProperties = propertyCount;
+            }
+        }
+
+        census.TagCount = _readIndex.Count;
+        var memberships = 0;
+        foreach (var set in _readIndex.Values)
+        {
+            memberships += set.Count;
+        }
+        census.TagMemberships = memberships;
+
+        return census;
+    }
+
     public IEnumerable<Entity> GetEntitiesByTemplateId(string templateId) =>
         _entities.Values.Where(e =>
             string.Equals(

@@ -184,6 +184,7 @@ public class Entity : IAttributeTarget
     }
 
     public IEnumerable<string> GetAllPropertyKeys() => _properties.Keys;
+    public int PropertyCount => _properties.Count;
     public object? GetRawProperty(string key) => _properties.GetValueOrDefault(key);
 
     public IEnumerable<KeyValuePair<string, object?>> EnumerateProperties(string prefix)
