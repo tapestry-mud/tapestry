@@ -1,4 +1,8 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Runtime.InteropServices;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Stats;
@@ -6,8 +10,30 @@ using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
 
-public class GameLoopTests
+[CollectionDefinition("GameLoopSerial", DisableParallelization = true)]
+public class GameLoopSerialCollection { }
+
+[Collection("GameLoopSerial")]
+public class GameLoopTests : IDisposable
 {
+    private readonly HighResTimerScope _timerScope = new();
+
+    public GameLoopTests()
+    {
+        // Sync the current thread's CPU timer to a fresh quantum so that any spin loop
+        // starting from GetCurrentThreadCpuTime() sees a non-stale baseline.
+        // Windows GetThreadTimes updates every ~15ms; spinning briefly until we observe
+        // a tick means the next read is at most ~0-1ms stale instead of up to 14ms stale.
+        var baseline = ThreadCpuClock.GetCurrentThreadCpuTime();
+        var sw = Stopwatch.StartNew();
+        while (ThreadCpuClock.GetCurrentThreadCpuTime() == baseline && sw.ElapsedMilliseconds < 30)
+        {
+            Thread.SpinWait(100);
+        }
+    }
+
+    public void Dispose() => _timerScope.Dispose();
+
     [Fact]
     public async Task Tick_ProcessesQueuedCommand()
     {
@@ -407,6 +433,124 @@ public class GameLoopTests
         loop.Tick();
 
         entity.Stats.Hp.Should().Be(55); // full regen regardless of sustenance
+    }
+
+    /// <summary>
+    /// Sets Windows multimedia timer resolution to 1ms for the duration of a using block.
+    /// Eliminates the 15ms GetThreadTimes granularity that makes CPU-spin assertions flaky.
+    /// No-ops on non-Windows platforms.
+    /// </summary>
+    private sealed class HighResTimerScope : IDisposable
+    {
+        private readonly bool _set;
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeBeginPeriod(uint uPeriod);
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeEndPeriod(uint uPeriod);
+
+        public HighResTimerScope()
+        {
+            _set = OperatingSystem.IsWindows() && timeBeginPeriod(1) == 0;
+        }
+
+        public void Dispose()
+        {
+            if (_set) { timeEndPeriod(1); }
+        }
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = new();
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+            => Messages.Add(formatter(state, exception));
+    }
+
+    [Fact]
+    public void Tick_CapturesHandlerCpu_DistinguishesSleepFromSpin()
+    {
+        ThreadCpuClock.IsSupported.Should().BeTrue("dev/CI must support the CPU clock");
+
+        var logger = new CapturingLogger<GameLoop>();
+        var sessions = new SessionManager();
+        var world = new World();
+        var bus = new EventBus();
+        var loop = new GameLoop(new CommandRouter(new CommandRegistry(), sessions, world),
+            sessions, bus, new SystemEventQueue(), logger, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue());
+        loop.ConfigureSlowTickThreshold(50);
+
+        var cpuByHandler = new Dictionary<string, double>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = src => src.Name == TapestryTracing.SourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = a =>
+            {
+                if (!a.OperationName.StartsWith("TickHandler.")) { return; }
+                var tag = a.GetTagItem("handler.cpu_ms");
+                if (tag != null) { cpuByHandler[a.OperationName] = Convert.ToDouble(tag); }
+            }
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        loop.RegisterTickHandler("sleepy", 1, () => Thread.Sleep(80));
+        loop.RegisterTickHandler("spin", 1, () =>
+        {
+            var start = ThreadCpuClock.GetCurrentThreadCpuTime();
+            while ((ThreadCpuClock.GetCurrentThreadCpuTime() - start).TotalMilliseconds < 60) { }
+        });
+
+        loop.Tick();
+
+        cpuByHandler["TickHandler.sleepy"].Should().BeLessThan(30);
+        cpuByHandler["TickHandler.spin"].Should().BeGreaterThan(40);
+
+        logger.Messages.Should().Contain(m =>
+            m.Contains("Slow tick handler: sleepy ") && m.Contains("(preempted)") &&
+            m.Contains("ms wall /") && m.Contains("ms cpu"));
+        logger.Messages.Should().Contain(m =>
+            m.Contains("Slow tick handler: spin ") && m.Contains("(cpu-bound)") &&
+            m.Contains("ms wall /") && m.Contains("ms cpu"));
+    }
+
+    [Fact]
+    public void Tick_RecordsHandlerWallAndCpuMetrics()
+    {
+        var sessions = new SessionManager();
+        var world = new World();
+        var bus = new EventBus();
+        var loop = new GameLoop(new CommandRouter(new CommandRegistry(), sessions, world),
+            sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue());
+
+        var recorded = new List<(string instrument, string? handler)>();
+        using var ml = new MeterListener();
+        ml.InstrumentPublished = (inst, l) =>
+        {
+            if (inst.Meter.Name == TapestryMetrics.MeterName) { l.EnableMeasurementEvents(inst); }
+        };
+        ml.SetMeasurementEventCallback<double>((inst, value, tags, state) =>
+        {
+            string? handler = null;
+            foreach (var t in tags)
+            {
+                if (t.Key == "handler") { handler = t.Value?.ToString(); }
+            }
+            recorded.Add((inst.Name, handler));
+        });
+        ml.Start();
+
+        loop.RegisterTickHandler("metered", 1, () => { });
+        loop.Tick();
+
+        recorded.Should().Contain(r => r.instrument == "tapestry.tick.handler_wall_ms" && r.handler == "metered");
+        recorded.Should().Contain(r => r.instrument == "tapestry.tick.handler_cpu_ms" && r.handler == "metered");
     }
 
     private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()

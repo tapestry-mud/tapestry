@@ -312,6 +312,7 @@ public class GameLoop
                 handlerSpan?.SetTag("handler.name", handlerName);
                 handlerSpan?.SetTag("handler.pack", handler.PackName);
                 handlerSpan?.SetTag("handler.interval", handler.IntervalTicks);
+                var handlerCpuStart = ThreadCpuClock.GetCurrentThreadCpuTime();
                 var handlerTimerSw = Stopwatch.StartNew();
                 try
                 {
@@ -323,12 +324,25 @@ public class GameLoop
                 }
                 handlerTimerSw.Stop();
                 var handlerMs = handlerTimerSw.Elapsed.TotalMilliseconds;
+                var handlerCpuMs = Math.Max(0.0,
+                    (ThreadCpuClock.GetCurrentThreadCpuTime() - handlerCpuStart).TotalMilliseconds);
                 handlerSpan?.SetTag("handler.duration_ms", handlerMs);
-                if (_slowTickThresholdMs > 0 && handlerMs > _slowTickThresholdMs)
+                handlerSpan?.SetTag("handler.cpu_ms", handlerCpuMs);
+
+                var handlerTag = new KeyValuePair<string, object?>("handler", handlerName);
+                _metrics.HandlerWallMs.Record(handlerMs, handlerTag);
+                _metrics.HandlerCpuMs.Record(handlerCpuMs, handlerTag);
+
+                // Use the larger of wall and cpu to guard against Windows GetThreadTimes
+                // 15ms quantization: a cpu-bound handler can report cpuMs > wallMs as a
+                // measurement artifact, so we don't want to miss it in the slow-tick log.
+                var effectiveMs = Math.Max(handlerMs, handlerCpuMs);
+                if (_slowTickThresholdMs > 0 && effectiveMs > _slowTickThresholdMs)
                 {
+                    var cpuClass = HandlerCpuClassifier.Classify(handlerMs, handlerCpuMs, ThreadCpuClock.IsSupported);
                     _logger.LogWarning(
-                        "Slow tick handler: {Handler} (pack={Pack}) took {Dur:F1}ms (budget: {Budget}ms)",
-                        handlerName, handler.PackName, handlerMs, _slowTickThresholdMs);
+                        "Slow tick handler: {Handler} (pack={Pack}) took {Wall:F1}ms wall / {Cpu:F1}ms cpu ({Class}) (budget: {Budget}ms)",
+                        handlerName, handler.PackName, handlerMs, handlerCpuMs, cpuClass, _slowTickThresholdMs);
                 }
             }
         }
