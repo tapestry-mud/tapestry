@@ -253,7 +253,89 @@
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
     },
     {
-      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 12 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
+      "id": 20,
+      "title": "Runaway-growth diagnostics (world census + mob-ai / handler phases)",
+      "type": "row",
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "id": 11,
+      "title": "World Entities by Type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Live entity count by type. A climbing type names the runaway source (npc=spawn, item=distribution, container=corpse).",
+      "targets": [
+        { "expr": "sum by (type) (tapestry_world_entities)", "legendFormat": "{{type}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "id": 12,
+      "title": "Property Census",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Property-bag totals. total climbing with flat entity count = a few entities accumulating; max single spiking = one entity. Leading suspect for the autosave disk firehose.",
+      "targets": [
+        { "expr": "sum(tapestry_world_properties_total)", "legendFormat": "total entries", "refId": "A" },
+        { "expr": "max(tapestry_world_max_entity_properties)", "legendFormat": "max single entity", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "id": 13,
+      "title": "Tag Index Size",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Tag-index size (the SwapTagBuffers / pre_tick cost driver). Climbing tags = a tag leak; flat tags with climbing memberships = entity growth.",
+      "targets": [
+        { "expr": "sum(tapestry_world_tag_index_tags)", "legendFormat": "distinct tags", "refId": "A" },
+        { "expr": "sum(tapestry_world_tag_index_entries)", "legendFormat": "memberships", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 21 },
+      "id": 14,
+      "title": "mob-ai Phase Time (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Per-phase mob-ai time. Turns 'mob-ai took 25s' into which phase: scan (entity count) vs behavior (Jint) vs publish (a subscriber) vs disposition. Note: phases do not sum to mob-ai wall time (per-mob loop overhead is uninstrumented).",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum by (le, phase) (rate(tapestry_mob_ai_phase_ms_milliseconds_bucket[1m])))", "legendFormat": "{{phase}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 21 },
+      "id": 15,
+      "title": "Handler Wall Time (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Per-handler wall-clock time per tick. Pair with CPU time: wall >> cpu = the handler was preempted (GC/scheduling); wall ~= cpu = genuinely cpu-bound.",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum by (le, handler) (rate(tapestry_tick_handler_wall_ms_milliseconds_bucket[1m])))", "legendFormat": "{{handler}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 21 },
+      "id": 16,
+      "title": "Handler CPU Time (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Per-handler thread CPU time per tick. Compare to Handler Wall Time to classify a slow handler as cpu-bound vs preempted.",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum by (le, handler) (rate(tapestry_tick_handler_cpu_ms_milliseconds_bucket[1m])))", "legendFormat": "{{handler}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 29 },
       "id": 7,
       "title": "Logs",
       "type": "logs",
@@ -297,5 +379,5 @@
   "time": { "from": "now-30m", "to": "now" },
   "title": "Tapestry Overview",
   "uid": "tapestry-overview",
-  "version": 4
+  "version": 5
 }
