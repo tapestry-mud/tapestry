@@ -1,18 +1,11 @@
 using FluentAssertions;
-using Tapestry.Engine.Color;
 using Tapestry.Engine.Text;
 
 namespace Tapestry.Engine.Tests.Text;
 
 public class WrappingConnectionTests
 {
-    private static MarkupWrapper Wrapper()
-    {
-        var theme = new ThemeRegistry();
-        theme.Register("highlight", new ThemeEntry { Fg = "bright-white" });
-        theme.Compile();
-        return new MarkupWrapper(theme);
-    }
+    private static OutputWrapper Wrapper() => new();
 
     [Fact]
     public void SendText_WrapsToWidth()

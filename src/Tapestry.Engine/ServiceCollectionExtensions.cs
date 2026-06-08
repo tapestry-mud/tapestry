@@ -224,7 +224,7 @@ public static class ServiceCollectionExtensions
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();
         services.AddSingleton<ColorRenderer>();
-        services.AddSingleton<Tapestry.Engine.Text.MarkupWrapper>();
+        services.AddSingleton<Tapestry.Engine.Text.OutputWrapper>();
         services.AddSingleton<PromptRenderer>();
         services.AddSingleton<PanelRenderer>();
 

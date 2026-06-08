@@ -2,24 +2,27 @@ using System.Text.RegularExpressions;
 using FluentAssertions;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Text;
+using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Text;
 
-// End-to-end through the real decorator stack: WrappingConnection -> ColorRenderingConnection
-// -> sink. Verifies wrapping (on markup) and color rendering compose correctly, including a
-// colored span that wraps across an inserted line break.
+// End-to-end through the real decorator stack: ColorRenderingConnection (outer) ->
+// WrappingConnection (inner) -> sink. Color renders first; the wrapper then word-wraps the
+// rendered output (ANSI escapes zero-width). Verifies wrap + color compose correctly,
+// including a colored span wrapped across an inserted line break.
 public class WrapColorIntegrationTests
 {
-    private static (WrappingConnection conn, FakeConnection sink) Build(int width, bool ansi)
+    private static (IConnection conn, FakeConnection sink) Build(int width, bool ansi)
     {
         var theme = new ThemeRegistry();
         theme.Register("highlight", new ThemeEntry { Fg = "bright-white" });
         theme.Register("direction", new ThemeEntry { Fg = "cyan" });
         theme.Compile();
         var renderer = new ColorRenderer(theme);
-        var wrapper = new MarkupWrapper(theme);
         var sink = new FakeConnection { SupportsAnsi = ansi };
-        var conn = new WrappingConnection(new ColorRenderingConnection(sink, renderer), wrapper, () => width);
+        IConnection conn = new ColorRenderingConnection(
+            new WrappingConnection(sink, new OutputWrapper(), () => width),
+            renderer);
         return (conn, sink);
     }
 
@@ -44,7 +47,6 @@ public class WrapColorIntegrationTests
             line.Length.Should().BeLessThanOrEqualTo(40);
         }
 
-        // Words preserved intact: no hyphenation, key words survive whole.
         stripped.Replace("\r\n", " ").Should().Contain("cobbled").And.Contain("fountain").And.NotContain("-");
     }
 
@@ -69,6 +71,23 @@ public class WrapColorIntegrationTests
         output.Should().NotContain("\x1b");        // color stripped for non-ANSI client
         output.Should().NotContain("<highlight>"); // tags stripped
         foreach (var line in output.Split("\r\n"))
+        {
+            line.Length.Should().BeLessThanOrEqualTo(20);
+        }
+    }
+
+    [Fact]
+    public void UnclosedTag_StillRespectsWidth()
+    {
+        // Regression for the review's root-1 finding: an unterminated tag is rendered as
+        // literal visible text by ColorRenderer, and because the wrapper measures the
+        // RENDERED output it still wraps within the cap (no drift, no over-width line).
+        var (conn, sink) = Build(20, ansi: true);
+        conn.SendText("<highlight>danger ahead and more text follows here");
+
+        var output = sink.SentLines.Should().ContainSingle().Subject;
+        var stripped = Regex.Replace(output, "\x1b\\[[0-9;]*m", "");
+        foreach (var line in stripped.Split("\r\n"))
         {
             line.Length.Should().BeLessThanOrEqualTo(20);
         }

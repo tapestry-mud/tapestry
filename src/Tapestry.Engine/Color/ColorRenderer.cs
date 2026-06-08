@@ -38,11 +38,6 @@ public class ColorRenderer
         _theme = theme;
     }
 
-    /// <summary>True if <paramref name="name"/> is a recognized brace color shorthand
-    /// (e.g. "yellow", "bold", "/"). Shared so the word-wrapper measures the exact same
-    /// zero-width markup this renderer strips/emits -- keeps the two from drifting.</summary>
-    public static bool IsBraceColor(string name) => BraceColors.ContainsKey(name);
-
     public string RenderAnsi(string input)
     {
         if (string.IsNullOrEmpty(input)) { return input; }
