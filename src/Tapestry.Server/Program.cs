@@ -541,9 +541,13 @@ app.MapFallback(async context =>
             connectionManager.RegisterHandler(connection.Id, connection.GmcpHandler);
             connection.OnDisconnected += () => connectionManager.UnregisterHandler(connection.Id);
 
-            // Wrap connection for color rendering
+            // Wrap connection: color rendering, then word-wrap to the player's width.
             var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
-            var colorConn = new ColorRenderingConnection(connection, colorRenderer);
+            var markupWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.MarkupWrapper>();
+            var colorConn = new Tapestry.Engine.Text.WrappingConnection(
+                new ColorRenderingConnection(connection, colorRenderer),
+                markupWrapper,
+                () => OutputWidthResolver.Resolve(connection, sessionMgr, config.Output.WrapWidth));
 
             // Create and register LoginContext
             var loginContext = new LoginContext(connection.Id, colorConn);
