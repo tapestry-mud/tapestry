@@ -15,6 +15,7 @@ public class TapestryMetrics
     public Histogram<double> CommandDuration { get; }
     public Histogram<double> HandlerWallMs { get; }
     public Histogram<double> HandlerCpuMs { get; }
+    public Histogram<double> MobAiPhaseMs { get; }
     public Histogram<long> InputQueueDepth { get; }
     public Histogram<double> SessionDuration { get; }
     public Counter<long> FloodCommandsDropped { get; }
@@ -60,6 +61,11 @@ public class TapestryMetrics
             unit: "ms",
             description: "Per-handler thread CPU time per tick, tagged by handler");
 
+        MobAiPhaseMs = _meter.CreateHistogram<double>(
+            "tapestry.mob_ai.phase_ms",
+            unit: "ms",
+            description: "mob-ai time per phase per invocation, tagged by phase");
+
         InputQueueDepth = _meter.CreateHistogram<long>(
             "tapestry.input_queue.depth",
             description: "Queue depth sampled each tick");
@@ -92,5 +98,40 @@ public class TapestryMetrics
         LinkDeadExpired = _meter.CreateCounter<long>(
             "tapestry_linkdead_expired",
             description: "Linkdead sessions that timed out and were despawned");
+    }
+
+    /// <summary>
+    /// Registers pull-based content-census gauges. Callbacks run only on metric
+    /// collection (scrape), independent of the game loop, so they survive a meltdown.
+    /// Call once at startup. Each gauge samples independently; sampling is one cheap
+    /// pass over the world and collection is infrequent.
+    /// </summary>
+    public void RegisterWorldCensus(Func<WorldCensus> sampler)
+    {
+        _meter.CreateObservableGauge(
+            "tapestry.world.entities",
+            () => sampler().EntitiesByType.Select(kv =>
+                new Measurement<int>(kv.Value, new KeyValuePair<string, object?>("type", kv.Key))),
+            description: "Live entity count by type");
+
+        _meter.CreateObservableGauge(
+            "tapestry.world.tag_index_tags",
+            () => sampler().TagCount,
+            description: "Distinct tag keys in the world tag index");
+
+        _meter.CreateObservableGauge(
+            "tapestry.world.tag_index_entries",
+            () => (long)sampler().TagMemberships,
+            description: "Total entity-tag memberships across all tag sets");
+
+        _meter.CreateObservableGauge(
+            "tapestry.world.properties_total",
+            () => sampler().PropertiesTotal,
+            description: "Sum of property-bag entries across all entities");
+
+        _meter.CreateObservableGauge(
+            "tapestry.world.max_entity_properties",
+            () => sampler().MaxEntityProperties,
+            description: "Largest single entity property-bag size");
     }
 }

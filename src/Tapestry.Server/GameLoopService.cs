@@ -62,6 +62,7 @@ public class GameLoopService : IHostedService
         _notificationHandler = notificationHandler;
 
         WireEvents();
+        _metrics.RegisterWorldCensus(_world.SampleCensus);
     }
 
     private void WireEvents()
