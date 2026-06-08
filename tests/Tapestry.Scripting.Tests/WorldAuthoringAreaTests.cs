@@ -173,4 +173,60 @@ public class WorldAuthoringAreaTests
 
         Directory.Delete(h.Root, recursive: true);
     }
+
+    [Fact]
+    public void SetAreaAttribute_Wip_AddsFlag_AndPersists()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+
+        var msg = h.Module.SetAreaAttribute("road-to-tar-valon", "wip", "true");
+
+        Assert.Contains("wip", msg);
+        Assert.Contains("wip", h.Registry.Get("road-to-tar-valon")!.Flags);
+        var yaml = System.IO.File.ReadAllText(
+            System.IO.Path.Combine(h.Root, "road-to-tar-valon", "area.yaml"));
+        Assert.Contains("wip", yaml);
+    }
+
+    [Fact]
+    public void SetAreaAttribute_WipFalse_RemovesFlag()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+        h.Module.SetAreaAttribute("road-to-tar-valon", "wip", "true");
+
+        h.Module.SetAreaAttribute("road-to-tar-valon", "wip", "false");
+
+        Assert.DoesNotContain("wip", h.Registry.Get("road-to-tar-valon")!.Flags);
+    }
+
+    [Fact]
+    public void GetArea_ExposesWipState()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("road-to-tar-valon", "Road");
+        Assert.False(h.Module.GetArea("road-to-tar-valon").Wip);
+
+        h.Module.SetAreaAttribute("road-to-tar-valon", "wip", "true");
+        Assert.True(h.Module.GetArea("road-to-tar-valon").Wip);
+    }
+
+    [Fact]
+    public void GetAreas_ExcludesWip_WhenIncludeWipFalse_ButTagsItWhenIncluded()
+    {
+        var h = AreaAuthoringHarness.New();
+        h.Module.CreateArea("open-zone", "Open");
+        h.Module.CreateArea("half-dug", "Half");
+        h.Module.SetAreaAttribute("half-dug", "wip", "true");
+
+        var playerView = h.Module.GetAreas(includeWip: false);
+        Assert.DoesNotContain(playerView, a => a.Id == "half-dug");
+
+        var builderView = h.Module.GetAreas(includeWip: true);
+        var wipRow = Assert.Single(builderView, a => a.Id == "half-dug");
+        Assert.True(wipRow.Wip);
+
+        Directory.Delete(h.Root, recursive: true);
+    }
 }

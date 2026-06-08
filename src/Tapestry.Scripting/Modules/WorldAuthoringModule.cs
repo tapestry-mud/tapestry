@@ -65,6 +65,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
 
     public string Namespace => "authoring";
 
+    public const string WipFlag = "wip";
+
     public object Build(JintEngine jint)
     {
         return new
@@ -87,7 +89,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
                     resetInterval = a.ResetInterval,
                     sourcePack = a.SourcePack,
                     sideCar = a.SideCar,
-                    exists = a.Exists
+                    exists = a.Exists,
+                    wip = a.Wip
                 };
             }),
             setAreaName = new Func<string, string, bool>((id, v) => SetAreaName(id, v)),
@@ -116,7 +119,11 @@ public sealed class WorldAuthoringModule : IJintApiModule
             deleteRoom = new Func<string, bool>(DeleteRoom),
             recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true),
             // Jint exposes CLR members by exact (PascalCase) name; project to camelCase for pack JS.
-            getAreas = new Func<object>(() => GetAreas().Select(a => new
+            // JsValue (not bool): a missing JS arg must mean "include WIP" to match GetAreas's
+            // C# default. Jint 4.x marshals a missing arg to CLR null (so `getAreas()` -> null);
+            // an explicit `getAreas(undefined)` arrives non-null with Type != Boolean. Both -> true;
+            // an explicit JS bool wins. (Type/ToObject() is the codebase-canonical read; no IsBoolean.)
+            getAreas = new Func<JsValue, object>(arg => GetAreas(arg == null || arg.Type != Types.Boolean || (bool)arg.ToObject()!).Select(a => new
             {
                 id = a.Id,
                 name = a.Name,
@@ -124,7 +131,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 levelRange = a.LevelRange,
                 provenance = a.Provenance,
                 roomCount = a.RoomCount,
-                overrideCount = a.OverrideCount
+                overrideCount = a.OverrideCount,
+                wip = a.Wip
             }).ToArray()),
             getAreaRooms = new Func<string, object>(id => GetAreaRooms(id).Select(r => new
             {
@@ -541,6 +549,22 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 def.ResetInterval = ri;
                 break;
             }
+            case "wip":
+            {
+                if (!bool.TryParse(value, out var on))
+                {
+                    return "wip expects true or false.";
+                }
+                if (on)
+                {
+                    if (!def.Flags.Contains(WipFlag)) { def.Flags.Add(WipFlag); }
+                }
+                else
+                {
+                    def.Flags.RemoveAll(f => f == WipFlag);
+                }
+                break;
+            }
             default:
             {
                 return "Unknown area attribute: " + attr;
@@ -551,11 +575,16 @@ public sealed class WorldAuthoringModule : IJintApiModule
         return "Set " + attr + ".";
     }
 
-    public IReadOnlyList<AreaSummary> GetAreas()
+    public IReadOnlyList<AreaSummary> GetAreas(bool includeWip = true)
     {
         var list = new List<AreaSummary>();
         foreach (var def in _areaRegistry.All())
         {
+            var wip = def.Flags.Contains(WipFlag);
+            if (wip && !includeWip)
+            {
+                continue;
+            }
             var areaSideCar = File.Exists(AreaSideCarPath(def.Id));
             var provenance = ProvenanceClassifier.Classify(def.SourcePack, areaSideCar);
             var rooms = _world.AllRooms
@@ -571,7 +600,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
             });
             list.Add(new AreaSummary(
                 def.Id, def.Name, def.Short ?? "", def.LevelRange,
-                provenance, rooms.Count, overrideCount));
+                provenance, rooms.Count, overrideCount, wip));
         }
         return list
             .OrderBy(a => a.LevelRange is { Length: > 0 } ? a.LevelRange[0] : int.MaxValue)
@@ -619,7 +648,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         }
         var sideCar = File.Exists(AreaSideCarPath(areaId));
         return new AreaInfo(def.Id, def.Name, def.Short, def.Description, def.Theme, def.Lore,
-            def.LevelRange, def.ResetInterval, def.SourcePack, sideCar, true);
+            def.LevelRange, def.ResetInterval, def.SourcePack, sideCar, true, def.Flags.Contains(WipFlag));
     }
 }
 
