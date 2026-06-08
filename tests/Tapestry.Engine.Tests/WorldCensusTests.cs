@@ -30,7 +30,7 @@ public class WorldCensusTests
         // index that queries (and SampleCensus) see — pre_tick does this each tick.
         world.SwapTagBuffers();
 
-        var census = world.SampleCensus();
+        var census = world.SampleCensus()!;
 
         census.EntitiesByType["npc"].Should().Be(1);
         census.EntitiesByType["item"].Should().Be(1);
@@ -46,10 +46,10 @@ public class WorldCensusTests
         var world = new World();
         var npc = new Entity("npc", "Goblin");
         world.TrackEntity(npc);
-        world.SampleCensus().EntitiesByType.GetValueOrDefault("npc").Should().Be(1);
+        world.SampleCensus()!.EntitiesByType.GetValueOrDefault("npc").Should().Be(1);
 
         world.UntrackEntity(npc);
 
-        world.SampleCensus().EntitiesByType.GetValueOrDefault("npc").Should().Be(0);
+        world.SampleCensus()!.EntitiesByType.GetValueOrDefault("npc").Should().Be(0);
     }
 }

@@ -104,34 +104,46 @@ public class TapestryMetrics
     /// Registers pull-based content-census gauges. Callbacks run only on metric
     /// collection (scrape), independent of the game loop, so they survive a meltdown.
     /// Call once at startup. Each gauge samples independently; sampling is one cheap
-    /// pass over the world and collection is infrequent.
+    /// pass over the world and collection is infrequent. If the sample is unavailable
+    /// (a concurrent-mutation race returned null) the gauge emits nothing that scrape
+    /// — a gap in the series, not a misleading zero.
     /// </summary>
-    public void RegisterWorldCensus(Func<WorldCensus> sampler)
+    public void RegisterWorldCensus(Func<WorldCensus?> sampler)
     {
         _meter.CreateObservableGauge(
             "tapestry.world.entities",
-            () => sampler().EntitiesByType.Select(kv =>
-                new Measurement<int>(kv.Value, new KeyValuePair<string, object?>("type", kv.Key))),
+            () => sampler() is { } c
+                ? c.EntitiesByType.Select(kv =>
+                    new Measurement<int>(kv.Value, new KeyValuePair<string, object?>("type", kv.Key)))
+                : Array.Empty<Measurement<int>>(),
             description: "Live entity count by type");
 
         _meter.CreateObservableGauge(
             "tapestry.world.tag_index_tags",
-            () => sampler().TagCount,
+            () => sampler() is { } c
+                ? new[] { new Measurement<int>(c.TagCount) }
+                : Array.Empty<Measurement<int>>(),
             description: "Distinct tag keys in the world tag index");
 
         _meter.CreateObservableGauge(
             "tapestry.world.tag_index_entries",
-            () => (long)sampler().TagMemberships,
+            () => sampler() is { } c
+                ? new[] { new Measurement<long>((long)c.TagMemberships) }
+                : Array.Empty<Measurement<long>>(),
             description: "Total entity-tag memberships across all tag sets");
 
         _meter.CreateObservableGauge(
             "tapestry.world.properties_total",
-            () => sampler().PropertiesTotal,
+            () => sampler() is { } c
+                ? new[] { new Measurement<long>(c.PropertiesTotal) }
+                : Array.Empty<Measurement<long>>(),
             description: "Sum of property-bag entries across all entities");
 
         _meter.CreateObservableGauge(
             "tapestry.world.max_entity_properties",
-            () => sampler().MaxEntityProperties,
+            () => sampler() is { } c
+                ? new[] { new Measurement<int>(c.MaxEntityProperties) }
+                : Array.Empty<Measurement<int>>(),
             description: "Largest single entity property-bag size");
     }
 }

@@ -244,34 +244,47 @@ public class World : ITagObserver
 
     /// <summary>
     /// One-pass snapshot of world content size for diagnostics metrics. Computed on
-    /// demand (metric scrape), not cached. Allocation-light: one WorldCensus + the
-    /// per-type dictionary.
+    /// demand (metric scrape) on the export thread, not cached. Returns null if a
+    /// concurrent structural mutation on the game-loop thread makes the read throw:
+    /// telemetry must never throw into the engine, and callers report a gap (no
+    /// measurement) rather than a misleading zero.
     /// </summary>
-    public WorldCensus SampleCensus()
+    public WorldCensus? SampleCensus()
     {
-        var census = new WorldCensus();
-        foreach (var entity in _entities.Values)
+        try
         {
-            census.EntitiesByType.TryGetValue(entity.Type, out var count);
-            census.EntitiesByType[entity.Type] = count + 1;
-
-            var propertyCount = entity.PropertyCount;
-            census.PropertiesTotal += propertyCount;
-            if (propertyCount > census.MaxEntityProperties)
+            var census = new WorldCensus();
+            foreach (var entity in _entities.Values)
             {
-                census.MaxEntityProperties = propertyCount;
+                census.EntitiesByType.TryGetValue(entity.Type, out var count);
+                census.EntitiesByType[entity.Type] = count + 1;
+
+                var propertyCount = entity.PropertyCount;
+                census.PropertiesTotal += propertyCount;
+                if (propertyCount > census.MaxEntityProperties)
+                {
+                    census.MaxEntityProperties = propertyCount;
+                }
             }
-        }
 
-        census.TagCount = _readIndex.Count;
-        var memberships = 0;
-        foreach (var set in _readIndex.Values)
+            census.TagCount = _readIndex.Count;
+            var memberships = 0;
+            foreach (var set in _readIndex.Values)
+            {
+                memberships += set.Count;
+            }
+            census.TagMemberships = memberships;
+
+            return census;
+        }
+        catch (Exception)
         {
-            memberships += set.Count;
+            // Concurrent structural mutation on the game-loop thread (entity add/remove,
+            // tag-index swap) can make these Dictionary enumerations throw on the export
+            // thread. Telemetry must never throw into the engine; report a gap (null ->
+            // no measurement), never a fake 0 that would mask the growth we're watching.
+            return null;
         }
-        census.TagMemberships = memberships;
-
-        return census;
     }
 
     public IEnumerable<Entity> GetEntitiesByTemplateId(string templateId) =>
