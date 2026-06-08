@@ -152,7 +152,7 @@ public class TickHandlerModule : IGameModule
                         room.RemoveEntity(corpse);
                         _sessions.SendToRoom(roomId!, corpse.Name + " crumbles to dust.\r\n");
                     }
-                    _world.UntrackEntity(corpse);
+                    _world.UntrackEntityDeep(corpse);
                 }
             }
         });

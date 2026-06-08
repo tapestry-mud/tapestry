@@ -201,6 +201,27 @@ public class World : ITagObserver
         }
     }
 
+    /// <summary>
+    /// Untracks an entity together with everything it carries -- every item in its
+    /// Equipment and Contents, recursively (nested containers, equipped containers) --
+    /// then the entity itself. Use this for any despawn of an entity that may hold
+    /// items (player logout, corpse/mob removal, script purge). The plain UntrackEntity
+    /// removes only the single entity, orphaning carried items in the tag index (they
+    /// stay pinned, leaking memberships and heap).
+    /// </summary>
+    public void UntrackEntityDeep(Entity entity)
+    {
+        foreach (var equipped in entity.Equipment.Values.ToList())
+        {
+            UntrackEntityDeep(equipped);
+        }
+        foreach (var item in entity.Contents.ToList())
+        {
+            UntrackEntityDeep(item);
+        }
+        UntrackEntity(entity);
+    }
+
     public Entity? GetEntity(Guid id)
     {
         if (_entities.TryGetValue(id, out var entity))

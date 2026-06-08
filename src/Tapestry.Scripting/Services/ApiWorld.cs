@@ -530,7 +530,7 @@ public class ApiWorld
             room?.RemoveEntity(entity);
         }
 
-        _world.UntrackEntity(entity);
+        _world.UntrackEntityDeep(entity);
     }
 
     public int PurgeEntities(string roomId, string filter)
@@ -561,7 +561,7 @@ public class ApiWorld
         foreach (var entity in toRemove)
         {
             room.RemoveEntity(entity);
-            _world.UntrackEntity(entity);
+            _world.UntrackEntityDeep(entity);
         }
 
         return toRemove.Count;

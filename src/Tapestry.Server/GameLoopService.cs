@@ -134,7 +134,7 @@ public class GameLoopService : IHostedService
                 _mobAI.PlayerLeftRoom(lastRoomId);
             }
 
-            _world.UntrackEntity(session.PlayerEntity);
+            _world.UntrackEntityDeep(session.PlayerEntity);
 
             _eventBus.Publish(new GameEvent
             {
@@ -195,7 +195,7 @@ public class GameLoopService : IHostedService
                         _mobAI.PlayerLeftRoom(lastRoomId);
                     }
 
-                    _world.UntrackEntity(session.PlayerEntity);
+                    _world.UntrackEntityDeep(session.PlayerEntity);
 
                     _eventBus.Publish(new GameEvent
                     {
