@@ -13,6 +13,8 @@ public class TapestryMetrics
     public Counter<long> EventsProcessed { get; }
     public UpDownCounter<long> ActiveConnections { get; }
     public Histogram<double> CommandDuration { get; }
+    public Histogram<double> HandlerWallMs { get; }
+    public Histogram<double> HandlerCpuMs { get; }
     public Histogram<long> InputQueueDepth { get; }
     public Histogram<double> SessionDuration { get; }
     public Counter<long> FloodCommandsDropped { get; }
@@ -47,6 +49,16 @@ public class TapestryMetrics
             "tapestry.command.duration_ms",
             unit: "ms",
             description: "Execution time per command handler");
+
+        HandlerWallMs = _meter.CreateHistogram<double>(
+            "tapestry.tick.handler_wall_ms",
+            unit: "ms",
+            description: "Per-handler wall-clock time per tick, tagged by handler");
+
+        HandlerCpuMs = _meter.CreateHistogram<double>(
+            "tapestry.tick.handler_cpu_ms",
+            unit: "ms",
+            description: "Per-handler thread CPU time per tick, tagged by handler");
 
         InputQueueDepth = _meter.CreateHistogram<long>(
             "tapestry.input_queue.depth",
