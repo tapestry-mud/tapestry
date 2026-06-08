@@ -227,7 +227,7 @@ public class JintRuntimeTests
         var inventoryManager = new InventoryManager(eventBus, world, currencyService);
         var itemRegistry = new ItemRegistry();
         var combatManager = new CombatManager(world, eventBus);
-        var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance);
+        var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance, new TapestryMetrics());
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);

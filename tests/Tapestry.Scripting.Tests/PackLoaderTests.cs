@@ -233,7 +233,7 @@ public class PackLoaderTests
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManagerForAI);
         var combatManager = new CombatManager(world, eventBus);
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance);
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
         var statDisplayNames = new StatDisplayNames();
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
@@ -488,7 +488,7 @@ public class PackLoaderTests
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManagerForAI);
         var combatManager = new CombatManager(world, eventBus);
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance);
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
         var statDisplayNames = new StatDisplayNames();
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);

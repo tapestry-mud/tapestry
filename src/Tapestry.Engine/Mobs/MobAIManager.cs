@@ -1,4 +1,5 @@
 // src/Tapestry.Engine/Mobs/MobAIManager.cs
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
@@ -22,6 +23,7 @@ public class MobAIManager
     private readonly CombatManager _combat;
     private readonly DispositionEvaluator _dispositionEvaluator;
     private readonly ILogger<MobAIManager> _logger;
+    private readonly TapestryMetrics _metrics;
     private readonly HashSet<string> _activeAreas = new();
     private readonly Dictionary<string, int> _areaPlayerCounts = new();
     private readonly Dictionary<string, Action<MobContext>> _behaviors = new();
@@ -29,13 +31,15 @@ public class MobAIManager
     private long _currentTick;
 
     public MobAIManager(World world, EventBus eventBus, CombatManager combat,
-        DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger)
+        DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger,
+        TapestryMetrics metrics)
     {
         _world = world;
         _eventBus = eventBus;
         _combat = combat;
         _dispositionEvaluator = dispositionEvaluator;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public void RegisterBehavior(string name, Action<MobContext> handler)
@@ -99,7 +103,15 @@ public class MobAIManager
         _currentTick++;
         _dispositionEvaluator.ClearCache();
 
-        foreach (var entity in _world.GetEntitiesByType("npc"))
+        long behaviorTicks = 0;
+        long publishTicks = 0;
+        long dispositionTicks = 0;
+
+        var scanStart = Stopwatch.GetTimestamp();
+        var npcs = _world.GetEntitiesByType("npc").ToList();
+        var scanTicks = Stopwatch.GetTimestamp() - scanStart;
+
+        foreach (var entity in npcs)
         {
             if (entity.LocationRoomId == null)
             {
@@ -125,6 +137,7 @@ public class MobAIManager
                         RoomId = entity.LocationRoomId,
                         Behavior = behavior
                     };
+                    var behaviorStart = Stopwatch.GetTimestamp();
                     try
                     {
                         handler(context);
@@ -135,10 +148,12 @@ public class MobAIManager
                             "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
                             entity.Id, entity.Name, behavior);
                     }
+                    behaviorTicks += Stopwatch.GetTimestamp() - behaviorStart;
                 }
 
                 // Publish even if no handler is registered: mob.ai.tick signals the mob was
                 // considered this tick, regardless of whether a behavior handler ran.
+                var publishStart = Stopwatch.GetTimestamp();
                 _eventBus.Publish(new GameEvent
                 {
                     Type = "mob.ai.tick",
@@ -152,10 +167,12 @@ public class MobAIManager
                         ["behavior"] = behavior
                     }
                 });
+                publishTicks += Stopwatch.GetTimestamp() - publishStart;
             }
 
             if (entity.DispositionRules != null)
             {
+                var dispositionStart = Stopwatch.GetTimestamp();
                 var room = _world.GetRoom(entity.LocationRoomId);
                 if (room != null)
                 {
@@ -164,8 +181,20 @@ public class MobAIManager
                         _dispositionEvaluator.EvaluateForMob(entity, player);
                     }
                 }
+                dispositionTicks += Stopwatch.GetTimestamp() - dispositionStart;
             }
         }
+
+        RecordPhase("scan", scanTicks);
+        RecordPhase("behavior", behaviorTicks);
+        RecordPhase("publish", publishTicks);
+        RecordPhase("disposition", dispositionTicks);
+    }
+
+    private void RecordPhase(string phase, long elapsedTicks)
+    {
+        var ms = elapsedTicks * 1000.0 / Stopwatch.Frequency;
+        _metrics.MobAiPhaseMs.Record(ms, new KeyValuePair<string, object?>("phase", phase));
     }
 
     // Called immediately on room entry (inside MoveEntity) — hostile only.

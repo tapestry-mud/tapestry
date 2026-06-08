@@ -193,7 +193,7 @@ public class ConnectionHandlerLoginPhaseTests
         var mobAI = new MobAIManager(world, eventBus,
             new CombatManager(world, eventBus),
             new DispositionEvaluator(world, eventBus, new AlignmentManager(world, eventBus, alignmentConfig)),
-            NullLogger<MobAIManager>.Instance);
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
 
         var spawner = new PlayerSpawner(
             sessions, world, gameLoop, new TickTimer(10), config, loginHandler,
