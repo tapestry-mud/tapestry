@@ -56,6 +56,14 @@ public class WebSocketConnection : IConnection
         SendText("\x1b[2J\x1b[H");
     }
 
+    public void Heartbeat()
+    {
+        // No-op: ASP.NET Core already sends WebSocket Ping frames every KeepAliveInterval and
+        // aborts the socket if no frame arrives within KeepAliveTimeout (see WebSocketKeepAlive).
+        // The abort surfaces as a WebSocketException in ReadLoopAsync -> Disconnect, so a dead
+        // WS peer is already detected without an application-level heartbeat.
+    }
+
     public void SuppressEcho()
     {
         // Web client handles password masking locally

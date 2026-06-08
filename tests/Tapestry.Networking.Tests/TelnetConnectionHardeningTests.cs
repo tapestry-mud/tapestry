@@ -147,6 +147,35 @@ public class TelnetConnectionHardeningTests
     }
 
     [Fact]
+    public async Task Heartbeat_writes_iac_nop_to_the_peer()
+    {
+        var (serverTcp, clientTcp) = CreatePair();
+        try
+        {
+            var conn = new TelnetConnection(serverTcp, Microsoft.Extensions.Logging.Abstractions.NullLogger<TelnetConnection>.Instance);
+
+            conn.Heartbeat();
+
+            var buf = new byte[8];
+            var n = await clientTcp.GetStream().ReadAsync(buf);
+
+            // IAC NOP = 0xFF 0xF1 (255, 241)
+            buf[..n].Should().Equal(255, 241);
+        }
+        finally
+        {
+            serverTcp.Dispose();
+            clientTcp.Dispose();
+        }
+    }
+
+    // Note: the heartbeat's error -> Disconnect routing against a genuinely half-open peer
+    // cannot be unit-tested deterministically (a write to a vanished-but-not-closed TCP peer
+    // only fails after TCP_USER_TIMEOUT, which needs a real kernel/network). That routing is
+    // covered deterministically via the fake connection in
+    // Tapestry.Engine.Tests.HalfOpenDetectionTests, and is verified live on the droplet.
+
+    [Fact]
     public void RemoteAddress_derives_from_socket_RemoteEndPoint_not_from_http_middleware()
     {
         var (serverTcp, clientTcp) = CreatePair();

@@ -114,6 +114,7 @@ builder.Services.AddSingleton(sp =>
         keepAlive.IdleSeconds,
         keepAlive.IntervalSeconds,
         keepAlive.RetryCount,
+        keepAlive.UserTimeoutSeconds * 1000,
         config.Mssp,
         getMsspDynamic: () => new MsspDynamicValues
         {

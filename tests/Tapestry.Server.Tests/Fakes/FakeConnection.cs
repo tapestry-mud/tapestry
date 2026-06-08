@@ -23,6 +23,7 @@ public class FakeConnection : IConnection
     public void ClearScreen() { }
     public void SuppressEcho() { EchoSuppressed = true; }
     public void RestoreEcho() { EchoSuppressed = false; }
+    public void Heartbeat() { }
 
     public void Disconnect(string reason)
     {

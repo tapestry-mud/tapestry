@@ -34,4 +34,19 @@ public class TcpKeepAliveTests
         ((int)socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount)!)
             .Should().Be(3);
     }
+
+    // TCP_USER_TIMEOUT is Linux-only and set via a raw socket option; there is no portable
+    // getter to assert the value, and the call is a no-op off Linux. We just prove Apply with a
+    // user-timeout does not throw on the current platform (so the dev box build/test is safe;
+    // the actual TCP_USER_TIMEOUT effect is verified live on the Linux droplet).
+    [Fact]
+    public void Apply_with_user_timeout_does_not_throw()
+    {
+        using var socket = CreateSocket();
+
+        var act = () => TcpKeepAlive.Apply(
+            socket, idleSeconds: 30, intervalSeconds: 10, retryCount: 3, userTimeoutMs: 30000);
+
+        act.Should().NotThrow();
+    }
 }

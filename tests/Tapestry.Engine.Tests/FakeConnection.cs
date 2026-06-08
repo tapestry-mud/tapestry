@@ -10,6 +10,11 @@ internal class FakeConnection : IConnection
     public string? RemoteAddress { get; init; }
     public List<string> SentLines { get; } = new();
     public bool EchoSuppressed { get; private set; }
+    public int HeartbeatCount { get; private set; }
+
+    /// <summary>When set, a half-open peer is simulated: the next heartbeat write fails
+    /// and (like the real connection) routes to <see cref="Disconnect"/>.</summary>
+    public bool FailHeartbeat { get; set; }
 
     // Backward compat alias
     public List<string> SentText => SentLines;
@@ -45,6 +50,16 @@ internal class FakeConnection : IConnection
 
     public void SuppressEcho() { EchoSuppressed = true; }
     public void RestoreEcho() { EchoSuppressed = false; }
+
+    public void Heartbeat()
+    {
+        HeartbeatCount++;
+        if (FailHeartbeat)
+        {
+            // Mirror the real connection: a failed heartbeat write tears down the connection.
+            Disconnect("heartbeat write error");
+        }
+    }
 
     public void Disconnect(string reason)
     {

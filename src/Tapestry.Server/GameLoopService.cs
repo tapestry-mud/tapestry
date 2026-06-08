@@ -159,6 +159,15 @@ public class GameLoopService : IHostedService
                 idle.WarnMessage, idle.TimeoutMessage, idle.AdminTag);
         }
 
+        // Liveness heartbeat: provokes a write to each PLAYING connection so a half-open peer
+        // (vanished without FIN/Close) errors out and routes into the existing link-dead flow.
+        var heartbeatSeconds = _config.Networking.KeepAlive.HeartbeatSeconds;
+        if (_config.Networking.KeepAlive.Enabled && heartbeatSeconds > 0)
+        {
+            var heartbeatTicks = Math.Max(1, (int)Math.Round(heartbeatSeconds * 1000.0 / _config.Server.TickRateMs));
+            _gameLoop.RegisterHeartbeatHandler(_sessions, heartbeatTicks);
+        }
+
         if (_config.LinkDead.Enabled)
         {
             var ticksPerSecond = (long)Math.Round(1000.0 / _config.Server.TickRateMs);

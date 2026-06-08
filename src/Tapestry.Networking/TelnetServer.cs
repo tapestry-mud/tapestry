@@ -13,6 +13,7 @@ public class TelnetServer
     private readonly int _keepAliveIdleSeconds;
     private readonly int _keepAliveIntervalSeconds;
     private readonly int _keepAliveRetryCount;
+    private readonly int _keepAliveUserTimeoutMs;
     private readonly MsspConfig? _msspConfig;
     private readonly Func<MsspDynamicValues>? _getMsspDynamic;
     private readonly ILogger<TelnetServer> _logger;
@@ -30,6 +31,7 @@ public class TelnetServer
         int keepAliveIdleSeconds = 60,
         int keepAliveIntervalSeconds = 15,
         int keepAliveRetryCount = 4,
+        int keepAliveUserTimeoutMs = 30000,
         MsspConfig? msspConfig = null,
         Func<MsspDynamicValues>? getMsspDynamic = null)
     {
@@ -39,6 +41,7 @@ public class TelnetServer
         _keepAliveIdleSeconds = keepAliveIdleSeconds;
         _keepAliveIntervalSeconds = keepAliveIntervalSeconds;
         _keepAliveRetryCount = keepAliveRetryCount;
+        _keepAliveUserTimeoutMs = keepAliveUserTimeoutMs;
         _logger = logger;
         _msspConfig = msspConfig;
         _getMsspDynamic = getMsspDynamic;
@@ -61,7 +64,7 @@ public class TelnetServer
                     try
                     {
                         TcpKeepAlive.Apply(client.Client, _keepAliveIdleSeconds,
-                            _keepAliveIntervalSeconds, _keepAliveRetryCount);
+                            _keepAliveIntervalSeconds, _keepAliveRetryCount, _keepAliveUserTimeoutMs);
                     }
                     catch (SocketException ex)
                     {

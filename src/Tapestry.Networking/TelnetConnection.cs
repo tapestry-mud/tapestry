@@ -113,6 +113,27 @@ public class TelnetConnection : IConnection
         SendText(text + "\r\n");
     }
 
+    // Liveness probe: telnet IAC NOP (no-operation). Real clients silently ignore it, so it
+    // is invisible to the player, but writing it forces a TCP send. Against a half-open peer
+    // (vanished with no FIN) the write eventually errors -- bounded by TCP_USER_TIMEOUT on
+    // Linux -- and we tear the connection down through the normal disconnect path. We use a
+    // dedicated write here (not SendRawBytes) precisely because SendRawBytes swallows write
+    // errors; the heartbeat's whole job is to surface them.
+    public void Heartbeat()
+    {
+        if (!IsConnected) { return; }
+
+        try
+        {
+            _stream.Write(new byte[] { TelnetProtocolConstants.IAC, TelnetProtocolConstants.NOP }, 0, 2);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Heartbeat write failed for {ConnectionId}", Id);
+            Disconnect("heartbeat write error");
+        }
+    }
+
     public void SuppressEcho()
     {
         if (Capabilities.UseServerEcho)

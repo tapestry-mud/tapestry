@@ -3,6 +3,7 @@ namespace Tapestry.Networking;
 public static class TelnetProtocolConstants
 {
     public const byte IAC  = 255; // Interpret As Command
+    public const byte NOP  = 241; // No operation (liveness probe; clients ignore it)
     public const byte SB   = 250; // Subnegotiation begin
     public const byte SE   = 240; // Subnegotiation end
     public const byte WILL = 251;

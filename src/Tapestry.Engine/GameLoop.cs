@@ -394,8 +394,13 @@ public class GameLoop
                     continue;
                 }
 
+                // AFK kick applies only to in-world (Playing) sessions -- never mid-chargen/login.
+                if (session.Phase != LoginPhase.Playing) { continue; }
+
                 if (session.PlayerEntity.HasRole(adminTag)) { continue; }
 
+                // Drive the AFK decision purely off input recency, NOT the stale IsConnected flag
+                // (a half-open connection reports Connected=true; heartbeat detection handles that).
                 var idleTicks = _tickCount - session.LastInputTick;
 
                 if (_idleTimeoutTicks > 0 && idleTicks >= _idleTimeoutTicks)
@@ -412,6 +417,25 @@ public class GameLoop
                     session.Connection.SendLine(warnMessage);
                     session.IdleWarned = true;
                 }
+            }
+        });
+    }
+
+    /// <summary>
+    /// Registers a periodic liveness sweep: every <paramref name="intervalTicks"/> ticks it
+    /// calls <see cref="IConnection.Heartbeat"/> on each PLAYING session's connection. The
+    /// heartbeat is a tiny invisible write whose only job is to provoke a TCP send; against a
+    /// half-open peer the write errors and the connection tears itself down through the normal
+    /// Disconnect -> OnDisconnected -> link-dead -> timeout flow. No cleanup happens here.
+    /// </summary>
+    public void RegisterHeartbeatHandler(SessionManager sessions, int intervalTicks)
+    {
+        RegisterTickHandler("heartbeat", intervalTicks, () =>
+        {
+            foreach (var session in sessions.AllSessions)
+            {
+                if (session.Phase != LoginPhase.Playing) { continue; }
+                session.Connection.Heartbeat();
             }
         });
     }

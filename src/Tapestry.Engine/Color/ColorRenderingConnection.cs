@@ -34,6 +34,7 @@ public class ColorRenderingConnection : IConnection
     public bool SupportsAnsi => _inner.SupportsAnsi;
     public string? RemoteAddress => _inner.RemoteAddress;
     public void ClearScreen() => _inner.ClearScreen();
+    public void Heartbeat() => _inner.Heartbeat();
     public void Disconnect(string reason) => _inner.Disconnect(reason);
     public void SuppressEcho() => _inner.SuppressEcho();
     public void RestoreEcho() => _inner.RestoreEcho();

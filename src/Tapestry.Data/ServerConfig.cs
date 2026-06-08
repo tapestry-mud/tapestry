@@ -187,6 +187,14 @@ public class KeepAliveSection
     public int IdleSeconds { get; set; } = 60;
     public int IntervalSeconds { get; set; } = 15;
     public int RetryCount { get; set; } = 4;
+
+    // Linux-only backstop (TCP_USER_TIMEOUT): max time an unacked write may stay outstanding
+    // before the socket errors. Bounds how long a heartbeat write to a dead peer hangs. 0 disables.
+    public int UserTimeoutSeconds { get; set; } = 30;
+
+    // How often the game loop writes a liveness heartbeat to each PLAYING session's connection.
+    // The heartbeat is what actually provokes the write that detects a half-open peer. 0 disables.
+    public int HeartbeatSeconds { get; set; } = 20;
 }
 
 public class EconomySection

@@ -33,6 +33,7 @@ internal class FakeConnection : IConnection
 
     public void SuppressEcho() { }
     public void RestoreEcho() { }
+    public void Heartbeat() { }
 
     public void Disconnect(string reason)
     {
