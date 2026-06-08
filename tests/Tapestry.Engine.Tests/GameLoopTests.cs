@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Runtime.InteropServices;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,26 +13,8 @@ namespace Tapestry.Engine.Tests;
 public class GameLoopSerialCollection { }
 
 [Collection("GameLoopSerial")]
-public class GameLoopTests : IDisposable
+public class GameLoopTests
 {
-    private readonly HighResTimerScope _timerScope = new();
-
-    public GameLoopTests()
-    {
-        // Sync the current thread's CPU timer to a fresh quantum so that any spin loop
-        // starting from GetCurrentThreadCpuTime() sees a non-stale baseline.
-        // Windows GetThreadTimes updates every ~15ms; spinning briefly until we observe
-        // a tick means the next read is at most ~0-1ms stale instead of up to 14ms stale.
-        var baseline = ThreadCpuClock.GetCurrentThreadCpuTime();
-        var sw = Stopwatch.StartNew();
-        while (ThreadCpuClock.GetCurrentThreadCpuTime() == baseline && sw.ElapsedMilliseconds < 30)
-        {
-            Thread.SpinWait(100);
-        }
-    }
-
-    public void Dispose() => _timerScope.Dispose();
-
     [Fact]
     public async Task Tick_ProcessesQueuedCommand()
     {
@@ -435,32 +416,6 @@ public class GameLoopTests : IDisposable
         entity.Stats.Hp.Should().Be(55); // full regen regardless of sustenance
     }
 
-    /// <summary>
-    /// Sets Windows multimedia timer resolution to 1ms for the duration of a using block.
-    /// Eliminates the 15ms GetThreadTimes granularity that makes CPU-spin assertions flaky.
-    /// No-ops on non-Windows platforms.
-    /// </summary>
-    private sealed class HighResTimerScope : IDisposable
-    {
-        private readonly bool _set;
-
-        [DllImport("winmm.dll", SetLastError = true)]
-        private static extern uint timeBeginPeriod(uint uPeriod);
-
-        [DllImport("winmm.dll", SetLastError = true)]
-        private static extern uint timeEndPeriod(uint uPeriod);
-
-        public HighResTimerScope()
-        {
-            _set = OperatingSystem.IsWindows() && timeBeginPeriod(1) == 0;
-        }
-
-        public void Dispose()
-        {
-            if (_set) { timeEndPeriod(1); }
-        }
-    }
-
     private sealed class CapturingLogger<T> : ILogger<T>
     {
         public List<string> Messages { get; } = new();
@@ -502,8 +457,14 @@ public class GameLoopTests : IDisposable
         loop.RegisterTickHandler("sleepy", 1, () => Thread.Sleep(80));
         loop.RegisterTickHandler("spin", 1, () =>
         {
-            var start = ThreadCpuClock.GetCurrentThreadCpuTime();
-            while ((ThreadCpuClock.GetCurrentThreadCpuTime() - start).TotalMilliseconds < 60) { }
+            var cpuStart = ThreadCpuClock.GetCurrentThreadCpuTime();
+            var sw = Stopwatch.StartNew();
+            // Spin until the handler clearly blows the 50ms wall budget AND has burned real
+            // CPU -- so the slow-tick WARN fires on wall, and the cpu classification is cpu-bound.
+            while (sw.Elapsed.TotalMilliseconds < 70 ||
+                   (ThreadCpuClock.GetCurrentThreadCpuTime() - cpuStart).TotalMilliseconds < 55)
+            {
+            }
         });
 
         loop.Tick();

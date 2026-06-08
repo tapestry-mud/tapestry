@@ -333,11 +333,7 @@ public class GameLoop
                 _metrics.HandlerWallMs.Record(handlerMs, handlerTag);
                 _metrics.HandlerCpuMs.Record(handlerCpuMs, handlerTag);
 
-                // Use the larger of wall and cpu to guard against Windows GetThreadTimes
-                // 15ms quantization: a cpu-bound handler can report cpuMs > wallMs as a
-                // measurement artifact, so we don't want to miss it in the slow-tick log.
-                var effectiveMs = Math.Max(handlerMs, handlerCpuMs);
-                if (_slowTickThresholdMs > 0 && effectiveMs > _slowTickThresholdMs)
+                if (_slowTickThresholdMs > 0 && handlerMs > _slowTickThresholdMs)
                 {
                     var cpuClass = HandlerCpuClassifier.Classify(handlerMs, handlerCpuMs, ThreadCpuClock.IsSupported);
                     _logger.LogWarning(
