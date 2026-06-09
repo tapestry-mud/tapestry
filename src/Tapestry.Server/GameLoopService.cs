@@ -29,6 +29,7 @@ public class GameLoopService : IHostedService
     private readonly Tapestry.Server.Gmcp.Handlers.NotificationHandler _notificationHandler;
     private readonly WatchRegistry _watchRegistry;
     private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
+    private readonly Tapestry.Engine.Help.HelpSeal _helpSeal;
     private Task? _runTask;
 
     public GameLoopService(
@@ -48,7 +49,8 @@ public class GameLoopService : IHostedService
         NotificationQueue notificationQueue,
         Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler,
         WatchRegistry watchRegistry,
-        Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy)
+        Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy,
+        Tapestry.Engine.Help.HelpSeal helpSeal)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -67,6 +69,7 @@ public class GameLoopService : IHostedService
         _notificationHandler = notificationHandler;
         _watchRegistry = watchRegistry;
         _registrationPolicy = registrationPolicy;
+        _helpSeal = helpSeal;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -264,6 +267,9 @@ public class GameLoopService : IHostedService
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
         _registrationPolicy.Resolve();
+        // Help resolves AFTER commands (help shadows commands): validate command-shadowing
+        // authority against the now-committed registry, then auto-gen fills only the gaps.
+        _helpSeal.Seal();
         _runTask = _gameLoop.RunAsync(_config.Server.TickRateMs, _appLifetime.ApplicationStopping);
         return Task.CompletedTask;
     }
