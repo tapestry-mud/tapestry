@@ -206,4 +206,78 @@ public class AttributeWriterTests
         Assert.Contains("engine-managed", result.Message);
         Assert.Null(target.GetProperty<string>("template_id"));
     }
+
+    [Fact]
+    public void Write_AmbiguousBareName_AcrossTwoPacks_IsRejectedNotFirstWins()
+    {
+        // Two packs declare the SAME bare property name. Namespace-aware storage keeps them
+        // DISTINCT ("pack-a:loyalty", "pack-b:loyalty") -- not a registration collision.
+        // But an admin `set npc loyalty <target> 5` has NO pack context, so the bare name is
+        // unresolvable-by-design and MUST be rejected with a located diagnostic -- NOT silently
+        // first-won (the GetAll().FirstOrDefault() defect).
+        _props.RegisterPackProperty("pack-a", "loyalty", "A-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        _props.RegisterPackProperty("pack-b", "loyalty", "B-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        var target = new Entity("npc", "Guard");
+
+        var result = Writer.Write(target, "loyalty", new[] { "5" });
+
+        Assert.False(result.Ok);
+        Assert.Contains("ambiguous", result.Message);
+        Assert.Contains("pack-a", result.Message);
+        Assert.Contains("pack-b", result.Message);
+        // The defect would have silently written the value via the first-wins entry.
+        Assert.Equal(0, target.GetProperty<int>("loyalty"));
+    }
+
+    [Fact]
+    public void Write_UniqueBareName_FromSinglePack_StillResolves()
+    {
+        // Only one pack declares this bare name -> a bare `set` resolves it (no ambiguity).
+        _props.RegisterPackProperty("pack-a", "loyalty", "A-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        var target = new Entity("npc", "Guard");
+
+        var result = Writer.Write(target, "loyalty", new[] { "5" });
+
+        Assert.True(result.Ok);
+        Assert.Equal(5, target.GetProperty<int>("loyalty"));
+    }
+
+    [Fact]
+    public void Write_PackQualifiedName_ResolvesEvenWhenBareNameIsAmbiguous()
+    {
+        // Two packs share the bare name, but a fully-qualified "pack:name" hits the exact key
+        // and resolves unambiguously -- the admin's escape hatch.
+        _props.RegisterPackProperty("pack-a", "loyalty", "A-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        _props.RegisterPackProperty("pack-b", "loyalty", "B-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        var target = new Entity("npc", "Guard");
+
+        var result = Writer.Write(target, "pack-b:loyalty", new[] { "9" });
+
+        Assert.True(result.Ok);
+        // Stored under the bare property name the entry carries.
+        Assert.Equal(9, target.GetProperty<int>("loyalty"));
+    }
+
+    [Fact]
+    public void Describe_AmbiguousBareName_YieldsLocatedRejection()
+    {
+        _props.RegisterPackProperty("pack-a", "loyalty", "A-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        _props.RegisterPackProperty("pack-b", "loyalty", "B-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        var target = new Entity("npc", "Guard");
+
+        var result = Writer.Describe(target, "loyalty");
+
+        Assert.False(result.Ok);
+        Assert.Contains("ambiguous", result.Message);
+        Assert.Contains("pack-a", result.Message);
+        Assert.Contains("pack-b", result.Message);
+        Assert.Contains("Qualify it as pack-a:loyalty", result.Message);
+    }
 }

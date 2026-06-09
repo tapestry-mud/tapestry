@@ -20,18 +20,30 @@ public static class CommandHelpGenerator
             Brief = reg.Description,
             Body = $"{reg.Description}\r\n\r\nCategory: {reg.Category}\r\nAvailable to: {rolesDisplay}",
             Syntax = [syntax],
-            Keywords = [reg.Keyword]
+            Keywords = [reg.Keyword],
+            // Owned by the resolved command's pack so the generated topic never collides with,
+            // and is never mistaken for, another pack's hand-authored help.
+            PackName = reg.PackName
         };
     }
 
-    public static void GenerateAll(IEnumerable<CommandRegistration> registrations, HelpService helpService)
+    /// <summary>
+    /// Gap-filling: generate a topic only for command ids in <paramref name="registrations"/> that
+    /// are NOT already covered by a winning hand-authored topic (<paramref name="coveredIds"/>).
+    /// Runs after the seal so the registry is resolved and command ownership is final.
+    /// </summary>
+    public static void GenerateGaps(
+        IEnumerable<CommandRegistration> registrations,
+        ISet<string> coveredIds,
+        HelpService helpService)
     {
         foreach (var reg in registrations)
         {
+            if (coveredIds.Contains(reg.Keyword)) { continue; }
             var topic = GenerateFor(reg);
             if (topic != null)
             {
-                helpService.AddTopic(topic, loadOrder: 0);  // pack help files (higher loadOrder) override
+                helpService.AddTopic(topic);
             }
         }
     }

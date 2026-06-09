@@ -224,7 +224,13 @@ public static class ServiceCollectionExtensions
             sp.GetService<ILogger<HelpService>>(),
             entityId => Guid.TryParse(entityId, out var gid)
                 ? sp.GetRequiredService<World>().GetEntity(gid)?.Roles ?? Enumerable.Empty<string>()
-                : Enumerable.Empty<string>()));
+                : Enumerable.Empty<string>(),
+            sp.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>()));
+
+        services.AddSingleton<HelpSeal>(sp => new HelpSeal(
+            sp.GetRequiredService<HelpService>(),
+            sp.GetRequiredService<CommandRegistry>(),
+            sp.GetRequiredService<Tapestry.Engine.Registration.IPackEdgeOracle>()));
 
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();

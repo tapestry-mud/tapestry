@@ -17,6 +17,10 @@ public class HelpTopic
 
     public string? Role { get; set; }
 
+    // Author-declared { override: true } — routes this topic through RegistrationPolicy as an
+    // override candidate (must declare a dependency edge on the owner of the topic it overrides).
+    public bool Override { get; set; }
+
     [YamlIgnore]
     public string PackName { get; set; } = "";
 

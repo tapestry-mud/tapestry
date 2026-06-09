@@ -2,6 +2,25 @@ using System.Text.RegularExpressions;
 
 namespace Tapestry.Engine.Persistence;
 
+/// <summary>Outcome of an ambiguity-aware, no-pack-context property lookup.</summary>
+public enum PropertyResolutionStatus
+{
+    Found,
+    Ambiguous,
+    NotFound
+}
+
+/// <summary>
+/// Result of <see cref="PropertyRegistry.ResolveForAdmin"/>. When <see cref="Status"/> is
+/// <see cref="PropertyResolutionStatus.Ambiguous"/>, <see cref="Owners"/> lists the packs that
+/// declared the same bare name (for the located diagnostic). When <see cref="Status"/> is
+/// <see cref="PropertyResolutionStatus.Found"/>, <see cref="Entry"/> is non-null.
+/// </summary>
+public sealed record PropertyResolution(
+    PropertyResolutionStatus Status,
+    PropertyRegistryEntry? Entry,
+    IReadOnlyList<string> Owners);
+
 public sealed class PropertyRegistry
 {
     private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
@@ -103,41 +122,58 @@ public sealed class PropertyRegistry
     /// player serializer only sees the property key). Prefers an exact key match (engine
     /// properties and already-qualified keys like "tapestry-tinkers:known_recipes"), then a
     /// UNIQUE pack entry whose Name matches. Returns false if ambiguous (same bare name
-    /// declared by two or more packs) or unknown.
+    /// declared by two or more packs) or unknown. Thin bool wrapper over
+    /// <see cref="ResolveForAdmin"/> so the scan logic lives in exactly one place.
     /// </summary>
     public bool TryResolveByName(string name, out PropertyRegistryEntry entry)
     {
-        // Exact key match covers engine properties (stored as bare name) and already-qualified
-        // pack keys (stored as "{pack}:{name}") — e.g. "tapestry-tinkers:known_recipes".
-        if (_entries.TryGetValue(name.ToLowerInvariant(), out entry!))
+        var resolution = ResolveForAdmin(name);
+        if (resolution.Status == PropertyResolutionStatus.Found)
         {
+            entry = resolution.Entry!;
             return true;
         }
+        entry = null!;
+        return false;
+    }
 
-        // Scan for a unique pack entry whose bare Name matches (case-insensitive).
-        PropertyRegistryEntry? found = null;
+    /// <summary>
+    /// Ambiguity-aware, no-pack-context lookup used by the admin <c>set</c>/describe path. Same scan
+    /// as <see cref="TryResolveByName"/> but DISTINGUISHES Ambiguous from NotFound and surfaces
+    /// the colliding owners so the caller can emit a located diagnostic. An exact key match
+    /// (engine bare name OR already-qualified "{pack}:{name}") always wins; otherwise a unique
+    /// pack entry whose bare Name matches resolves; two-or-more bare-name matches are Ambiguous.
+    /// </summary>
+    public PropertyResolution ResolveForAdmin(string name)
+    {
+        // Exact key match covers engine properties (stored as bare name) and already-qualified
+        // pack keys (stored as "{pack}:{name}") — e.g. "core:value" or "tapestry-tinkers:known_recipes".
+        if (_entries.TryGetValue(name.ToLowerInvariant(), out var exact))
+        {
+            return new PropertyResolution(PropertyResolutionStatus.Found, exact, Array.Empty<string>());
+        }
+
+        // Scan for pack entries whose bare Name matches (case-insensitive).
+        var matches = new List<PropertyRegistryEntry>();
         foreach (var candidate in _entries.Values)
         {
             if (string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase))
             {
-                if (found != null)
-                {
-                    // Ambiguous — same bare name registered by two or more packs.
-                    entry = null!;
-                    return false;
-                }
-                found = candidate;
+                matches.Add(candidate);
             }
         }
 
-        if (found != null)
+        if (matches.Count == 0)
         {
-            entry = found;
-            return true;
+            return new PropertyResolution(PropertyResolutionStatus.NotFound, null, Array.Empty<string>());
+        }
+        if (matches.Count == 1)
+        {
+            return new PropertyResolution(PropertyResolutionStatus.Found, matches[0], Array.Empty<string>());
         }
 
-        entry = null!;
-        return false;
+        var owners = matches.Select(m => m.Scope).OrderBy(s => s, StringComparer.Ordinal).ToList();
+        return new PropertyResolution(PropertyResolutionStatus.Ambiguous, null, owners);
     }
 
     public bool IsTransient(string name) =>

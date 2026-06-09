@@ -41,16 +41,18 @@ public class ArgResolver
         };
     }
 
-    public void RegisterPackType(string name, Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> resolver)
+    public void RegisterPackType(string name, string owner, Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> resolver)
     {
         if (_engineTypes.ContainsKey(name))
         {
-            _logger.LogWarning("Pack attempted to override engine arg type '{Name}' -- ignored.", name);
+            _logger.LogWarning("Pack '{Owner}' attempted to override engine arg type '{Name}' -- ignored.", owner, name);
             return;
         }
         if (_packTypes.ContainsKey(name))
         {
-            _logger.LogWarning("Duplicate pack arg type '{Name}' registered -- last registration wins.", name);
+            // The RegistrationPolicy seal barrier now makes a genuine cross-pack collision a
+            // boot error before this point; a surviving duplicate here is same-owner re-register.
+            _logger.LogWarning("Pack '{Owner}' re-registered arg type '{Name}' -- last registration wins.", owner, name);
         }
         _packTypes[name] = resolver;
     }

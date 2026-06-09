@@ -59,16 +59,18 @@ public class HelpServiceTests
     }
 
     [Fact]
-    public void Query_HigherLoadOrderWins_OnCollision()
+    public void Query_LoadOrder_NoLongerDecides_LastWriteWins()
     {
         var svc = new HelpService();
-        var low = MakeTopic("combat-basics", "pack-a");
-        low.Title = "Original";
-        var high = MakeTopic("combat-basics", "pack-b");
-        high.Title = "Override";
+        var first = MakeTopic("combat-basics", "pack-a");
+        first.Title = "Original";
+        var second = MakeTopic("combat-basics", "pack-b");
+        second.Title = "Override";
 
-        svc.AddTopic(low, loadOrder: 10);
-        svc.AddTopic(high, loadOrder: 20);
+        // second has a LOWER loadOrder; under the old rule "first" (higher) would win.
+        // Post-de-fang, load_order is ignored and the last write wins.
+        svc.AddTopic(first, loadOrder: 20);
+        svc.AddTopic(second, loadOrder: 10);
 
         var result = svc.Query(null, "combat-basics");
         Assert.Equal("Override", result.Topic!.Title);
@@ -238,5 +240,19 @@ public class HelpServiceTests
 
         Assert.Contains("creation", cats);
         Assert.Single(list);
+    }
+
+    [Fact]
+    public void HelpTopic_OverrideField_DeserializesFromYaml()
+    {
+        var yaml = "id: combat\ntitle: Combat\noverride: true\n";
+        var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        var topic = deserializer.Deserialize<Tapestry.Shared.Help.HelpTopic>(yaml);
+
+        Assert.True(topic.Override);
     }
 }

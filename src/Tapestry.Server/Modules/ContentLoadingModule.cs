@@ -5,7 +5,6 @@ using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Distribution;
-using Tapestry.Engine.Help;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
@@ -28,8 +27,6 @@ public class ContentLoadingModule : IGameModule
     private readonly AuthoredAreaLoader _authoredAreaLoader;
     private readonly ThemeRegistry _themeRegistry;
     private readonly AbilityCommandBridge _abilityCommandBridge;
-    private readonly CommandRegistry _commandRegistry;
-    private readonly HelpService _helpService;
     private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
@@ -50,8 +47,6 @@ public class ContentLoadingModule : IGameModule
         AuthoredAreaLoader authoredAreaLoader,
         ThemeRegistry themeRegistry,
         AbilityCommandBridge abilityCommandBridge,
-        CommandRegistry commandRegistry,
-        HelpService helpService,
         Tapestry.Scripting.Modules.CommandsModule commandsModule,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
@@ -69,8 +64,6 @@ public class ContentLoadingModule : IGameModule
         _authoredAreaLoader = authoredAreaLoader;
         _themeRegistry = themeRegistry;
         _abilityCommandBridge = abilityCommandBridge;
-        _commandRegistry = commandRegistry;
-        _helpService = helpService;
         _commandsModule = commandsModule;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
@@ -105,14 +98,8 @@ public class ContentLoadingModule : IGameModule
 
         AppendPackCreditsToMotd();
 
-        // Auto-generate help topics for commands with ArgDefinitions.
-        // Pack help files (higher loadOrder from LoadPack) override these.
-        var helpRegistrations = _commandRegistry.PrimaryKeywords
-            .Select(k => _commandRegistry.Resolve(k))
-            .Where(r => r != null)
-            .Select(r => r!)
-            .DistinctBy(r => r.Keyword, StringComparer.OrdinalIgnoreCase);
-        CommandHelpGenerator.GenerateAll(helpRegistrations, _helpService);
+        // Auto-gen command help is gap-filled in HelpSeal AFTER the seal (GameLoopService.StartAsync),
+        // because commands are only resolved at the seal; running it here would see an empty registry.
 
         _commandsModule.LogLoadTimeWarnings();
         _themeRegistry.Compile();

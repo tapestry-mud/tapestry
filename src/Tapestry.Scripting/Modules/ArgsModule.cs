@@ -3,6 +3,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
@@ -12,34 +13,60 @@ public class ArgsModule : IJintApiModule
     private readonly ArgResolver _argResolver;
     private readonly World _world;
     private readonly ILogger<ArgsModule> _logger;
+    private readonly RegistrationPolicy _registrationPolicy;
 
     public string Namespace => "args";
 
-    public ArgsModule(ArgResolver argResolver, World world, ILogger<ArgsModule> logger)
+    public ArgsModule(ArgResolver argResolver, World world, ILogger<ArgsModule> logger, RegistrationPolicy registrationPolicy)
     {
         _argResolver = argResolver;
         _world = world;
         _logger = logger;
+        _registrationPolicy = registrationPolicy;
     }
 
     public object Build(JintEngine engine)
     {
         return new
         {
-            registerType = new Action<string, JsValue>((name, jsResolver) =>
+            registerType = new Action<JsValue>(def =>
             {
-                // Captured at load time for the deferred resolver invocation below, so a
-                // resolver that calls tapestry.packs.* is attributed to its own pack.
-                var packName = engine.GetValue("__currentPack").ToString();
+                if (def is not ObjectInstance defObjShape)
+                {
+                    throw new InvalidOperationException(
+                        "tapestry.args.registerType now takes a definition object: " +
+                        "registerType({ name, resolve, override }). The positional (name, fn) form was removed.");
+                }
+
+                var name = defObjShape.Get("name").ToString();
+                var jsResolver = defObjShape.Get("resolve");
+                if (jsResolver.Type != Types.Object)
+                {
+                    throw new InvalidOperationException(
+                        $"tapestry.args.registerType('{name}') requires a 'resolve' function.");
+                }
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null. Read via Type==Boolean.
+                var ov = defObjShape.Get("override");
+                bool isOverride = ov.Type == Types.Boolean && (bool)ov.ToObject()!;
+
+                // Owner is the pack namespace (e.g. "tapestry-tinkers") -- the same key the
+                // dependency-edge gate uses, so an edge-gated override actually matches.
+                var owner = engine.GetValue("__currentPack").ToString();
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString()
+                    : "";
 
                 Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> csharpResolver =
-                    (actor, def, token) =>
+                    (actor, argDef, token) =>
                     {
                         try
                         {
                             var actorObj = new { entityId = actor.EntityId.ToString(), roomId = actor.RoomId ?? "" };
-                            var defObj = new { type = def.Type, required = def.Required };
-                            var result = engine.InvokeAsPack(packName, jsResolver, null, new object[] { actorObj, token, defObj });
+                            var resolverDefObj = new { type = argDef.Type, required = argDef.Required };
+                            var result = engine.InvokeAsPack(owner, jsResolver, null, new object[] { actorObj, token, resolverDefObj });
 
                             if (result is not ObjectInstance obj)
                             {
@@ -61,7 +88,17 @@ public class ArgsModule : IJintApiModule
                         }
                     };
 
-                _argResolver.RegisterPackType(name, csharpResolver);
+                // Declarative: accumulate a candidate. The real RegisterPackType replays -- with the
+                // identical args -- at Resolve() (the seal). Two packs registering the same arg type
+                // is a boot error unless one declares { override: true } + a dependency edge on the owner.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "arg-type",
+                    Name: name,
+                    Owner: owner,
+                    IsOverride: isOverride,
+                    Commit: () => _argResolver.RegisterPackType(name, owner, csharpResolver),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             resolve = new Func<string, string, string, object?>((actorIdStr, token, typeName) =>

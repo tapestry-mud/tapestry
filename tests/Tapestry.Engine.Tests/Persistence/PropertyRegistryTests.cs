@@ -138,4 +138,45 @@ public class PropertyRegistryTests
         Assert.Null(entry.Min);
         Assert.Null(entry.Max);
     }
+
+    [Fact]
+    public void ResolveForAdmin_UniquePackName_ReturnsFound()
+    {
+        _registry.RegisterPackProperty("pack-a", "loyalty", "Loyalty", PropertyValueType.Int);
+        var resolution = _registry.ResolveForAdmin("loyalty");
+        Assert.Equal(PropertyResolutionStatus.Found, resolution.Status);
+        Assert.NotNull(resolution.Entry);
+        Assert.Equal("pack-a", resolution.Entry!.Scope);
+    }
+
+    [Fact]
+    public void ResolveForAdmin_SameBareNameTwoPacks_ReturnsAmbiguousWithOwners()
+    {
+        _registry.RegisterPackProperty("pack-a", "loyalty", "A", PropertyValueType.Int);
+        _registry.RegisterPackProperty("pack-b", "loyalty", "B", PropertyValueType.Int);
+        var resolution = _registry.ResolveForAdmin("loyalty");
+        Assert.Equal(PropertyResolutionStatus.Ambiguous, resolution.Status);
+        Assert.Null(resolution.Entry);
+        Assert.Contains("pack-a", resolution.Owners);
+        Assert.Contains("pack-b", resolution.Owners);
+    }
+
+    [Fact]
+    public void ResolveForAdmin_QualifiedKey_ReturnsFound_EvenWhenBareNameAmbiguous()
+    {
+        _registry.RegisterPackProperty("pack-a", "loyalty", "A", PropertyValueType.Int);
+        _registry.RegisterPackProperty("pack-b", "loyalty", "B", PropertyValueType.Int);
+        var resolution = _registry.ResolveForAdmin("pack-b:loyalty");
+        Assert.Equal(PropertyResolutionStatus.Found, resolution.Status);
+        Assert.Equal("pack-b", resolution.Entry!.Scope);
+    }
+
+    [Fact]
+    public void ResolveForAdmin_UnknownName_ReturnsNotFound()
+    {
+        var resolution = _registry.ResolveForAdmin("nope_prop");
+        Assert.Equal(PropertyResolutionStatus.NotFound, resolution.Status);
+        Assert.Null(resolution.Entry);
+        Assert.Empty(resolution.Owners);
+    }
 }
