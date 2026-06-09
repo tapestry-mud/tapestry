@@ -202,6 +202,10 @@ public class PacksInteropModuleTests
         exports.TryResolve("tapestry-survival", "tiers", out var entry).Should().BeTrue();
         entry.Kind.Should().Be("namespace");
 
+        var ns = entry.Handler as Jint.Native.Object.ObjectInstance;
+        ns.Should().NotBeNull();
+        ((double)Jint.Runtime.TypeConverter.ToNumber(ns!.Get("FULL_MIN"))).Should().Be(67);
+
         rt.Execute("globalThis.__reg2 = tapestry.packs.getExportRegistry();", "tapestry-survival");
         rt.Evaluate("__reg2[0].kind").Should().Be("namespace");
     }
@@ -212,6 +216,15 @@ public class PacksInteropModuleTests
         var (rt, _) = CreateRuntime();
         var act = () => rt.Execute("tapestry.packs.export('answer', 42, {});", "tapestry-survival");
         act.Should().Throw<InteropException>().WithMessage("*function or a namespace object*");
+    }
+
+    [Fact]
+    public void Call_NamespaceExport_ThrowsHelpfulInteropError()
+    {
+        var (rt, _) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('tiers', { FULL_MIN: 67 }, {});", "tapestry-survival");
+        var act = () => rt.Execute("tapestry.packs.call('@tapestry/survival', 'tiers');", "tapestry-cooking");
+        act.Should().Throw<InteropException>().WithMessage("*namespace object*require*");
     }
 
     // Regression: an OBJECT (or array) argument must pass through tapestry.packs.call intact.

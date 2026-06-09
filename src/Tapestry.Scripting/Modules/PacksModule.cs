@@ -96,6 +96,8 @@ public class PacksModule : IJintApiModule
             throw new InteropException(
                 $"Export '{name}' must be a function or a namespace object.");
         }
+        // Function is Jint's concrete type for all callables; any other ObjectInstance
+        // (including arrays) is stored as a read-by-require namespace/data export.
         var isFunction = handler is Jint.Native.Function.Function;
 
         var pack = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
@@ -147,6 +149,13 @@ public class PacksModule : IJintApiModule
         {
             throw new InteropException(
                 $"Pack '{target}' has no export named '{name}' (called by '{caller}').");
+        }
+
+        if (entry.Handler is not Jint.Native.Function.Function)
+        {
+            throw new InteropException(
+                $"Export '{name}' from '{target}' is a namespace object, not a function; " +
+                "read its members via tapestry.packs.require(pack) instead of call().");
         }
 
         using var activity = TapestryTracing.Source.StartActivity("interop.call");
