@@ -239,4 +239,18 @@ public class HelpServiceTests
         Assert.Contains("creation", cats);
         Assert.Single(list);
     }
+
+    [Fact]
+    public void HelpTopic_OverrideField_DeserializesFromYaml()
+    {
+        var yaml = "id: combat\ntitle: Combat\noverride: true\n";
+        var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        var topic = deserializer.Deserialize<Tapestry.Shared.Help.HelpTopic>(yaml);
+
+        Assert.True(topic.Override);
+    }
 }
