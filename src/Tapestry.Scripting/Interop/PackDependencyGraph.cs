@@ -5,7 +5,7 @@ namespace Tapestry.Scripting.Interop;
 /// per-pack dependency map (required + optional deps), in namespace form
 /// (e.g. "tapestry-cooking"). Reused by <c>tapestry.packs.call</c> / <c>has</c>.
 /// </summary>
-public sealed class PackDependencyGraph
+public sealed class PackDependencyGraph : Tapestry.Engine.Registration.IPackEdgeOracle
 {
     private Dictionary<string, HashSet<string>> _edges = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _loaded = new(StringComparer.OrdinalIgnoreCase);

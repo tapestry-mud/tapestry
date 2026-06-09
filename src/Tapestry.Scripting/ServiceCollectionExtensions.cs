@@ -92,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<TagRegistry>();
         services.AddSingleton<Tapestry.Scripting.Interop.PackExportRegistry>();
         services.AddSingleton<Tapestry.Scripting.Interop.PackDependencyGraph>();
+        services.AddSingleton<Tapestry.Engine.Registration.IPackEdgeOracle>(sp => sp.GetRequiredService<Tapestry.Scripting.Interop.PackDependencyGraph>());
         services.AddSingleton<Tapestry.Scripting.Interop.InteropCallSiteRegistry>();
         services.AddSingleton<JintRuntime>();
         services.AddSingleton<PackLoader>();
