@@ -78,7 +78,13 @@ public class GameLoop
 
         if (_handlers.ContainsKey(name))
         {
-            CancelTickHandler(name);
+            // Strict registration: tick-handler names must be unique. A duplicate is always a
+            // bug (e.g. two subsystems both naming a handler "heartbeat"), so fail loud at
+            // registration -- which means strict boot catches it -- rather than silently
+            // clobbering the existing handler. To intentionally swap one out, cancel it first.
+            throw new InvalidOperationException(
+                $"A tick handler named '{name}' is already registered. Tick-handler names must be " +
+                "unique; cancel the existing handler before registering a replacement.");
         }
 
         var due = _tickCount + intervalTicks;
@@ -427,10 +433,12 @@ public class GameLoop
     /// heartbeat is a tiny invisible write whose only job is to provoke a TCP send; against a
     /// half-open peer the write errors and the connection tears itself down through the normal
     /// Disconnect -> OnDisconnected -> link-dead -> timeout flow. No cleanup happens here.
+    /// Registered as "connection-heartbeat" -- NOT "heartbeat", which is the combat pulse
+    /// handler (HeartbeatManager.Tick); reusing that name silently clobbers the attack loop.
     /// </summary>
     public void RegisterHeartbeatHandler(SessionManager sessions, int intervalTicks)
     {
-        RegisterTickHandler("heartbeat", intervalTicks, () =>
+        RegisterTickHandler("connection-heartbeat", intervalTicks, () =>
         {
             foreach (var session in sessions.AllSessions)
             {

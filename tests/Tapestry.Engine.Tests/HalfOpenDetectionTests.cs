@@ -50,6 +50,36 @@ public class HalfOpenDetectionTests
     }
 
     [Fact]
+    public void Liveness_heartbeat_does_not_clobber_an_existing_heartbeat_tick_handler()
+    {
+        // Regression: the combat pulse is driven by a tick handler named "heartbeat"
+        // (HeartbeatManager.Tick -> CombatPulse -> ResolveAutoAttacksPhase). The connection
+        // liveness sweep must register under a DISTINCT name. If it reuses "heartbeat" it
+        // silently cancels-and-replaces the combat heartbeat (RegisterTickHandler replaces on
+        // name collision), so the auto-attack loop stops resolving -- mobs aggro/emote but never
+        // deal damage, and players are stuck "in battle" with no swings landing.
+        var sessions = new SessionManager();
+        var eventQueue = new SystemEventQueue();
+        var gameLoop = NewGameLoop(sessions, eventQueue);
+
+        var combatHeartbeats = 0;
+        gameLoop.RegisterTickHandler("heartbeat", 1, () => combatHeartbeats++);
+
+        var conn = new FakeConnection();
+        PlayingSession(sessions, conn);
+
+        // Liveness sweep registers AFTER the combat heartbeat, mirroring real boot order:
+        // modules (TickHandlerModule) configure first, GameLoopService wires the liveness
+        // sweep when the host starts the hosted service.
+        gameLoop.RegisterHeartbeatHandler(sessions, intervalTicks: 1);
+
+        gameLoop.Tick();
+
+        combatHeartbeats.Should().Be(1, "the liveness sweep must not replace the combat heartbeat handler");
+        conn.HeartbeatCount.Should().Be(1, "the liveness sweep must still ping playing connections");
+    }
+
+    [Fact]
     public void Heartbeat_sweep_skips_non_playing_sessions()
     {
         var sessions = new SessionManager();

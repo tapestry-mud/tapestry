@@ -253,14 +253,28 @@ public class GameLoopTests
     }
 
     [Fact]
-    public void RegisterTickHandler_SameName_ReplacesExistingHandler()
+    public void RegisterTickHandler_SameName_Throws()
+    {
+        var (loop, _, _, _) = CreateLoop();
+        loop.RegisterTickHandler("my-handler", 1, () => { });
+
+        // Strict registration: a duplicate name is always a bug (e.g. two subsystems both
+        // picking "heartbeat"), so it throws rather than silently clobbering the first handler.
+        Assert.Throws<InvalidOperationException>(() =>
+            loop.RegisterTickHandler("my-handler", 1, () => { }));
+    }
+
+    [Fact]
+    public void RegisterTickHandler_CancelThenReRegister_ReplacesHandler()
     {
         var (loop, _, _, _) = CreateLoop();
         var firstCount = 0;
         var secondCount = 0;
 
+        // The sanctioned way to swap a handler today: cancel, then register the replacement.
         loop.RegisterTickHandler("my-handler", 1, () => { firstCount++; });
-        loop.RegisterTickHandler("my-handler", 1, () => { secondCount++; }); // replaces
+        loop.CancelTickHandler("my-handler");
+        loop.RegisterTickHandler("my-handler", 1, () => { secondCount++; });
 
         loop.Tick();
 
