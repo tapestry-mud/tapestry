@@ -110,7 +110,6 @@ public class RegistrationPolicyTests
     [Theory]
     [InlineData("kernel")]
     [InlineData("engine")]
-    [InlineData("tapestry-core")]
     public void Override_OfKernelOwnedName_Throws_WithSpecificMessage(string kernelOwner)
     {
         var policy = NewPolicy(new FakeEdges().Edge("pack-b", kernelOwner));
@@ -119,6 +118,28 @@ public class RegistrationPolicyTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("not pack-overridable");
+    }
+
+    [Fact]
+    public void Override_OfCorePackCommand_WithEdge_Wins()
+    {
+        var policy = NewPolicy(new FakeEdges().Edge("vi-pack", "tapestry-core"));
+        var coreFired = 0;
+        var viFired = 0;
+        policy.Record(new RegistrationCandidate("command", "look", "tapestry-core", false, () => coreFired++, "core/look.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "vi-pack", true, () => viFired++, "vi/look.js", 1));
+        policy.Resolve();
+        viFired.Should().Be(1);
+        coreFired.Should().Be(0);
+    }
+
+    [Fact]
+    public void Override_OfCorePackCommand_WithoutEdge_Throws()
+    {
+        var policy = NewPolicy(new FakeEdges()); // no edge declared
+        policy.Record(new RegistrationCandidate("command", "look", "tapestry-core", false, () => { }, "core/look.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "vi-pack", true, () => { }, "vi/look.js", 1));
+        Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 
     [Fact]

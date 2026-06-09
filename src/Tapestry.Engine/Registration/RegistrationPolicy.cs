@@ -8,7 +8,7 @@ namespace Tapestry.Engine.Registration;
 public sealed record RegistrationCandidate(
     string Kind,        // "tick", "command", ... (the registry family)
     string Name,        // the colliding key within that family
-    string Owner,       // pack namespace, or a non-overridable owner ("kernel"/"engine"/"tapestry-core")
+    string Owner,       // pack namespace, or a non-overridable owner ("kernel"/"engine")
     bool IsOverride,    // author declared { override: true }
     Action Commit,      // replays the underlying registry's Register call
     string SourceFile,  // for located diagnostics; "" when N/A (e.g. C# kernel registrations)
@@ -22,7 +22,7 @@ public sealed record RegistrationCandidate(
 public sealed class RegistrationPolicy
 {
     private static readonly HashSet<string> NonOverridableOwners =
-        new(StringComparer.OrdinalIgnoreCase) { "kernel", "engine", "tapestry-core" };
+        new(StringComparer.OrdinalIgnoreCase) { "kernel", "engine" };
 
     private readonly List<RegistrationCandidate> _candidates = new();
     private readonly IPackEdgeOracle _edges;
