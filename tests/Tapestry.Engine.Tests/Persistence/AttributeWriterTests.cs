@@ -262,4 +262,22 @@ public class AttributeWriterTests
         // Stored under the bare property name the entry carries.
         Assert.Equal(9, target.GetProperty<int>("loyalty"));
     }
+
+    [Fact]
+    public void Describe_AmbiguousBareName_YieldsLocatedRejection()
+    {
+        _props.RegisterPackProperty("pack-a", "loyalty", "A-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        _props.RegisterPackProperty("pack-b", "loyalty", "B-loyalty", PropertyValueType.Int,
+            appliesTo: new[] { "npc" });
+        var target = new Entity("npc", "Guard");
+
+        var result = Writer.Describe(target, "loyalty");
+
+        Assert.False(result.Ok);
+        Assert.Contains("ambiguous", result.Message);
+        Assert.Contains("pack-a", result.Message);
+        Assert.Contains("pack-b", result.Message);
+        Assert.Contains("Qualify it as pack-a:loyalty", result.Message);
+    }
 }
