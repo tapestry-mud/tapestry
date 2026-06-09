@@ -26,6 +26,7 @@ public class GameLoopService : IHostedService
     private readonly MobAIManager _mobAI;
     private readonly NotificationQueue _notificationQueue;
     private readonly Tapestry.Server.Gmcp.Handlers.NotificationHandler _notificationHandler;
+    private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
     private Task? _runTask;
 
     public GameLoopService(
@@ -43,7 +44,8 @@ public class GameLoopService : IHostedService
         EventBus eventBus,
         MobAIManager mobAI,
         NotificationQueue notificationQueue,
-        Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler)
+        Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler,
+        Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -60,6 +62,7 @@ public class GameLoopService : IHostedService
         _mobAI = mobAI;
         _notificationQueue = notificationQueue;
         _notificationHandler = notificationHandler;
+        _registrationPolicy = registrationPolicy;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -246,6 +249,7 @@ public class GameLoopService : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
+        _registrationPolicy.Resolve();
         _runTask = _gameLoop.RunAsync(_config.Server.TickRateMs, _appLifetime.ApplicationStopping);
         return Task.CompletedTask;
     }
