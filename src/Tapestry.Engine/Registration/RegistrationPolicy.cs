@@ -51,7 +51,31 @@ public sealed class RegistrationPolicy
 
     private RegistrationCandidate ResolveGroup(List<RegistrationCandidate> cands)
     {
-        // Filled in across A3–A5. For now: exactly one candidate wins.
-        return cands[0];
+        var bases = cands.Where(c => !c.IsOverride).ToList();
+        var overrides = cands.Where(c => c.IsOverride).ToList();
+
+        if (overrides.Count == 0 && bases.Count == 1)
+        {
+            return bases[0];
+        }
+
+        if (overrides.Count == 0 && bases.Count > 1)
+        {
+            throw Conflict(bases[1],
+                $"two packs register {bases[0].Kind} '{bases[0].Name}' " +
+                $"({string.Join(", ", bases.Select(b => b.Owner))}); " +
+                $"declare {{ override: true }} on the intended winner or rename one");
+        }
+
+        // override paths are added in A4/A5.
+        throw Conflict(cands[0], $"unresolved registration for {cands[0].Kind} '{cands[0].Name}'");
+    }
+
+    private static InvalidOperationException Conflict(RegistrationCandidate at, string reason)
+    {
+        // Mirror the existing located-diagnostic format: "{pack} ({file}:{line}): <reason>"
+        // (PackValidator.cs:392-394). file/line omitted for C# kernel registrations.
+        var loc = string.IsNullOrEmpty(at.SourceFile) ? at.Owner : $"{at.Owner} ({at.SourceFile}:{at.Line})";
+        return new InvalidOperationException($"{loc}: {reason}");
     }
 }
