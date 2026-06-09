@@ -67,8 +67,41 @@ public sealed class RegistrationPolicy
                 $"declare {{ override: true }} on the intended winner or rename one");
         }
 
-        // override paths are added in A4/A5.
-        throw Conflict(cands[0], $"unresolved registration for {cands[0].Kind} '{cands[0].Name}'");
+        if (overrides.Count > 0 && bases.Count == 0)
+        {
+            throw Conflict(overrides[0],
+                $"{overrides[0].Owner} declares override of {overrides[0].Kind} '{overrides[0].Name}' " +
+                "but no base exists to override");
+        }
+
+        if (bases.Count == 1 && overrides.Count >= 1)
+        {
+            if (overrides.Count > 1)
+            {
+                throw Conflict(overrides[1],
+                    $"two packs both override {overrides[0].Kind} '{overrides[0].Name}' " +
+                    $"({string.Join(", ", overrides.Select(o => o.Owner))})");
+            }
+
+            var winner = overrides[0];
+            var ownerOfBase = bases[0].Owner;
+
+            // Kernel-line guard is added in A5.
+
+            if (!string.Equals(winner.Owner, ownerOfBase, StringComparison.OrdinalIgnoreCase)
+                && !_edges.DeclaresEdge(winner.Owner, ownerOfBase))
+            {
+                throw Conflict(winner,
+                    $"{winner.Owner} overrides {winner.Kind} '{winner.Name}' owned by '{ownerOfBase}' " +
+                    "but declares no dependency on it; add it to `dependencies`");
+            }
+
+            return winner;
+        }
+
+        throw Conflict(cands[0],
+            $"ambiguous registration for {cands[0].Kind} '{cands[0].Name}' " +
+            $"({bases.Count} base(s), {overrides.Count} override(s))");
     }
 
     private static InvalidOperationException Conflict(RegistrationCandidate at, string reason)

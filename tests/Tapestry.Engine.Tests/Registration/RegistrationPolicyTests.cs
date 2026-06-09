@@ -59,4 +59,51 @@ public class RegistrationPolicyTests
         policy.Record(new RegistrationCandidate("tick", "look", "kernel", false, () => { }, "", 0));
         policy.Invoking(p => p.Resolve()).Should().NotThrow();
     }
+
+    [Fact]
+    public void Override_WithDeclaredEdge_Wins_OverBase()
+    {
+        var edges = new FakeEdges().Edge("pack-b", "pack-a"); // pack-b depends on pack-a
+        var policy = NewPolicy(edges);
+        var baseFired = 0; var overrideFired = 0;
+
+        // Override recorded FIRST, base SECOND — winner must not depend on arrival order.
+        policy.Record(new RegistrationCandidate("command", "look", "pack-b", true,  () => overrideFired++, "b.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", false, () => baseFired++,     "a.js", 1));
+
+        policy.Resolve();
+        overrideFired.Should().Be(1);
+        baseFired.Should().Be(0);
+    }
+
+    [Fact]
+    public void Override_WithoutDeclaredEdge_Throws()
+    {
+        var policy = NewPolicy(new FakeEdges()); // no edges
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", false, () => { }, "a.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-b", true,  () => { }, "b.js", 1));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
+        ex.Message.Should().Contain("pack-b").And.Contain("dependency");
+    }
+
+    [Fact]
+    public void Override_OfNonexistentBase_Throws()
+    {
+        var policy = NewPolicy(new FakeEdges().Edge("pack-b", "pack-a"));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-b", true, () => { }, "b.js", 1)); // no base
+        var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
+        ex.Message.Should().Contain("no base").And.Contain("look");
+    }
+
+    [Fact]
+    public void TwoOverrides_OneBase_IsAmbiguous_Throws()
+    {
+        var edges = new FakeEdges().Edge("pack-b", "pack-a").Edge("pack-c", "pack-a");
+        var policy = NewPolicy(edges);
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", false, () => { }, "a.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-b", true,  () => { }, "b.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-c", true,  () => { }, "c.js", 1));
+        Assert.Throws<InvalidOperationException>(() => policy.Resolve());
+    }
 }
