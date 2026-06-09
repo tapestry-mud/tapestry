@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IQuestScriptLoader>(sp => sp.GetRequiredService<QuestScriptLoader>());
         services.AddSingleton<QuestModule>();
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<QuestModule>());
+        services.AddSingleton<IJintApiModule, WatchModule>();
         services.AddSingleton<IJintApiModule, ArgsModule>();
         services.AddSingleton<FlowsModule>();
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<FlowsModule>());
