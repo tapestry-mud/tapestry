@@ -112,4 +112,12 @@ public class ColorRendererTests
         result.Should().StartWith("<");
         result.Should().Contain("orphan");
     }
+
+    [Fact]
+    public void RenderAnsi_RawAnsiWithoutMarkup_PassesThroughUnchanged()
+    {
+        var renderer = CreateRenderer();
+        var raw = "\x1b[97mTown Square\x1b[0m";
+        renderer.RenderAnsi(raw).Should().Be(raw);
+    }
 }
