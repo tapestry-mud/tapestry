@@ -91,15 +91,17 @@ public class PacksModule : IJintApiModule
             throw new InteropException(
                 $"Invalid export name '{name}'. Use a JS identifier (camelCase), e.g. 'getHungerTier'.");
         }
-        if (handler is null || handler.Type != Types.Object || handler is not Jint.Native.Function.Function)
+        if (handler is null || handler.Type != Types.Object)
         {
-            throw new InteropException($"Export '{name}' handler must be a function.");
+            throw new InteropException(
+                $"Export '{name}' must be a function or a namespace object.");
         }
+        var isFunction = handler is Jint.Native.Function.Function;
 
         var pack = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
 
         var meta = metadata as ObjectInstance;
-        var kind = GetString(meta, "kind", "query");
+        var kind = GetString(meta, "kind", isFunction ? "query" : "namespace");
         var description = GetString(meta, "description", "");
         var returns = GetString(meta, "returns", "");
         var paramsList = GetParams(meta);

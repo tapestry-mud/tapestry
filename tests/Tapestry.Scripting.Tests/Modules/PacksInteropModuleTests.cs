@@ -193,6 +193,27 @@ public class PacksInteropModuleTests
         rt.Evaluate("__nested").Should().Be("core-ran");
     }
 
+    [Fact]
+    public void Export_NamespaceObject_IsStoredAndDefaultsKindNamespace()
+    {
+        var (rt, exports) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('tiers', { FULL_MIN: 67, HUNGRY_MIN: 34 }, {});", "tapestry-survival");
+
+        exports.TryResolve("tapestry-survival", "tiers", out var entry).Should().BeTrue();
+        entry.Kind.Should().Be("namespace");
+
+        rt.Execute("globalThis.__reg2 = tapestry.packs.getExportRegistry();", "tapestry-survival");
+        rt.Evaluate("__reg2[0].kind").Should().Be("namespace");
+    }
+
+    [Fact]
+    public void Export_Primitive_Throws()
+    {
+        var (rt, _) = CreateRuntime();
+        var act = () => rt.Execute("tapestry.packs.export('answer', 42, {});", "tapestry-survival");
+        act.Should().Throw<InteropException>().WithMessage("*function or a namespace object*");
+    }
+
     // Regression: an OBJECT (or array) argument must pass through tapestry.packs.call intact.
     // Jint cannot auto-marshal a JS Array containing a plain object into a CLR `JsValue[]`
     // parameter -- it round-trips elements and throws "No valid constructors found for type
