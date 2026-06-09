@@ -39,6 +39,10 @@ public sealed class RegistrationPolicy
 
     public void Resolve()
     {
+        if (_sealed)
+        {
+            throw new InvalidOperationException("RegistrationPolicy.Resolve() called twice; the ledger is already sealed.");
+        }
         var groups = _candidates.GroupBy(c => (c.Kind, Name: c.Name.ToLowerInvariant()));
         var winners = new List<RegistrationCandidate>();
         foreach (var group in groups)

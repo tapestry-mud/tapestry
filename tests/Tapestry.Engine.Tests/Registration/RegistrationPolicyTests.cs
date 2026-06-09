@@ -120,4 +120,26 @@ public class RegistrationPolicyTests
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("not pack-overridable");
     }
+
+    [Fact]
+    public void Resolve_CalledTwice_Throws()
+    {
+        var policy = NewPolicy();
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", false, () => { }, "a.js", 1));
+        policy.Resolve();
+        Assert.Throws<InvalidOperationException>(() => policy.Resolve());
+    }
+
+    [Fact]
+    public void Override_OfOwnRegistration_Succeeds_WithoutEdge()
+    {
+        var policy = NewPolicy(new FakeEdges()); // no edges declared
+        var baseFired = 0;
+        var overrideFired = 0;
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", false, () => baseFired++, "a.js", 1));
+        policy.Record(new RegistrationCandidate("command", "look", "pack-a", true, () => overrideFired++, "a.js", 2));
+        policy.Resolve();
+        overrideFired.Should().Be(1);
+        baseFired.Should().Be(0);
+    }
 }
