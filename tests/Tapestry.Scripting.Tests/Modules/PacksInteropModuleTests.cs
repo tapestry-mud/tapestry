@@ -5,6 +5,7 @@ using FluentAssertions;
 using Jint.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
@@ -24,9 +25,9 @@ public class PacksInteropModuleTests
             ["tapestry-survival"] = new(),
             ["tapestry-rogue"] = new(),
         });
-
+        var policy = new RegistrationPolicy(graph);
         var emptyProvider = new ServiceCollection().BuildServiceProvider();
-        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance);
+        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance, policy);
         var rt = new JintRuntime(new IJintApiModule[] { packs }, NullLogger<JintRuntime>.Instance);
         return (rt, exports);
     }
@@ -146,14 +147,16 @@ public class PacksInteropModuleTests
     }
 
     [Fact]
-    public void Export_DuplicateName_Throws()
+    public void Export_DuplicateName_IsASealTimeBootError()
     {
+        // Pre-seal the duplicate no longer throws eagerly; the RegistrationPolicy seal
+        // rejects it (see PacksExportPolicyTests.Export_DuplicateName_FailsBootAtSeal).
         var (rt, _) = CreateRuntime();
         var act = () => rt.Execute("""
             tapestry.packs.export('dup', function () {}, { kind: 'query' });
             tapestry.packs.export('dup', function () {}, { kind: 'query' });
             """, "tapestry-survival");
-        act.Should().Throw<InteropException>().WithMessage("*already*");
+        act.Should().NotThrow();
     }
 
     [Fact]
@@ -181,8 +184,9 @@ public class PacksInteropModuleTests
             ["tapestry-survival"] = new() { "tapestry-core" },     // survival -> core
             ["tapestry-core"] = new(),
         });
+        var policy = new RegistrationPolicy(graph);
         var emptyProvider = new ServiceCollection().BuildServiceProvider();
-        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance);
+        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance, policy);
         var rt = new JintRuntime(new IJintApiModule[] { packs }, NullLogger<JintRuntime>.Instance);
 
         rt.Execute("tapestry.packs.export('inner', function () { return 'core-ran'; }, { kind: 'query' });", "tapestry-core");

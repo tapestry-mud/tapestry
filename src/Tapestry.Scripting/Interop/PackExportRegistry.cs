@@ -27,14 +27,11 @@ public sealed class PackExportRegistry
     private static (string, string) Key(string pack, string name) =>
         (pack.ToLowerInvariant(), name);
 
-    public void Register(ExportEntry entry)
-    {
-        if (!_entries.TryAdd(Key(entry.Pack, entry.Name), entry))
-        {
-            throw new InteropException(
-                $"Pack '{entry.Pack}' has already registered an export named '{entry.Name}'.");
-        }
-    }
+    /// <summary>
+    /// Upsert. Collision/override legality is decided by RegistrationPolicy (Kind "export",
+    /// Name "{pack}:{name}") at the seal — this store no longer polices duplicates.
+    /// </summary>
+    public void Register(ExportEntry entry) => _entries[Key(entry.Pack, entry.Name)] = entry;
 
     public bool TryResolve(string pack, string name, out ExportEntry entry) =>
         _entries.TryGetValue(Key(pack, name), out entry!);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
@@ -23,8 +24,9 @@ public class PacksRequireTests
             ["tapestry-core"] = new(),
             ["tapestry-rogue"] = new(),
         });
+        var policy = new RegistrationPolicy(graph);
         var emptyProvider = new ServiceCollection().BuildServiceProvider();
-        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance);
+        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance, policy);
         var rt = new JintRuntime(new IJintApiModule[] { packs }, NullLogger<JintRuntime>.Instance);
         return (rt, exports);
     }
@@ -118,6 +120,15 @@ public class PacksRequireTests
         rt.Execute("tapestry.packs.export('outer', function () { return tapestry.packs.call('@tapestry/core', 'inner'); }, { kind: 'query' });", "tapestry-survival");
         rt.Execute("globalThis.__n = tapestry.packs.require('@tapestry/survival').outer();", "tapestry-cooking");
         rt.Evaluate("__n").Should().Be("core-ran");
+    }
+
+    [Fact]
+    public void Require_ObjectKeys_IsEmpty_ProxyIsNotEnumerable()
+    {
+        var (rt, _) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('helper', function () { return 1; }, { kind: 'query' });", "tapestry-survival");
+        rt.Execute("globalThis.__k = Object.keys(tapestry.packs.require('@tapestry/survival')).length;", "tapestry-cooking");
+        ((double)rt.Evaluate("__k")!).Should().Be(0);
     }
 
     [Fact]

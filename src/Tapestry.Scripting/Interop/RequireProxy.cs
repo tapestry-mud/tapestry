@@ -16,6 +16,8 @@ namespace Tapestry.Scripting.Interop;
 /// Function exports are wrapped so they run attributed to the exporter's pack
 /// (InvokeAsPack); namespace/data exports are returned as-is (single shared realm) and
 /// should be treated as read-only by convention. Game-loop thread only, like all interop.
+/// Enumeration (Object.keys, for...in, JSON.stringify) yields no keys — the proxy is a
+/// read-accessor, not a data container; use tapestry.packs.getExportRegistry() for introspection.
 /// </summary>
 public sealed class RequireProxy : ObjectInstance
 {

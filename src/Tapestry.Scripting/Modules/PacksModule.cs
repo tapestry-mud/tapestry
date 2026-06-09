@@ -6,6 +6,7 @@ using Jint.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting.Interop;
 using JintEngine = Jint.Engine;
 
@@ -19,17 +20,20 @@ public class PacksModule : IJintApiModule
     private readonly PackExportRegistry _exports;
     private readonly PackDependencyGraph _graph;
     private readonly ILogger<PacksModule> _logger;
+    private readonly RegistrationPolicy _registrationPolicy;
 
     public PacksModule(
         IServiceProvider services,
         PackExportRegistry exports,
         PackDependencyGraph graph,
-        ILogger<PacksModule> logger)
+        ILogger<PacksModule> logger,
+        RegistrationPolicy registrationPolicy)
     {
         _services = services;
         _exports = exports;
         _graph = graph;
         _logger = logger;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "packs";
@@ -113,7 +117,31 @@ public class PacksModule : IJintApiModule
         var paramsList = GetParams(meta);
         var appliesTo = GetStringArray(meta, "appliesTo", new[] { "all" });
 
-        _exports.Register(new ExportEntry(pack, name, handler, description, paramsList, returns, kind, appliesTo));
+        var sourceFileVal = engine.GetValue("__currentSource");
+        var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+            ? sourceFileVal.ToString()
+            : "";
+        var ov = meta?.Get("override");
+        var isOverride = ov is not null && ov.Type == Types.Boolean && (bool)ov.ToObject()!;
+
+        var entry = new ExportEntry(pack, name, handler, description, paramsList, returns, kind, appliesTo);
+
+        _registrationPolicy.Record(new RegistrationCandidate(
+            Kind: "export",
+            Name: $"{pack}:{name}",
+            Owner: pack,
+            IsOverride: isOverride,
+            Commit: () => _exports.Register(entry),
+            SourceFile: sourceFile,
+            Line: 0));
+
+        if (!_registrationPolicy.IsSealed)
+        {
+            // Eager visibility for load-time interop (dependency-ordered loading makes
+            // this safe); the seal re-commits the resolved winner, so the final state
+            // is order-independent and an undeclared duplicate still fails boot.
+            _exports.Register(entry);
+        }
     }
 
     private JsValue Call(JintEngine engine, JsValue argsArrayVal)
