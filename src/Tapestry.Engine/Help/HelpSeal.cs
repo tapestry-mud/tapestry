@@ -50,6 +50,16 @@ public sealed class HelpSeal
         foreach (var authored in _authoredWinners)
         {
             if (!commandOwners.TryGetValue(authored.Id, out var commandOwner)) { continue; }
+            // Engine/kernel-registered commands (C# modules — e.g. emote, socials, say) carry a
+            // non-pack owner (empty, or "kernel"/"engine"). No pack owns them exclusively, so any
+            // pack — typically @tapestry/core — may document them. The shadow gate only governs one
+            // pack documenting ANOTHER PACK's command, so exempt non-pack owners here.
+            if (string.IsNullOrWhiteSpace(commandOwner)
+                || string.Equals(commandOwner, "kernel", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(commandOwner, "engine", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
             if (string.Equals(authored.Owner, commandOwner, StringComparison.OrdinalIgnoreCase))
             {
                 continue; // a pack enriching its own command's help — implicit, fine

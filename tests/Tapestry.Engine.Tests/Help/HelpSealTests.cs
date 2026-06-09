@@ -128,4 +128,20 @@ public class HelpSealTests
 
         seal.Invoking(s => s.Seal()).Should().NotThrow();
     }
+
+    [Theory]
+    [InlineData("")]        // C#-engine module commands (emote, socials, say) carry an empty owner
+    [InlineData("kernel")]
+    [InlineData("engine")]
+    public void NonPackOwnedCommand_DocumentedByPack_Ok(string commandOwner)
+    {
+        // Regression: a pack (here @tapestry/core) documenting an engine/kernel-registered command
+        // must NOT trip the shadow gate — no pack owns an engine command exclusively. This is the
+        // case that took prod down (core help/emote.yaml vs the empty-owner 'emote' command).
+        var commands = CommandsWith(("emote", commandOwner));
+        var help = HelpWith(("emote", "tapestry-core", false));
+        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(("emote", "tapestry-core", false)));
+
+        seal.Invoking(s => s.Seal()).Should().NotThrow();
+    }
 }
