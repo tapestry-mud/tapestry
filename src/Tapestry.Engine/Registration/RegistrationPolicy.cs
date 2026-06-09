@@ -21,6 +21,9 @@ public sealed record RegistrationCandidate(
 /// </summary>
 public sealed class RegistrationPolicy
 {
+    private static readonly HashSet<string> NonOverridableOwners =
+        new(StringComparer.OrdinalIgnoreCase) { "kernel", "engine", "tapestry-core" };
+
     private readonly List<RegistrationCandidate> _candidates = new();
     private readonly IPackEdgeOracle _edges;
     private bool _sealed;
@@ -86,7 +89,12 @@ public sealed class RegistrationPolicy
             var winner = overrides[0];
             var ownerOfBase = bases[0].Owner;
 
-            // Kernel-line guard is added in A5.
+            if (NonOverridableOwners.Contains(ownerOfBase))
+            {
+                throw Conflict(winner,
+                    $"{winner.Kind} '{winner.Name}' is owned by '{ownerOfBase}' (engine/kernel) " +
+                    "and is not pack-overridable");
+            }
 
             if (!string.Equals(winner.Owner, ownerOfBase, StringComparison.OrdinalIgnoreCase)
                 && !_edges.DeclaresEdge(winner.Owner, ownerOfBase))

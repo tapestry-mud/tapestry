@@ -106,4 +106,18 @@ public class RegistrationPolicyTests
         policy.Record(new RegistrationCandidate("command", "look", "pack-c", true,  () => { }, "c.js", 1));
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
+
+    [Theory]
+    [InlineData("kernel")]
+    [InlineData("engine")]
+    [InlineData("tapestry-core")]
+    public void Override_OfKernelOwnedName_Throws_WithSpecificMessage(string kernelOwner)
+    {
+        var policy = NewPolicy(new FakeEdges().Edge("pack-b", kernelOwner));
+        policy.Record(new RegistrationCandidate("tick", "heartbeat", kernelOwner, false, () => { }, "", 0));
+        policy.Record(new RegistrationCandidate("tick", "heartbeat", "pack-b", true, () => { }, "b.js", 1));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
+        ex.Message.Should().Contain("not pack-overridable");
+    }
 }
