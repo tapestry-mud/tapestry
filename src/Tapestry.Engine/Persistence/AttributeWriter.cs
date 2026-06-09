@@ -24,8 +24,9 @@ public sealed class AttributeWriter
 
     public AttributeWriteResult Write(IAttributeTarget target, string attr, IReadOnlyList<string> valueTokens)
     {
-        var prop = FindProperty(attr);
+        var prop = FindProperty(attr, out var ambiguityError);
         if (prop != null) { return WriteProperty(target, prop, valueTokens); }
+        if (ambiguityError != null) { return new AttributeWriteResult(false, ambiguityError); }
 
         var tag = FindTag(attr);
         if (tag != null) { return WriteTag(target, tag, valueTokens); }
@@ -37,7 +38,7 @@ public sealed class AttributeWriter
     /// <summary>Value-omitted read: echo current value + metadata + usage (the per-attribute read).</summary>
     public AttributeWriteResult Describe(IAttributeTarget target, string attr)
     {
-        var prop = FindProperty(attr);
+        var prop = FindProperty(attr, out var ambiguityError);
         if (prop != null)
         {
             if (!prop.IsAdminSettable)
@@ -59,6 +60,8 @@ public sealed class AttributeWriter
                 $"Usage: set {BaseType(target.Type)} {prop.Name} <target> {hint}");
         }
 
+        if (ambiguityError != null) { return new AttributeWriteResult(false, ambiguityError); }
+
         var tag = FindTag(attr);
         if (tag != null)
         {
@@ -73,11 +76,34 @@ public sealed class AttributeWriter
             $"Unknown attribute '{attr}' on {target.Name}. Try `set {BaseType(target.Type)} ?`.");
     }
 
-    // Admins address attributes by bare declared name, so we match across all scopes.
-    // First-wins if two packs ever declare the same bare name (the engine's shadow-guard
-    // already prevents engine/pack collisions; pack/pack collisions are an accepted edge today).
-    private PropertyRegistryEntry? FindProperty(string attr) =>
-        _properties.GetAll().FirstOrDefault(e => e.Name.Equals(attr, StringComparison.OrdinalIgnoreCase));
+    // Admins address attributes by bare declared name with NO pack context (the `set` command is
+    // engine-internal, not pack JS). We route through the registry's ambiguity-aware resolver so a
+    // unique bare name resolves, a pack-qualified "pack:name" resolves via exact key, and an
+    // ambiguous bare name is REJECTED with a located diagnostic instead of silently first-winning.
+    // ambiguityError is set (and the entry null) only when two-or-more packs declare the same name.
+    private PropertyRegistryEntry? FindProperty(string attr, out string? ambiguityError)
+    {
+        ambiguityError = null;
+        var resolution = _properties.ResolveForAdmin(attr);
+        switch (resolution.Status)
+        {
+            case PropertyResolutionStatus.Found:
+            {
+                return resolution.Entry;
+            }
+            case PropertyResolutionStatus.Ambiguous:
+            {
+                ambiguityError =
+                    $"Property '{attr}' is ambiguous: declared by {string.Join(", ", resolution.Owners)}. " +
+                    $"Qualify it as {resolution.Owners[0]}:{attr}.";
+                return null;
+            }
+            default:
+            {
+                return null;
+            }
+        }
+    }
 
     private TagRegistryEntry? FindTag(string attr) =>
         _tags.GetAll().FirstOrDefault(e => e.Name.Equals(attr, StringComparison.OrdinalIgnoreCase));
