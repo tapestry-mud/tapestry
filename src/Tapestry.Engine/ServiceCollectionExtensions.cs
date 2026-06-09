@@ -56,6 +56,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<BadInputTracker>()));
         services.AddSingleton<SessionManager>();
         services.AddSingleton<WatchRegistry>();
+        services.AddSingleton<WatchSessionHub>();
+        services.AddSingleton<IWatchRosterSource, WatchRosterSource>();
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
         services.AddSingleton<GameLoop>();

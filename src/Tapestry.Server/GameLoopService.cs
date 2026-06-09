@@ -28,6 +28,8 @@ public class GameLoopService : IHostedService
     private readonly NotificationQueue _notificationQueue;
     private readonly Tapestry.Server.Gmcp.Handlers.NotificationHandler _notificationHandler;
     private readonly WatchRegistry _watchRegistry;
+    private readonly WatchSessionHub _watchSessionHub;
+    private readonly IWatchRosterSource _watchRosterSource;
     private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
     private Task? _runTask;
 
@@ -48,6 +50,8 @@ public class GameLoopService : IHostedService
         NotificationQueue notificationQueue,
         Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler,
         WatchRegistry watchRegistry,
+        WatchSessionHub watchSessionHub,
+        IWatchRosterSource watchRosterSource,
         Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy)
     {
         _gameLoop = gameLoop;
@@ -66,6 +70,8 @@ public class GameLoopService : IHostedService
         _notificationQueue = notificationQueue;
         _notificationHandler = notificationHandler;
         _watchRegistry = watchRegistry;
+        _watchSessionHub = watchSessionHub;
+        _watchRosterSource = watchRosterSource;
         _registrationPolicy = registrationPolicy;
 
         WireEvents();
@@ -237,6 +243,19 @@ public class GameLoopService : IHostedService
 
                     _logger.LogInformation("Player {Name} linkdead timeout expired", playerName);
                 }
+            });
+        }
+
+        // Watch mode (Slice B): re-push the watchable-player roster to every anonymous spectator on
+        // a low-frequency tick. SessionManager fires no add/remove events, so the roster is polled
+        // here rather than pushed on change. No-op when nobody is watching.
+        if (_config.Watch.Enabled)
+        {
+            var rosterTicks = Math.Max(1, _config.Watch.RosterIntervalTicks);
+            _gameLoop.RegisterTickHandler("watch-roster", rosterTicks, () =>
+            {
+                if (_watchSessionHub.Count == 0) { return; }
+                _watchSessionHub.Broadcast(_watchRosterSource.Snapshot());
             });
         }
 

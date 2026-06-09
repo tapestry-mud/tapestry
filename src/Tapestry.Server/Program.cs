@@ -516,6 +516,43 @@ app.MapFallback(async context =>
     var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
     var wsLogger = loggerFactory.CreateLogger<WebSocketConnection>();
 
+    // Tokenless anonymous watch mode (Slice B): a read-only spectator stream, not a player. It
+    // skips the login state machine entirely, never becomes a player, and speaks only the tiny
+    // watch control protocol. Off unless server.yaml enables it (watch.enabled) — a server that
+    // does not want watching leaves the transport off and the tee primitive stays dormant.
+    var watchMode = context.Request.Query["mode"].FirstOrDefault();
+    if (string.Equals(watchMode, "watch", StringComparison.OrdinalIgnoreCase))
+    {
+        if (!config.Watch.Enabled)
+        {
+            wsLogger.LogInformation("Rejected watch connection: watch mode disabled");
+            return; // `using var ws` closes the socket
+        }
+
+        var watchLogger = loggerFactory.CreateLogger<WatchSinkConnection>();
+        var watchConn = new WatchSinkConnection(ws, watchLogger)
+        {
+            RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
+        };
+
+        var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
+        var watchRosterSource = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.IWatchRosterSource>();
+        var watchHub = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchSessionHub>();
+
+        var watchSession = new Tapestry.Engine.Watch.WatchSession(watchConn, watchRegistry, watchRosterSource);
+        watchHub.Register(watchSession);
+        watchConn.OnDisconnected += () => watchHub.Unregister(watchConn.Id);
+
+        wsLogger.LogInformation("New watch (spectator) connection: {Id} from {Remote}",
+            watchConn.Id, context.Connection.RemoteIpAddress);
+
+        watchSession.PushRoster();
+        watchConn.SendStatus("Connected. Pick a player to watch.");
+
+        await watchConn.RunAsync(context.RequestAborted);
+        return;
+    }
+
     var connection = new WebSocketConnection(ws, wsLogger)
     {
         RemoteAddress = context.Connection.RemoteIpAddress?.ToString()

@@ -26,6 +26,7 @@ public class ServerConfig
     public FloodProtectionSection FloodProtection { get; set; } = new();
     public LinkDeadSection LinkDead { get; set; } = new();
     public OutputSection Output { get; set; } = new();
+    public WatchSection Watch { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -211,6 +212,17 @@ public class EconomySection
 {
     public double ShopBuyMarkup { get; set; } = 1.2;
     public double ShopSellDiscount { get; set; } = 0.5;
+}
+
+// Anonymous web spectator transport (watch mode, Slice B). Off by default: a server that does not
+// want watching leaves it disabled and the tokenless `?mode=watch` WebSocket entry is rejected, so
+// the dormant tee primitive stays invisible. RosterIntervalTicks sets how often the watchable-player
+// roster is re-pushed to each watcher (SessionManager fires no add/remove events, so the roster is
+// poll-driven, not push-on-change). ~25 ticks is roughly 2.5s at a 100ms tick rate.
+public class WatchSection
+{
+    public bool Enabled { get; set; } = false;
+    public int RosterIntervalTicks { get; set; } = 25;
 }
 
 public class TrainingSection
