@@ -52,6 +52,7 @@ public class PacksModule : IJintApiModule
         engine.SetValue("__packsHas__",
             new Func<string, JsValue, bool>((pack, name) => Has(engine, pack, name)));
         engine.SetValue("__packsGetExportRegistry__", new Func<object[]>(GetExportRegistry));
+        engine.SetValue("__packsRequire__", new Func<string, JsValue>(pack => Require(engine, pack)));
 
         var packs = engine.Evaluate("""
             (function () {
@@ -60,6 +61,7 @@ public class PacksModule : IJintApiModule
                 var _call = __packsCall__;
                 var _has = __packsHas__;
                 var _getReg = __packsGetExportRegistry__;
+                var _require = __packsRequire__;
                 return {
                     list: function () { return _list(); },
                     getAll: function () { return _list(); },
@@ -68,7 +70,8 @@ public class PacksModule : IJintApiModule
                         return _call(Array.prototype.slice.call(arguments));
                     },
                     has: function (pack, name) { return _has(pack, name); },
-                    getExportRegistry: function () { return _getReg(); }
+                    getExportRegistry: function () { return _getReg(); },
+                    require: function (pack) { return _require(pack); }
                 };
             })()
             """);
@@ -78,6 +81,7 @@ public class PacksModule : IJintApiModule
         engine.SetValue("__packsCall__", JsValue.Null);
         engine.SetValue("__packsHas__", JsValue.Null);
         engine.SetValue("__packsGetExportRegistry__", JsValue.Null);
+        engine.SetValue("__packsRequire__", JsValue.Null);
 
         return packs;
     }
@@ -177,6 +181,17 @@ public class PacksModule : IJintApiModule
                 name, target, caller);
             throw;
         }
+    }
+
+    private JsValue Require(JintEngine engine, string pack)
+    {
+        var caller = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
+        var target = PackLoader.PackNamespace(pack);
+
+        // Fail fast for the requiring file itself; the proxy re-checks live per access.
+        EnforceEdge(caller, target);
+
+        return new RequireProxy(engine, target, _exports, EnforceEdge);
     }
 
     private bool Has(JintEngine engine, string pack, JsValue name)
