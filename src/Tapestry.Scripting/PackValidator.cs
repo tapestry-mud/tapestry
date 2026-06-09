@@ -377,6 +377,7 @@ public class PackValidator
     //     legitimate has-guarded pattern — the call never runs, so it must not fail boot.
     //   - The export-exists check applies ONLY to `call`. `has` is a non-throwing existence probe
     //     (PacksModule.Has, line 182) — throwing on its missing export would defeat its purpose.
+    //   - Require sites are edge-checked only: member resolution is late-bound by design.
     //   - Self-calls are exempt, matching call-time.
     private void ValidateInteropCallSites()
     {

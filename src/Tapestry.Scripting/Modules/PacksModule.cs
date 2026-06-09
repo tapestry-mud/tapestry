@@ -6,6 +6,7 @@ using Jint.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting.Interop;
 using JintEngine = Jint.Engine;
 
@@ -19,17 +20,20 @@ public class PacksModule : IJintApiModule
     private readonly PackExportRegistry _exports;
     private readonly PackDependencyGraph _graph;
     private readonly ILogger<PacksModule> _logger;
+    private readonly RegistrationPolicy _registrationPolicy;
 
     public PacksModule(
         IServiceProvider services,
         PackExportRegistry exports,
         PackDependencyGraph graph,
-        ILogger<PacksModule> logger)
+        ILogger<PacksModule> logger,
+        RegistrationPolicy registrationPolicy)
     {
         _services = services;
         _exports = exports;
         _graph = graph;
         _logger = logger;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "packs";
@@ -52,6 +56,7 @@ public class PacksModule : IJintApiModule
         engine.SetValue("__packsHas__",
             new Func<string, JsValue, bool>((pack, name) => Has(engine, pack, name)));
         engine.SetValue("__packsGetExportRegistry__", new Func<object[]>(GetExportRegistry));
+        engine.SetValue("__packsRequire__", new Func<string, JsValue>(pack => Require(engine, pack)));
 
         var packs = engine.Evaluate("""
             (function () {
@@ -60,6 +65,7 @@ public class PacksModule : IJintApiModule
                 var _call = __packsCall__;
                 var _has = __packsHas__;
                 var _getReg = __packsGetExportRegistry__;
+                var _require = __packsRequire__;
                 return {
                     list: function () { return _list(); },
                     getAll: function () { return _list(); },
@@ -68,7 +74,8 @@ public class PacksModule : IJintApiModule
                         return _call(Array.prototype.slice.call(arguments));
                     },
                     has: function (pack, name) { return _has(pack, name); },
-                    getExportRegistry: function () { return _getReg(); }
+                    getExportRegistry: function () { return _getReg(); },
+                    require: function (pack) { return _require(pack); }
                 };
             })()
             """);
@@ -78,6 +85,7 @@ public class PacksModule : IJintApiModule
         engine.SetValue("__packsCall__", JsValue.Null);
         engine.SetValue("__packsHas__", JsValue.Null);
         engine.SetValue("__packsGetExportRegistry__", JsValue.Null);
+        engine.SetValue("__packsRequire__", JsValue.Null);
 
         return packs;
     }
@@ -91,21 +99,51 @@ public class PacksModule : IJintApiModule
             throw new InteropException(
                 $"Invalid export name '{name}'. Use a JS identifier (camelCase), e.g. 'getHungerTier'.");
         }
-        if (handler is null || handler.Type != Types.Object || handler is not Jint.Native.Function.Function)
+        if (handler is null || handler.Type != Types.Object)
         {
-            throw new InteropException($"Export '{name}' handler must be a function.");
+            throw new InteropException(
+                $"Export '{name}' must be a function or a namespace object.");
         }
+        // Function is Jint's concrete type for all callables; any other ObjectInstance
+        // (including arrays) is stored as a read-by-require namespace/data export.
+        var isFunction = handler is Jint.Native.Function.Function;
 
         var pack = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
 
         var meta = metadata as ObjectInstance;
-        var kind = GetString(meta, "kind", "query");
+        var kind = GetString(meta, "kind", isFunction ? "query" : "namespace");
         var description = GetString(meta, "description", "");
         var returns = GetString(meta, "returns", "");
         var paramsList = GetParams(meta);
         var appliesTo = GetStringArray(meta, "appliesTo", new[] { "all" });
 
-        _exports.Register(new ExportEntry(pack, name, handler, description, paramsList, returns, kind, appliesTo));
+        var sourceFileVal = engine.GetValue("__currentSource");
+        var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+            ? sourceFileVal.ToString()
+            : "";
+        // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null (and meta itself is null when no metadata arg was passed). Read via Type==Boolean.
+        var ov = meta?.Get("override");
+        var isOverride = ov is not null && ov.Type == Types.Boolean && (bool)ov.ToObject()!;
+
+        var entry = new ExportEntry(pack, name, handler, description, paramsList, returns, kind, appliesTo);
+
+        _registrationPolicy.Record(new RegistrationCandidate(
+            Kind: "export",
+            Name: $"{pack}:{name}",
+            Owner: pack,
+            IsOverride: isOverride,
+            Commit: () => _exports.Register(entry),
+            SourceFile: sourceFile,
+            Line: 0));
+
+        if (!_registrationPolicy.IsSealed)
+        {
+            // Eager visibility for load-time interop (dependency-ordered loading makes
+            // this safe); the seal re-commits the resolved winner, so the seal's collision
+            // resolution is order-independent among candidates (load order still gates what's
+            // visible pre-seal), and an undeclared duplicate still fails boot.
+            _exports.Register(entry);
+        }
     }
 
     private JsValue Call(JintEngine engine, JsValue argsArrayVal)
@@ -147,6 +185,13 @@ public class PacksModule : IJintApiModule
                 $"Pack '{target}' has no export named '{name}' (called by '{caller}').");
         }
 
+        if (entry.Handler is not Jint.Native.Function.Function)
+        {
+            throw new InteropException(
+                $"Export '{name}' from '{target}' is a namespace object, not a function; " +
+                "read its members via tapestry.packs.require(pack) instead of call().");
+        }
+
         using var activity = TapestryTracing.Source.StartActivity("interop.call");
         activity?.SetTag("interop.caller", caller);
         activity?.SetTag("interop.target", target);
@@ -166,6 +211,17 @@ public class PacksModule : IJintApiModule
                 name, target, caller);
             throw;
         }
+    }
+
+    private JsValue Require(JintEngine engine, string pack)
+    {
+        var caller = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
+        var target = PackLoader.PackNamespace(pack);
+
+        // Fail fast for the requiring file itself; the proxy re-checks live per access.
+        EnforceEdge(caller, target);
+
+        return new RequireProxy(engine, target, _exports, EnforceEdge);
     }
 
     private bool Has(JintEngine engine, string pack, JsValue name)

@@ -5,6 +5,7 @@ using FluentAssertions;
 using Jint.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
@@ -24,9 +25,9 @@ public class PacksInteropModuleTests
             ["tapestry-survival"] = new(),
             ["tapestry-rogue"] = new(),
         });
-
+        var policy = new RegistrationPolicy(graph);
         var emptyProvider = new ServiceCollection().BuildServiceProvider();
-        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance);
+        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance, policy);
         var rt = new JintRuntime(new IJintApiModule[] { packs }, NullLogger<JintRuntime>.Instance);
         return (rt, exports);
     }
@@ -146,14 +147,16 @@ public class PacksInteropModuleTests
     }
 
     [Fact]
-    public void Export_DuplicateName_Throws()
+    public void Export_DuplicateName_IsASealTimeBootError()
     {
+        // Pre-seal the duplicate no longer throws eagerly; the RegistrationPolicy seal
+        // rejects it (see PacksExportPolicyTests.Export_DuplicateName_FailsBootAtSeal).
         var (rt, _) = CreateRuntime();
         var act = () => rt.Execute("""
             tapestry.packs.export('dup', function () {}, { kind: 'query' });
             tapestry.packs.export('dup', function () {}, { kind: 'query' });
             """, "tapestry-survival");
-        act.Should().Throw<InteropException>().WithMessage("*already*");
+        act.Should().NotThrow();
     }
 
     [Fact]
@@ -181,8 +184,9 @@ public class PacksInteropModuleTests
             ["tapestry-survival"] = new() { "tapestry-core" },     // survival -> core
             ["tapestry-core"] = new(),
         });
+        var policy = new RegistrationPolicy(graph);
         var emptyProvider = new ServiceCollection().BuildServiceProvider();
-        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance);
+        var packs = new PacksModule(emptyProvider, exports, graph, NullLogger<PacksModule>.Instance, policy);
         var rt = new JintRuntime(new IJintApiModule[] { packs }, NullLogger<JintRuntime>.Instance);
 
         rt.Execute("tapestry.packs.export('inner', function () { return 'core-ran'; }, { kind: 'query' });", "tapestry-core");
@@ -191,6 +195,40 @@ public class PacksInteropModuleTests
         rt.Execute("globalThis.__nested = tapestry.packs.call('@tapestry/survival', 'outer');", "tapestry-cooking");
 
         rt.Evaluate("__nested").Should().Be("core-ran");
+    }
+
+    [Fact]
+    public void Export_NamespaceObject_IsStoredAndDefaultsKindNamespace()
+    {
+        var (rt, exports) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('tiers', { FULL_MIN: 67, HUNGRY_MIN: 34 }, {});", "tapestry-survival");
+
+        exports.TryResolve("tapestry-survival", "tiers", out var entry).Should().BeTrue();
+        entry.Kind.Should().Be("namespace");
+
+        var ns = entry.Handler as Jint.Native.Object.ObjectInstance;
+        ns.Should().NotBeNull();
+        ((double)Jint.Runtime.TypeConverter.ToNumber(ns!.Get("FULL_MIN"))).Should().Be(67);
+
+        rt.Execute("globalThis.__reg2 = tapestry.packs.getExportRegistry();", "tapestry-survival");
+        rt.Evaluate("__reg2[0].kind").Should().Be("namespace");
+    }
+
+    [Fact]
+    public void Export_Primitive_Throws()
+    {
+        var (rt, _) = CreateRuntime();
+        var act = () => rt.Execute("tapestry.packs.export('answer', 42, {});", "tapestry-survival");
+        act.Should().Throw<InteropException>().WithMessage("*function or a namespace object*");
+    }
+
+    [Fact]
+    public void Call_NamespaceExport_ThrowsHelpfulInteropError()
+    {
+        var (rt, _) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('tiers', { FULL_MIN: 67 }, {});", "tapestry-survival");
+        var act = () => rt.Execute("tapestry.packs.call('@tapestry/survival', 'tiers');", "tapestry-cooking");
+        act.Should().Throw<InteropException>().WithMessage("*namespace object*require*");
     }
 
     // Regression: an OBJECT (or array) argument must pass through tapestry.packs.call intact.

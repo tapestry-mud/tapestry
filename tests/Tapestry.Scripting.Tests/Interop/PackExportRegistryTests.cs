@@ -26,18 +26,24 @@ public class PackExportRegistryTests
         found.Kind.Should().Be("query");
     }
 
+    // Collision/override legality is decided by RegistrationPolicy (Kind "export",
+    // Name "{pack}:{name}") at the seal. The registry itself is now an upsert store
+    // so the policy's Commit actions can replay freely (override wins at seal time,
+    // then re-commits the winner). A duplicate direct Register call is a silent upsert.
     [Fact]
-    public void Register_DuplicatePackName_Throws()
+    public void Register_DuplicatePackName_IsUpsert()
     {
         var e = new JintEngine();
         var reg = new PackExportRegistry();
-        var entry = new ExportEntry("tapestry-survival", "getHungerTier", Fn(e),
-            "", System.Array.Empty<string>(), "string", "query", new[] { "all" });
-        reg.Register(entry);
+        var first = new ExportEntry("tapestry-survival", "getHungerTier", Fn(e),
+            "first", System.Array.Empty<string>(), "string", "query", new[] { "all" });
+        var second = new ExportEntry("tapestry-survival", "getHungerTier", Fn(e),
+            "second", System.Array.Empty<string>(), "string", "query", new[] { "all" });
+        reg.Register(first);
+        reg.Register(second);
 
-        var act = () => reg.Register(entry);
-
-        act.Should().Throw<InteropException>().WithMessage("*already*");
+        reg.TryResolve("tapestry-survival", "getHungerTier", out var found).Should().BeTrue();
+        found.Description.Should().Be("second");
     }
 
     [Fact]

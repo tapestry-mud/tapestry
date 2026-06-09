@@ -1,8 +1,9 @@
 namespace Tapestry.Scripting.Interop;
 
 /// <summary>Which interop primitive a recorded site invoked. <c>Call</c> requires the export to
-/// exist; <c>Has</c> is a non-throwing probe and must tolerate a missing export.</summary>
-public enum InteropCallKind { Call, Has }
+/// exist; <c>Has</c> is a non-throwing probe and must tolerate a missing export; <c>Require</c>
+/// is edge-checked only (member resolution is late-bound by design, so no export check).</summary>
+public enum InteropCallKind { Call, Has, Require }
 
 /// <summary>
 /// A statically resolvable <c>tapestry.packs.call</c>/<c>has</c> site discovered at script-load

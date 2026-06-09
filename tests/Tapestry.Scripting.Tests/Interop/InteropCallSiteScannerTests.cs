@@ -100,4 +100,28 @@ public class InteropCallSiteScannerTests
         act.Should().NotThrow();
         act().Should().BeEmpty();
     }
+
+    [Fact]
+    public void Extract_RequireLiteral_RecordsRequireSite()
+    {
+        var sites = InteropCallSiteScanner.Extract(
+            "var t = tapestry.packs.require('@tapestry/survival');",
+            "tapestry-cooking", "scripts/a.js");
+
+        sites.Should().ContainSingle();
+        sites[0].Kind.Should().Be(InteropCallKind.Require);
+        sites[0].TargetPack.Should().Be("tapestry-survival");
+        sites[0].ExportName.Should().Be("");
+        sites[0].Line.Should().Be(1);
+    }
+
+    [Fact]
+    public void Extract_RequireDynamic_IsSkipped()
+    {
+        var sites = InteropCallSiteScanner.Extract(
+            "var p = '@tapestry/survival'; var t = tapestry.packs.require(p);",
+            "tapestry-cooking", "scripts/a.js");
+
+        sites.Should().BeEmpty();
+    }
 }
