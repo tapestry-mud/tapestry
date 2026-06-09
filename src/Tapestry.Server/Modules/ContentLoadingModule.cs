@@ -5,7 +5,6 @@ using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Distribution;
-using Tapestry.Engine.Help;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
