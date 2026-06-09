@@ -3,6 +3,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Tapestry.Engine.Color;
 using Tapestry.Engine.Inventory;
+using Tapestry.Engine.Registration;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
@@ -11,11 +12,13 @@ public class RarityModule : IJintApiModule
 {
     private readonly RarityRegistry _registry;
     private readonly ThemeRegistry _themeRegistry;
+    private readonly RegistrationPolicy _registrationPolicy;
 
-    public RarityModule(RarityRegistry registry, ThemeRegistry themeRegistry)
+    public RarityModule(RarityRegistry registry, ThemeRegistry themeRegistry, RegistrationPolicy registrationPolicy)
     {
         _registry = registry;
         _themeRegistry = themeRegistry;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "rarity";
@@ -48,8 +51,6 @@ public class RarityModule : IJintApiModule
 
                 var color = obj.Get("color").ToString();
 
-                _registry.Register(new RarityTierDefinition(key, order, displayText, decorators, color, visible));
-
                 string? html = null;
                 var htmlVal = obj.Get("html");
                 if (htmlVal.Type != Types.Undefined && htmlVal.Type != Types.Null)
@@ -57,7 +58,33 @@ public class RarityModule : IJintApiModule
                     html = htmlVal.ToString();
                 }
 
-                _themeRegistry.Register($"item.{key}", new ThemeEntry { Fg = color, Html = html });
+                // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null. Read via Type==Boolean.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
+
+                var packName = engine.GetValue("__currentPack").ToString();
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString()
+                    : "";
+
+                // Declarative: accumulate a candidate. The real Register (and the theme-tag
+                // side-effect, which piggybacks the winner) replays at Resolve() (the seal),
+                // so two packs registering the same rarity key is a boot error unless one
+                // declares { override: true } + a dependency edge on the owner.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "rarity",
+                    Name: key,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () =>
+                    {
+                        _registry.Register(new RarityTierDefinition(key, order, displayText, decorators, color, visible));
+                        _themeRegistry.Register($"item.{key}", new ThemeEntry { Fg = color, Html = html });
+                    },
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             format = new Func<string, string>(rarityKey => _registry.Format(rarityKey)),
