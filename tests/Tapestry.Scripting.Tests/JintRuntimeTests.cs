@@ -234,7 +234,8 @@ public class JintRuntimeTests
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
-            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
+            NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(),
+            TestRegistrationPolicy.Create());
 
         // Create service classes
         var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());

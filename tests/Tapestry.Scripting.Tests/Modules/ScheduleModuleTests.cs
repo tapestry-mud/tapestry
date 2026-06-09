@@ -20,6 +20,7 @@ public class ScheduleModuleTests
         var rt = provider.GetRequiredService<JintRuntime>();
         var loop = provider.GetRequiredService<GameLoop>();
         var bus = provider.GetRequiredService<EventBus>();
+        var policy = provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>();
         rt.Initialize();
 
         var fireCount = 0;
@@ -30,6 +31,7 @@ public class ScheduleModuleTests
                 tapestry.events.publish('test.fired', {});
             });
         """, "@tapestry/test");
+        policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         loop.Tick(); // 1
         loop.Tick(); // 2
@@ -81,6 +83,7 @@ public class ScheduleModuleTests
         var loop = provider.GetRequiredService<GameLoop>();
         var bus = provider.GetRequiredService<EventBus>();
         var rt = provider.GetRequiredService<JintRuntime>();
+        var policy = provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>();
         rt.Initialize();
 
         var p1 = new Entity("player", "Player1");
@@ -99,6 +102,7 @@ public class ScheduleModuleTests
                 tapestry.events.publish('sched.test.entity', { entityId: entity.id });
             });
         """, "@tapestry/test");
+        policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         loop.Tick();
 
@@ -119,6 +123,7 @@ public class ScheduleModuleTests
         var loop = provider.GetRequiredService<GameLoop>();
         var bus = provider.GetRequiredService<EventBus>();
         var scheduleMod = provider.GetRequiredService<ScheduleModule>();
+        var policy = provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>();
         rt.Initialize();
 
         var fireCount = 0;
@@ -131,7 +136,8 @@ public class ScheduleModuleTests
             });
         """, "@tapestry/survival");
 
-        // Simulate reload: reset pack, re-execute
+        // Simulate reload: reset pack, re-execute. Pre-seal, ResetPack's CancelTickHandler pulls
+        // the first candidate from the ledger, so the re-registration replaces rather than collides.
         scheduleMod.ResetPack("@tapestry/survival");
         rt.Execute("""
             tapestry.schedule.every(1, function() {
@@ -139,6 +145,7 @@ public class ScheduleModuleTests
             });
         """, "@tapestry/survival");
 
+        policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
         loop.Tick();
 
         fireCount.Should().Be(1); // replaced, not stacked
@@ -155,6 +162,7 @@ public class ScheduleModuleTests
         var rt = provider.GetRequiredService<JintRuntime>();
         var loop = provider.GetRequiredService<GameLoop>();
         var world = provider.GetRequiredService<World>();
+        var policy = provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>();
         rt.Initialize();
 
         var entity = new Entity("player", "TestPlayer");
@@ -180,6 +188,7 @@ public class ScheduleModuleTests
                 tapestry.world.setProperty(entity.id, 'sustenance', Math.max(0, current - DRAIN_AMOUNT));
             });
         """, "@tapestry/survival");
+        policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         for (var i = 0; i < 300; i++) { loop.Tick(); }
 

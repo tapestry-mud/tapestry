@@ -4,6 +4,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
+using Tapestry.Engine.Tests.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
@@ -18,7 +20,7 @@ public class GameLoopTests
     [Fact]
     public async Task Tick_ProcessesQueuedCommand()
     {
-        var (loop, registry, sessions, world) = CreateLoop();
+        var (loop, registry, sessions, world, _) = CreateLoop();
         string? receivedArg = null;
 
         registry.Register("say", (ctx) =>
@@ -37,10 +39,11 @@ public class GameLoopTests
     [Fact]
     public async Task Tick_CallsTickHandlers()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var tickCalled = false;
 
         loop.RegisterTickHandler("test", 1, () => { tickCalled = true; });
+        policy.Resolve();
 
         loop.Tick();
 
@@ -50,10 +53,11 @@ public class GameLoopTests
     [Fact]
     public async Task Tick_TickHandler_RespectsInterval()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var callCount = 0;
 
         loop.RegisterTickHandler("test", 3, () => { callCount++; });
+        policy.Resolve();
 
         loop.Tick(); // tick 1
         loop.Tick(); // tick 2
@@ -69,7 +73,8 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
+        var policy = TestRegistrationPolicy.Create();
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(), policy);
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -83,6 +88,7 @@ public class GameLoopTests
         entity.SetProperty("regen_movement", 4);
 
         gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
         room.AddEntity(entity);
@@ -103,7 +109,8 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
+        var policy = TestRegistrationPolicy.Create();
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(), policy);
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -111,6 +118,7 @@ public class GameLoopTests
         entity.SetProperty("regen_hp", 5);
 
         gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
         room.AddEntity(entity);
@@ -129,7 +137,7 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
-        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(), TestRegistrationPolicy.Create());
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -152,7 +160,7 @@ public class GameLoopTests
     [Fact]
     public void Tick_SymbolAlias_NoSpace_SplitsAndRoutes()
     {
-        var (loop, registry, sessions, world) = CreateLoop();
+        var (loop, registry, sessions, world, _) = CreateLoop();
         string? receivedArg = null;
 
         registry.Register("say", (ctx) =>
@@ -171,7 +179,7 @@ public class GameLoopTests
     [Fact]
     public void Tick_SymbolAlias_WithSpace_StillRoutes()
     {
-        var (loop, registry, sessions, world) = CreateLoop();
+        var (loop, registry, sessions, world, _) = CreateLoop();
         string? receivedArg = null;
 
         registry.Register("say", (ctx) =>
@@ -190,7 +198,7 @@ public class GameLoopTests
     [Fact]
     public void Tick_SymbolPrefix_NonAlias_DoesNotSplit()
     {
-        var (loop, registry, sessions, world) = CreateLoop();
+        var (loop, registry, sessions, world, _) = CreateLoop();
         var handled = false;
 
         registry.Register("look", (ctx) => { handled = true; }, packName: "test");
@@ -206,7 +214,7 @@ public class GameLoopTests
     [Fact]
     public void Tick_FirstHandlerThrows_SecondHandlerStillFires()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var secondFired = false;
 
         loop.RegisterTickHandler("bad-handler", 1, () =>
@@ -217,6 +225,7 @@ public class GameLoopTests
         {
             secondFired = true;
         });
+        policy.Resolve();
 
         loop.Tick();
 
@@ -226,7 +235,7 @@ public class GameLoopTests
     [Fact]
     public void ProcessInput_SemicolonChain_DispatchesBothCommands()
     {
-        var (loop, registry, sessions, world) = CreateLoop();
+        var (loop, registry, sessions, world, _) = CreateLoop();
         var dispatched = new List<string>();
 
         registry.Register("north", (ctx) => { dispatched.Add("north"); }, packName: "test");
@@ -245,7 +254,7 @@ public class GameLoopTests
     [Fact]
     public void RegisterTickHandler_WithIntervalZeroOrNegative_Throws()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, _) = CreateLoop();
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             loop.RegisterTickHandler("test", 0, () => { }));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -255,26 +264,30 @@ public class GameLoopTests
     [Fact]
     public void RegisterTickHandler_SameName_Throws()
     {
-        var (loop, _, _, _) = CreateLoop();
-        loop.RegisterTickHandler("my-handler", 1, () => { });
+        var (loop, _, _, _, policy) = CreateLoop();
 
         // Strict registration: a duplicate name is always a bug (e.g. two subsystems both
-        // picking "heartbeat"), so it throws rather than silently clobbering the first handler.
-        Assert.Throws<InvalidOperationException>(() =>
-            loop.RegisterTickHandler("my-handler", 1, () => { }));
+        // picking "heartbeat"). Registration is now declarative -- both records are accepted,
+        // and the collision is raised at the seal (Resolve()), not eagerly at register time.
+        loop.RegisterTickHandler("my-handler", 1, () => { });
+        loop.RegisterTickHandler("my-handler", 1, () => { });
+
+        Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 
     [Fact]
     public void RegisterTickHandler_CancelThenReRegister_ReplacesHandler()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var firstCount = 0;
         var secondCount = 0;
 
         // The sanctioned way to swap a handler today: cancel, then register the replacement.
+        // Pre-seal, the cancel pulls the first candidate from the ledger so no collision is raised.
         loop.RegisterTickHandler("my-handler", 1, () => { firstCount++; });
         loop.CancelTickHandler("my-handler");
         loop.RegisterTickHandler("my-handler", 1, () => { secondCount++; });
+        policy.Resolve();
 
         loop.Tick();
 
@@ -285,11 +298,12 @@ public class GameLoopTests
     [Fact]
     public void CancelTickHandler_PreventsSubsequentFiring()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var callCount = 0;
 
         loop.RegisterTickHandler("cancellable", 1, () => { callCount++; });
         loop.CancelTickHandler("cancellable");
+        policy.Resolve();
 
         loop.Tick();
 
@@ -299,11 +313,12 @@ public class GameLoopTests
     [Fact]
     public void RegisterTickHandler_DueOrdered_FiresAtRegistrationPlusInterval()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var firedOnTick = -1L;
 
         // Register when tickCount = 0; interval = 3; should fire on tick 3.
         loop.RegisterTickHandler("test", 3, () => { firedOnTick = loop.TickCount; });
+        policy.Resolve();
 
         loop.Tick(); // tick 1
         loop.Tick(); // tick 2
@@ -315,10 +330,11 @@ public class GameLoopTests
     [Fact]
     public void RegisterTickHandler_DueOrdered_KeepsCorrectCadenceAfterFirstFire()
     {
-        var (loop, _, _, _) = CreateLoop();
+        var (loop, _, _, _, policy) = CreateLoop();
         var fireTicks = new List<long>();
 
         loop.RegisterTickHandler("test", 3, () => { fireTicks.Add(loop.TickCount); });
+        policy.Resolve();
 
         for (var i = 0; i < 9; i++) { loop.Tick(); }
 
@@ -332,9 +348,10 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
         var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
             new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
-            new TickTimer(10), new NotificationQueue());
+            new TickTimer(10), new NotificationQueue(), policy);
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxMovement = 100;
@@ -342,6 +359,7 @@ public class GameLoopTests
         entity.SetProperty("regen_movement", 10);
 
         loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
         room.AddEntity(entity);
@@ -371,9 +389,10 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
         var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
             new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
-            new TickTimer(10), new NotificationQueue());
+            new TickTimer(10), new NotificationQueue(), policy);
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxMovement = 100;
@@ -381,6 +400,7 @@ public class GameLoopTests
         entity.SetProperty("regen_movement", 10);
 
         loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
         room.AddEntity(entity);
@@ -408,9 +428,10 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var eventBus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
         var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
             new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
-            new TickTimer(10), new NotificationQueue());
+            new TickTimer(10), new NotificationQueue(), policy);
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
@@ -419,6 +440,7 @@ public class GameLoopTests
         entity.SetProperty("sustenance", 0); // famished — would have suppressed regen before
 
         loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
         world.AddRoom(room);
@@ -449,9 +471,10 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var bus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
         var loop = new GameLoop(new CommandRouter(new CommandRegistry(), sessions, world),
             sessions, bus, new SystemEventQueue(), logger, new TapestryMetrics(),
-            new TickTimer(10), new NotificationQueue());
+            new TickTimer(10), new NotificationQueue(), policy);
         loop.ConfigureSlowTickThreshold(50);
 
         var cpuByHandler = new Dictionary<string, double>();
@@ -480,6 +503,7 @@ public class GameLoopTests
             {
             }
         });
+        policy.Resolve();
 
         loop.Tick();
 
@@ -500,9 +524,10 @@ public class GameLoopTests
         var sessions = new SessionManager();
         var world = new World();
         var bus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
         var loop = new GameLoop(new CommandRouter(new CommandRegistry(), sessions, world),
             sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
-            new TickTimer(10), new NotificationQueue());
+            new TickTimer(10), new NotificationQueue(), policy);
 
         var recorded = new List<(string instrument, string? handler)>();
         using var ml = new MeterListener();
@@ -522,21 +547,23 @@ public class GameLoopTests
         ml.Start();
 
         loop.RegisterTickHandler("metered", 1, () => { });
+        policy.Resolve();
         loop.Tick();
 
         recorded.Should().Contain(r => r.instrument == "tapestry.tick.handler_wall_ms" && r.handler == "metered");
         recorded.Should().Contain(r => r.instrument == "tapestry.tick.handler_cpu_ms" && r.handler == "metered");
     }
 
-    private static (GameLoop, CommandRegistry, SessionManager, World) CreateLoop()
+    private static (GameLoop, CommandRegistry, SessionManager, World, RegistrationPolicy) CreateLoop()
     {
         var registry = new CommandRegistry();
         var sessions = new SessionManager();
         var world = new World();
         var router = new CommandRouter(registry, sessions, world);
         var bus = new EventBus();
-        var loop = new GameLoop(router, sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
-        return (loop, registry, sessions, world);
+        var policy = TestRegistrationPolicy.Create();
+        var loop = new GameLoop(router, sessions, bus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(), policy);
+        return (loop, registry, sessions, world, policy);
     }
 
     private static (PlayerSession, Entity) AddPlayer(SessionManager sessions, World world, string roomId)

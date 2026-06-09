@@ -37,6 +37,15 @@ public sealed class RegistrationPolicy
         _candidates.Add(candidate);
     }
 
+    /// <summary>
+    /// Removes any not-yet-resolved candidates matching <paramref name="kind"/> and
+    /// <paramref name="name"/> (case-insensitive on name) from the ledger. Used by pre-seal
+    /// cancellation, where a name lives only in the ledger and not yet in the real registry.
+    /// </summary>
+    public void Remove(string kind, string name)
+        => _candidates.RemoveAll(c => c.Kind == kind &&
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
     public void Resolve()
     {
         if (_sealed)

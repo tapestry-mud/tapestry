@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Login;
+using Tapestry.Engine.Registration;
+using Tapestry.Engine.Tests.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
@@ -13,15 +15,17 @@ namespace Tapestry.Engine.Tests;
 // off LastInputTick rather than trusting the stale IsConnected flag.
 public class HalfOpenDetectionTests
 {
-    private static GameLoop NewGameLoop(SessionManager sessions, SystemEventQueue eventQueue,
-        int ticksPerSecond = 10)
+    private static (GameLoop loop, RegistrationPolicy policy) NewGameLoop(
+        SessionManager sessions, SystemEventQueue eventQueue, int ticksPerSecond = 10)
     {
         var registry = new CommandRegistry();
         var world = new World();
-        return new GameLoop(
+        var policy = TestRegistrationPolicy.Create();
+        var loop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, new EventBus(), eventQueue,
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(ticksPerSecond),
-            new NotificationQueue());
+            new NotificationQueue(), policy);
+        return (loop, policy);
     }
 
     private static PlayerSession PlayingSession(SessionManager sessions, FakeConnection conn,
@@ -38,12 +42,13 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue);
 
         var conn = new FakeConnection();
         PlayingSession(sessions, conn);
 
         gameLoop.RegisterHeartbeatHandler(sessions, intervalTicks: 1);
+        policy.Resolve();
         gameLoop.Tick();
 
         conn.HeartbeatCount.Should().Be(1);
@@ -60,7 +65,7 @@ public class HalfOpenDetectionTests
         // deal damage, and players are stuck "in battle" with no swings landing.
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue);
 
         var combatHeartbeats = 0;
         gameLoop.RegisterTickHandler("heartbeat", 1, () => combatHeartbeats++);
@@ -73,6 +78,7 @@ public class HalfOpenDetectionTests
         // sweep when the host starts the hosted service.
         gameLoop.RegisterHeartbeatHandler(sessions, intervalTicks: 1);
 
+        policy.Resolve();
         gameLoop.Tick();
 
         combatHeartbeats.Should().Be(1, "the liveness sweep must not replace the combat heartbeat handler");
@@ -84,7 +90,7 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue);
 
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, new Entity("player", "Creating"));
@@ -92,6 +98,7 @@ public class HalfOpenDetectionTests
         sessions.Add(session);
 
         gameLoop.RegisterHeartbeatHandler(sessions, intervalTicks: 1);
+        policy.Resolve();
         gameLoop.Tick();
 
         conn.HeartbeatCount.Should().Be(0);
@@ -102,7 +109,7 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue);
 
         // Simulate a half-open peer: the heartbeat write fails, which (like the real
         // TelnetConnection) routes to Disconnect and fires the disconnect events.
@@ -113,6 +120,7 @@ public class HalfOpenDetectionTests
         conn.OnDisconnectedWithReason += r => disconnectReason = r;
 
         gameLoop.RegisterHeartbeatHandler(sessions, intervalTicks: 1);
+        policy.Resolve();
         gameLoop.Tick();
 
         conn.IsConnected.Should().BeFalse();
@@ -124,7 +132,7 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
 
         var conn = new FakeConnection();
         var session = PlayingSession(sessions, conn);
@@ -133,6 +141,7 @@ public class HalfOpenDetectionTests
 
         gameLoop.ConfigureIdleTimeout(warnSeconds: 0, timeoutSeconds: 1);
         gameLoop.RegisterIdleTimeoutHandler(eventQueue, sessions, "warn", "You faded.");
+        policy.Resolve();
 
         // Advance well past the timeout window, then run the idle sweep (300-tick interval).
         for (var i = 0; i < 300; i++)
@@ -148,13 +157,14 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
 
         var conn = new FakeConnection();
         var session = PlayingSession(sessions, conn);
 
         gameLoop.ConfigureIdleTimeout(warnSeconds: 0, timeoutSeconds: 1000);
         gameLoop.RegisterIdleTimeoutHandler(eventQueue, sessions, "warn", "You faded.");
+        policy.Resolve();
 
         // Keep input recent every tick so idleTicks never reaches the timeout.
         for (var i = 0; i < 300; i++)
@@ -171,7 +181,7 @@ public class HalfOpenDetectionTests
     {
         var sessions = new SessionManager();
         var eventQueue = new SystemEventQueue();
-        var gameLoop = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
+        var (gameLoop, policy) = NewGameLoop(sessions, eventQueue, ticksPerSecond: 10);
 
         var conn = new FakeConnection();
         var session = new PlayerSession(conn, new Entity("player", "Chargen"));
@@ -181,6 +191,7 @@ public class HalfOpenDetectionTests
 
         gameLoop.ConfigureIdleTimeout(warnSeconds: 0, timeoutSeconds: 1);
         gameLoop.RegisterIdleTimeoutHandler(eventQueue, sessions, "warn", "You faded.");
+        policy.Resolve();
 
         for (var i = 0; i < 300; i++)
         {

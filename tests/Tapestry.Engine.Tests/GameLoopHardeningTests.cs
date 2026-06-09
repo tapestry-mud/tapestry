@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
+using Tapestry.Engine.Tests.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
@@ -17,7 +18,7 @@ public class GameLoopHardeningTests
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            new NotificationQueue());
+            new NotificationQueue(), TestRegistrationPolicy.Create());
 
         var order = new List<string>();
 
@@ -58,7 +59,7 @@ public class GameLoopHardeningTests
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            new NotificationQueue());
+            new NotificationQueue(), TestRegistrationPolicy.Create());
 
         DisconnectEvent? received = null;
         gameLoop.OnDisconnect += (evt) =>
@@ -87,7 +88,7 @@ public class GameLoopHardeningTests
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            new NotificationQueue());
+            new NotificationQueue(), TestRegistrationPolicy.Create());
 
         var callCount = 0;
         gameLoop.OnDisconnect += (evt) =>
@@ -173,7 +174,7 @@ public class GameLoopHardeningTests
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue,
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            notificationQueue);
+            notificationQueue, TestRegistrationPolicy.Create());
 
         var conn = new FakeConnection();
         var entity = new Entity("player", "TestPlayer");
@@ -216,7 +217,7 @@ public class GameLoopHardeningTests
         var eventQueue = new SystemEventQueue();
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue, NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            new NotificationQueue());
+            new NotificationQueue(), TestRegistrationPolicy.Create());
 
         // Set up a room with a player entity
         var room = new Room("town-square", "Town Square", "A bustling square.");
@@ -269,7 +270,7 @@ public class GameLoopHardeningTests
         var gameLoop = new GameLoop(
             new CommandRouter(registry, sessions, world), sessions, eventBus, eventQueue,
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10),
-            new NotificationQueue());
+            new NotificationQueue(), TestRegistrationPolicy.Create());
 
         var conn = new FakeConnection();
         var entity = new Entity("player", "TestPlayer");
