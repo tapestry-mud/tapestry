@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Modules;
 
@@ -7,7 +8,7 @@ namespace Tapestry.Scripting.Tests.Modules;
 
 public class CommandsModuleTests
 {
-    private (JintRuntime rt, CommandRegistry registry, World world) BuildRuntime()
+    private (JintRuntime rt, CommandRegistry registry, World world, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -16,13 +17,14 @@ public class CommandsModuleTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<CommandRegistry>(), provider.GetRequiredService<World>());
+        return (rt, provider.GetRequiredService<CommandRegistry>(), provider.GetRequiredService<World>(),
+                provider.GetRequiredService<RegistrationPolicy>());
     }
 
     [Fact]
     public void Register_CapturesDescriptionField()
     {
-        var (rt, registry, _) = BuildRuntime();
+        var (rt, registry, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.commands.register({
                 name: 'look',
@@ -30,6 +32,7 @@ public class CommandsModuleTests
                 handler: function(player, args) {}
             });
         ");
+        policy.Resolve();
         var reg = registry.Resolve("look");
         Assert.Equal("Look at your surroundings.", reg!.Description);
     }
@@ -37,7 +40,7 @@ public class CommandsModuleTests
     [Fact]
     public void Register_CapturesCategoryField()
     {
-        var (rt, registry, _) = BuildRuntime();
+        var (rt, registry, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.commands.register({
                 name: 'north',
@@ -45,6 +48,7 @@ public class CommandsModuleTests
                 handler: function(player, args) {}
             });
         ");
+        policy.Resolve();
         var reg = registry.Resolve("north");
         Assert.Equal("movement", reg!.Category);
     }
@@ -52,12 +56,13 @@ public class CommandsModuleTests
     [Fact]
     public void Register_SourceFileFlowsFromCurrentSource()
     {
-        var (rt, registry, _) = BuildRuntime();
+        var (rt, registry, _, policy) = BuildRuntime();
         rt.Execute(
             "tapestry.commands.register({ name: 'go', handler: function(p,a){} });",
             "test-pack",
             "scripts/commands/movement.js"
         );
+        policy.Resolve();
         var reg = registry.Resolve("go");
         Assert.Equal("scripts/commands/movement.js", reg!.SourceFile);
     }
@@ -65,7 +70,7 @@ public class CommandsModuleTests
     [Fact]
     public void Register_AdminShorthand_SetsVisibleToAdminPredicate()
     {
-        var (rt, registry, _) = BuildRuntime();
+        var (rt, registry, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.commands.register({
                 name: 'spawn',
@@ -73,6 +78,7 @@ public class CommandsModuleTests
                 handler: function(player, args) {}
             });
         ");
+        policy.Resolve();
         var reg = registry.Resolve("spawn");
         Assert.NotNull(reg!.VisibleTo);
 
@@ -87,7 +93,7 @@ public class CommandsModuleTests
     [Fact]
     public void Register_AdminTrue_WinsOverVisibleTo()
     {
-        var (rt, registry, _) = BuildRuntime();
+        var (rt, registry, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.commands.register({
                 name: 'secret',
@@ -96,6 +102,7 @@ public class CommandsModuleTests
                 handler: function(player, args) {}
             });
         ");
+        policy.Resolve();
         var reg = registry.Resolve("secret");
         var normalEntity = new Entity("player", "Wanderer");
         Assert.False(reg!.VisibleTo!(normalEntity));
@@ -104,7 +111,7 @@ public class CommandsModuleTests
     [Fact]
     public void PlayerObject_HasRole_ReturnsTrueWhenRolePresent()
     {
-        var (rt, registry, world) = BuildRuntime();
+        var (rt, registry, world, policy) = BuildRuntime();
         var entity = new Entity("player", "Tester");
         entity.AddRole("admin");
         world.TrackEntity(entity);
@@ -118,6 +125,7 @@ public class CommandsModuleTests
                 handler: function(player, args) {{}}
             }});
         ");
+        policy.Resolve();
         var reg = registry.Resolve("tagtest");
         Assert.NotNull(reg!.VisibleTo);
         Assert.True(reg.VisibleTo!(entity));
@@ -126,7 +134,7 @@ public class CommandsModuleTests
     [Fact]
     public void ListForPlayer_ExcludesHiddenCommands()
     {
-        var (rt, registry, world) = BuildRuntime();
+        var (rt, registry, world, policy) = BuildRuntime();
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
 
@@ -134,6 +142,7 @@ public class CommandsModuleTests
             tapestry.commands.register({ name: 'visible', description: 'yes', handler: function(){} });
             tapestry.commands.register({ name: 'hidden', admin: true, handler: function(){} });
         ");
+        policy.Resolve();
 
         var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
         var json = result?.ToString() ?? "[]";
@@ -145,7 +154,7 @@ public class CommandsModuleTests
     [Fact]
     public void ListForPlayer_DerivesCategory_FromFileStem()
     {
-        var (rt, registry, world) = BuildRuntime();
+        var (rt, registry, world, policy) = BuildRuntime();
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
 
@@ -154,6 +163,7 @@ public class CommandsModuleTests
             "test-pack",
             "scripts/commands/movement.js"
         );
+        policy.Resolve();
 
         var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
         var json = result?.ToString() ?? "[]";
@@ -164,7 +174,7 @@ public class CommandsModuleTests
     [Fact]
     public void ListForPlayer_IncludesAdminCommandsForAdminPlayer()
     {
-        var (rt, registry, world) = BuildRuntime();
+        var (rt, registry, world, policy) = BuildRuntime();
         var adminPlayer = new Entity("player", "Admin");
         adminPlayer.AddRole("admin");
         world.TrackEntity(adminPlayer);
@@ -172,6 +182,7 @@ public class CommandsModuleTests
         rt.Execute(@"
             tapestry.commands.register({ name: 'spawn', admin: true, handler: function(){} });
         ");
+        policy.Resolve();
 
         var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{adminPlayer.Id}'))");
         var json = result?.ToString() ?? "[]";

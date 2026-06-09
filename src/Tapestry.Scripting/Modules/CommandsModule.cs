@@ -4,6 +4,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Scripting.Services;
 using Tapestry.Shared;
@@ -22,6 +23,7 @@ public class CommandsModule : IJintApiModule
     private readonly CommandResponseContext _responseContext;
     private readonly EventBus _eventBus;
     private readonly ArgResolver _argResolver;
+    private readonly RegistrationPolicy _registrationPolicy;
 
     private readonly List<string> _undescribedCommands = new();
 
@@ -34,7 +36,8 @@ public class CommandsModule : IJintApiModule
         ILogger<CommandsModule> logger,
         CommandResponseContext responseContext,
         EventBus eventBus,
-        ArgResolver argResolver)
+        ArgResolver argResolver,
+        RegistrationPolicy registrationPolicy)
     {
         _commandRegistry = commandRegistry;
         _messaging = messaging;
@@ -45,6 +48,7 @@ public class CommandsModule : IJintApiModule
         _responseContext = responseContext;
         _eventBus = eventBus;
         _argResolver = argResolver;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "commands";
@@ -122,6 +126,10 @@ public class CommandsModule : IJintApiModule
         var handler = obj.Get("handler");
         var priorityVal = obj.Get("priority");
         var priority = priorityVal.Type == Types.Number ? (int)(double)priorityVal.ToObject()! : 0;
+
+        // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null. Read via Type==Boolean.
+        var overrideVal = obj.Get("override");
+        bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
         string[] aliases = [];
         var aliasVal = obj.Get("aliases");
@@ -253,20 +261,32 @@ public class CommandsModule : IJintApiModule
         var capturedArgDefs = argDefinitions;
         var capturedGmcp = gmcpConfig;
 
-        _commandRegistry.Register(
-            name,
-            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp, packName); },
-            aliases,
-            priority,
-            packName,
-            description,
-            category,
-            sourceFile,
-            visibleTo,
-            roles: roles,
-            argDefinitions: argDefinitions,
-            gmcp: gmcpConfig
-        );
+        Action<ActorContext> actorHandler =
+            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp, packName); };
+
+        // Declarative: accumulate a candidate. The real Register replays — with the identical
+        // argument list — at Resolve() (the seal barrier), so a same-name command from two packs
+        // is a boot error unless one declares { override: true } + a dependency edge on the owner.
+        _registrationPolicy.Record(new RegistrationCandidate(
+            Kind: "command",
+            Name: name,
+            Owner: packName,
+            IsOverride: isOverride,
+            Commit: () => _commandRegistry.Register(
+                name,
+                actorHandler,
+                aliases,
+                priority,
+                packName,
+                description,
+                category,
+                sourceFile,
+                visibleTo,
+                roles: roles,
+                argDefinitions: argDefinitions,
+                gmcp: gmcpConfig),
+            SourceFile: sourceFile,
+            Line: 0));
     }
 
     private object[] ListForPlayer(string entityIdStr)

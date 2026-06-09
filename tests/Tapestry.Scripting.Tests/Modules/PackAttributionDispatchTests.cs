@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 
 namespace Tapestry.Scripting.Tests.Modules;
@@ -18,7 +19,7 @@ namespace Tapestry.Scripting.Tests.Modules;
 /// </summary>
 public class PackAttributionDispatchTests
 {
-    private (JintRuntime rt, CommandRegistry registry, World world) BuildRuntime()
+    private (JintRuntime rt, CommandRegistry registry, World world, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -27,13 +28,14 @@ public class PackAttributionDispatchTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<CommandRegistry>(), provider.GetRequiredService<World>());
+        return (rt, provider.GetRequiredService<CommandRegistry>(), provider.GetRequiredService<World>(),
+                provider.GetRequiredService<RegistrationPolicy>());
     }
 
     [Fact]
     public void CommandHandler_SeesRegisteringPack_NotLastLoadedPack()
     {
-        var (rt, registry, world) = BuildRuntime();
+        var (rt, registry, world, policy) = BuildRuntime();
 
         // 1. Register a command in pack-a whose handler records the live __currentPack.
         rt.Execute(
@@ -43,7 +45,8 @@ public class PackAttributionDispatchTests
         // 2. Load another script as pack-b AFTER, making the global __currentPack stale.
         rt.Execute("var x = 1;", "pack-b");
 
-        // 3. Dispatch the command through the REAL registry path.
+        // 3. Seal the registration ledger, then dispatch the command through the REAL registry path.
+        policy.Resolve();
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
         var reg = registry.Resolve("probe");

@@ -238,11 +238,12 @@ public class PackLoaderTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
+        var registrationPolicy = TestRegistrationPolicy.Create();
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(),
-            TestRegistrationPolicy.Create());
+            registrationPolicy);
         var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
@@ -284,7 +285,7 @@ public class PackLoaderTests
 
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
@@ -494,11 +495,12 @@ public class PackLoaderTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
+        var registrationPolicy = TestRegistrationPolicy.Create();
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(),
-            TestRegistrationPolicy.Create());
+            registrationPolicy);
         var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
@@ -540,7 +542,7 @@ public class PackLoaderTests
 
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),

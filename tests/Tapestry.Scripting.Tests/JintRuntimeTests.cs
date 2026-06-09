@@ -12,6 +12,7 @@ using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
@@ -39,6 +40,7 @@ public class JintRuntimeTests
             """;
 
         runtime.Execute(script, "test-pack");
+        ctx.RegistrationPolicy.Resolve();
 
         ctx.CommandRegistry.Resolve("ping").Should().NotBeNull();
         ctx.CommandRegistry.Resolve("p").Should().NotBeNull();
@@ -120,6 +122,7 @@ public class JintRuntimeTests
             """;
 
         runtime.Execute(script, "test-pack");
+        ctx.RegistrationPolicy.Resolve();
 
         var registration = ctx.CommandRegistry.Resolve("ping");
         registration.Should().NotBeNull();
@@ -184,6 +187,7 @@ public class JintRuntimeTests
                 }
             });
         ", "test");
+        ctx.RegistrationPolicy.Resolve();
 
         var cmdCtx = new ActorContext
         {
@@ -231,11 +235,12 @@ public class JintRuntimeTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
+        var registrationPolicy = TestRegistrationPolicy.Create();
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
             NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(),
-            TestRegistrationPolicy.Create());
+            registrationPolicy);
 
         // Create service classes
         var questMarkerService = new QuestMarkerService(new QuestStateRepository(), new QuestRegistry());
@@ -254,7 +259,7 @@ public class JintRuntimeTests
         // Create modules
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance)),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
             new EmotesModule(emoteRegistry),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
@@ -278,7 +283,8 @@ public class JintRuntimeTests
             World = world,
             Sessions = sessions,
             Messaging = messaging,
-            MobCommandQueue = mobCommandQueue
+            MobCommandQueue = mobCommandQueue,
+            RegistrationPolicy = registrationPolicy
         });
     }
 
@@ -365,5 +371,6 @@ public class JintRuntimeTests
         public required SessionManager Sessions { get; init; }
         public required ApiMessaging Messaging { get; init; }
         public required MobCommandQueue MobCommandQueue { get; init; }
+        public required RegistrationPolicy RegistrationPolicy { get; init; }
     }
 }
