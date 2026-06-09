@@ -25,7 +25,7 @@ public class AdminModuleTests
         return (rt, provider.GetRequiredService<World>());
     }
 
-    private (JintRuntime rt, World world, CommandRegistry commandRegistry, SessionManager sessions) BuildRuntimeWithSessions()
+    private (JintRuntime rt, World world, CommandRegistry commandRegistry, SessionManager sessions, Tapestry.Engine.Registration.RegistrationPolicy policy) BuildRuntimeWithSessions()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -38,7 +38,8 @@ public class AdminModuleTests
             rt,
             provider.GetRequiredService<World>(),
             provider.GetRequiredService<CommandRegistry>(),
-            provider.GetRequiredService<SessionManager>()
+            provider.GetRequiredService<SessionManager>(),
+            provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>()
         );
     }
 
@@ -56,6 +57,8 @@ public class AdminModuleTests
         var sessions = provider.GetRequiredService<SessionManager>();
         var script = File.ReadAllText(InspectScriptPath);
         rt.Execute(script, "tapestry-core", "scripts/commands/admin-inspect.js");
+        // Command registration is now ledgered; seal so the registry is populated before dispatch.
+        provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>().Resolve();
         return (rt, world, registry, sessions);
     }
 
@@ -396,7 +399,7 @@ public class AdminModuleTests
     [Fact]
     public void LinkCommand_NonAdminPlayer_ReceivesHuhAndFlowNotTriggered()
     {
-        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var (rt, world, commandRegistry, sessions, policy) = BuildRuntimeWithSessions();
         var connection = new FakeConnection();
         var player = new Entity("player", "NonAdmin");
         world.TrackEntity(player);
@@ -416,6 +419,7 @@ public class AdminModuleTests
                 }
             });
         ");
+        policy.Resolve();
 
         var registration = commandRegistry.Resolve("link");
         Assert.NotNull(registration);
@@ -436,7 +440,7 @@ public class AdminModuleTests
     [Fact]
     public void UnlinkCommand_NonAdminPlayer_ReceivesHuhAndFlowNotTriggered()
     {
-        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var (rt, world, commandRegistry, sessions, policy) = BuildRuntimeWithSessions();
         var connection = new FakeConnection();
         var player = new Entity("player", "NonAdmin");
         world.TrackEntity(player);
@@ -456,6 +460,7 @@ public class AdminModuleTests
                 }
             });
         ");
+        policy.Resolve();
 
         var registration = commandRegistry.Resolve("unlink");
         Assert.NotNull(registration);
@@ -476,7 +481,7 @@ public class AdminModuleTests
     [Fact]
     public void ConnectionsCommand_NonAdminPlayer_ReceivesHuhAndListingNotShown()
     {
-        var (rt, world, commandRegistry, sessions) = BuildRuntimeWithSessions();
+        var (rt, world, commandRegistry, sessions, policy) = BuildRuntimeWithSessions();
         var connection = new FakeConnection();
         var player = new Entity("player", "NonAdmin");
         world.TrackEntity(player);
@@ -500,6 +505,7 @@ public class AdminModuleTests
                 }
             });
         ");
+        policy.Resolve();
 
         var registration = commandRegistry.Resolve("connections");
         Assert.NotNull(registration);

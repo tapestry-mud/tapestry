@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Shared;
 
@@ -8,7 +9,7 @@ namespace Tapestry.Scripting.Tests.Modules;
 
 public class InventoryModuleGiveTests
 {
-    private (JintRuntime rt, World world, SessionManager sessions, CommandRegistry commands) BuildRuntime()
+    private (JintRuntime rt, World world, SessionManager sessions, CommandRegistry commands, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -21,14 +22,15 @@ public class InventoryModuleGiveTests
             rt,
             provider.GetRequiredService<World>(),
             provider.GetRequiredService<SessionManager>(),
-            provider.GetRequiredService<CommandRegistry>()
+            provider.GetRequiredService<CommandRegistry>(),
+            provider.GetRequiredService<RegistrationPolicy>()
         );
     }
 
     [Fact]
     public void Give_ReturnsTrue_WhenItemTransferSucceeds()
     {
-        var (rt, world, _, _) = BuildRuntime();
+        var (rt, world, _, _, _) = BuildRuntime();
 
         var room = new Room("give-room-1", "Test Room", "A plain room.");
         world.AddRoom(room);
@@ -60,7 +62,7 @@ public class InventoryModuleGiveTests
     [Fact]
     public void Give_ReturnsFalse_WhenItemNotInGiverInventory()
     {
-        var (rt, world, _, _) = BuildRuntime();
+        var (rt, world, _, _, _) = BuildRuntime();
 
         var room = new Room("give-room-2", "Test Room 2", "Another plain room.");
         world.AddRoom(room);
@@ -85,7 +87,7 @@ public class InventoryModuleGiveTests
     [Fact]
     public void GiveCommand_SendsFeedbackAndTransfersItem()
     {
-        var (rt, world, sessions, commands) = BuildRuntime();
+        var (rt, world, sessions, commands, policy) = BuildRuntime();
 
         var room = new Room("give-cmd-room", "Give Room", "A test room.");
         world.AddRoom(room);
@@ -149,6 +151,7 @@ public class InventoryModuleGiveTests
                 }
             });
             """, "test-pack");
+        policy.Resolve();
 
         var registration = commands.Resolve("give");
         registration.Should().NotBeNull();

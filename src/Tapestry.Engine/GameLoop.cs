@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Rest;
 using Tapestry.Shared;
@@ -18,6 +19,7 @@ public class GameLoop
     private readonly TapestryMetrics _metrics;
     private readonly TickTimer _timer;
     private readonly NotificationQueue _notificationQueue;
+    private readonly RegistrationPolicy _registrationPolicy;
     private readonly HashSet<Guid> _activeDisconnects = new();
     private readonly Dictionary<string, TickHandler> _handlers = new();
     private readonly SortedDictionary<long, List<string>> _dueSlots = new();
@@ -42,7 +44,8 @@ public class GameLoop
     public GameLoop(CommandRouter router, SessionManager sessions, EventBus eventBus,
                     SystemEventQueue eventQueue, ILogger<GameLoop> logger,
                     TapestryMetrics metrics, TickTimer timer,
-                    NotificationQueue notificationQueue)
+                    NotificationQueue notificationQueue,
+                    RegistrationPolicy registrationPolicy)
     {
         _router = router;
         _sessions = sessions;
@@ -52,6 +55,7 @@ public class GameLoop
         _metrics = metrics;
         _timer = timer;
         _notificationQueue = notificationQueue;
+        _registrationPolicy = registrationPolicy;
     }
 
     public void Schedule(Action action)
@@ -76,29 +80,39 @@ public class GameLoop
             throw new ArgumentOutOfRangeException(nameof(intervalTicks), "Interval must be greater than zero.");
         }
 
-        if (_handlers.ContainsKey(name))
-        {
-            // Strict registration: tick-handler names must be unique. A duplicate is always a
-            // bug (e.g. two subsystems both naming a handler "heartbeat"), so fail loud at
-            // registration -- which means strict boot catches it -- rather than silently
-            // clobbering the existing handler. To intentionally swap one out, cancel it first.
-            throw new InvalidOperationException(
-                $"A tick handler named '{name}' is already registered. Tick-handler names must be " +
-                "unique; cancel the existing handler before registering a replacement.");
-        }
-
-        var due = _tickCount + intervalTicks;
-        _handlers[name] = new TickHandler(name, intervalTicks, packName, handler);
-        _nextDue[name] = due;
-        if (!_dueSlots.ContainsKey(due))
-        {
-            _dueSlots[due] = new List<string>();
-        }
-        _dueSlots[due].Add(name);
+        // Declarative: accumulate a candidate; the real insert runs at Resolve() (seal), so `due`
+        // is computed against the correct _tickCount and arrival order never decides the winner.
+        // A duplicate name now collides at the seal (RegistrationPolicy), not eagerly here.
+        _registrationPolicy.Record(new RegistrationCandidate(
+            Kind: "tick",
+            Name: name,
+            Owner: packName,
+            IsOverride: false,        // tick handlers are kernel-only today; no JS override path (see Plan 2)
+            Commit: () =>
+            {
+                var due = _tickCount + intervalTicks;
+                _handlers[name] = new TickHandler(name, intervalTicks, packName, handler);
+                _nextDue[name] = due;
+                if (!_dueSlots.ContainsKey(due))
+                {
+                    _dueSlots[due] = new List<string>();
+                }
+                _dueSlots[due].Add(name);
+            },
+            SourceFile: "",
+            Line: 0));
     }
 
     public void CancelTickHandler(string name)
     {
+        // Pre-seal, a name may live only in the ledger (not yet in _handlers). Pull the candidate
+        // from the ledger rather than touching the (still-empty) dispatch dicts.
+        if (!_registrationPolicy.IsSealed)
+        {
+            _registrationPolicy.Remove("tick", name);
+            return;
+        }
+
         if (!_handlers.ContainsKey(name)) { return; }
         _handlers.Remove(name);
         if (_nextDue.TryGetValue(name, out var due))

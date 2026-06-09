@@ -17,6 +17,7 @@ using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Tests.Registration;
 using Tapestry.Engine.Ui;
 using Tapestry.Server;
 using Tapestry.Shared;
@@ -188,7 +189,8 @@ public class ConnectionHandlerLoginPhaseTests
             new CommandRouter(new CommandRegistry(), sessions, world),
             sessions, new EventBus(), new SystemEventQueue(),
             NullLogger<GameLoop>.Instance,
-            new TapestryMetrics(), new TickTimer(10), new NotificationQueue());
+            new TapestryMetrics(), new TickTimer(10), new NotificationQueue(),
+            TestRegistrationPolicy.Create());
 
         var mobAI = new MobAIManager(world, eventBus,
             new CombatManager(world, eventBus),
