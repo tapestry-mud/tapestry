@@ -5,6 +5,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Watch;
 using Tapestry.Shared;
 
 namespace Tapestry.Server;
@@ -26,6 +27,7 @@ public class GameLoopService : IHostedService
     private readonly MobAIManager _mobAI;
     private readonly NotificationQueue _notificationQueue;
     private readonly Tapestry.Server.Gmcp.Handlers.NotificationHandler _notificationHandler;
+    private readonly WatchRegistry _watchRegistry;
     private Task? _runTask;
 
     public GameLoopService(
@@ -43,7 +45,8 @@ public class GameLoopService : IHostedService
         EventBus eventBus,
         MobAIManager mobAI,
         NotificationQueue notificationQueue,
-        Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler)
+        Tapestry.Server.Gmcp.Handlers.NotificationHandler notificationHandler,
+        WatchRegistry watchRegistry)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -60,6 +63,7 @@ public class GameLoopService : IHostedService
         _mobAI = mobAI;
         _notificationQueue = notificationQueue;
         _notificationHandler = notificationHandler;
+        _watchRegistry = watchRegistry;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -126,6 +130,11 @@ public class GameLoopService : IHostedService
             _sessions.Remove(session);
             _accountService.UntrackOnlineEntity(session.PlayerEntity.Id);
             _metrics.ActiveConnections.Add(-1);
+
+            // Clean up watch subscriptions: remove the player as both a watcher and a target.
+            var entityId = session.PlayerEntity.Id;
+            _watchRegistry.Unsubscribe(entityId.ToString());
+            _watchRegistry.RemoveTarget(entityId);
 
             if (lastRoomId != null)
             {
@@ -196,6 +205,11 @@ public class GameLoopService : IHostedService
                     _metrics.ActiveConnections.Add(-1);
                     _metrics.LinkDeadActive.Add(-1);
                     _metrics.LinkDeadExpired.Add(1);
+
+                    // Clean up watch subscriptions on final reap.
+                    var linkDeadEntityId = session.PlayerEntity.Id;
+                    _watchRegistry.Unsubscribe(linkDeadEntityId.ToString());
+                    _watchRegistry.RemoveTarget(linkDeadEntityId);
 
                     if (lastRoomId != null)
                     {

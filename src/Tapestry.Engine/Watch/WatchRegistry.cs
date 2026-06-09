@@ -11,21 +11,26 @@ namespace Tapestry.Engine.Watch;
 /// <c>entity.Id</c> so subscriptions survive the watched player's connection being
 /// swapped on link-dead reconnect. A watcher (identified by <paramref name="watcherKey"/>)
 /// watches at most one target at a time.
+///
+/// Sinks are stored as <c>Func&lt;IConnection?&gt;</c> resolvers so a watcher's current
+/// connection is resolved live on every broadcast — a watcher who reconnects (new
+/// <see cref="IConnection"/> via <c>ReplaceConnection</c>) keeps receiving output, and a
+/// logged-off watcher resolves to <c>null</c> (skipped) rather than holding a stale ref.
 /// </summary>
 public sealed class WatchRegistry
 {
-    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, IConnection>> _byTarget = new();
+    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, Func<IConnection?>>> _byTarget = new();
     private readonly ConcurrentDictionary<string, Guid> _watcherTarget = new();
 
-    public void Subscribe(Guid targetEntityId, string watcherKey, IConnection sink)
+    public void Subscribe(Guid targetEntityId, string watcherKey, Func<IConnection?> sinkResolver)
     {
         if (_watcherTarget.TryGetValue(watcherKey, out var prev) && prev != targetEntityId)
         {
             RemoveFrom(prev, watcherKey);
         }
         _watcherTarget[watcherKey] = targetEntityId;
-        var sinks = _byTarget.GetOrAdd(targetEntityId, _ => new ConcurrentDictionary<string, IConnection>());
-        sinks[watcherKey] = sink;
+        var resolvers = _byTarget.GetOrAdd(targetEntityId, _ => new ConcurrentDictionary<string, Func<IConnection?>>());
+        resolvers[watcherKey] = sinkResolver;
     }
 
     public bool Unsubscribe(string watcherKey)
@@ -37,17 +42,38 @@ public sealed class WatchRegistry
 
     public IReadOnlyCollection<IConnection> GetSinks(Guid targetEntityId)
     {
-        return _byTarget.TryGetValue(targetEntityId, out var sinks)
-            ? sinks.Values.ToArray()
-            : Array.Empty<IConnection>();
+        if (!_byTarget.TryGetValue(targetEntityId, out var resolvers))
+        {
+            return Array.Empty<IConnection>();
+        }
+        return resolvers.Values
+            .Select(r => r())
+            .Where(c => c is not null)
+            .ToArray()!;
+    }
+
+    /// <summary>
+    /// Removes the target's entry entirely, and also removes each of its watcher keys
+    /// from the reverse index so stale watcher-key lookups return false. Call this when
+    /// the watched entity logs out / is reaped for good.
+    /// </summary>
+    public void RemoveTarget(Guid targetEntityId)
+    {
+        if (_byTarget.TryRemove(targetEntityId, out var resolvers))
+        {
+            foreach (var k in resolvers.Keys)
+            {
+                _watcherTarget.TryRemove(k, out _);
+            }
+        }
     }
 
     private void RemoveFrom(Guid target, string watcherKey)
     {
-        if (_byTarget.TryGetValue(target, out var sinks))
+        if (_byTarget.TryGetValue(target, out var resolvers))
         {
-            sinks.TryRemove(watcherKey, out _);
-            if (sinks.IsEmpty) { _byTarget.TryRemove(target, out _); }
+            resolvers.TryRemove(watcherKey, out _);
+            if (resolvers.IsEmpty) { _byTarget.TryRemove(target, out _); }
         }
     }
 }

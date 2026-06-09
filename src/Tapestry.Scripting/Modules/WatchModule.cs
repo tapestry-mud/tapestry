@@ -36,11 +36,19 @@ public class WatchModule : IJintApiModule
         if (!Guid.TryParse(watcherEntityIdStr, out var watcherId)) { return false; }
         if (!Guid.TryParse(targetEntityIdStr, out var targetId)) { return false; }
 
-        var watcher = _sessions.GetByEntityId(watcherId);
-        var target = _sessions.GetByEntityId(targetId);
-        if (watcher is null || target is null) { return false; }
+        // Self-subscription causes infinite recursion through the tee — reject it.
+        if (watcherId == targetId) { return false; }
 
-        _watch.Subscribe(targetId, watcherId.ToString(), watcher.Connection);
+        var target = _sessions.GetByEntityId(targetId);
+        if (target is null) { return false; }
+
+        // Verify the watcher has a session at subscription time, but resolve live on
+        // every broadcast so a reconnected watcher (new Connection, same entity id)
+        // keeps receiving output without needing to re-subscribe.
+        var watcher = _sessions.GetByEntityId(watcherId);
+        if (watcher is null) { return false; }
+
+        _watch.Subscribe(targetId, watcherId.ToString(), () => _sessions.GetByEntityId(watcherId)?.Connection);
         return true;
     }
 

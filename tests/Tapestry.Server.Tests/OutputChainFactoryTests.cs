@@ -36,7 +36,7 @@ public class OutputChainFactoryTests
 
         var watch = new WatchRegistry();
         var sink = new FakeConnection();                 // the admin watcher
-        watch.Subscribe(entity.Id, "admin", sink);
+        watch.Subscribe(entity.Id, "admin", () => sink);
 
         var chain = OutputChainFactory.Build(
             raw, MakeRenderer(), MakeWrapper(), new OutputWidthService(new ServerConfig()), sessions, watch);

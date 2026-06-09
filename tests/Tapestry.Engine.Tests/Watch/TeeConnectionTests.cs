@@ -23,7 +23,7 @@ public class TeeConnectionTests
         var sink = new FakeConnection();
         var reg = new WatchRegistry();
         var owner = Guid.NewGuid();
-        reg.Subscribe(owner, "w", sink);
+        reg.Subscribe(owner, "w", () => sink);
         var tee = new TeeConnection(inner, reg, () => owner);
         tee.SendLine("watch me");
         inner.SentLines.Should().ContainSingle().Which.Should().Be("watch me\r\n");
@@ -37,7 +37,7 @@ public class TeeConnectionTests
         var sink = new FakeConnection();
         var reg = new WatchRegistry();
         var owner = Guid.NewGuid();
-        reg.Subscribe(owner, "w", sink);
+        reg.Subscribe(owner, "w", () => sink);
         var tee = new TeeConnection(inner, reg, () => owner);
         tee.SendText("frag");
         sink.SentText.Should().ContainSingle().Which.Should().Be("frag");
@@ -50,7 +50,7 @@ public class TeeConnectionTests
         var sink = new FakeConnection();
         var reg = new WatchRegistry();
         var owner = Guid.NewGuid();
-        reg.Subscribe(owner, "w", sink);
+        reg.Subscribe(owner, "w", () => sink);
         var tee = new TeeConnection(inner, reg, () => owner) { ShouldBroadcast = false };
         tee.SendLine("secret");
         inner.SentLines.Should().ContainSingle();
