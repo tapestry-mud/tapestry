@@ -61,7 +61,7 @@ public class ArgsModule : IJintApiModule
                         }
                     };
 
-                _argResolver.RegisterPackType(name, csharpResolver);
+                _argResolver.RegisterPackType(name, packName, csharpResolver);
             }),
 
             resolve = new Func<string, string, string, object?>((actorIdStr, token, typeName) =>

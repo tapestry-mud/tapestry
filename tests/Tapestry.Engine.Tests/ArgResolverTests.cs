@@ -95,7 +95,7 @@ public class ArgResolverTests
         var def = new ArgDefinition { Type = "keyword", Required = true };
 
         // Attempt to override the engine "keyword" type with a handler that always fails
-        resolver.RegisterPackType("keyword", (_, _, _) => (false, null, "overridden"));
+        resolver.RegisterPackType("keyword", "pack-a", (_, _, _) => (false, null, "overridden"));
 
         // The engine handler should still win -- keyword passthrough returns success
         var (success, value, error) = resolver.ResolveToken(actor, "word", def, "sword");
@@ -111,7 +111,7 @@ public class ArgResolverTests
         var actor = MakeActor(Guid.NewGuid());
         var def = new ArgDefinition { Type = "recipe", Required = true };
 
-        resolver.RegisterPackType("recipe", (_, _, token) => (true, $"recipe:{token}", null));
+        resolver.RegisterPackType("recipe", "tapestry-tinkers", (_, _, token) => (true, $"recipe:{token}", null));
 
         var (success, value, error) = resolver.ResolveToken(actor, "item", def, "bread");
 
