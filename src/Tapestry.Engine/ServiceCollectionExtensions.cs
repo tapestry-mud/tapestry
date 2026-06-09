@@ -225,6 +225,11 @@ public static class ServiceCollectionExtensions
                 : Enumerable.Empty<string>(),
             sp.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>()));
 
+        services.AddSingleton<HelpSeal>(sp => new HelpSeal(
+            sp.GetRequiredService<HelpService>(),
+            sp.GetRequiredService<CommandRegistry>(),
+            sp.GetRequiredService<Tapestry.Engine.Registration.IPackEdgeOracle>()));
+
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();
         services.AddSingleton<ColorRenderer>();
