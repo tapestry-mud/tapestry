@@ -18,6 +18,10 @@ public sealed record RegistrationCandidate(
 /// Declarative registration ledger. All boot-phase register/override calls Record() a candidate;
 /// Resolve() (run once at the seal barrier) picks an order-independent winner per (kind, name)
 /// and replays its Commit. Collisions are boot errors unless one candidate declares an edge-valid override.
+/// Post-seal, Record() resolves immediately against the sealed set (D5); pre-seal it only accumulates.
+/// Post-seal override of a LIVE tick handler re-commits via the tick upsert but does not reschedule
+/// _dueSlots — runtime tick-override hardening belongs to the entity-scripts spec; sanctioned
+/// post-seal cases today are new names and export upserts.
 /// </summary>
 public sealed class RegistrationPolicy
 {
@@ -34,7 +38,29 @@ public sealed class RegistrationPolicy
 
     public void Record(RegistrationCandidate candidate)
     {
-        _candidates.Add(candidate);
+        if (!_sealed)
+        {
+            _candidates.Add(candidate);
+            return;
+        }
+
+        // Post-seal (D5): the sanctioned runtime-registration path. Resolve immediately
+        // against the sealed set with the SAME table — a new name binds now, an
+        // undeclared duplicate of a sealed winner throws, an edge-valid override wins
+        // and replays its Commit (registries' committed writes are upserts).
+        var nameKey = candidate.Name.ToLowerInvariant();
+        var group = _candidates
+            .Where(c => c.Kind == candidate.Kind && c.Name.ToLowerInvariant() == nameKey)
+            .ToList();
+        group.Add(candidate);
+
+        var winner = ResolveGroup(group); // throws on identical located conflicts
+
+        _candidates.Add(candidate); // ledger only grows on success (a rejected candidate must not pollute future groups)
+        if (ReferenceEquals(winner, candidate))
+        {
+            winner.Commit();
+        }
     }
 
     /// <summary>

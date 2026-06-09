@@ -91,4 +91,26 @@ public class PacksExportPolicyTests
         exports.Has("tapestry-survival", "init").Should().BeTrue();
         exports.Has("tapestry-cooking", "init").Should().BeTrue();
     }
+
+    // D5 end-to-end: a post-seal export (runtime entity-script territory) binds
+    // immediately and is callable through the normal gated surface.
+    [Fact]
+    public void Export_PostSeal_ResolvesImmediately()
+    {
+        var (rt, _, policy) = CreateRuntime();
+        policy.Resolve();
+        rt.Execute("tapestry.packs.export('late', function () { return 'rt'; }, { kind: 'query' });", "tapestry-survival");
+        rt.Execute("globalThis.__l = tapestry.packs.call('@tapestry/survival', 'late');", "tapestry-cooking");
+        rt.Evaluate("__l").Should().Be("rt");
+    }
+
+    [Fact]
+    public void Export_PostSeal_UndeclaredDuplicate_Throws()
+    {
+        var (rt, _, policy) = CreateRuntime();
+        rt.Execute("tapestry.packs.export('taken', function () { return 1; }, { kind: 'query' });", "tapestry-survival");
+        policy.Resolve();
+        var act = () => rt.Execute("tapestry.packs.export('taken', function () { return 2; }, { kind: 'query' });", "tapestry-survival");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*taken*");
+    }
 }

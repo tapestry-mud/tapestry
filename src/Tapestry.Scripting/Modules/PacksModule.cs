@@ -121,6 +121,7 @@ public class PacksModule : IJintApiModule
         var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
             ? sourceFileVal.ToString()
             : "";
+        // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null (and meta itself is null when no metadata arg was passed). Read via Type==Boolean.
         var ov = meta?.Get("override");
         var isOverride = ov is not null && ov.Type == Types.Boolean && (bool)ov.ToObject()!;
 
@@ -138,8 +139,9 @@ public class PacksModule : IJintApiModule
         if (!_registrationPolicy.IsSealed)
         {
             // Eager visibility for load-time interop (dependency-ordered loading makes
-            // this safe); the seal re-commits the resolved winner, so the final state
-            // is order-independent and an undeclared duplicate still fails boot.
+            // this safe); the seal re-commits the resolved winner, so the seal's collision
+            // resolution is order-independent among candidates (load order still gates what's
+            // visible pre-seal), and an undeclared duplicate still fails boot.
             _exports.Register(entry);
         }
     }
