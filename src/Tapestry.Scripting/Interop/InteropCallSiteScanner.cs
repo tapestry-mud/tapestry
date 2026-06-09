@@ -62,7 +62,8 @@ public static class InteropCallSiteScanner
             return base.VisitCallExpression(node);
         }
 
-        // Matches `tapestry.packs.call(...)` / `tapestry.packs.has(...)` with two string-literal args.
+        // Matches `tapestry.packs.call(...)` / `tapestry.packs.has(...)` with two string-literal args,
+        // and `tapestry.packs.require(...)` with one string-literal arg.
         private static bool TryMatch(
             CallExpression node, out string targetLiteral, out string exportName, out InteropCallKind kind)
         {
@@ -72,13 +73,22 @@ public static class InteropCallSiteScanner
 
             if (node.Callee is not MemberExpression methodAccess || methodAccess.Computed) { return false; }
             if (methodAccess.Property is not Identifier method) { return false; }
-            if (method.Name != "call" && method.Name != "has") { return false; }
+            if (method.Name != "call" && method.Name != "has" && method.Name != "require") { return false; }
 
             if (methodAccess.Object is not MemberExpression packsAccess || packsAccess.Computed) { return false; }
             if (packsAccess.Property is not Identifier packsId || packsId.Name != "packs") { return false; }
             if (packsAccess.Object is not Identifier rootId || rootId.Name != "tapestry") { return false; }
 
             var args = node.Arguments;
+
+            if (method.Name == "require")
+            {
+                if (args.Count < 1 || args[0] is not StringLiteral requireLit) { return false; }
+                targetLiteral = requireLit.Value;
+                kind = InteropCallKind.Require;
+                return true; // exportName stays "" — edge check only
+            }
+
             if (args.Count < 2) { return false; }
             if (args[0] is not StringLiteral packLit) { return false; }
             if (args[1] is not StringLiteral exportLit) { return false; }
