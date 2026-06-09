@@ -77,9 +77,9 @@ public class HelpService
 
     public void AddTopic(HelpTopic topic, int loadOrder = 0)
     {
-        UpsertIfHigher(_byId, topic.Id, topic, loadOrder);
-        UpsertIfHigher(_byId, topic.NamespacedId, topic, loadOrder);
-        UpsertIfHigher(_byTitle, topic.Title, topic, loadOrder);
+        Upsert(_byId, topic.Id, topic, loadOrder);
+        Upsert(_byId, topic.NamespacedId, topic, loadOrder);
+        Upsert(_byTitle, topic.Title, topic, loadOrder);
 
         if (!_byCategory.ContainsKey(topic.Category)) { _byCategory[topic.Category] = new(); }
 
@@ -143,16 +143,16 @@ public class HelpService
             .ToList();
     }
 
-    private static void UpsertIfHigher(
+    // load_order no longer gates help resolution. The RegistrationPolicy (Kind "help")
+    // decides cross-pack winners; this is an unconditional set so the resolved winner wins.
+    // The int slot is retained only to keep the dict shape and AddTopic signature stable.
+    private static void Upsert(
         Dictionary<string, (HelpTopic, int)> dict,
         string key,
         HelpTopic topic,
         int loadOrder)
     {
-        if (!dict.TryGetValue(key, out var existing) || loadOrder >= existing.Item2)
-        {
-            dict[key] = (topic, loadOrder);
-        }
+        dict[key] = (topic, loadOrder);
     }
 
     private static bool MatchesFuzzy(HelpTopic t, string term) =>
