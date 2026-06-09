@@ -24,6 +24,7 @@ using Tapestry.Engine.Distribution;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Help;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Watch;
 using Tapestry.Data;
 
 namespace Tapestry.Engine;
@@ -54,6 +55,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<World>(),
             sp.GetRequiredService<BadInputTracker>()));
         services.AddSingleton<SessionManager>();
+        services.AddSingleton<WatchRegistry>();
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
         services.AddSingleton<GameLoop>();

@@ -8,6 +8,7 @@ using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Text;
 using Tapestry.Server.Gmcp.Handlers;
+using Tapestry.Engine.Watch;
 using Tapestry.Server.Login;
 using Tapestry.Shared;
 
@@ -30,6 +31,7 @@ public class ConnectionHandler
     private readonly IGmcpConnectionManager _connectionManager;
     private readonly LoginHandler _loginHandler;
     private readonly PlayerSpawner _spawner;
+    private readonly WatchRegistry _watchRegistry;
 
     public ConnectionHandler(
         SessionManager sessions,
@@ -46,7 +48,8 @@ public class ConnectionHandler
         LoginGateRegistry loginGates,
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
-        PlayerSpawner spawner)
+        PlayerSpawner spawner,
+        WatchRegistry watchRegistry)
     {
         _sessions = sessions;
         _metrics = metrics;
@@ -63,6 +66,7 @@ public class ConnectionHandler
         _connectionManager = connectionManager;
         _loginHandler = loginHandler;
         _spawner = spawner;
+        _watchRegistry = watchRegistry;
         _flowEngine.NewPlayerEntityFactory = LoginFlow.CreateNewPlayerEntity;
         _flowEngine.GmcpSend = (connectionId, package, payload) =>
         {
@@ -81,12 +85,8 @@ public class ConnectionHandler
         // Color renders first (outermost), then the word-wrapper runs on the rendered
         // output (innermost, just above the raw transport) where ANSI escapes are
         // zero-width -- so wrap width matches exactly what the terminal shows.
-        IConnection connection = new ColorRenderingConnection(
-            new WrappingConnection(
-                rawConnection,
-                _outputWrapper,
-                () => OutputWidthResolver.Resolve(rawConnection, _sessions, _outputWidthService)),
-            _colorRenderer);
+        IConnection connection = OutputChainFactory.Build(
+            rawConnection, _colorRenderer, _outputWrapper, _outputWidthService, _sessions, _watchRegistry);
         var loginContext = new LoginContext(rawConnection.Id, connection);
         _sessions.RegisterPreLogin(loginContext);
 

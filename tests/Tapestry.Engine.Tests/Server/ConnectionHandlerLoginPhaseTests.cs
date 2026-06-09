@@ -216,7 +216,8 @@ public class ConnectionHandlerLoginPhaseTests
             new LoginGateRegistry(),
             connectionManager,
             loginHandler,
-            spawner);
+            spawner,
+            new Tapestry.Engine.Watch.WatchRegistry());
 
         var conn = new FakeConnection();
         var gmcpHandler = new FakeGmcpHandler();

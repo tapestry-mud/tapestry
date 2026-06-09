@@ -547,12 +547,9 @@ app.MapFallback(async context =>
             var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
             var outputWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWrapper>();
             var outputWidthService = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWidthService>();
-            var colorConn = new ColorRenderingConnection(
-                new Tapestry.Engine.Text.WrappingConnection(
-                    connection,
-                    outputWrapper,
-                    () => OutputWidthResolver.Resolve(connection, sessionMgr, outputWidthService)),
-                colorRenderer);
+            var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
+            var colorConn = OutputChainFactory.Build(
+                connection, colorRenderer, outputWrapper, outputWidthService, sessionMgr, watchRegistry);
 
             // Create and register LoginContext
             var loginContext = new LoginContext(connection.Id, colorConn);
