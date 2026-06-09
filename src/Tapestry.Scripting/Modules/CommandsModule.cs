@@ -393,6 +393,11 @@ public class CommandsModule : IJintApiModule
             send = isMob
                 ? new Action<string>(_ => { })
                 : new Action<string>(text => { _messaging.Send(actorCtx.EntityId, text); }),
+            // Slice C: like send, but this write is NOT mirrored to watch spectators (a private DM).
+            // The viewer pack's tell/reply override uses this for the sender's echo.
+            sendPrivate = isMob
+                ? new Action<string>(_ => { })
+                : new Action<string>(text => { _messaging.SendPrivate(actorCtx.EntityId, text); }),
             sendToRoom = new Action<string>(text =>
             {
                 if (!string.IsNullOrEmpty(roomId))

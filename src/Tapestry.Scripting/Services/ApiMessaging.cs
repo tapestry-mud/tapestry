@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Watch;
 using Tapestry.Scripting.Modules;
 using Tapestry.Shared;
 
@@ -67,6 +68,17 @@ public class ApiMessaging
             message = clean,
             category = "general"
         });
+    }
+
+    /// <summary>
+    /// Slice C: send to the player but suppress the watch tee for THIS write — a private DM the
+    /// anonymous audience must not see. The player still receives the text and GMCP normally; only the
+    /// spectator broadcast is gated (via <see cref="WatchBroadcastScope"/>). The viewer pack routes
+    /// tell/reply through this; a server without the viewer pack never calls it (snoop sees tells).
+    /// </summary>
+    public void SendPrivate(Guid entityId, string text)
+    {
+        WatchBroadcastScope.Run(() => Send(entityId, text));
     }
 
     public void SendToRoomExcept(string roomId, string excludeIdStr, string text)

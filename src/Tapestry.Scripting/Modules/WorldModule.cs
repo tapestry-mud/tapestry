@@ -137,6 +137,15 @@ public class WorldModule : IJintApiModule
                     _messaging.Send(entityId, text);
                 }
             }),
+            // Slice C: like send, but this write is NOT mirrored to watch spectators (a private DM).
+            // The viewer pack's tell/reply override uses this for the recipient's line.
+            sendPrivate = new Action<string, string>((entityIdStr, text) =>
+            {
+                if (Guid.TryParse(entityIdStr, out var entityId))
+                {
+                    _messaging.SendPrivate(entityId, text);
+                }
+            }),
             getProperty = new Func<string, string, object?>((entityIdStr, key) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId))

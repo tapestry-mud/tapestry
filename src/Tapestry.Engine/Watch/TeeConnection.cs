@@ -44,6 +44,9 @@ public sealed class TeeConnection : IConnection
     private void Broadcast(Action<IConnection> deliver)
     {
         if (!ShouldBroadcast) { return; }
+        // Slice C: a producer marked this individual write private (e.g. a tell) — deliver it to the
+        // player but not to spectators. ShouldBroadcast is the per-connection gate; this is per-write.
+        if (WatchBroadcastScope.Suppressed) { return; }
         var owner = _ownerResolver();
         if (owner is null) { return; }
         foreach (var sink in _watch.GetSinks(owner.Value))
