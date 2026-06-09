@@ -222,7 +222,8 @@ public static class ServiceCollectionExtensions
             sp.GetService<ILogger<HelpService>>(),
             entityId => Guid.TryParse(entityId, out var gid)
                 ? sp.GetRequiredService<World>().GetEntity(gid)?.Roles ?? Enumerable.Empty<string>()
-                : Enumerable.Empty<string>()));
+                : Enumerable.Empty<string>(),
+            sp.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>()));
 
         // Color / Rendering
         services.AddSingleton<ThemeRegistry>();
