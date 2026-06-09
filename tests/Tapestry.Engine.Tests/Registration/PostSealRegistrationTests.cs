@@ -50,13 +50,16 @@ public class PostSealRegistrationTests
     {
         var edges = new StubEdges().Edge("pack-b", "pack-a");
         var policy = new RegistrationPolicy(edges);
-        policy.Record(Cand("command", "brew", "pack-a", isOverride: false, () => { }));
+        var baseCommits = 0;
+        policy.Record(Cand("command", "brew", "pack-a", isOverride: false, () => baseCommits++));
         policy.Resolve();
+        baseCommits.Should().Be(1);
 
         var committed = false;
         policy.Record(Cand("command", "brew", "pack-b", isOverride: true, () => committed = true));
 
         committed.Should().BeTrue();
+        baseCommits.Should().Be(1); // sealed base must not re-commit when the post-seal override wins
     }
 
     [Fact]
@@ -92,6 +95,6 @@ public class PostSealRegistrationTests
 
         var act = () => policy.Record(Cand("export", "pack-a:late", "pack-a", isOverride: false, () => { }));
 
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*pack-a:late*");
     }
 }

@@ -22,6 +22,10 @@ public sealed record RegistrationCandidate(
 /// Post-seal override of a LIVE tick handler re-commits via the tick upsert but does not reschedule
 /// _dueSlots — runtime tick-override hardening belongs to the entity-scripts spec; sanctioned
 /// post-seal cases today are new names and export upserts.
+/// A post-seal base whose (kind, name) already has an override-elected winner
+/// falls into the ambiguous (2 bases, 1 override) arm and throws — the same outcome
+/// the seal itself would produce for that candidate set; silent discard would hide
+/// pack authoring errors.
 /// </summary>
 public sealed class RegistrationPolicy
 {
