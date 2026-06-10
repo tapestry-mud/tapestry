@@ -1,3 +1,6 @@
+# SDK single-source policy: this pin MUST satisfy global.json (the source of
+# truth - CI consumes it via setup-dotnet global-json-file). Bump global.json
+# and this digest together.
 FROM mcr.microsoft.com/dotnet/sdk:10.0.300@sha256:c0790639332692a0d56cdd81ed581cfd24d040d9839764c138994866df89a3b6 AS build
 WORKDIR /app
 COPY . .
