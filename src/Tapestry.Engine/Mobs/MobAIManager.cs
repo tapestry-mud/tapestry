@@ -1,5 +1,4 @@
 // src/Tapestry.Engine/Mobs/MobAIManager.cs
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
