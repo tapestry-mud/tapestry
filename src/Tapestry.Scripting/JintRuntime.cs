@@ -19,7 +19,8 @@ public class JintRuntime
     // RegistrationPolicy turns it into a "two packs register X" collision. Dedupe by full path.
     private readonly HashSet<string> _executedFiles = new(StringComparer.OrdinalIgnoreCase);
 
-    public JintRuntime(IEnumerable<IJintApiModule> modules, ILogger<JintRuntime> logger)
+    public JintRuntime(IEnumerable<IJintApiModule> modules, ILogger<JintRuntime> logger,
+        MobInvocationBudget? mobBudget = null)
     {
         _modules = modules;
         _logger = logger;
@@ -29,6 +30,10 @@ public class JintRuntime
             options.LimitRecursion(100);
             options.LimitMemory(50_000_000);
             options.Strict();
+            if (mobBudget != null)
+            {
+                options.Constraints.Constraints.Add(mobBudget);
+            }
         });
 
         SetupApi();
