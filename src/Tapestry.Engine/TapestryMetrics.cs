@@ -16,6 +16,9 @@ public class TapestryMetrics
     public Histogram<double> HandlerWallMs { get; }
     public Histogram<double> HandlerCpuMs { get; }
     public Histogram<double> MobAiPhaseMs { get; }
+    public Counter<long> MobAiBudgetExhausted { get; }
+    public Counter<long> MobAiInvocationCap { get; }
+    public Counter<long> MobAiQuarantine { get; }
     public Histogram<long> InputQueueDepth { get; }
     public Histogram<double> SessionDuration { get; }
     public Counter<long> FloodCommandsDropped { get; }
@@ -65,6 +68,18 @@ public class TapestryMetrics
             "tapestry.mob_ai.phase_ms",
             unit: "ms",
             description: "mob-ai time per phase per invocation, tagged by phase");
+
+        MobAiBudgetExhausted = _meter.CreateCounter<long>(
+            "tapestry.mob_ai.budget_exhausted",
+            description: "mob-ai ticks where the sweep stopped early on the tick budget");
+
+        MobAiInvocationCap = _meter.CreateCounter<long>(
+            "tapestry.mob_ai.invocation_cap",
+            description: "Behavior invocation-cap strikes, tagged by behavior");
+
+        MobAiQuarantine = _meter.CreateCounter<long>(
+            "tapestry.mob_ai.quarantine",
+            description: "Behavior quarantine events, tagged by behavior and pack");
 
         InputQueueDepth = _meter.CreateHistogram<long>(
             "tapestry.input_queue.depth",
@@ -145,5 +160,18 @@ public class TapestryMetrics
                 ? new[] { new Measurement<int>(c.MaxEntityProperties) }
                 : Array.Empty<Measurement<int>>(),
             description: "Largest single entity property-bag size");
+    }
+
+    /// <summary>
+    /// Registers the mob-ai cursor-lag gauge: how many mobs the latest sweep deferred
+    /// to the next tick. 0 = budget covers the world; sustained nonzero = the world has
+    /// outgrown tick_budget_ms. Staleness in seconds is lag / mobs-processed-per-tick.
+    /// </summary>
+    public void RegisterMobAiCursorLag(Func<int> sampler)
+    {
+        _meter.CreateObservableGauge(
+            "tapestry.mob_ai.cursor_lag",
+            () => new[] { new Measurement<int>(sampler()) },
+            description: "Mobs deferred by the mob-ai tick budget in the latest sweep");
     }
 }
