@@ -4,6 +4,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using JintEngine = Jint.Engine;
 
@@ -13,11 +14,13 @@ public class RacesModule : IJintApiModule
 {
     private readonly RaceRegistry _registry;
     private readonly World _world;
+    private readonly RegistrationPolicy _registrationPolicy;
 
-    public RacesModule(RaceRegistry registry, World world)
+    public RacesModule(RaceRegistry registry, World world, RegistrationPolicy registrationPolicy)
     {
         _registry = registry;
         _world = world;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "races";
@@ -41,6 +44,14 @@ public class RacesModule : IJintApiModule
                 var packNameVal = engine.GetValue("__currentPack");
                 var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
                     ? packNameVal.ToString() : "";
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 var caps = new Dictionary<StatType, int>();
                 var capsVal = obj.Get("stat_caps");
@@ -87,7 +98,7 @@ public class RacesModule : IJintApiModule
                 var startingAlignment = startingAlignmentVal.Type == Types.Number
                     ? (int)(double)startingAlignmentVal.ToObject()! : 0;
 
-                _registry.Register(new RaceDefinition
+                var raceDef = new RaceDefinition
                 {
                     Id = id,
                     Name = name,
@@ -100,7 +111,18 @@ public class RacesModule : IJintApiModule
                     Description = description,
                     RaceCategory = raceCategory,
                     StartingAlignment = startingAlignment
-                });
+                };
+
+                // Declarative: the registry write replays at Resolve() (the seal barrier),
+                // turning the silent priority-wins clobber into a located boot error.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "race",
+                    Name: id,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _registry.Register(raceDef),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             get = new Func<string, object?>(id =>

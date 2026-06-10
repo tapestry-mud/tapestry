@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Modules;
@@ -9,7 +10,9 @@ namespace Tapestry.Scripting.Tests.Modules;
 
 public class RacesModuleTests
 {
-    private (JintRuntime rt, RaceRegistry reg, World world) BuildRuntime()
+    // register() defers the registry write to the RegistrationPolicy seal barrier;
+    // tests that register via JS call policy.Resolve() before reading back.
+    private (JintRuntime rt, RaceRegistry reg, World world, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -18,13 +21,14 @@ public class RacesModuleTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<RaceRegistry>(), provider.GetRequiredService<World>());
+        return (rt, provider.GetRequiredService<RaceRegistry>(), provider.GetRequiredService<World>(),
+                provider.GetRequiredService<RegistrationPolicy>());
     }
 
     [Fact]
     public void Register_StoresRaceInRegistry()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.races.register({
                 id: 'elf',
@@ -34,6 +38,7 @@ public class RacesModuleTests
                 racial_flags: ['resist_poison', 'regen']
             });
         ");
+        policy.Resolve();
         var def = reg.Get("elf");
         Assert.NotNull(def);
         Assert.Equal(25, def!.StatCaps[StatType.Strength]);
@@ -44,7 +49,7 @@ public class RacesModuleTests
     [Fact]
     public void SetRace_StoresRacePropertyAndAppliesFlags()
     {
-        var (rt, reg, world) = BuildRuntime();
+        var (rt, reg, world, _) = BuildRuntime();
         reg.Register(new RaceDefinition
         {
             Id = "elf",
@@ -62,7 +67,7 @@ public class RacesModuleTests
     [Fact]
     public void Get_ReturnsNullForUnknown()
     {
-        var (rt, _, _) = BuildRuntime();
+        var (rt, _, _, _) = BuildRuntime();
         var result = rt.Evaluate("tapestry.races.get('missing')");
         Assert.True(result == null || result.ToString() == "null");
     }
@@ -70,7 +75,7 @@ public class RacesModuleTests
     [Fact]
     public void Register_PersistsNewFields()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.races.register({
                 id: 'elf',
@@ -84,6 +89,7 @@ public class RacesModuleTests
                 racial_flags: ['resist_poison']
             });
         ");
+        policy.Resolve();
         var def = reg.Get("elf");
         Assert.NotNull(def);
         Assert.Equal("Shadowspawn, natural resist", def!.Tagline);
@@ -95,7 +101,7 @@ public class RacesModuleTests
     [Fact]
     public void GetAll_IncludesTaglineAndDescription()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, _) = BuildRuntime();
         reg.Register(new RaceDefinition
         {
             Id = "human",
