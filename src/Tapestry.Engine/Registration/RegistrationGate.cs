@@ -25,7 +25,7 @@ public sealed class RegistrationGate
 
     public void AssertCommitScope(string kind, string name)
     {
-        if (_armed && _commitDepth == 0)
+        if (_armed && _commitDepth <= 0)
         {
             throw new InvalidOperationException(
                 $"{kind} '{name}': direct registry write bypasses RegistrationPolicy. " +
@@ -36,8 +36,17 @@ public sealed class RegistrationGate
 
     private sealed class CommitScope(RegistrationGate gate) : IDisposable
     {
+        private bool _disposed;
+
         public void Dispose()
         {
+            // A double-dispose would underflow the depth and silently disarm the wall
+            // for every later legitimate scope. Make the scope idempotent instead.
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
             gate._commitDepth--;
         }
     }
