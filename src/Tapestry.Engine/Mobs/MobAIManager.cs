@@ -128,6 +128,7 @@ public class MobAIManager
         // player-active areas and take their npc contents, instead of scanning every
         // entity in the world. Ordered by entity id: the stable ordering the
         // round-robin cursor resumes against.
+        var tickStart = _time.GetTimestamp();
         var scanStart = _time.GetTimestamp();
         var npcs = _world.AllRooms
             .Where(r => _activeAreas.Contains(GetAreaFromRoomId(r.Id)))
@@ -140,7 +141,6 @@ public class MobAIManager
         // overshoot is bounded by the invocation cap), minimum one mob per tick so
         // the sweep always makes progress. Deferred mobs resume here next tick --
         // uniform staleness across the world.
-        var tickStart = _time.GetTimestamp();
         var budgetTicks = _budget.TickBudgetMs * _time.TimestampFrequency / 1000;
 
         var start = 0;
