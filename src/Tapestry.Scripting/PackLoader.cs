@@ -513,7 +513,7 @@ public class PackLoader : IPackManifestProvider
                         Owner: packNamespace,
                         IsOverride: entry.Override,
                         Commit: () => _theme.Register(tag, new ThemeEntry { Fg = fg, Bg = bg }),
-                        SourceFile: file,
+                        SourceFile: Path.GetRelativePath(packDir, file).Replace('\\', '/'),
                         Line: 0));
                     _logger.LogDebug("  Theme: {Tag}", tag);
                 }
@@ -584,7 +584,7 @@ public class PackLoader : IPackManifestProvider
                 Owner: packNamespace,
                 IsOverride: slotDef.Override,
                 Commit: () => _slotRegistry.RegisterPackSlot(packNamespace, name, display, max),
-                SourceFile: fullPath,
+                SourceFile: path.Replace('\\', '/'),
                 Line: 0));
             _logger.LogDebug("  Slot: {Name} (max {Max})", slotDef.Name, slotDef.Max);
         }

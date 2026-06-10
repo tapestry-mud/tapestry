@@ -301,6 +301,10 @@ public class GameLoopService : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
+        // Post-seal boot sequence -- ORDER MATTERS. Resolve (the seal) -> compile themes ->
+        // wire ability commands -> validate packs -> HelpSeal -> seed players -> initial
+        // spawns -> run loop. Each step's comment carries its individual constraints;
+        // insert new steps with the same care.
         _registrationPolicy.Resolve();
         // Theme compile AFTER the seal: theme tags (theme.register / theme.yaml, plus the
         // rarity/essence item.*/essence.* side-effects) only commit to ThemeRegistry at
