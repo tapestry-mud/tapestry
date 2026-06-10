@@ -189,4 +189,68 @@ public class CommandRegistryTests
             Assert.NotNull(result);
         }
     }
+
+    // ── #98: role-aware resolution ─────────────────────────────────────────
+    // Election must filter by actor type FIRST, then pick the winner. The old order
+    // (elect globally, role-filter after) let an eagerly-registered mob-only verb win
+    // the keyword and then fail the player's role check -> "Huh?" for players.
+
+    [Fact]
+    public void Resolve_PlayerSource_SkipsMobOnlyRegistration_EvenWhenRegisteredFirst()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["mob"], packName: "tapestry-core");
+        registry.Register("say", _ => { }, roles: ["player", "mob"], packName: "tapestry-core");
+        var reg = registry.Resolve("say", "player");
+        reg.Should().NotBeNull();
+        reg!.Roles.Should().Contain("player");
+    }
+
+    [Fact]
+    public void Resolve_MobSource_PrefersMobSpecificRegistration_RegardlessOfOrder()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["player", "mob"]);
+        registry.Register("say", _ => { }, roles: ["mob"]);
+        var reg = registry.Resolve("say", "mob");
+        reg.Should().NotBeNull();
+        reg!.Roles.Should().BeEquivalentTo(new[] { "mob" }); // specificity beats breadth
+    }
+
+    [Fact]
+    public void Resolve_MobSource_PrefersMobSpecific_WhenMobRegisteredFirst()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["mob"]);
+        registry.Register("say", _ => { }, roles: ["player", "mob"]);
+        registry.Resolve("say", "mob")!.Roles.Should().BeEquivalentTo(new[] { "mob" }); // order-independent
+    }
+
+    [Fact]
+    public void Resolve_RoleBlockedExactMatch_FallsThroughToPrefix()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("sa", _ => { }, roles: ["mob"]);
+        registry.Register("salute", _ => { }, roles: ["player"]);
+        var reg = registry.Resolve("sa", "player");
+        reg.Should().NotBeNull();
+        reg!.Keyword.Should().Be("salute");
+    }
+
+    [Fact]
+    public void Resolve_PlayerSource_AliasOnPlayerRegistration_StillResolves()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["mob"]);
+        registry.Register("say", _ => { }, aliases: ["'"], roles: ["player", "mob"]);
+        registry.Resolve("'", "player").Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Resolve_RoleBlind_SingleArg_ContractUnchanged()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["mob"]);
+        registry.Resolve("say").Should().NotBeNull(); // role-blind callers (HelpSeal, validators) see everything
+    }
 }

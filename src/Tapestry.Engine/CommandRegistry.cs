@@ -107,12 +107,55 @@ public class CommandRegistry
 
     public CommandRegistration? Resolve(string keyword, string? source)
     {
+        if (source == null)
         {
-            if (source == null) { return Resolve(keyword); }
-            var registration = Resolve(keyword);
-            if (registration == null) { return null; }
-            return MatchesSource(registration, source) ? registration : null;
+            return Resolve(keyword);
         }
+
+        // Role-aware resolution filters the candidate set by actor type BEFORE electing a
+        // winner. Electing first and filtering after let an eagerly-registered mob-only verb
+        // win the keyword and then fail the player's role check (tapestry#98).
+        // 1. Exact match (includes explicit aliases)
+        if (_commands.TryGetValue(keyword, out var registrations))
+        {
+            var winner = ElectWinner(registrations, source);
+            if (winner != null)
+            {
+                return winner;
+            }
+            // Keyword exists but nothing is eligible for this actor type; fall through to
+            // prefix matching like any other unresolved token.
+        }
+
+        // 2. Prefix match against primary keywords only
+        var prefixMatches = new List<CommandRegistration>();
+        foreach (var (key, regs) in _commands)
+        {
+            if (key.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                // Only match against primary keywords, not aliases
+                foreach (var reg in regs)
+                {
+                    if (reg.Keyword.StartsWith(keyword, StringComparison.OrdinalIgnoreCase)
+                        && MatchesSource(reg, source))
+                    {
+                        prefixMatches.Add(reg);
+                    }
+                }
+            }
+        }
+
+        return prefixMatches.Count > 0 ? ElectWinner(prefixMatches, source) : null;
+    }
+
+    private static CommandRegistration? ElectWinner(IEnumerable<CommandRegistration> regs, string source)
+    {
+        return regs
+            .Where(r => MatchesSource(r, source))
+            .OrderByDescending(r => r.Priority)
+            .ThenBy(r => r.Roles.Length)        // actor-type specificity: ["mob"] beats ["player","mob"] for mobs
+            .ThenBy(r => r.RegistrationOrder)
+            .FirstOrDefault();
     }
 
     private static bool MatchesSource(CommandRegistration reg, string source)
