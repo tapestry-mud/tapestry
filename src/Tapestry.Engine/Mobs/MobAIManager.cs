@@ -35,6 +35,12 @@ public class MobAIManager
     private readonly TimeProvider _time;
     private readonly MobAiSection _budget;
 
+    private Guid? _cursor;
+    private int _cursorLag;
+
+    /// <summary>Mobs deferred to the next tick by the latest sweep's budget (0 = full sweep).</summary>
+    public int CurrentCursorLag => _cursorLag;
+
     public MobAIManager(World world, EventBus eventBus, CombatManager combat,
         DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger,
         TapestryMetrics metrics, RegistrationGate? gate = null,
@@ -49,6 +55,7 @@ public class MobAIManager
         _gate = gate;
         _budget = config?.MobAi ?? new MobAiSection();
         _time = time ?? TimeProvider.System;
+        metrics.RegisterMobAiCursorLag(() => _cursorLag);
     }
 
     public void RegisterBehavior(string name, Action<MobContext> handler)
@@ -129,78 +136,116 @@ public class MobAIManager
             .ToList();
         var scanTicks = _time.GetTimestamp() - scanStart;
 
-        foreach (var entity in npcs)
+        // Round-robin from the cursor: budget checked BETWEEN mobs (a single mob's
+        // overshoot is bounded by the invocation cap), minimum one mob per tick so
+        // the sweep always makes progress. Deferred mobs resume here next tick --
+        // uniform staleness across the world.
+        var tickStart = _time.GetTimestamp();
+        var budgetTicks = _budget.TickBudgetMs * _time.TimestampFrequency / 1000;
+
+        var start = 0;
+        if (_cursor is { } cursor)
         {
-            if (entity.LocationRoomId == null)
+            start = npcs.FindIndex(e => e.Id.CompareTo(cursor) > 0);
+            if (start < 0)
             {
-                continue;
+                start = 0;
             }
+        }
 
-            var behavior = entity.GetProperty<string>(MobProperties.Behavior);
-
-            if (behavior != null && !TryFlee(entity))
+        var processed = 0;
+        for (var i = 0; i < npcs.Count; i++)
+        {
+            if (processed > 0 && _time.GetTimestamp() - tickStart >= budgetTicks)
             {
-                if (_behaviors.TryGetValue(behavior, out var handler))
-                {
-                    var context = new MobContext
-                    {
-                        EntityId = entity.Id,
-                        Name = entity.Name,
-                        RoomId = entity.LocationRoomId,
-                        Behavior = behavior
-                    };
-                    var behaviorStart = _time.GetTimestamp();
-                    try
-                    {
-                        handler(context);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex,
-                            "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
-                            entity.Id, entity.Name, behavior);
-                    }
-                    behaviorTicks += _time.GetTimestamp() - behaviorStart;
-                }
-
-                // Publish even if no handler is registered: mob.ai.tick signals the mob was
-                // considered this tick, regardless of whether a behavior handler ran.
-                var publishStart = _time.GetTimestamp();
-                _eventBus.Publish(new GameEvent
-                {
-                    Type = "mob.ai.tick",
-                    SourceEntityId = entity.Id,
-                    RoomId = entity.LocationRoomId,
-                    Data = new Dictionary<string, object?>
-                    {
-                        ["entityId"] = entity.Id.ToString(),
-                        ["name"] = entity.Name,
-                        ["roomId"] = entity.LocationRoomId,
-                        ["behavior"] = behavior
-                    }
-                });
-                publishTicks += _time.GetTimestamp() - publishStart;
+                _metrics.MobAiBudgetExhausted.Add(1);
+                break;
             }
+            var entity = npcs[(start + i) % npcs.Count];
+            ProcessMob(entity, ref behaviorTicks, ref publishTicks, ref dispositionTicks);
+            processed++;
+            _cursor = entity.Id;
+        }
 
-            if (entity.DispositionRules != null)
-            {
-                var dispositionStart = _time.GetTimestamp();
-                var room = _world.GetRoom(entity.LocationRoomId);
-                if (room != null)
-                {
-                    foreach (var player in room.Entities.Where(e => e.Type == EntityTypes.Player).ToList())
-                    {
-                        _dispositionEvaluator.EvaluateForMob(entity, player);
-                    }
-                }
-                dispositionTicks += _time.GetTimestamp() - dispositionStart;
-            }
+        _cursorLag = npcs.Count - processed;
+        if (processed == npcs.Count)
+        {
+            _cursor = null;
         }
 
         RecordPhase("scan", scanTicks);
         RecordPhase("behavior", behaviorTicks);
         RecordPhase("publish", publishTicks);
         RecordPhase("disposition", dispositionTicks);
+    }
+
+    private void ProcessMob(Entity entity, ref long behaviorTicks, ref long publishTicks,
+        ref long dispositionTicks)
+    {
+        if (entity.LocationRoomId == null)
+        {
+            return;
+        }
+
+        var behavior = entity.GetProperty<string>(MobProperties.Behavior);
+
+        if (behavior != null && !TryFlee(entity))
+        {
+            if (_behaviors.TryGetValue(behavior, out var handler))
+            {
+                var context = new MobContext
+                {
+                    EntityId = entity.Id,
+                    Name = entity.Name,
+                    RoomId = entity.LocationRoomId,
+                    Behavior = behavior
+                };
+                var behaviorStart = _time.GetTimestamp();
+                try
+                {
+                    handler(context);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
+                        entity.Id, entity.Name, behavior);
+                }
+                behaviorTicks += _time.GetTimestamp() - behaviorStart;
+            }
+
+            // Publish even if no handler is registered: mob.ai.tick signals the mob was
+            // considered this tick, regardless of whether a behavior handler ran.
+            var publishStart = _time.GetTimestamp();
+            _eventBus.Publish(new GameEvent
+            {
+                Type = "mob.ai.tick",
+                SourceEntityId = entity.Id,
+                RoomId = entity.LocationRoomId,
+                Data = new Dictionary<string, object?>
+                {
+                    ["entityId"] = entity.Id.ToString(),
+                    ["name"] = entity.Name,
+                    ["roomId"] = entity.LocationRoomId,
+                    ["behavior"] = behavior
+                }
+            });
+            publishTicks += _time.GetTimestamp() - publishStart;
+        }
+
+        if (entity.DispositionRules != null)
+        {
+            var dispositionStart = _time.GetTimestamp();
+            var room = _world.GetRoom(entity.LocationRoomId);
+            if (room != null)
+            {
+                foreach (var player in room.Entities.Where(e => e.Type == EntityTypes.Player).ToList())
+                {
+                    _dispositionEvaluator.EvaluateForMob(entity, player);
+                }
+            }
+            dispositionTicks += _time.GetTimestamp() - dispositionStart;
+        }
     }
 
     private void RecordPhase(string phase, long elapsedTicks)

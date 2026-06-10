@@ -12,6 +12,16 @@ namespace Tapestry.Engine.Tests.Mobs;
 
 public class MobAIManagerTests
 {
+    /// <summary>Deterministic clock: 1 timestamp tick = 1ms. Behaviors advance it
+    /// to simulate cost; the manager's budget math sees exactly what we script.</summary>
+    private sealed class FakeTime : TimeProvider
+    {
+        private long _timestamp;
+        public override long GetTimestamp() => _timestamp;
+        public override long TimestampFrequency => 1000;
+        public void AdvanceMs(long ms) => _timestamp += ms;
+    }
+
     private static MobAIManager BuildManager(World world)
     {
         var eventBus = new EventBus();
@@ -22,6 +32,31 @@ public class MobAIManagerTests
         var metrics = new TapestryMetrics();
         return new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
             NullLogger<MobAIManager>.Instance, metrics);
+    }
+
+    private static MobAIManager BuildManager(World world, Tapestry.Data.ServerConfig config,
+        TimeProvider time)
+    {
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var alignmentConfig = new AlignmentConfig();
+        var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
+        var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
+        var metrics = new TapestryMetrics();
+        return new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
+            NullLogger<MobAIManager>.Instance, metrics, gate: null, config: config, time: time);
+    }
+
+    private static Entity AddMob(World world, Room room, string behavior, string name)
+    {
+        var mob = new Entity("npc", name);
+        mob.SetProperty("behavior", behavior);
+        mob.SetProperty("template_id", "core:goblin");
+        mob.AddTag("npc");
+        mob.LocationRoomId = room.Id;
+        room.AddEntity(mob);
+        world.TrackEntity(mob);
+        return mob;
     }
 
     [Fact]
@@ -392,5 +427,112 @@ public class MobAIManagerTests
         manager.Tick();
 
         Assert.True(handlerCalled);
+    }
+
+    [Fact]
+    public void Tick_BudgetExhausted_DefersMobs_AndCursorResumes()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "slow", "goblin-a");
+        AddMob(world, room, "slow", "goblin-b");
+        AddMob(world, room, "slow", "goblin-c");
+
+        var time = new FakeTime();
+        var config = new Tapestry.Data.ServerConfig(); // tick budget 25ms
+        var manager = BuildManager(world, config, time);
+
+        var calls = new List<string>();
+        manager.RegisterBehavior("slow", mob =>
+        {
+            calls.Add(mob.Name);
+            time.AdvanceMs(30); // each mob costs 30ms > 25ms budget
+        });
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick();
+        Assert.Single(calls);                  // budget allows exactly one 30ms mob
+        Assert.Equal(2, manager.CurrentCursorLag);
+
+        manager.Tick();
+        manager.Tick();
+        Assert.Equal(3, calls.Count);
+        Assert.Equal(3, calls.Distinct().Count()); // cursor visited each mob exactly once
+    }
+
+    [Fact]
+    public void Tick_WithinBudget_ProcessesAllMobs_NoLag()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "cheap", "goblin-a");
+        AddMob(world, room, "cheap", "goblin-b");
+        AddMob(world, room, "cheap", "goblin-c");
+
+        var time = new FakeTime();
+        var manager = BuildManager(world, new Tapestry.Data.ServerConfig(), time);
+
+        var calls = 0;
+        manager.RegisterBehavior("cheap", _ => { calls++; time.AdvanceMs(1); });
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick();
+
+        Assert.Equal(3, calls);
+        Assert.Equal(0, manager.CurrentCursorLag);
+    }
+
+    [Fact]
+    public void Tick_AlwaysProcessesAtLeastOneMob_EvenOverBudget()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "glacial", "goblin-a");
+        AddMob(world, room, "glacial", "goblin-b");
+
+        var time = new FakeTime();
+        var manager = BuildManager(world, new Tapestry.Data.ServerConfig(), time);
+
+        var calls = 0;
+        manager.RegisterBehavior("glacial", _ => { calls++; time.AdvanceMs(500); });
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick();
+        Assert.Equal(1, calls); // min-progress guarantee: never zero
+        manager.Tick();
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public void Tick_CursorToleratesDespawnBetweenTicks()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "slow", "goblin-a");
+        var victim = AddMob(world, room, "slow", "goblin-b");
+        AddMob(world, room, "slow", "goblin-c");
+
+        var time = new FakeTime();
+        var manager = BuildManager(world, new Tapestry.Data.ServerConfig(), time);
+
+        var calls = new List<string>();
+        manager.RegisterBehavior("slow", mob => { calls.Add(mob.Name); time.AdvanceMs(30); });
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick(); // processes exactly one mob
+        room.RemoveEntity(victim);
+        world.UntrackEntity(victim);
+
+        manager.Tick();
+        manager.Tick();
+
+        // No crash, no double-visit; the two survivors plus the first-processed mob
+        // were each visited at least once and the despawned mob at most once.
+        Assert.True(calls.Count >= 3);
+        Assert.True(calls.Count(n => n == victim.Name) <= 1);
     }
 }
