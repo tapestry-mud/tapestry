@@ -78,7 +78,9 @@ public class MobCommandOverrideTests
         rt.Execute("tapestry.mobs.registerCommand('say', { override: true, handler: function(mob, text) {} });",
             "pack-b", "scripts/b.js");
         policy.Resolve();
-        reg.Resolve("say", "mob").Should().NotBeNull();
+        var winner = reg.Resolve("say", "mob");
+        winner.Should().NotBeNull();
+        winner!.PackName.Should().Be("pack-b"); // winner identity, not just survival
     }
 
     [Fact]

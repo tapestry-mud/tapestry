@@ -162,6 +162,8 @@ public class MobsModule : IJintApiModule
                                     _logger.LogError(ex, "Mob command '{Verb}' dispatch error", verb);
                                 }
                             },
+                            packName: packName,
+                            sourceFile: sourceFile,
                             roles: ["mob"]
                         );
                     },
