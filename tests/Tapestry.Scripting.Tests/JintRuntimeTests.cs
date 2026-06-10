@@ -266,7 +266,7 @@ public class JintRuntimeTests
             new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
-            new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
+            new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
