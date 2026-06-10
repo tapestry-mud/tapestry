@@ -1,3 +1,4 @@
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -27,7 +28,13 @@ public class CommandRegistration
 public class CommandRegistry
 {
     private readonly Dictionary<string, List<CommandRegistration>> _commands = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
     private int _nextOrder;
+
+    public CommandRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     public void Register(
         string keyword,
@@ -43,6 +50,7 @@ public class CommandRegistry
         Dictionary<string, ArgDefinition>? argDefinitions = null,
         GmcpConfig? gmcp = null)
     {
+        _gate?.AssertCommitScope("command", keyword);
         {
             var registration = new CommandRegistration
             {

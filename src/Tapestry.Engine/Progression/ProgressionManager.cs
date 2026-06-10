@@ -1,4 +1,5 @@
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Progression;
@@ -8,11 +9,13 @@ public class ProgressionManager : IQuestProgressionService
     private readonly World _world;
     private readonly EventBus _eventBus;
     private readonly Dictionary<string, TrackDefinition> _tracks = new();
+    private readonly RegistrationGate? _gate;
 
-    public ProgressionManager(World world, EventBus eventBus)
+    public ProgressionManager(World world, EventBus eventBus, RegistrationGate? gate = null)
     {
         _world = world;
         _eventBus = eventBus;
+        _gate = gate;
     }
 
     /// <summary>
@@ -21,6 +24,7 @@ public class ProgressionManager : IQuestProgressionService
     /// </summary>
     public void RegisterTrack(TrackDefinition track)
     {
+        _gate?.AssertCommitScope("progression-track", track.Name);
         _tracks[track.Name] = track;
     }
 

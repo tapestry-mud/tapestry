@@ -3,6 +3,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Prompt;
+using Tapestry.Engine.Registration;
 using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Modules;
@@ -16,6 +17,7 @@ public class PersistenceModule : IGameModule
     private readonly World _world;
     private readonly LoginHandler _loginHandler;
     private readonly ServerConfig _config;
+    private readonly RegistrationGate? _gate;
 
     public string Name => "Persistence";
 
@@ -26,7 +28,8 @@ public class PersistenceModule : IGameModule
         AccountService accountService,
         World world,
         LoginHandler loginHandler,
-        ServerConfig config)
+        ServerConfig config,
+        RegistrationGate? gate = null)
     {
         _commandRegistry = commandRegistry;
         _sessions = sessions;
@@ -35,10 +38,17 @@ public class PersistenceModule : IGameModule
         _world = world;
         _loginHandler = loginHandler;
         _config = config;
+        _gate = gate;
     }
 
     public void Configure()
     {
+        // Kernel-sanctioned write scope: this module's Configure runs AFTER
+        // ContentLoadingModule (module registration order in Program.cs), i.e. after the
+        // gate arms during pack loading. These are C# kernel commands that intentionally
+        // coexist with same-keyword pack commands and win by priority -- routing them
+        // through the RegistrationPolicy would turn that into a collision boot error.
+        using var scope = _gate?.EnterCommitScope();
         _commandRegistry.Register("save", (ctx) =>
         {
             var session = _sessions.GetByEntityId(ctx.EntityId);

@@ -4,6 +4,7 @@ using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Registration;
 
 using JintEngine = Jint.Engine;
 
@@ -23,13 +24,15 @@ public class QuestScriptLoader : IQuestScriptLoader
     private readonly Dictionary<string, QuestScriptHooks> _scripts = new();
     private readonly World _world;
     private readonly ILogger<QuestScriptLoader> _logger;
+    private readonly RegistrationGate? _gate;
 
     internal JintEngine? JintEngine { get; set; }
 
-    public QuestScriptLoader(World world, ILogger<QuestScriptLoader> logger)
+    public QuestScriptLoader(World world, ILogger<QuestScriptLoader> logger, RegistrationGate? gate = null)
     {
         _world = world;
         _logger = logger;
+        _gate = gate;
     }
 
     /// <summary>
@@ -38,6 +41,7 @@ public class QuestScriptLoader : IQuestScriptLoader
     /// </summary>
     public void Register(string questId, JsValue hooksObj, string pack = "")
     {
+        _gate?.AssertCommitScope("quest-hook", questId);
         if (hooksObj is not ObjectInstance obj)
         {
             return;

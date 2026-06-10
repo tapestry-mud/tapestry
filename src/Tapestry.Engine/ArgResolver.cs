@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -9,16 +10,19 @@ public class ArgResolver
     private readonly VisibilityFilter _visibility;
     private readonly DoorService _doors;
     private readonly ILogger<ArgResolver> _logger;
+    private readonly RegistrationGate? _gate;
 
     private readonly Dictionary<string, Func<ActorContext, ArgDefinition, string, (bool, object?, string?)>> _engineTypes;
     private readonly Dictionary<string, Func<ActorContext, ArgDefinition, string, (bool, object?, string?)>> _packTypes = new(StringComparer.OrdinalIgnoreCase);
 
-    public ArgResolver(World world, VisibilityFilter visibility, DoorService doors, ILogger<ArgResolver> logger)
+    public ArgResolver(World world, VisibilityFilter visibility, DoorService doors, ILogger<ArgResolver> logger,
+        RegistrationGate? gate = null)
     {
         _world = world;
         _visibility = visibility;
         _doors = doors;
         _logger = logger;
+        _gate = gate;
         _engineTypes = BuildEngineTypes();
     }
 
@@ -43,6 +47,7 @@ public class ArgResolver
 
     public void RegisterPackType(string name, string owner, Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> resolver)
     {
+        _gate?.AssertCommitScope("arg-type", name);
         if (_engineTypes.ContainsKey(name))
         {
             _logger.LogWarning("Pack '{Owner}' attempted to override engine arg type '{Name}' -- ignored.", owner, name);

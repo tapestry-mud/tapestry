@@ -44,6 +44,7 @@ public class PackLoader : IPackManifestProvider
     private readonly InteropCallSiteRegistry _callSites;
     private readonly LoadedPackNamespaces _loadedNamespaces;
     private readonly RegistrationPolicy _registrationPolicy;
+    private readonly RegistrationGate? _registrationGate;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -65,8 +66,10 @@ public class PackLoader : IPackManifestProvider
                      ScheduleModule scheduleModule,
                      InteropCallSiteRegistry callSites,
                      LoadedPackNamespaces loadedNamespaces,
-                     RegistrationPolicy registrationPolicy)
+                     RegistrationPolicy registrationPolicy,
+                     RegistrationGate? registrationGate = null)
     {
+        _registrationGate = registrationGate;
         _world = world;
         _slotRegistry = slotRegistry;
         _runtime = runtime;
@@ -95,6 +98,12 @@ public class PackLoader : IPackManifestProvider
 
     public PackManifest LoadDeclarations(string packDirectory)
     {
+        // Pack loading is starting: arm the gate. From here on, any policy-guarded registry
+        // write outside a RegistrationPolicy commit scope is a boot error (the structural
+        // wall against the v0.1.20 mobs.registerCommand-style bypass, tapestry#98).
+        // Idempotent -- the first pack of the pass arms it for the whole boot.
+        _registrationGate?.Arm();
+
         // A pack must load from a real directory. Guard at the source so a missing
         // path can never produce a manifest with an empty PackDirectory (which would
         // silently disable seed loading downstream).
@@ -167,6 +176,10 @@ public class PackLoader : IPackManifestProvider
 
     public void LoadContent(string packDirectory, PackManifest manifest)
     {
+        // Defense in depth: the Server flow arms in LoadDeclarations, but a caller that
+        // jumps straight to content/scripts must still get the wall. Idempotent.
+        _registrationGate?.Arm();
+
         if (!manifest.Active) { return; }
 
         var packNamespace = PackNamespace(manifest.Name);

@@ -1,8 +1,16 @@
+using Tapestry.Engine.Registration;
+
 namespace Tapestry.Engine.Abilities;
 
 public class AbilityRegistry
 {
     private readonly Dictionary<string, AbilityDefinition> _abilities = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
+
+    public AbilityRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     /// <summary>
     /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
@@ -11,6 +19,7 @@ public class AbilityRegistry
     /// </summary>
     public void Register(AbilityDefinition definition)
     {
+        _gate?.AssertCommitScope("ability", definition.Id);
         _abilities[definition.Id] = definition;
     }
 

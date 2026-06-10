@@ -1,8 +1,16 @@
+using Tapestry.Engine.Registration;
+
 namespace Tapestry.Engine.Races;
 
 public class RaceRegistry
 {
     private readonly Dictionary<string, RaceDefinition> _races = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
+
+    public RaceRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     /// <summary>
     /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
@@ -11,6 +19,7 @@ public class RaceRegistry
     /// </summary>
     public void Register(RaceDefinition definition)
     {
+        _gate?.AssertCommitScope("race", definition.Id);
         _races[definition.Id] = definition;
     }
 

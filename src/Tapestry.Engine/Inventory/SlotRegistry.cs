@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Tapestry.Engine.Registration;
 
 namespace Tapestry.Engine.Inventory;
 
@@ -11,6 +12,12 @@ public class SlotRegistry
     // parallel list that kept the first -- GetSlot and AllSlots disagreed after a duplicate.)
     private readonly Dictionary<string, SlotDefinition> _byName = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _order = new();
+    private readonly RegistrationGate? _gate;
+
+    public SlotRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     public void RegisterEngineSlot(string name, string display, int max)
     {
@@ -31,6 +38,7 @@ public class SlotRegistry
 
     private void Add(SlotDefinition slot)
     {
+        _gate?.AssertCommitScope("slot", slot.Name);
         // Replace-in-place keeps the original order position; a new name appends.
         if (!_byName.ContainsKey(slot.Name))
         {

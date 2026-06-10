@@ -1,5 +1,6 @@
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -22,6 +23,7 @@ public class AbilityCommandBridge
     private readonly CombatManager _combat;
     private readonly SessionManager _sessions;
     private readonly GameLoop _gameLoop;
+    private readonly RegistrationGate? _gate;
 
     public AbilityCommandBridge(
         AbilityRegistry abilities,
@@ -30,7 +32,8 @@ public class AbilityCommandBridge
         World world,
         CombatManager combat,
         SessionManager sessions,
-        GameLoop gameLoop)
+        GameLoop gameLoop,
+        RegistrationGate? gate = null)
     {
         _abilities = abilities;
         _proficiency = proficiency;
@@ -39,10 +42,19 @@ public class AbilityCommandBridge
         _combat = combat;
         _sessions = sessions;
         _gameLoop = gameLoop;
+        _gate = gate;
     }
 
     public void WireAll()
     {
+        // Kernel-sanctioned post-seal write scope, NOT a RegistrationPolicy route. The
+        // bridge's auto-generated commands intentionally COEXIST with same-keyword pack
+        // commands and lose to them by priority (the documented shadowing seam above --
+        // e.g. @tapestry/core registers a priority-1 `rescue` command shadowing the
+        // bridge's `rescue` ability command). Routing these Records through the policy
+        // would turn that sanctioned shadowing into a collision boot error on the live
+        // corpus, so the bridge writes directly inside an explicit commit scope instead.
+        using var scope = _gate?.EnterCommitScope();
         foreach (var ability in _abilities.GetAll())
         {
             if (ability.Type != AbilityType.Active) { continue; }

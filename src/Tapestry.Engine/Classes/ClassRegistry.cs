@@ -1,8 +1,16 @@
+using Tapestry.Engine.Registration;
+
 namespace Tapestry.Engine.Classes;
 
 public class ClassRegistry
 {
     private readonly Dictionary<string, ClassDefinition> _classes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
+
+    public ClassRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     /// <summary>
     /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
@@ -11,6 +19,7 @@ public class ClassRegistry
     /// </summary>
     public void Register(ClassDefinition definition)
     {
+        _gate?.AssertCommitScope("class", definition.Id);
         _classes[definition.Id] = definition;
     }
 

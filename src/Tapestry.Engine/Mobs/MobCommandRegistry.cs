@@ -1,5 +1,6 @@
 // src/Tapestry.Engine/Mobs/MobCommandRegistry.cs
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Mobs;
@@ -10,16 +11,20 @@ public class MobCommandRegistry
     private readonly World _world;
     private readonly EventBus _eventBus;
     private readonly ILogger<MobCommandRegistry> _logger;
+    private readonly RegistrationGate? _gate;
 
-    public MobCommandRegistry(World world, EventBus eventBus, ILogger<MobCommandRegistry> logger)
+    public MobCommandRegistry(World world, EventBus eventBus, ILogger<MobCommandRegistry> logger,
+        RegistrationGate? gate = null)
     {
         _world = world;
         _eventBus = eventBus;
         _logger = logger;
+        _gate = gate;
     }
 
     public void Register(string verb, MobCommandRegistration registration)
     {
+        _gate?.AssertCommitScope("mob-command", verb);
         _commands[verb.ToLower()] = registration;
     }
 
