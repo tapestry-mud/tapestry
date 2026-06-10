@@ -15,6 +15,10 @@ public class ProgressionManager : IQuestProgressionService
         _eventBus = eventBus;
     }
 
+    /// <summary>
+    /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
+    /// time a write lands here, the policy has already elected the winner.
+    /// </summary>
     public void RegisterTrack(TrackDefinition track)
     {
         _tracks[track.Name] = track;

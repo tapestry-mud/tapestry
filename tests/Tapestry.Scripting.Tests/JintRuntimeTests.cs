@@ -269,7 +269,7 @@ public class JintRuntimeTests
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
-            new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
+            new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry()),
         };

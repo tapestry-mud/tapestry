@@ -4,6 +4,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Progression;
+using Tapestry.Engine.Registration;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
@@ -11,11 +12,14 @@ namespace Tapestry.Scripting.Modules;
 public class ProgressionModule : IJintApiModule
 {
     private readonly ProgressionManager _progression;
+    private readonly RegistrationPolicy _registrationPolicy;
     private readonly ILogger<ProgressionModule> _logger;
 
-    public ProgressionModule(ProgressionManager progression, ILogger<ProgressionModule> logger)
+    public ProgressionModule(ProgressionManager progression, RegistrationPolicy registrationPolicy,
+        ILogger<ProgressionModule> logger)
     {
         _progression = progression;
+        _registrationPolicy = registrationPolicy;
         _logger = logger;
     }
 
@@ -34,6 +38,14 @@ public class ProgressionModule : IJintApiModule
                 // Captured at load time (when __currentPack is valid) for the deferred
                 // xp_formula / on_level_up callbacks below — see PackScope.InvokeAsPack.
                 var packName = engine.GetValue("__currentPack").ToString();
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 int[]? xpTable = null;
                 var xpTableVal = obj.Get("xp_table");
@@ -84,8 +96,21 @@ public class ProgressionModule : IJintApiModule
                     DeathPenalty = deathPenalty
                 };
 
-                _progression.RegisterTrack(track);
-                _logger.LogInformation("Registered progression track: {TrackName} (max level {MaxLevel})", name, maxLevel);
+                // Declarative: the registry write replays at Resolve() (the seal barrier),
+                // turning the silent last-wins clobber into a located boot error. The log
+                // rides inside Commit so it only reports the elected winner.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "progression-track",
+                    Name: name,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () =>
+                    {
+                        _progression.RegisterTrack(track);
+                        _logger.LogInformation("Registered progression track: {TrackName} (max level {MaxLevel})", name, maxLevel);
+                    },
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             grant = new Action<string, int, string, string>((entityIdStr, amount, trackName, source) =>
