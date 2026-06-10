@@ -77,4 +77,30 @@ public class QuestScriptCoverageVerifierTests : IDisposable
         var ex = Assert.Throws<InvalidOperationException>(() => verifier.Verify());
         ex.Message.Should().Contain("q1").And.Contain("@test/pack").And.Contain("quests/q1.js");
     }
+
+    [Fact]
+    public void MissingScript_StrictPack_Throws()
+    {
+        // No file written -- the script: path does not exist (typo'd path = dead hook).
+        var quests = new QuestRegistry();
+        quests.Register(new QuestDefinition { Id = "q1", Script = "quests/nope.js", PackDirectory = _packDir });
+        var rt = BuildRuntime();
+        var verifier = BuildVerifier(quests, rt, validation: "strict");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => verifier.Verify());
+        ex.Message.Should().Contain("q1").And.Contain("does not exist");
+    }
+
+    [Fact]
+    public void MissingScript_LenientPack_DoesNotThrow()
+    {
+        // No file written; lenient pack warns instead of failing the boot.
+        var quests = new QuestRegistry();
+        quests.Register(new QuestDefinition { Id = "q1", Script = "quests/nope.js", PackDirectory = _packDir });
+        var rt = BuildRuntime();
+        var verifier = BuildVerifier(quests, rt, validation: "lenient");
+
+        var act = () => verifier.Verify();
+        act.Should().NotThrow("a validation: lenient pack warns on a missing script: instead of failing the boot");
+    }
 }
