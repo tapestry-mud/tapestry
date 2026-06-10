@@ -1,72 +1,41 @@
-using Microsoft.Extensions.Logging;
 using Tapestry.Contracts;
 using Tapestry.Engine.Quests;
-using Tapestry.Scripting;
 
 namespace Tapestry.Server.Modules;
 
 public class QuestStartupModule : IGameModule
 {
-    private readonly QuestRegistry _questRegistry;
     private readonly QuestObjectiveWatcher _objectiveWatcher;
-    private readonly JintRuntime _jintRuntime;
     private readonly QuestPersistenceService _persistenceService;
-    private readonly ILogger<QuestStartupModule> _logger;
+    private readonly QuestScriptCoverageVerifier _coverageVerifier;
 
     public string Name => "QuestStartup";
 
     public QuestStartupModule(
-        QuestRegistry questRegistry,
         QuestObjectiveWatcher objectiveWatcher,
-        JintRuntime jintRuntime,
         QuestPersistenceService persistenceService,
-        ILogger<QuestStartupModule> logger)
+        QuestScriptCoverageVerifier coverageVerifier)
     {
-        _questRegistry = questRegistry;
         _objectiveWatcher = objectiveWatcher;
-        _jintRuntime = jintRuntime;
         _persistenceService = persistenceService;
-        _logger = logger;
+        _coverageVerifier = coverageVerifier;
     }
 
     public void Configure()
     {
-        // Quests are loaded by PackLoader.LoadContent via the quests: glob in each pack manifest.
-        // Here we only load the JS lifecycle scripts and start persistence.
+        // Quests are loaded by PackLoader.LoadContent via the quests: glob. Quest JS lifecycle
+        // scripts are loaded by the SINGLE executor -- the pack scripts: glob (also PackLoader),
+        // with full pack/source attribution. The legacy quest `script:` field no longer drives
+        // loading; here we only assert each declared script: was actually loaded by the glob.
+        //
+        // Fail-fast tradeoff: the old executor swallowed script exceptions and always reached
+        // the Start() calls below. Verify() instead THROWS on a strict pack whose script: can
+        // never bind -- halting boot rather than starting a degraded quest system. Deliberate:
+        // a quest whose hooks can never fire is worse than a clean boot failure.
+        _coverageVerifier.Verify();
 
-        // Load quest lifecycle scripts
-        foreach (var quest in _questRegistry.All().Where(q => q.Script != null && q.PackDirectory != null))
-        {
-            var scriptPath = Path.Combine(quest.PackDirectory!, quest.Script!);
-            if (!File.Exists(scriptPath))
-            {
-                _logger.LogWarning("Quest script not found: {Path}", scriptPath);
-                continue;
-            }
-
-            // The pack `scripts:` glob may already have executed this file (quest scripts
-            // routinely live under scripts/). Running it again re-fires registerScript and,
-            // under the RegistrationPolicy, trips a same-pack quest-hook collision. Skip any
-            // file already executed; MarkFileExecuted returns false when that's the case.
-            if (!_jintRuntime.MarkFileExecuted(scriptPath))
-            {
-                _logger.LogDebug("Quest script already loaded by the scripts glob, skipping: {Path}", scriptPath);
-                continue;
-            }
-
-            try
-            {
-                _jintRuntime.Execute(File.ReadAllText(scriptPath));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load quest script: {Path}", scriptPath);
-            }
-        }
-
-        // Start persistence (subscribes to player.login)
+        // Start persistence (subscribes to player.login), then the objective watcher.
         _persistenceService.Start();
-
         _objectiveWatcher.Start();
     }
 }

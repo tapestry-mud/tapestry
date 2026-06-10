@@ -64,6 +64,17 @@ public class QuestScriptLoader : IQuestScriptLoader
         return _scripts.ContainsKey(questId);
     }
 
+    /// <summary>
+    /// Test/diagnostic accessor: the pack owner recorded for a quest's hooks. Returns null
+    /// only when no hooks are registered for the quest; returns the recorded owner otherwise,
+    /// which may be the empty string if the hooks were registered with no owner (the blank-owner
+    /// case this accessor exists to surface). Do not collapse empty-to-null -- that would hide it.
+    /// </summary>
+    internal string? OwnerOf(string questId)
+    {
+        return _scripts.TryGetValue(questId, out var hooks) ? hooks.Pack : null;
+    }
+
     public bool CallOnGranted(string questId, Guid playerId)
     {
         if (!_scripts.TryGetValue(questId, out var hooks) || hooks.OnGranted == null || JintEngine == null)

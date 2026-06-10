@@ -54,7 +54,10 @@ public class JintRuntime
     }
 
     /// <summary>
-    /// Execute a script without a pack name. Convenience for tests.
+    /// Execute a script without setting pack/source attribution. TESTS ONLY -- do NOT use for
+    /// pack execution: it leaves __currentPack/__currentSource at their prior values, so any
+    /// registration (e.g. registerScript) records a stale/blank owner. Pack content must run
+    /// through the attributed Execute(script, packName, sourceFile) overload (the scripts: glob).
     /// </summary>
     public void Execute(string script)
     {
@@ -62,10 +65,19 @@ public class JintRuntime
     }
 
     /// <summary>
-    /// Records that a script file (by absolute path) has been executed this boot. Returns true
-    /// the first time a path is seen, false if it was already executed -- the caller skips the
-    /// second run. Path is normalised so glob-relative and quest-script-relative forms of the
-    /// same file collapse to one key.
+    /// Records that a script file (by absolute path) was executed this boot, building the
+    /// ledger of which files the pack <c>scripts:</c> glob loaded. Path is normalised
+    /// (<see cref="Path.GetFullPath(string)"/>) so glob-relative and other forms of the same
+    /// file collapse to one key.
+    ///
+    /// CONSUMER: QuestStartupModule's quest-script coverage assertion
+    /// (QuestScriptCoverageVerifier) reads this ledger via <see cref="HasExecutedFile"/> to
+    /// confirm every quest <c>script:</c> was actually loaded by the glob. Do not remove the
+    /// glob's call to this method as "dead" -- that coverage check depends on it.
+    ///
+    /// The bool return (true on first sight, false on repeat) is currently unused by every
+    /// caller; it is kept to preserve the idempotence/path-normalisation contract pinned by
+    /// JintRuntimeTests.MarkFileExecuted_IsIdempotent_AndPathNormalized.
     /// </summary>
     public bool MarkFileExecuted(string absolutePath)
     {
