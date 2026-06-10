@@ -7,7 +7,9 @@ using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Interop;
 using Tapestry.Server.Modules;
 using Tapestry.Shared;
 
@@ -22,7 +24,8 @@ public class PlayerInitModuleTests
         ServerConfig config,
         IPlayerStore playerStore,
         IAccountStore accountStore,
-        IPackManifestProvider packLoader)
+        IPackManifestProvider packLoader,
+        RaceRegistry? raceRegistry = null)
     {
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
@@ -33,12 +36,8 @@ public class PlayerInitModuleTests
             playerStore, serializer, sessions, world,
             NullLogger<PlayerPersistenceService>.Instance);
         var accountService = new AccountService(accountStore);
-        var raceRegistry = new RaceRegistry();
-        var eventBus = new EventBus();
-        var lootResolver = new LootTableResolver();
-        var spawns = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry());
         return new PlayerInitModule(
-            config, packLoader, persistence, accountService, raceRegistry, spawns,
+            config, packLoader, persistence, accountService, raceRegistry ?? new RaceRegistry(),
             NullLogger<PlayerInitModule>.Instance);
     }
 
@@ -103,7 +102,7 @@ public class PlayerInitModuleTests
     }
 
     [Fact]
-    public async Task Configure_SeedPlayerInScopedPackDir_CreatesPlayerAndAccount()
+    public async Task LoadSeedPlayers_SeedPlayerInScopedPackDir_CreatesPlayerAndAccount()
     {
         // Seed players live in a scoped pack directory (@scope/name). The loader
         // must read players.yaml from the loaded pack's actual directory, not a
@@ -128,10 +127,73 @@ public class PlayerInitModuleTests
                     PackDirectory = packDir
                 }));
 
-            module.Configure();
+            module.LoadSeedPlayers();
 
             playerStore.Saved.Should().ContainSingle(d => d.Name == "Wanderer");
             accountStore.ExistsByEmail("wanderer@localhost").Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadSeedPlayers_RaceCommitsAtSeal_SeedPlayerGetsRacialFlags()
+    {
+        // Boot order pin: race registrations route through RegistrationPolicy and only
+        // commit into RaceRegistry at Resolve() (the seal barrier). Seeding must therefore
+        // run AFTER the seal (GameLoopService.StartAsync), not at module Configure —
+        // otherwise the seed player is created without racial flags and the
+        // PlayerSaveExists guard makes the deficient save permanent.
+        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var packDir = Path.Combine(tmpDir, "@tapestry", "example-pack");
+        Directory.CreateDirectory(packDir);
+        await File.WriteAllTextAsync(
+            Path.Combine(packDir, "players.yaml"),
+            "players:\n  - name: Durin\n    password: testpass123\n    player_race: dwarf\n");
+
+        try
+        {
+            var raceRegistry = new RaceRegistry();
+            var policy = new RegistrationPolicy(new PackDependencyGraph());
+            policy.Record(new RegistrationCandidate(
+                Kind: "race",
+                Name: "dwarf",
+                Owner: "@tapestry/example-pack",
+                IsOverride: false,
+                Commit: () => raceRegistry.Register(new RaceDefinition
+                {
+                    Id = "dwarf",
+                    Name = "Dwarf",
+                    RacialFlags = new List<string> { "infravision" },
+                    PackName = "@tapestry/example-pack"
+                }),
+                SourceFile: "scripts/races.js",
+                Line: 0));
+
+            var config = new ServerConfig();
+            var playerStore = new FakeAdminStore();
+            var module = BuildModule(
+                config, playerStore, new FakeAccountStore(),
+                new FakePackManifestProvider(new PackManifest
+                {
+                    Name = "@tapestry/example-pack",
+                    PackDirectory = packDir
+                }),
+                raceRegistry);
+
+            // Bootstrap phase: module Configure runs pre-seal — it must NOT seed players.
+            module.Configure();
+            playerStore.Saved.Should().BeEmpty(
+                "seeding at Configure runs before the registration seal and would read an empty race registry");
+
+            // GameLoopService.StartAsync: seal first, then seed.
+            policy.Resolve();
+            module.LoadSeedPlayers();
+
+            var saved = playerStore.Saved.Should().ContainSingle(d => d.Name == "Durin").Subject;
+            saved.Tags.Should().Contain("infravision");
         }
         finally
         {

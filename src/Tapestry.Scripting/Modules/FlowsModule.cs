@@ -4,6 +4,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Registration;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
@@ -13,12 +14,15 @@ public class FlowsModule : IJintApiModule
     private readonly FlowRegistry _registry;
     private readonly FlowEngine _engine;
     private readonly SessionManager _sessions;
+    private readonly RegistrationPolicy _registrationPolicy;
 
-    public FlowsModule(FlowRegistry registry, FlowEngine engine, SessionManager sessions)
+    public FlowsModule(FlowRegistry registry, FlowEngine engine, SessionManager sessions,
+        RegistrationPolicy registrationPolicy)
     {
         _registry = registry;
         _engine = engine;
         _sessions = sessions;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "flows";
@@ -41,8 +45,16 @@ public class FlowsModule : IJintApiModule
                 var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
                     ? packNameVal.ToString() : "";
 
+                var sourceFileVal = jint.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
                 var cancellableVal = obj.Get("cancellable");
                 var cancellable = cancellableVal.Type == Types.Boolean && (bool)cancellableVal.ToObject()!;
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 var stepsVal = obj.Get("steps");
                 var steps = ParseSteps(jint, stepsVal, packName);
@@ -90,7 +102,7 @@ public class FlowsModule : IJintApiModule
                     return new FlowCompletionResult(true);
                 };
 
-                _registry.Register(new FlowDefinition
+                var flowDef = new FlowDefinition
                 {
                     Id = id,
                     DisplayName = displayName,
@@ -101,7 +113,18 @@ public class FlowsModule : IJintApiModule
                     PackName = packName,
                     WizardSteps = wizardSteps,
                     RecommendContextKind = recommendContextKind
-                });
+                };
+
+                // Declarative: the registry write replays at Resolve() (the seal barrier),
+                // turning the silent last-wins clobber into a located boot error.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "flow",
+                    Name: id,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _registry.Register(flowDef),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             trigger = new Action<string, string>((entityIdStr, triggerName) =>

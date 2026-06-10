@@ -3,7 +3,6 @@ using Tapestry.Contracts;
 using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
-using Tapestry.Engine.Color;
 using Tapestry.Engine.Distribution;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
@@ -21,12 +20,9 @@ public class ContentLoadingModule : IGameModule
     private readonly ServerConfig _config;
     private readonly ApiMessaging _messaging;
     private readonly PackLoader _packLoader;
-    private readonly PackValidator _packValidator;
     private readonly ConnectionLoader _connectionLoader;
     private readonly AuthoredRoomLoader _authoredRoomLoader;
     private readonly AuthoredAreaLoader _authoredAreaLoader;
-    private readonly ThemeRegistry _themeRegistry;
-    private readonly AbilityCommandBridge _abilityCommandBridge;
     private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
@@ -41,12 +37,9 @@ public class ContentLoadingModule : IGameModule
         ServerConfig config,
         ApiMessaging messaging,
         PackLoader packLoader,
-        PackValidator packValidator,
         ConnectionLoader connectionLoader,
         AuthoredRoomLoader authoredRoomLoader,
         AuthoredAreaLoader authoredAreaLoader,
-        ThemeRegistry themeRegistry,
-        AbilityCommandBridge abilityCommandBridge,
         Tapestry.Scripting.Modules.CommandsModule commandsModule,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
@@ -58,12 +51,9 @@ public class ContentLoadingModule : IGameModule
         _config = config;
         _messaging = messaging;
         _packLoader = packLoader;
-        _packValidator = packValidator;
         _connectionLoader = connectionLoader;
         _authoredRoomLoader = authoredRoomLoader;
         _authoredAreaLoader = authoredAreaLoader;
-        _themeRegistry = themeRegistry;
-        _abilityCommandBridge = abilityCommandBridge;
         _commandsModule = commandsModule;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
@@ -76,8 +66,11 @@ public class ContentLoadingModule : IGameModule
     public void Configure()
     {
         LoadPacks();
-        _abilityCommandBridge.WireAll();
-        _packValidator.Validate();
+        // AbilityCommandBridge.WireAll and PackValidator.Validate moved to
+        // GameLoopService.StartAsync, AFTER RegistrationPolicy.Resolve(): abilities (and
+        // commands) only commit to their registries at the seal barrier — running them
+        // here would see empty registries (no ability commands wired, spurious
+        // unknown-ability/unknown-command validation warnings).
 
         // Initialize distribution cache and seed initial room scatter
         _distributionService.Initialize(_itemRegistry.AllTemplates);
@@ -102,7 +95,11 @@ public class ContentLoadingModule : IGameModule
         // because commands are only resolved at the seal; running it here would see an empty registry.
 
         _commandsModule.LogLoadTimeWarnings();
-        _themeRegistry.Compile();
+        // ThemeRegistry.Compile() moved to GameLoopService.StartAsync, AFTER
+        // RegistrationPolicy.Resolve(): theme tags (theme.register / theme.yaml, plus the
+        // rarity/essence item.*/essence.* side-effects) only commit at the seal barrier --
+        // compiling here would bake an empty (or partial) lookup and committed tags would
+        // never resolve to ANSI codes.
     }
 
     private void WireDependencyResolvers()

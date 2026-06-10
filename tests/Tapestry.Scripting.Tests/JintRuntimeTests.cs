@@ -59,6 +59,7 @@ public class JintRuntimeTests
             """;
 
         runtime.Execute(script, "test-pack");
+        ctx.RegistrationPolicy.Resolve(); // emotes commit at the seal barrier
 
         ctx.EmoteRegistry.Get("smile").Should().NotBeNull();
     }
@@ -214,6 +215,25 @@ public class JintRuntimeTests
         Assert.Equal("test-pack", pack);
     }
 
+    [Fact]
+    public void MarkFileExecuted_IsIdempotent_AndPathNormalized()
+    {
+        var (runtime, _) = CreateRuntime();
+        var path = Path.Combine(Path.GetTempPath(), "pack", "scripts", "quests", "q.js");
+
+        runtime.HasExecutedFile(path).Should().BeFalse();
+
+        // First mark records the file (caller should execute it)...
+        runtime.MarkFileExecuted(path).Should().BeTrue();
+        runtime.HasExecutedFile(path).Should().BeTrue();
+
+        // ...and a non-normalised but equivalent path resolves to the same key, so the second
+        // boot subsystem (QuestStartupModule) recognises the glob already ran it.
+        var equivalent = Path.Combine(Path.GetTempPath(), "pack", "scripts", "..", "scripts", "quests", "q.js");
+        runtime.HasExecutedFile(equivalent).Should().BeTrue();
+        runtime.MarkFileExecuted(equivalent).Should().BeFalse();
+    }
+
     private static (JintRuntime, TestContext) CreateRuntime()
     {
         var commandRegistry = new CommandRegistry();
@@ -260,17 +280,17 @@ public class JintRuntimeTests
         var modules = new IJintApiModule[]
         {
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
-            new EmotesModule(emoteRegistry),
+            new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
-            new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
+            new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
-            new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, NullLogger<MobsModule>.Instance),
-            new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry()),
+            new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
+            new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
+            new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry(), registrationPolicy),
         };
 
         var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance);
@@ -302,6 +322,7 @@ public class JintRuntimeTests
                 }
             });
             """, "test-pack");
+        ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         // Spawn a mob and place it in a room
         var room = new Room("test:room", "Town", "A room.");
@@ -340,6 +361,7 @@ public class JintRuntimeTests
                 }
             });
             """, "test-pack");
+        ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         var room = new Room("test:room", "Town", "A room.");
         ctx.World.AddRoom(room);

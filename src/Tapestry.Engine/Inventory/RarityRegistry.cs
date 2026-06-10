@@ -1,3 +1,5 @@
+using Tapestry.Engine.Registration;
+
 namespace Tapestry.Engine.Inventory;
 
 public class RarityRegistry
@@ -6,9 +8,16 @@ public class RarityRegistry
     private readonly Dictionary<string, RarityTierDefinition> _byKey = new(StringComparer.OrdinalIgnoreCase);
     private int _maxTagWidth = -1;
     private int _maxDisplayTextWidth = 0;
+    private readonly RegistrationGate? _gate;
+
+    public RarityRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     public void Register(RarityTierDefinition tier)
     {
+        _gate?.AssertCommitScope("rarity", tier.Key);
         _byKey[tier.Key] = tier;
         if (!_tiers.Any(t => t.Key.Equals(tier.Key, StringComparison.OrdinalIgnoreCase)))
         {

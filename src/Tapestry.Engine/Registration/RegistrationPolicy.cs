@@ -34,9 +34,14 @@ public sealed class RegistrationPolicy
 
     private readonly List<RegistrationCandidate> _candidates = new();
     private readonly IPackEdgeOracle _edges;
+    private readonly RegistrationGate? _gate;
     private bool _sealed;
 
-    public RegistrationPolicy(IPackEdgeOracle edges) => _edges = edges;
+    public RegistrationPolicy(IPackEdgeOracle edges, RegistrationGate? gate = null)
+    {
+        _edges = edges;
+        _gate = gate;
+    }
 
     public bool IsSealed => _sealed;
 
@@ -63,7 +68,7 @@ public sealed class RegistrationPolicy
         _candidates.Add(candidate); // ledger only grows on success (a rejected candidate must not pollute future groups)
         if (ReferenceEquals(winner, candidate))
         {
-            winner.Commit();
+            CommitScoped(winner);
         }
     }
 
@@ -90,9 +95,28 @@ public sealed class RegistrationPolicy
         }
         foreach (var winner in winners)
         {
-            winner.Commit();
+            CommitScoped(winner);
         }
         _sealed = true;
+    }
+
+    /// <summary>
+    /// Runs a winner's Commit inside the RegistrationGate's commit scope (when a gate is
+    /// wired) so policy-elected writes stay legal after the gate arms, while direct
+    /// registry writes outside the policy throw.
+    /// </summary>
+    private void CommitScoped(RegistrationCandidate winner)
+    {
+        if (_gate == null)
+        {
+            winner.Commit();
+            return;
+        }
+
+        using (_gate.EnterCommitScope())
+        {
+            winner.Commit();
+        }
     }
 
     private RegistrationCandidate ResolveGroup(List<RegistrationCandidate> cands)

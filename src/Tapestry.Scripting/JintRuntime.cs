@@ -12,6 +12,13 @@ public class JintRuntime
     private readonly JintEngine _engine;
     private readonly ILogger<JintRuntime> _logger;
 
+    // Boot-time guard against running the same physical script file twice. The pack `scripts:`
+    // glob and the quest `script:` field (QuestStartupModule) are independent boot subsystems
+    // that both execute JS files; a file covered by both used to run twice, re-firing every
+    // registerX in it. The old last-write-wins registries absorbed that silently; the
+    // RegistrationPolicy turns it into a "two packs register X" collision. Dedupe by full path.
+    private readonly HashSet<string> _executedFiles = new(StringComparer.OrdinalIgnoreCase);
+
     public JintRuntime(IEnumerable<IJintApiModule> modules, ILogger<JintRuntime> logger)
     {
         _modules = modules;
@@ -47,6 +54,23 @@ public class JintRuntime
     public void Execute(string script)
     {
         _engine.Execute(script);
+    }
+
+    /// <summary>
+    /// Records that a script file (by absolute path) has been executed this boot. Returns true
+    /// the first time a path is seen, false if it was already executed -- the caller skips the
+    /// second run. Path is normalised so glob-relative and quest-script-relative forms of the
+    /// same file collapse to one key.
+    /// </summary>
+    public bool MarkFileExecuted(string absolutePath)
+    {
+        return _executedFiles.Add(Path.GetFullPath(absolutePath));
+    }
+
+    /// <summary>True if the given file path was already executed this boot.</summary>
+    public bool HasExecutedFile(string absolutePath)
+    {
+        return _executedFiles.Contains(Path.GetFullPath(absolutePath));
     }
 
     /// <summary>

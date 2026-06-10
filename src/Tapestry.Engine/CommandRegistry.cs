@@ -1,3 +1,4 @@
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -27,7 +28,13 @@ public class CommandRegistration
 public class CommandRegistry
 {
     private readonly Dictionary<string, List<CommandRegistration>> _commands = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
     private int _nextOrder;
+
+    public CommandRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     public void Register(
         string keyword,
@@ -43,6 +50,7 @@ public class CommandRegistry
         Dictionary<string, ArgDefinition>? argDefinitions = null,
         GmcpConfig? gmcp = null)
     {
+        _gate?.AssertCommitScope("command", keyword);
         {
             var registration = new CommandRegistration
             {
@@ -107,12 +115,67 @@ public class CommandRegistry
 
     public CommandRegistration? Resolve(string keyword, string? source)
     {
+        if (source == null)
         {
-            if (source == null) { return Resolve(keyword); }
-            var registration = Resolve(keyword);
-            if (registration == null) { return null; }
-            return MatchesSource(registration, source) ? registration : null;
+            return Resolve(keyword);
         }
+
+        // Role-aware resolution filters the candidate set by actor type BEFORE electing a
+        // winner. Electing first and filtering after let an eagerly-registered mob-only verb
+        // win the keyword and then fail the player's role check (tapestry#98).
+        // 1. Exact match (includes explicit aliases)
+        if (_commands.TryGetValue(keyword, out var registrations))
+        {
+            var winner = ElectWinner(registrations, source);
+            if (winner != null)
+            {
+                return winner;
+            }
+            // Keyword exists but nothing is eligible for this actor type; fall through to
+            // prefix matching like any other unresolved token.
+        }
+
+        // 2. Prefix match against primary keywords only
+        var prefixMatches = new List<CommandRegistration>();
+        foreach (var (key, regs) in _commands)
+        {
+            if (key.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                // Only match against primary keywords, not aliases
+                foreach (var reg in regs)
+                {
+                    if (reg.Keyword.StartsWith(keyword, StringComparison.OrdinalIgnoreCase)
+                        && MatchesSource(reg, source))
+                    {
+                        prefixMatches.Add(reg);
+                    }
+                }
+            }
+        }
+
+        return prefixMatches.Count > 0 ? ElectWinner(prefixMatches, source) : null;
+    }
+
+    // Actor-type roles (who may invoke) vs privilege roles like admin (gated later in
+    // CommandRouter). Specificity counts only these — privilege narrowness is not specificity.
+    private static readonly HashSet<string> ActorTypeRoles = new(["player", "mob"], StringComparer.OrdinalIgnoreCase);
+
+    private static CommandRegistration? ElectWinner(IEnumerable<CommandRegistration> regs, string source)
+    {
+        return regs
+            .Where(r => MatchesSource(r, source))
+            .OrderByDescending(r => r.Priority)
+            .ThenBy(r => ActorTypeRoleCount(r)) // actor-type specificity: ["mob"] beats ["player","mob"]
+            .ThenBy(r => r.RegistrationOrder)
+            .FirstOrDefault();
+    }
+
+    private static int ActorTypeRoleCount(CommandRegistration reg)
+    {
+        var count = reg.Roles.Count(role => ActorTypeRoles.Contains(role));
+        // No actor-type roles (e.g. admin-only) = least specific, not most — it must never
+        // outrank a registration that actually names the actor type.
+        return count == 0 ? int.MaxValue : count;
     }
 
     private static bool MatchesSource(CommandRegistration reg, string source)

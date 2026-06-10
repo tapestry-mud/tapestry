@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Mobs;
@@ -30,9 +31,11 @@ public class MobAIManager
     private readonly Dictionary<Guid, long> _lastActionTick = new();
     private long _currentTick;
 
+    private readonly RegistrationGate? _gate;
+
     public MobAIManager(World world, EventBus eventBus, CombatManager combat,
         DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger,
-        TapestryMetrics metrics)
+        TapestryMetrics metrics, RegistrationGate? gate = null)
     {
         _world = world;
         _eventBus = eventBus;
@@ -40,10 +43,12 @@ public class MobAIManager
         _dispositionEvaluator = dispositionEvaluator;
         _logger = logger;
         _metrics = metrics;
+        _gate = gate;
     }
 
     public void RegisterBehavior(string name, Action<MobContext> handler)
     {
+        _gate?.AssertCommitScope("mob-behavior", name);
         _behaviors[name] = handler;
     }
 

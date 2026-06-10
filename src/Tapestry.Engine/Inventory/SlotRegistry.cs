@@ -1,42 +1,50 @@
 using System.Text.RegularExpressions;
+using Tapestry.Engine.Registration;
 
 namespace Tapestry.Engine.Inventory;
 
 public class SlotRegistry
 {
     private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
-    private readonly List<SlotDefinition> _slots = new();
+
+    // Single source of truth: the name-keyed dictionary holds the definitions; the name list
+    // only preserves insertion order. (Was: a dictionary that replaced on duplicates AND a
+    // parallel list that kept the first -- GetSlot and AllSlots disagreed after a duplicate.)
     private readonly Dictionary<string, SlotDefinition> _byName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _order = new();
+    private readonly RegistrationGate? _gate;
+
+    public SlotRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     public void RegisterEngineSlot(string name, string display, int max)
     {
         ValidateSnakeCase(name);
-        var slot = new SlotDefinition(name, display, max, "engine");
-        _byName[name] = slot;
-        if (!_slots.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-        {
-            _slots.Add(slot);
-        }
+        Add(new SlotDefinition(name, display, max, "engine"));
     }
 
     public void RegisterPackSlot(string packName, string name, string display, int max)
     {
         ValidateSnakeCase(name);
-        var slot = new SlotDefinition(name, display, max, packName);
-        _byName[name] = slot;
-        if (!_slots.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-        {
-            _slots.Add(slot);
-        }
+        Add(new SlotDefinition(name, display, max, packName));
     }
 
     public void Register(SlotDefinition slot)
     {
-        _byName[slot.Name] = slot;
-        if (!_slots.Any(s => s.Name.Equals(slot.Name, StringComparison.OrdinalIgnoreCase)))
+        Add(slot);
+    }
+
+    private void Add(SlotDefinition slot)
+    {
+        _gate?.AssertCommitScope("slot", slot.Name);
+        // Replace-in-place keeps the original order position; a new name appends.
+        if (!_byName.ContainsKey(slot.Name))
         {
-            _slots.Add(slot);
+            _order.Add(slot.Name);
         }
+        _byName[slot.Name] = slot;
     }
 
     public SlotDefinition? GetSlot(string name)
@@ -44,7 +52,8 @@ public class SlotRegistry
         return _byName.GetValueOrDefault(name);
     }
 
-    public IReadOnlyList<SlotDefinition> AllSlots => _slots.AsReadOnly();
+    public IReadOnlyList<SlotDefinition> AllSlots =>
+        _order.Select(name => _byName[name]).ToList().AsReadOnly();
 
     private static void ValidateSnakeCase(string name)
     {

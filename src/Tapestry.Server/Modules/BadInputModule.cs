@@ -1,5 +1,6 @@
 using Tapestry.Contracts;
 using Tapestry.Engine;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 
 namespace Tapestry.Server.Modules;
@@ -9,18 +10,25 @@ public class BadInputModule : IGameModule
     private readonly CommandRegistry _registry;
     private readonly SessionManager _sessions;
     private readonly BadInputTracker _tracker;
+    private readonly RegistrationGate? _gate;
 
     public string Name => "BadInput";
 
-    public BadInputModule(CommandRegistry registry, SessionManager sessions, BadInputTracker tracker)
+    public BadInputModule(CommandRegistry registry, SessionManager sessions, BadInputTracker tracker,
+        RegistrationGate? gate = null)
     {
         _registry = registry;
         _sessions = sessions;
         _tracker = tracker;
+        _gate = gate;
     }
 
     public void Configure()
     {
+        // Kernel-sanctioned write scope: this module's Configure runs AFTER
+        // ContentLoadingModule (module registration order in Program.cs), i.e. after the
+        // gate arms during pack loading. A C# kernel admin command, not pack content.
+        using var scope = _gate?.EnterCommitScope();
         _registry.Register(
             "badinput",
             ctx => HandleBadInput(ctx),

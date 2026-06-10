@@ -5,6 +5,7 @@ using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 using JintEngine = Jint.Engine;
@@ -19,8 +20,9 @@ public class AbilitiesModule : IJintApiModule
     private readonly GameLoop _gameLoop;
     private readonly EventBus _eventBus;
     private readonly AlignmentConfig _alignmentConfig;
+    private readonly RegistrationPolicy _registrationPolicy;
 
-    public AbilitiesModule(AbilityRegistry registry, ProficiencyManager proficiency, World world, GameLoop gameLoop, EventBus eventBus, AlignmentConfig alignmentConfig)
+    public AbilitiesModule(AbilityRegistry registry, ProficiencyManager proficiency, World world, GameLoop gameLoop, EventBus eventBus, AlignmentConfig alignmentConfig, RegistrationPolicy registrationPolicy)
     {
         _registry = registry;
         _proficiency = proficiency;
@@ -28,6 +30,7 @@ public class AbilitiesModule : IJintApiModule
         _gameLoop = gameLoop;
         _eventBus = eventBus;
         _alignmentConfig = alignmentConfig;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "abilities";
@@ -162,6 +165,10 @@ public class AbilitiesModule : IJintApiModule
                 var sourceFileStr = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
                     ? sourceFileVal.ToString()
                     : "";
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 var shortNameVal = obj.Get("short_name");
                 var shortName = (shortNameVal.Type != Types.Undefined && shortNameVal.Type != Types.Null)
@@ -388,7 +395,19 @@ public class AbilitiesModule : IJintApiModule
                     RequiresSlotTag = requiresSlotTag
                 };
 
-                _registry.Register(abilityDef);
+                // Declarative: the registry write replays at Resolve() (the seal barrier),
+                // turning the silent priority-wins clobber into a located boot error.
+                // The ability.used handler is dispatched via a single Build-time EventBus
+                // subscription that looks the handler up by ability id, so a losing
+                // candidate's handler is unreachable — no per-register side effects to gate.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "ability",
+                    Name: id,
+                    Owner: packNameStr,
+                    IsOverride: isOverride,
+                    Commit: () => _registry.Register(abilityDef),
+                    SourceFile: sourceFileStr,
+                    Line: 0));
             }),
 
             learn = new Action<string, string, JsValue>((entityIdStr, abilityId, options) =>

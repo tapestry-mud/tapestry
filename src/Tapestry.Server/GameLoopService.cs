@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Color;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Persistence;
@@ -32,6 +33,11 @@ public class GameLoopService : IHostedService
     private readonly IWatchRosterSource _watchRosterSource;
     private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
     private readonly Tapestry.Engine.Help.HelpSeal _helpSeal;
+    private readonly SpawnManager _spawns;
+    private readonly AbilityCommandBridge _abilityCommandBridge;
+    private readonly Tapestry.Scripting.PackValidator _packValidator;
+    private readonly Modules.PlayerInitModule _playerInit;
+    private readonly ThemeRegistry _themeRegistry;
     private Task? _runTask;
 
     public GameLoopService(
@@ -54,7 +60,12 @@ public class GameLoopService : IHostedService
         WatchSessionHub watchSessionHub,
         IWatchRosterSource watchRosterSource,
         Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy,
-        Tapestry.Engine.Help.HelpSeal helpSeal)
+        Tapestry.Engine.Help.HelpSeal helpSeal,
+        SpawnManager spawns,
+        AbilityCommandBridge abilityCommandBridge,
+        Tapestry.Scripting.PackValidator packValidator,
+        Modules.PlayerInitModule playerInit,
+        ThemeRegistry themeRegistry)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -76,6 +87,11 @@ public class GameLoopService : IHostedService
         _watchRosterSource = watchRosterSource;
         _registrationPolicy = registrationPolicy;
         _helpSeal = helpSeal;
+        _spawns = spawns;
+        _abilityCommandBridge = abilityCommandBridge;
+        _packValidator = packValidator;
+        _playerInit = playerInit;
+        _themeRegistry = themeRegistry;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -285,10 +301,43 @@ public class GameLoopService : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
+        // Post-seal boot sequence -- ORDER MATTERS. Resolve (the seal) -> compile themes ->
+        // wire ability commands -> validate packs -> HelpSeal -> seed players -> initial
+        // spawns -> run loop. Each step's comment carries its individual constraints;
+        // insert new steps with the same care.
         _registrationPolicy.Resolve();
+        // Theme compile AFTER the seal: theme tags (theme.register / theme.yaml, plus the
+        // rarity/essence item.*/essence.* side-effects) only commit to ThemeRegistry at
+        // Resolve(). (Was: end of ContentLoadingModule.Configure, pre-seal -- the compiled
+        // ANSI lookup would never see seal-committed tags.) Nothing earlier in boot renders
+        // themed output: ColorRenderer/PanelRenderer/GMCP Display run per-connection, and
+        // TelnetService starts after GameLoopService.
+        _themeRegistry.Compile();
+        // Ability commands wire AFTER the seal: the ability registry only commits at
+        // Resolve(). (Was: ContentLoadingModule.Configure, pre-seal — would see no abilities.)
+        // Before HelpSeal so help shadow-validation/auto-gen sees the ability commands.
+        _abilityCommandBridge.WireAll();
+        // Pack validation AFTER the seal for the same reason: its mob ability/battlecommand
+        // checks read the now-committed ability and command registries.
+        _packValidator.Validate();
         // Help resolves AFTER commands (help shadows commands): validate command-shadowing
         // authority against the now-committed registry, then auto-gen fills only the gaps.
         _helpSeal.Seal();
+        // Seed players load AFTER the seal: a seed player's player_race reads the race
+        // registry, which only commits at Resolve(). (Was: PlayerInitModule.Configure,
+        // pre-seal — racial flags would silently never apply, and the PlayerSaveExists
+        // guard would make the deficient save permanent.) Persistence restore already
+        // ran at module Configure; seeding runs before the initial spawns below.
+        _playerInit.LoadSeedPlayers();
+        // Initial mob spawns run AFTER the seal: MobStatDerivation reads the class/race
+        // registries, which only commit at Resolve(). (Was: PlayerInitModule.Configure,
+        // which runs at bootstrap — pre-seal — and would see empty registries.)
+        // GameLoopService starts before TelnetService, so the world is populated before
+        // any player can connect.
+        foreach (var areaName in _spawns.GetAreaNames())
+        {
+            _spawns.RunAreaReset(areaName);
+        }
         _runTask = _gameLoop.RunAsync(_config.Server.TickRateMs, _appLifetime.ApplicationStopping);
         return Task.CompletedTask;
     }

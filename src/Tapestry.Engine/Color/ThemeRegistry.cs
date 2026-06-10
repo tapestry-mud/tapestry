@@ -1,9 +1,17 @@
+using Tapestry.Engine.Registration;
+
 namespace Tapestry.Engine.Color;
 
 public class ThemeRegistry
 {
     private readonly Dictionary<string, ThemeEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, AnsiPair> _compiled = new(StringComparer.OrdinalIgnoreCase);
+    private readonly RegistrationGate? _gate;
+
+    public ThemeRegistry(RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
 
     private static readonly Dictionary<string, string> FgCodes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -48,6 +56,7 @@ public class ThemeRegistry
 
     public void Register(string tag, ThemeEntry entry)
     {
+        _gate?.AssertCommitScope("theme", tag);
         _entries[tag] = entry;
     }
 

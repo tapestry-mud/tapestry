@@ -61,6 +61,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SystemEventQueue>();
         services.AddSingleton<TapestryMetrics>();
         services.AddSingleton<GameLoop>();
+        services.AddSingleton<Tapestry.Engine.Registration.RegistrationGate>();
         services.AddSingleton<Tapestry.Engine.Registration.RegistrationPolicy>();
         services.AddSingleton(sp =>
         {

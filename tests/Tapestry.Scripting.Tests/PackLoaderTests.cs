@@ -22,6 +22,7 @@ using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
@@ -214,7 +215,108 @@ public class PackLoaderTests
         }
     }
 
-    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader, AreaRegistry AreaRegistry) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null)
+    [Fact]
+    public void LoadPack_ThemeYamlCollision_ThrowsAtSeal_NamingBothPacks()
+    {
+        var policy = TestRegistrationPolicy.Create();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn(policy: policy);
+
+        var dirA = WriteThemePack("@test/pack-a");
+        var dirB = WriteThemePack("@test/pack-b");
+        try
+        {
+            loader.Load(dirA);
+            loader.Load(dirB);
+
+            // Themes route through RegistrationPolicy: the collision is a located boot
+            // error at the seal, not a silent last-wins clobber at load.
+            var act = () => policy.Resolve();
+            act.Should().Throw<InvalidOperationException>()
+                .Which.Message.Should()
+                .Contain("ui.alert")
+                .And.Contain("test-pack-a")
+                .And.Contain("test-pack-b")
+                .And.Contain("theme.yaml");
+        }
+        finally
+        {
+            Directory.Delete(dirA, recursive: true);
+            Directory.Delete(dirB, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadPack_EquipmentSlotsYamlCollision_ThrowsAtSeal_NamingBothPacks()
+    {
+        var policy = TestRegistrationPolicy.Create();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn(policy: policy);
+
+        var dirA = WriteSlotPack("@test/pack-a");
+        var dirB = WriteSlotPack("@test/pack-b");
+        try
+        {
+            loader.Load(dirA);
+            loader.Load(dirB);
+
+            // Slots route through RegistrationPolicy: the collision is a located boot
+            // error at the seal, not a silent last-wins clobber at load.
+            var act = () => policy.Resolve();
+            act.Should().Throw<InvalidOperationException>()
+                .Which.Message.Should()
+                .Contain("head")
+                .And.Contain("test-pack-a")
+                .And.Contain("test-pack-b")
+                .And.Contain("equipment_slots.yaml");
+        }
+        finally
+        {
+            Directory.Delete(dirA, recursive: true);
+            Directory.Delete(dirB, recursive: true);
+        }
+    }
+
+    private static string WriteSlotPack(string packName)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-slot-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "tapestry.yaml"), $"""
+            name: "{packName}"
+            version: "1.0.0"
+            active: true
+            load_order: 0
+            content:
+              equipment_slots: "equipment_slots.yaml"
+            """);
+        File.WriteAllText(Path.Combine(dir, "equipment_slots.yaml"), """
+            equipment_slots:
+              - name: head
+                display: "<worn on head>"
+                max: 1
+            """);
+        return dir;
+    }
+
+    private static string WriteThemePack(string packName)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-theme-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "tapestry.yaml"), $"""
+            name: "{packName}"
+            version: "1.0.0"
+            active: true
+            load_order: 0
+            content:
+              strings: "theme.yaml"
+            """);
+        File.WriteAllText(Path.Combine(dir, "theme.yaml"), """
+            theme:
+              ui.alert:
+                fg: red
+            """);
+        return dir;
+    }
+
+    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader, AreaRegistry AreaRegistry) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null, RegistrationPolicy? policy = null)
     {
         var world = new World();
         var eventBus = new EventBus();
@@ -238,7 +340,7 @@ public class PackLoaderTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
-        var registrationPolicy = TestRegistrationPolicy.Create();
+        var registrationPolicy = policy ?? TestRegistrationPolicy.Create();
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
@@ -286,22 +388,22 @@ public class PackLoaderTests
         var modules = new IJintApiModule[]
         {
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
-            new EmotesModule(emoteRegistry),
+            new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
-            new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
+            new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
-            new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, NullLogger<MobsModule>.Instance),
-            new ThemeModule(themeRegistry),
+            new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
+            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
+            new ThemeModule(themeRegistry, registrationPolicy),
             new DiceModule(),
-            new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig),
+            new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig, registrationPolicy),
             new EffectsModule(effectManager, world, abilityRegistry),
-            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager, new NullGmcpModuleAdapter()),
-            new RacesModule(raceRegistry, world),
+            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager, new NullGmcpModuleAdapter(), registrationPolicy),
+            new RacesModule(raceRegistry, world, registrationPolicy),
             new AlignmentModule(alignmentManager, alignmentConfig, world),
             new UiModule(panelRenderer, world, new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig())),
             new TrainingModule(trainingManager, proficiencyManager, trainingConfig),
@@ -320,7 +422,7 @@ public class PackLoaderTests
             new RarityModule(rarityRegistry, themeRegistry, registrationPolicy),
             new EssenceModule(essenceRegistry, themeRegistry, registrationPolicy),
             new StackingModule(stackingService, world),
-            new FlowsModule(flowRegistry, flowEngine, sessions),
+            new FlowsModule(flowRegistry, flowEngine, sessions, registrationPolicy),
             new GmcpModule(new NullGmcpModuleAdapter()),
         };
 
@@ -333,7 +435,7 @@ public class PackLoaderTests
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
             propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry(),
-            new LoadedPackNamespaces());
+            new LoadedPackNamespaces(), registrationPolicy);
 
         return (world, itemRegistry, spawnManager, loader, areaRegistry);
     }
@@ -543,22 +645,22 @@ public class PackLoaderTests
         var modules = new IJintApiModule[]
         {
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
-            new EmotesModule(emoteRegistry),
+            new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
-            new EquipmentModule(equipmentManager, slotRegistry, world, transfer),
+            new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
-            new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, NullLogger<MobsModule>.Instance),
-            new ThemeModule(themeRegistry),
+            new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
+            new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
+            new ThemeModule(themeRegistry, registrationPolicy),
             new DiceModule(),
-            new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig),
+            new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig, registrationPolicy),
             new EffectsModule(effectManager, world, abilityRegistry),
-            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager, new NullGmcpModuleAdapter()),
-            new RacesModule(raceRegistry, world),
+            new ClassesModule(classRegistry, raceRegistry, world, proficiencyManager, new NullGmcpModuleAdapter(), registrationPolicy),
+            new RacesModule(raceRegistry, world, registrationPolicy),
             new AlignmentModule(alignmentManager, alignmentConfig, world),
             new UiModule(panelRenderer, world, new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig())),
             new TrainingModule(trainingManager, proficiencyManager, trainingConfig),
@@ -577,7 +679,7 @@ public class PackLoaderTests
             new RarityModule(rarityRegistry, themeRegistry, registrationPolicy),
             new EssenceModule(essenceRegistry, themeRegistry, registrationPolicy),
             new StackingModule(stackingService, world),
-            new FlowsModule(flowRegistry, flowEngine, sessions),
+            new FlowsModule(flowRegistry, flowEngine, sessions, registrationPolicy),
             new GmcpModule(new NullGmcpModuleAdapter()),
         };
 
@@ -591,7 +693,7 @@ public class PackLoaderTests
         return new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
             propertyRegistry, questRegistry, scheduleModule, registry,
-            new LoadedPackNamespaces());
+            new LoadedPackNamespaces(), registrationPolicy);
     }
 
     [Fact]

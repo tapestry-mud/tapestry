@@ -44,8 +44,10 @@ public class AbilityRegistryTests
         Assert.Null(_registry.Get("nonexistent"));
     }
 
+    // Collision resolution moved to RegistrationPolicy: by the time a write lands here,
+    // the policy has already elected the winner — Register is a plain upsert.
     [Fact]
-    public void Register_DuplicateId_HigherPriorityWins()
+    public void Register_DuplicateId_ReplacesExisting()
     {
         Setup();
         var core = MakeAbility("fireball", "Core Fireball", priority: 0, packName: "core");
@@ -59,7 +61,7 @@ public class AbilityRegistryTests
     }
 
     [Fact]
-    public void Register_DuplicateId_LowerPriorityDoesNotOverride()
+    public void Register_DuplicateId_PriorityDoesNotArbitrate_LastWriteWins()
     {
         Setup();
         var lf = MakeAbility("fireball", "LF Fireball", priority: 10, packName: "test-pack");
@@ -68,7 +70,7 @@ public class AbilityRegistryTests
         _registry.Register(core);
         var result = _registry.Get("fireball");
         Assert.NotNull(result);
-        Assert.Equal("LF Fireball", result!.Name);
+        Assert.Equal("Core Fireball", result!.Name);
     }
 
     [Fact]

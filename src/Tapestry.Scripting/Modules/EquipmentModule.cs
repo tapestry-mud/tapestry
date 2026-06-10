@@ -4,6 +4,7 @@ using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting.Services;
 using JintEngine = Jint.Engine;
 
@@ -15,14 +16,17 @@ public class EquipmentModule : IJintApiModule
     private readonly SlotRegistry _slotRegistry;
     private readonly World _world;
     private readonly ApiTransfer _transfer;
+    private readonly RegistrationPolicy _registrationPolicy;
     private string _emptyText = "-nothing-";
 
-    public EquipmentModule(EquipmentManager equipmentManager, SlotRegistry slotRegistry, World world, ApiTransfer transfer)
+    public EquipmentModule(EquipmentManager equipmentManager, SlotRegistry slotRegistry, World world, ApiTransfer transfer,
+        RegistrationPolicy registrationPolicy)
     {
         _equipmentManager = equipmentManager;
         _slotRegistry = slotRegistry;
         _world = world;
         _transfer = transfer;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "equipment";
@@ -240,7 +244,29 @@ public class EquipmentModule : IJintApiModule
                 var maxVal = obj.Get("max");
                 var max = maxVal.Type == Types.Number ? (int)(double)maxVal.ToObject()! : 1;
 
-                _slotRegistry.Register(new SlotDefinition(name, display, max));
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                var isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
+
+                var packNameVal = engine.GetValue("__currentPack");
+                var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
+                    ? packNameVal.ToString() : "";
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
+                // Pack-owned, like PackLoader's equipment_slots yaml path -- NOT engine-owned
+                // (engine/kernel are the non-overridable owners reserved for C# boot code).
+                // The registry write replays at Resolve() (the seal barrier).
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "slot",
+                    Name: name,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _slotRegistry.RegisterPackSlot(packName, name, display, max),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             transferAll = new Action<string, string>((from, to) =>

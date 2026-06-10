@@ -9,6 +9,7 @@ using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
@@ -42,6 +43,8 @@ public class PackLoader : IPackManifestProvider
     private readonly ScheduleModule _scheduleModule;
     private readonly InteropCallSiteRegistry _callSites;
     private readonly LoadedPackNamespaces _loadedNamespaces;
+    private readonly RegistrationPolicy _registrationPolicy;
+    private readonly RegistrationGate? _registrationGate;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -62,8 +65,11 @@ public class PackLoader : IPackManifestProvider
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
                      ScheduleModule scheduleModule,
                      InteropCallSiteRegistry callSites,
-                     LoadedPackNamespaces loadedNamespaces)
+                     LoadedPackNamespaces loadedNamespaces,
+                     RegistrationPolicy registrationPolicy,
+                     RegistrationGate? registrationGate = null)
     {
+        _registrationGate = registrationGate;
         _world = world;
         _slotRegistry = slotRegistry;
         _runtime = runtime;
@@ -81,6 +87,7 @@ public class PackLoader : IPackManifestProvider
         _scheduleModule = scheduleModule;
         _callSites = callSites;
         _loadedNamespaces = loadedNamespaces;
+        _registrationPolicy = registrationPolicy;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -91,6 +98,12 @@ public class PackLoader : IPackManifestProvider
 
     public PackManifest LoadDeclarations(string packDirectory)
     {
+        // Pack loading is starting: arm the gate. From here on, any policy-guarded registry
+        // write outside a RegistrationPolicy commit scope is a boot error (the structural
+        // wall against the v0.1.20 mobs.registerCommand-style bypass, tapestry#98).
+        // Idempotent -- the first pack of the pass arms it for the whole boot.
+        _registrationGate?.Arm();
+
         // A pack must load from a real directory. Guard at the source so a missing
         // path can never produce a manifest with an empty PackDirectory (which would
         // silently disable seed loading downstream).
@@ -163,6 +176,10 @@ public class PackLoader : IPackManifestProvider
 
     public void LoadContent(string packDirectory, PackManifest manifest)
     {
+        // Defense in depth: the Server flow arms in LoadDeclarations, but a caller that
+        // jumps straight to content/scripts must still get the wall. Idempotent.
+        _registrationGate?.Arm();
+
         if (!manifest.Active) { return; }
 
         var packNamespace = PackNamespace(manifest.Name);
@@ -202,7 +219,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Strings))
         {
-            LoadThemes(packDirectory, manifest.Content.Strings);
+            LoadThemes(packDirectory, manifest.Content.Strings, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Mobs))
@@ -488,7 +505,7 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadThemes(string packDir, string glob)
+    private void LoadThemes(string packDir, string glob, string packNamespace)
     {
         var files = MatchFiles(packDir, glob);
         foreach (var file in files)
@@ -499,7 +516,18 @@ public class PackLoader : IPackManifestProvider
                 var entries = YamlContentLoader.LoadTheme(yaml);
                 foreach (var (tag, entry) in entries)
                 {
-                    _theme.Register(tag, new ThemeEntry { Fg = entry.Fg, Bg = entry.Bg });
+                    // Declarative: the registry write replays at Resolve() (the seal barrier),
+                    // turning the silent last-wins clobber into a located boot error.
+                    var fg = entry.Fg;
+                    var bg = entry.Bg;
+                    _registrationPolicy.Record(new RegistrationCandidate(
+                        Kind: "theme",
+                        Name: tag,
+                        Owner: packNamespace,
+                        IsOverride: entry.Override,
+                        Commit: () => _theme.Register(tag, new ThemeEntry { Fg = fg, Bg = bg }),
+                        SourceFile: Path.GetRelativePath(packDir, file).Replace('\\', '/'),
+                        Line: 0));
                     _logger.LogDebug("  Theme: {Tag}", tag);
                 }
             }
@@ -520,6 +548,7 @@ public class PackLoader : IPackManifestProvider
             var text = File.ReadAllText(initFile);
             RecordCallSites(text, packName, relative);
             _runtime.Execute(text, packName, relative);
+            _runtime.MarkFileExecuted(initFile);
             files = files.Where(f => f != initFile).ToList();
         }
 
@@ -530,6 +559,7 @@ public class PackLoader : IPackManifestProvider
             var text = File.ReadAllText(file);
             RecordCallSites(text, packName, relative);
             _runtime.Execute(text, packName, relative);
+            _runtime.MarkFileExecuted(file);
         }
     }
 
@@ -554,14 +584,23 @@ public class PackLoader : IPackManifestProvider
         var slots = YamlContentLoader.LoadEquipmentSlots(yaml);
         foreach (var slotDef in slots)
         {
-            if (packNamespace == "tapestry-core")
-            {
-                _slotRegistry.RegisterEngineSlot(slotDef.Name, slotDef.Display, slotDef.Max);
-            }
-            else
-            {
-                _slotRegistry.RegisterPackSlot(packNamespace, slotDef.Name, slotDef.Display, slotDef.Max);
-            }
+            // Every pack's slots are pack-owned -- including @tapestry/core's. (Was: a
+            // tapestry-core special case registering owner "engine", which made core's
+            // slots non-overridable -- contradicting the locked contract that engine/kernel
+            // are non-overridable but @tapestry/core CONTENT is overridable via the edge.
+            // RegisterEngineSlot remains the seam for genuine engine C# callers.)
+            // The registry write replays at Resolve() (the seal barrier).
+            var name = slotDef.Name;
+            var display = slotDef.Display;
+            var max = slotDef.Max;
+            _registrationPolicy.Record(new RegistrationCandidate(
+                Kind: "slot",
+                Name: name,
+                Owner: packNamespace,
+                IsOverride: slotDef.Override,
+                Commit: () => _slotRegistry.RegisterPackSlot(packNamespace, name, display, max),
+                SourceFile: path.Replace('\\', '/'),
+                Line: 0));
             _logger.LogDebug("  Slot: {Name} (max {Max})", slotDef.Name, slotDef.Max);
         }
     }

@@ -4,6 +4,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Races;
 using Tapestry.Engine.Ui;
 using Tapestry.Scripting;
@@ -19,7 +20,9 @@ public class FlowsModuleTests
         public void SaveNewPlayer(Entity entity, Guid accountId) { }
     }
 
-    private static (JintRuntime runtime, FlowRegistry registry) CreateRuntime()
+    // register() defers the registry write to the RegistrationPolicy seal barrier;
+    // tests that register via JS call policy.Resolve() before reading back.
+    private static (JintRuntime runtime, FlowRegistry registry, RegistrationPolicy policy) CreateRuntime()
     {
         var registry = new FlowRegistry();
         var sessions = new SessionManager();
@@ -30,15 +33,16 @@ public class FlowsModuleTests
         var engine = new FlowEngine(registry, sessions, world, persistence, new PanelRenderer(),
             new ClassRegistry(), new RaceRegistry(), new AlignmentManager(world, eventBus, new AlignmentConfig()),
             playerCreator, eventBus);
-        var module = new FlowsModule(registry, engine, sessions);
+        var policy = TestRegistrationPolicy.Create();
+        var module = new FlowsModule(registry, engine, sessions, policy);
         var runtime = new JintRuntime(new IJintApiModule[] { module }, NullLogger<JintRuntime>.Instance);
-        return (runtime, registry);
+        return (runtime, registry, policy);
     }
 
     [Fact]
     public void Register_info_flow_from_JS_adds_to_registry()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -50,6 +54,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         registry.Get("test_flow").Should().NotBeNull();
         registry.Get("test_flow")!.Trigger.Should().Be("new_player_connect");
@@ -58,7 +63,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_with_choice_step()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -76,6 +81,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("choice_flow")!;
         def.Steps.Should().HaveCount(1);
@@ -85,7 +91,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_on_complete_returning_false_propagates_message()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -95,6 +101,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: false, message: "Not allowed." })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("reject_flow")!;
         var entity = new Entity("player", "Test");
@@ -107,7 +114,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_with_skip_if()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -126,6 +133,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("skip_flow")!;
         var entity = new Entity("player", "Test");
@@ -135,7 +143,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_with_dynamic_options_function()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -153,6 +161,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("dyn_flow")!;
         var step = (ChoiceStep)def.Steps[0];
@@ -166,7 +175,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_with_text_step()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -183,6 +192,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("text_flow")!;
         def.Steps[0].Should().BeOfType<TextStep>();
@@ -191,7 +201,7 @@ public class FlowsModuleTests
     [Fact]
     public void Register_flow_with_confirm_step()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -209,6 +219,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("confirm_flow")!;
         def.Steps[0].Should().BeOfType<ConfirmStep>();
@@ -217,7 +228,7 @@ public class FlowsModuleTests
     [Fact]
     public void ChoiceStep_option_string_description_is_parsed()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -233,6 +244,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("desc_flow")!;
         var step = (ChoiceStep)def.Steps[0];
@@ -243,7 +255,7 @@ public class FlowsModuleTests
     [Fact]
     public void ChoiceStep_option_tag_line_is_parsed()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -259,6 +271,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("tagline_flow")!;
         var step = (ChoiceStep)def.Steps[0];
@@ -269,7 +282,7 @@ public class FlowsModuleTests
     [Fact]
     public void ChoiceStep_option_function_description_is_invoked_with_entity()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -289,6 +302,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("fn_desc_flow")!;
         var step = (ChoiceStep)def.Steps[0];
@@ -299,7 +313,7 @@ public class FlowsModuleTests
     [Fact]
     public void Flow_wizard_steps_are_parsed()
     {
-        var (runtime, registry) = CreateRuntime();
+        var (runtime, registry, policy) = CreateRuntime();
 
         runtime.Execute("""
             tapestry.flows.register({
@@ -321,6 +335,7 @@ public class FlowsModuleTests
                 on_complete: (entity) => ({ success: true })
             });
             """, "test");
+        policy.Resolve();
 
         var def = registry.Get("wizard_flow")!;
         def.WizardSteps.Should().NotBeNull();

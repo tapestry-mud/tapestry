@@ -1,13 +1,16 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
 public class AbilitiesModuleTests
 {
-    private (JintRuntime rt, AbilityRegistry reg) BuildRuntime()
+    // register() defers the registry write to the RegistrationPolicy seal barrier;
+    // tests that register via JS call policy.Resolve() before reading back.
+    private (JintRuntime rt, AbilityRegistry reg, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -16,18 +19,20 @@ public class AbilitiesModuleTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<AbilityRegistry>());
+        return (rt, provider.GetRequiredService<AbilityRegistry>(),
+                provider.GetRequiredService<RegistrationPolicy>());
     }
 
     [Fact]
     public void Register_CapturesSourceFileFromCurrentSource()
     {
-        var (rt, reg) = BuildRuntime();
+        var (rt, reg, policy) = BuildRuntime();
         rt.Execute(
             "tapestry.abilities.register({ id: 'kick', name: 'Kick', type: 'active', category: 'skill', handler: function(){} });",
             "test-pack",
             "scripts/abilities/skills.js"
         );
+        policy.Resolve();
         var def = reg.Get("kick");
         Assert.Equal("scripts/abilities/skills.js", def!.SourceFile);
     }
@@ -35,7 +40,7 @@ public class AbilitiesModuleTests
     [Fact]
     public void Register_CapturesShortName()
     {
-        var (rt, reg) = BuildRuntime();
+        var (rt, reg, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.abilities.register({
                 id: 'heron_wading_in_the_rushes',
@@ -46,6 +51,7 @@ public class AbilitiesModuleTests
                 handler: function(){}
             });
         ");
+        policy.Resolve();
         var def = reg.Get("heron_wading_in_the_rushes");
         Assert.Equal("Heron", def!.ShortName);
     }
@@ -53,7 +59,7 @@ public class AbilitiesModuleTests
     [Fact]
     public void Register_ShortNameDefaultsToNullWhenOmitted()
     {
-        var (rt, reg) = BuildRuntime();
+        var (rt, reg, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.abilities.register({
                 id: 'bash',
@@ -63,6 +69,7 @@ public class AbilitiesModuleTests
                 handler: function(){}
             });
         ");
+        policy.Resolve();
         var def = reg.Get("bash");
         Assert.Null(def!.ShortName);
     }
@@ -70,7 +77,7 @@ public class AbilitiesModuleTests
     [Fact]
     public void Register_FailureGainMultiplier_RoundTrips()
     {
-        var (rt, reg) = BuildRuntime();
+        var (rt, reg, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.abilities.register({
                 id: 'dodge',
@@ -78,6 +85,7 @@ public class AbilitiesModuleTests
                 failure_gain_multiplier: 0.1
             });
         ");
+        policy.Resolve();
         var def = reg.Get("dodge");
         Assert.NotNull(def);
         Assert.Equal(0.1, def!.FailureProficiencyGainMultiplier);
@@ -86,10 +94,11 @@ public class AbilitiesModuleTests
     [Fact]
     public void Register_FailureGainMultiplier_DefaultsWhenOmitted()
     {
-        var (rt, reg) = BuildRuntime();
+        var (rt, reg, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.abilities.register({ id: 'parry', name: 'Parry' });
         ");
+        policy.Resolve();
         var def = reg.Get("parry");
         Assert.NotNull(def);
         Assert.Equal(0.25, def!.FailureProficiencyGainMultiplier);

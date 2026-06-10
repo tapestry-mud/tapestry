@@ -41,13 +41,24 @@ public class RaceRegistryTests
         Assert.Null(_registry.Get("nonexistent"));
     }
 
+    // Collision resolution moved to RegistrationPolicy: by the time a write lands here,
+    // the policy has already elected the winner — Register is a plain upsert.
     [Fact]
-    public void Register_DuplicateId_HigherPriorityWins()
+    public void Register_DuplicateId_ReplacesExisting()
     {
         Setup();
         _registry.Register(MakeRace("elf", "Core Elf", priority: 0, packName: "core"));
         _registry.Register(MakeRace("elf", "LF Elf", priority: 10, packName: "test-pack"));
         Assert.Equal("LF Elf", _registry.Get("elf")!.Name);
+    }
+
+    [Fact]
+    public void Register_DuplicateId_PriorityDoesNotArbitrate_LastWriteWins()
+    {
+        Setup();
+        _registry.Register(MakeRace("elf", "LF Elf", priority: 10, packName: "test-pack"));
+        _registry.Register(MakeRace("elf", "Core Elf", priority: 0, packName: "core"));
+        Assert.Equal("Core Elf", _registry.Get("elf")!.Name);
     }
 
     [Fact]

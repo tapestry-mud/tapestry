@@ -634,6 +634,8 @@ public static class YamlContentLoader
     {
         public string? Fg { get; set; }
         public string? Bg { get; set; }
+        // Optional per-tag `override: true` -- the edge-gated RegistrationPolicy override.
+        public bool Override { get; set; }
     }
 
     public class ItemDefinition
@@ -677,6 +679,8 @@ public static class YamlContentLoader
         public string Name { get; set; } = "";
         public string Display { get; set; } = "";
         public int Max { get; set; } = 1;
+        // Optional per-slot `override: true` -- the edge-gated RegistrationPolicy override.
+        public bool Override { get; set; }
     }
 
     private class RoomDefinition

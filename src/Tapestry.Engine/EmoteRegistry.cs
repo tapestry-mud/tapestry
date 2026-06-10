@@ -12,9 +12,20 @@ public class EmoteDefinition
 public class EmoteRegistry
 {
     private readonly Dictionary<string, EmoteDefinition> _emotes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Registration.RegistrationGate? _gate;
 
+    public EmoteRegistry(Registration.RegistrationGate? gate = null)
+    {
+        _gate = gate;
+    }
+
+    /// <summary>
+    /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
+    /// time a write lands here, the policy has already elected the winner.
+    /// </summary>
     public void Register(EmoteDefinition emote)
     {
+        _gate?.AssertCommitScope("emote", emote.Name);
         { _emotes[emote.Name] = emote; }
     }
 
