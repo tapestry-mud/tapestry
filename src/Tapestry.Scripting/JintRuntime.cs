@@ -54,7 +54,10 @@ public class JintRuntime
     }
 
     /// <summary>
-    /// Execute a script without a pack name. Convenience for tests.
+    /// Execute a script without setting pack/source attribution. TESTS ONLY -- do NOT use for
+    /// pack execution: it leaves __currentPack/__currentSource at their prior values, so any
+    /// registration (e.g. registerScript) records a stale/blank owner. Pack content must run
+    /// through the attributed Execute(script, packName, sourceFile) overload (the scripts: glob).
     /// </summary>
     public void Execute(string script)
     {

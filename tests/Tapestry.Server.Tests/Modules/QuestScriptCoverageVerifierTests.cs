@@ -131,4 +131,27 @@ public class QuestScriptCoverageVerifierTests : IDisposable
         var act = () => verifier.Verify();
         act.Should().NotThrow("the glob already loaded the file -- this is the trolloc-slayer shape");
     }
+
+    [Fact]
+    public void UncoveredScript_NoMatchingManifest_DefaultsToStrict_Throws()
+    {
+        WriteScriptFile("quests/q1.js"); // exists on disk, not marked executed
+        var quests = new QuestRegistry();
+        quests.Register(new QuestDefinition { Id = "q1", Script = "quests/q1.js", PackDirectory = _packDir });
+        var rt = BuildRuntime();
+
+        // No manifest matches _packDir -> owner resolves to null -> defaults to strict (throw).
+        var manifests = new FakeManifests
+        {
+            LoadedPacks = new List<PackManifest>
+            {
+                new() { Name = "@other/pack", PackDirectory = Path.Combine(Path.GetTempPath(), "some-other-dir"), Validation = "lenient" },
+            },
+        };
+        var verifier = new QuestScriptCoverageVerifier(quests, rt, manifests,
+            NullLogger<QuestScriptCoverageVerifier>.Instance);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => verifier.Verify());
+        ex.Message.Should().Contain("q1").And.Contain("(unknown)");
+    }
 }
