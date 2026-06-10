@@ -32,3 +32,41 @@ jobs:
             echo "::error::Vulnerable NuGet packages detected"
             exit 1
           fi
+
+  scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # The pack corpus the scenario gate boots against. Tracks packs master
+      # (engine HEAD + packs HEAD is the combination that ships); set to a
+      # commit SHA to freeze the corpus.
+      PACKS_REF: master
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Checkout pack corpus
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: tapestry-mud/tapestry-packs
+          ref: ${{ env.PACKS_REF }}
+          path: .packs-src
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build server
+        run: dotnet build src/Tapestry.Server --configuration Release -v q
+
+      - name: Run telnet scenarios
+        run: node tests/tools/telnet-runner.js --all-packs --managed --clean --configuration Release --packs .packs-src/packages
+
+      - name: Upload transcripts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scenario-results
+          path: tests/scenarios/results/
