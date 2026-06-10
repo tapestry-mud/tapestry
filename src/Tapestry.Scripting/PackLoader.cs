@@ -548,6 +548,7 @@ public class PackLoader : IPackManifestProvider
             var text = File.ReadAllText(initFile);
             RecordCallSites(text, packName, relative);
             _runtime.Execute(text, packName, relative);
+            _runtime.MarkFileExecuted(initFile);
             files = files.Where(f => f != initFile).ToList();
         }
 
@@ -558,6 +559,7 @@ public class PackLoader : IPackManifestProvider
             var text = File.ReadAllText(file);
             RecordCallSites(text, packName, relative);
             _runtime.Execute(text, packName, relative);
+            _runtime.MarkFileExecuted(file);
         }
     }
 

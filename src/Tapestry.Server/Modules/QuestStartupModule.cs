@@ -43,6 +43,17 @@ public class QuestStartupModule : IGameModule
                 _logger.LogWarning("Quest script not found: {Path}", scriptPath);
                 continue;
             }
+
+            // The pack `scripts:` glob may already have executed this file (quest scripts
+            // routinely live under scripts/). Running it again re-fires registerScript and,
+            // under the RegistrationPolicy, trips a same-pack quest-hook collision. Skip any
+            // file already executed; MarkFileExecuted returns false when that's the case.
+            if (!_jintRuntime.MarkFileExecuted(scriptPath))
+            {
+                _logger.LogDebug("Quest script already loaded by the scripts glob, skipping: {Path}", scriptPath);
+                continue;
+            }
+
             try
             {
                 _jintRuntime.Execute(File.ReadAllText(scriptPath));

@@ -215,6 +215,25 @@ public class JintRuntimeTests
         Assert.Equal("test-pack", pack);
     }
 
+    [Fact]
+    public void MarkFileExecuted_IsIdempotent_AndPathNormalized()
+    {
+        var (runtime, _) = CreateRuntime();
+        var path = Path.Combine(Path.GetTempPath(), "pack", "scripts", "quests", "q.js");
+
+        runtime.HasExecutedFile(path).Should().BeFalse();
+
+        // First mark records the file (caller should execute it)...
+        runtime.MarkFileExecuted(path).Should().BeTrue();
+        runtime.HasExecutedFile(path).Should().BeTrue();
+
+        // ...and a non-normalised but equivalent path resolves to the same key, so the second
+        // boot subsystem (QuestStartupModule) recognises the glob already ran it.
+        var equivalent = Path.Combine(Path.GetTempPath(), "pack", "scripts", "..", "scripts", "quests", "q.js");
+        runtime.HasExecutedFile(equivalent).Should().BeTrue();
+        runtime.MarkFileExecuted(equivalent).Should().BeFalse();
+    }
+
     private static (JintRuntime, TestContext) CreateRuntime()
     {
         var commandRegistry = new CommandRegistry();
