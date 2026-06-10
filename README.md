@@ -141,7 +141,13 @@ A pack contains:
 | `scripts/**/*.js` | System behavior, event hooks, custom commands (optional) |
 | `help/**/*.yaml` | In-game help topics (optional) |
 
-Higher-priority packs can override commands, extend areas, or replace items from lower-priority packs.
+Registrations are declarative and resolve at a single seal when the server boots. If two packs
+register the same name in the same family (a command, class, emote, equipment slot, ...), the
+boot fails with an error naming both source files -- never a silent clobber. The pack that
+intends to win declares `override: true` on its registration AND a `dependencies:` entry on the
+pack it overrides; engine/kernel registrations are not overridable. This covers commands, mob
+commands and behaviors, classes, races, abilities, emotes, flows, progression tracks, quest
+hooks, themes, equipment slots, arg types, rarity and essence tiers, help topics, and exports.
 
 See [tapestry-packs](https://github.com/tapestry-mud/tapestry-packs) for the official packs and a reference for how community packs are structured.
 
