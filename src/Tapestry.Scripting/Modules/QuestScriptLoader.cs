@@ -65,8 +65,10 @@ public class QuestScriptLoader : IQuestScriptLoader
     }
 
     /// <summary>
-    /// Test/diagnostic accessor: the owning pack recorded for a quest's hooks, or null if
-    /// no hooks are registered for the quest. Pins that hooks bind under their real owner.
+    /// Test/diagnostic accessor: the pack owner recorded for a quest's hooks. Returns null
+    /// only when no hooks are registered for the quest; returns the recorded owner otherwise,
+    /// which may be the empty string if the hooks were registered with no owner (the blank-owner
+    /// case this accessor exists to surface). Do not collapse empty-to-null -- that would hide it.
     /// </summary>
     internal string? OwnerOf(string questId)
     {
