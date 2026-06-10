@@ -40,7 +40,8 @@ public class PlayerInitModule : IGameModule
     public void Configure()
     {
         SeedAdmin();
-        LoadSeedPlayers();
+        // Seed-player loading moved to GameLoopService.StartAsync (after RegistrationPolicy.Resolve()):
+        // a seed player's player_race reads the race registry, which only commits at the seal barrier.
         // Initial mob spawns moved to GameLoopService.StartAsync (after RegistrationPolicy.Resolve()):
         // MobStatDerivation reads the class/race registries, which only commit at the seal barrier.
     }
@@ -103,7 +104,14 @@ public class PlayerInitModule : IGameModule
             admin.Handle);
     }
 
-    private void LoadSeedPlayers()
+    /// <summary>
+    /// Seeds pack-declared players. Called from GameLoopService.StartAsync AFTER
+    /// RegistrationPolicy.Resolve(): a seed player's player_race reads the race registry,
+    /// which only commits at the seal barrier. Seeding from Configure (pre-seal) would
+    /// see an empty registry, create the player WITHOUT racial flags, and the
+    /// PlayerSaveExists guard would make the deficient save permanent.
+    /// </summary>
+    public void LoadSeedPlayers()
     {
         // Read seed players from each loaded pack's resolved directory. The pack
         // dirs are scoped (@scope/name) and already filtered to enabled packs by

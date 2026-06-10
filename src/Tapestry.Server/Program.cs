@@ -168,7 +168,10 @@ builder.Services.AddSingleton<IGameModule, CombatEventModule>();
 builder.Services.AddSingleton<IGameModule, WorldEventModule>();
 builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
 builder.Services.AddSingleton<IGameModule, PersistenceModule>();
-builder.Services.AddSingleton<IGameModule, PlayerInitModule>();
+// PlayerInitModule is registered as both concrete (GameLoopService calls LoadSeedPlayers
+// post-seal) and IGameModule (bootstrap calls Configure) -- same singleton.
+builder.Services.AddSingleton<PlayerInitModule>();
+builder.Services.AddSingleton<IGameModule>(sp => sp.GetRequiredService<PlayerInitModule>());
 builder.Services.AddSingleton<IGameModule, BadInputModule>();
 
 // Bootstrapper and hosted services

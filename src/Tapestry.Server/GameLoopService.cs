@@ -35,6 +35,7 @@ public class GameLoopService : IHostedService
     private readonly SpawnManager _spawns;
     private readonly AbilityCommandBridge _abilityCommandBridge;
     private readonly Tapestry.Scripting.PackValidator _packValidator;
+    private readonly Modules.PlayerInitModule _playerInit;
     private Task? _runTask;
 
     public GameLoopService(
@@ -60,7 +61,8 @@ public class GameLoopService : IHostedService
         Tapestry.Engine.Help.HelpSeal helpSeal,
         SpawnManager spawns,
         AbilityCommandBridge abilityCommandBridge,
-        Tapestry.Scripting.PackValidator packValidator)
+        Tapestry.Scripting.PackValidator packValidator,
+        Modules.PlayerInitModule playerInit)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -85,6 +87,7 @@ public class GameLoopService : IHostedService
         _spawns = spawns;
         _abilityCommandBridge = abilityCommandBridge;
         _packValidator = packValidator;
+        _playerInit = playerInit;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -305,6 +308,12 @@ public class GameLoopService : IHostedService
         // Help resolves AFTER commands (help shadows commands): validate command-shadowing
         // authority against the now-committed registry, then auto-gen fills only the gaps.
         _helpSeal.Seal();
+        // Seed players load AFTER the seal: a seed player's player_race reads the race
+        // registry, which only commits at Resolve(). (Was: PlayerInitModule.Configure,
+        // pre-seal — racial flags would silently never apply, and the PlayerSaveExists
+        // guard would make the deficient save permanent.) Persistence restore already
+        // ran at module Configure; seeding runs before the initial spawns below.
+        _playerInit.LoadSeedPlayers();
         // Initial mob spawns run AFTER the seal: MobStatDerivation reads the class/race
         // registries, which only commit at Resolve(). (Was: PlayerInitModule.Configure,
         // which runs at bootstrap — pre-seal — and would see empty registries.)
