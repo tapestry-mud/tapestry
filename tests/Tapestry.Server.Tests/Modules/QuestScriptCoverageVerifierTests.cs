@@ -103,4 +103,32 @@ public class QuestScriptCoverageVerifierTests : IDisposable
         var act = () => verifier.Verify();
         act.Should().NotThrow("a validation: lenient pack warns on a missing script: instead of failing the boot");
     }
+
+    [Fact]
+    public void UncoveredScript_LenientPack_DoesNotThrow()
+    {
+        WriteScriptFile("quests/q1.js"); // exists, not marked executed
+        var quests = new QuestRegistry();
+        quests.Register(new QuestDefinition { Id = "q1", Script = "quests/q1.js", PackDirectory = _packDir });
+        var rt = BuildRuntime();
+        var verifier = BuildVerifier(quests, rt, validation: "lenient");
+
+        var act = () => verifier.Verify();
+        act.Should().NotThrow("a validation: lenient pack warns instead of failing the boot");
+    }
+
+    [Fact]
+    public void CoveredScript_DoesNotThrow()
+    {
+        var path = WriteScriptFile("quests/q1.js");
+        var quests = new QuestRegistry();
+        quests.Register(new QuestDefinition { Id = "q1", Script = "quests/q1.js", PackDirectory = _packDir });
+        var rt = BuildRuntime();
+        rt.MarkFileExecuted(path); // simulate the scripts glob having loaded it
+
+        var verifier = BuildVerifier(quests, rt, validation: "strict");
+
+        var act = () => verifier.Verify();
+        act.Should().NotThrow("the glob already loaded the file -- this is the trolloc-slayer shape");
+    }
 }
