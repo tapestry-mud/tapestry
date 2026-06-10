@@ -9,6 +9,8 @@ server:
 
 packs:
   - tapestry-core
+  - tapestry-biomes
+  - tapestry-cooking
   - example-pack
 
 llm:

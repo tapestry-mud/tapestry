@@ -10,7 +10,7 @@
 3. Wait for: `reserved`
 4. Send: `me`
 5. Wait for: `reserved`
-6. Send: `Admin`
+6. Send: `system`
 7. Wait for: `reserved`
 8. Send: `Wanderer`
 9. Wait for: `Password`

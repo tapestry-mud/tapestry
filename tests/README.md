@@ -1,105 +1,148 @@
 # Tapestry Test Suite
 
-## Integration Tests (Telnet Runner)
+## Unit Tests
 
-Scenario-based integration tests that connect to a live server via telnet and verify game behavior end-to-end.
-
-### Running Tests
+Standard .NET test projects — this is the bottom of the pyramid and where most
+coverage belongs:
 
 ```bash
-# Run all scenarios (starts/stops server automatically)
-node tests/tools/telnet-runner.js tests/scenarios --managed
-
-# Run a single file
-node tests/tools/telnet-runner.js tests/scenarios/commands/combat-visibility.md --managed
-
-# Clean old result files before running
-node tests/tools/telnet-runner.js tests/scenarios --managed --clean
+dotnet test                              # everything
+dotnet test tests/Tapestry.Engine.Tests  # one project
 ```
+
+## Integration Scenarios (Telnet Runner)
+
+End-to-end scenario tests that boot a real server, connect real telnet
+clients, drive commands, and assert on what each client sees. This is the
+very top of the pyramid: a scenario is justified only for behavior that
+spans connection → login → dispatch → output (or multi-client interaction),
+can't be pinned down by a unit test, and guards a stack-critical path.
+Keep the count small; CI runs every scenario on every push.
+
+### Running
+
+```bash
+# Build once, then run everything exactly like CI does
+dotnet build src/Tapestry.Server -v q
+node tests/tools/telnet-runner.js --all-packs --managed --clean
+
+# One file
+node tests/tools/telnet-runner.js tests/scenarios/smoke/new-player.md --managed
+
+# Against an already-running server (no build needed)
+node tests/tools/telnet-runner.js tests/scenarios/ --port 4000
+
+# Parser/normalizer self-tests, no server
+node tests/tools/telnet-runner.js --self-test
+```
+
+`--managed` boots a fresh server on a **free ephemeral port** with an
+**isolated temp-dir save store** (config copied from `server.test.yaml`,
+`--config`/`--packs` passed explicitly), and refuses to run scenarios until
+boot is verified: every configured pack loaded, game loop started, telnet
+listener bound, and the login banner answered. An empty or missing packs
+directory is an immediate loud failure, never a hang.
 
 ### Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--managed` | off | Start a fresh server before tests, kill it after |
-| `--clean` | off | Remove old transcript files from `results/` before running |
-| `--port N` | 4000 | Server port |
-| `--delay N` | 500 | Settle time (ms) after each command |
+| `--managed` | off | Boot + verify a fresh isolated server, kill it after |
+| `--configuration C` | `Debug` | Which built server to run (`Debug`/`Release`); the runner does not build |
+| `--packs DIR` | `<repo>/packs` | Packs corpus for the managed server |
+| `--all-packs` | off | Discover `tests/scenarios/` plus `<pack>/tests/` in the packs corpus |
+| `--admin-player NAME` | `Gamemaster` | Seeded admin used for `Room:` placement |
+| `--scenario-timeout S` | 120 | Per-scenario wall-clock cap |
+| `--suite-timeout S` | 600 | Whole-run hard cap — on expiry: dump, kill server, exit 1 |
+| `--port N` | 4000 | Target port for non-managed runs |
+| `--delay N` | 0 | Extra settle ms per command (sync is deterministic; rarely needed) |
+| `--clean` | off | Remove old files from `results/` first |
 | `--json` | off | JSON-only output |
 
-### Writing Scenarios
+Exit code is 0 **only** when every scenario passed — failures, errors,
+timeouts, and boot problems all exit nonzero, so the runner can gate CI.
+The `scenarios` job in `.github/workflows/ci.yml` runs `--all-packs
+--managed` on every push against the `tapestry-packs` corpus.
 
-Scenarios live in `tests/scenarios/` organized by domain:
+### How synchronization works (no sleeps)
+
+The engine processes each session's input FIFO on the game-loop tick. After
+every command the runner queues a sentinel (`help __sync_N__`) and waits for
+its echo — when it arrives, everything the command produced (including
+broadcasts to other clients' sockets) has been delivered. Assertions run on
+ANSI-stripped, CRLF-normalized buffers (Linux and Windows behave
+identically), and negative assertions barrier the observing player first.
+Every wait is bounded; there are no unconditional sleeps in the step path.
+
+### Scenario files
 
 ```
 tests/scenarios/
-  _defaults/         # Shared login sequence
-  commands/          # Command tests (look, say, combat, admin)
-  mobs/              # Mob behavior tests
-  smoke/             # Basic connectivity
-  results/           # Transcripts (gitignored)
+  _defaults/login.md   # Shared login sequence ({PlayerName}, password testpass123)
+  smoke/               # Journeys: new-player, combat-pulse
+  gmcp/                # Protocol: post-login burst, MSSP
+  char-creation-hardening.md
+  results/             # Transcripts + results.json (gitignored)
+packs corpus:
+  <pack>/tests/**/*.md # Pack-owned scenarios (e.g. @tapestry/example-pack), via --all-packs
 ```
 
-Each `.md` file contains one or more scenarios:
+Test players (`Wanderer`, `Alice`, `Gamemaster` — admin) are seeded by
+`@tapestry/example-pack/players.yaml` with password `testpass123`.
+
+Format — smoke journey (one scenario per file) or command file (multiple
+`## Scenario:` blocks):
 
 ```markdown
 # file-name
 
-## Scenario: Description of what we're testing
-- Players: Alice, Bob
+## Scenario: What this case proves
+- Players: Alice, Wanderer
 - Room: same
+- Skip: optional reason — scenario is reported as skipped
 
 ### Steps
-1. Alice: `command here`
-2. Assert Alice sees: `expected text`
-3. Assert Bob does not see: `text`
+1. Alice: `say hello`
+2. Assert Alice sees: `You say`
+3. Assert Wanderer sees: `Alice says`
+4. Assert Wanderer does not see: `secret`
 ```
 
-### Step Types
+### Step types
 
 | Syntax | Description |
 |--------|-------------|
-| `Player: \`command\`` | Send a command as that player |
-| `Assert Player sees: \`text\`` | Check player's buffer contains text |
-| `Assert Player does not see: \`text\`` | Check player's buffer does NOT contain text |
-| `Assert Player sees one of: \`a\`, \`b\`` | Check buffer contains at least one of the texts |
-| `Wait for Player sees: \`text\`` | Wait up to 30s for text to appear (for async events like combat ticks) |
+| `Player: \`command\`` | Send a command, then barrier until its output is delivered everywhere |
+| `Assert Player sees: \`text\`` | Buffer contains text (bounded 2s grace) |
+| `Assert Player does not see: \`text\`` | Buffer does NOT contain text (after a sync barrier) |
+| `Assert Player sees one of: \`a\`, \`b\`` | At least one matches |
+| `Wait for Player sees: \`text\`` | Wait up to 30s — for tick-driven events (combat pulse, weather) |
+| `Assert Player receives GMCP: \`Pkg\`` | GMCP packet arrived (bounded 5s) |
+| `Assert Player receives GMCP: \`Pkg\` with k="v"` | GMCP packet field match |
+| `Assert \`A\` packet index is less than \`B\` packet index` | GMCP ordering |
 
-### Setup Directives
+### Setup directives
 
 | Directive | Description |
 |-----------|-------------|
-| `- Players: A, B, C` | Create named player connections |
-| `- Room: same` | All players start in the same room (default) |
-| `- Room: different` | Players start in different rooms |
+| `- Players: A, B` | Named player connections (seeded test players) |
+| `- Room: same` | All players recalled to spawn together (default) |
+| `- Room: different` | Players 2+ move north before steps |
+| `- Room: <room-id>` | Admin teleports everyone there (uses `--admin-player`) |
+| `- Skip: reason` | Skip with a visible reason |
 
-### Admin Commands for Test Setup
+### Useful admin commands inside steps
 
-Use these in scenario steps for deterministic world state:
+| Command | Example |
+|---------|---------|
+| `spawn` | `spawn tapestry-example-pack:test-dummy` |
+| `teleport` | `teleport Wanderer tapestry-example-pack:test-arena` |
+| `purge` | `purge npc` |
+| `loaditem` | `loaditem <item-template-id>` |
 
-| Command | Example | What it does |
-|---------|---------|-------------|
-| `spawn` | `spawn core:goblin` | Spawn a mob in your room |
-| `teleport` | `teleport core:test-arena` | Teleport self to a room |
-| `teleport` | `teleport Bob core:test-arena` | Teleport another player to a room |
-| `purge` | `purge npc` | Remove NPCs from your room |
-| `loaditem` | `loaditem core:iron-sword` | Spawn item into your inventory |
-| `xpgrant` | `xpgrant self 5000` | Grant XP to a player |
-
-### Tips
-
-- **Use `Wait for` when testing tick-based events.** Combat rounds fire every ~4 seconds. An `Assert` right after `kill` will miss the combat output.
-- **Teleport to `core:test-arena` (The Void)** for isolated tests — no exits, no pre-existing mobs.
-- **Teleport to `core:training-grounds`** if you need a room that allows combat but has exits.
-- **Town Square has `no-combat` tag** — don't test combat there.
-- **`loaditem core:iron-sword`** + `wield sword` gives a 1d600 weapon for instant kills in tests.
-
-## Unit Tests
-
-Standard .NET test projects:
-
-```bash
-dotnet test tests/Tapestry.Engine.Tests
-dotnet test tests/Tapestry.Scripting.Tests
-dotnet test tests/Tapestry.Networking.Tests
-```
+Tips:
+- `tapestry-example-pack:test-arena` ("The Void") is the isolated combat
+  room — no exits, no pre-existing mobs; `test-dummy` is a 99999-HP target.
+- Use `Wait for` for anything tick-driven; plain `Assert` for direct
+  command output.
+- **New scenarios need sign-off** — push coverage down to unit tests first.

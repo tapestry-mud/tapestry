@@ -6,6 +6,20 @@ const { spawn, execSync } = require('child_process');
 const net = require('net');
 const os = require('os');
 
+// ─── Tunables ──────────────────────────────────────────────────────
+// Every wait in the runner is event-driven with a bounded timeout: fast when
+// green, bounded when red. There are no unconditional sleeps in the step path.
+
+const LOGIN_WAIT_MS = 15000;     // per login "Wait for:" step (CI cold start)
+const SYNC_WAIT_MS = 10000;      // sentinel echo barrier after each command
+const ASSERT_WAIT_MS = 2000;     // positive "Assert sees" grace window
+const GMCP_WAIT_MS = 5000;       // GMCP packet arrival window
+const WAIT_FOR_SEES_MS = 30000;  // explicit "Wait for ... sees" steps
+const BOOT_TIMEOUT_MS = 60000;   // managed server boot (build excluded)
+const BANNER_PROBE_MS = 10000;   // login banner probe before any scenario
+const DEFAULT_SCENARIO_TIMEOUT_S = 120;
+const DEFAULT_SUITE_TIMEOUT_S = 600;
+
 // ─── Scenario Parser ───────────────────────────────────────────────
 
 function parseScenarioFile(filePath) {
@@ -188,6 +202,39 @@ function parseDefaultLogin(defaultsDir) {
   return steps;
 }
 
+// ─── Text Normalization ────────────────────────────────────────────
+// All matching happens on normalized text: ANSI stripped, CR removed (the
+// server emits CRLF; Linux vs Windows must behave identically — tapestry #90),
+// case-insensitive contains.
+
+function stripAnsi(text) {
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function normalize(text) {
+  return stripAnsi(text).replace(/\r/g, '');
+}
+
+function containsText(haystack, needle) {
+  return normalize(haystack).toLowerCase().includes(normalize(needle).toLowerCase());
+}
+
+// AggregateError (e.g. dual-stack connect failures) has an empty .message;
+// always render something diagnosable.
+function describeError(err) {
+  if (err && err.errors && Array.isArray(err.errors)) {
+    return err.errors.map(e => e.message || String(e)).join('; ') || String(err);
+  }
+  return (err && err.message) || String(err);
+}
+
+// Sentinel sync lines (`help __sync_N__` echoes / responses) are runner
+// plumbing — strip them out of any buffer used for assertions or transcripts
+// so a scenario can never accidentally match against them.
+function filterSentinels(text) {
+  return text.split('\n').filter(l => !l.includes(SYNC_PREFIX)).join('\n');
+}
+
 // ─── Telnet Constants ──────────────────────────────────────────────
 
 const IAC  = 0xFF;
@@ -199,15 +246,30 @@ const DO   = 0xFD;
 const DONT = 0xFE;
 
 const OPT_ECHO  = 1;
-const OPT_TTYPE = 24;
-const OPT_NAWS  = 31;
-const OPT_MSSP  = 70;
 const OPT_GMCP  = 201;
+
+// ─── Sync Sentinel ─────────────────────────────────────────────────
+// The engine processes each session's input FIFO on the game-loop tick, and
+// `help <unknown>` responds "No help found for '<term>'." — so a unique
+// sentinel help lookup queued AFTER a command is a completion barrier: when
+// the sentinel echo arrives, every line the command produced (including room
+// broadcasts queued to OTHER sessions during that tick) has already been
+// written to the respective sockets.
+
+const SYNC_PREFIX = '__sync_';
+let syncCounter = 0;
+
+function nextSyncToken() {
+  syncCounter++;
+  return `${SYNC_PREFIX}${syncCounter}__`;
+}
 
 // ─── Telnet Client ─────────────────────────────────────────────────
 
 class TelnetClient {
-  constructor(name, port = 4000, host = 'localhost') {
+  // 127.0.0.1, not localhost: dual-stack resolution makes Node race ::1 and
+  // 127.0.0.1 and surface failures as AggregateError with an empty message.
+  constructor(name, port = 4000, host = '127.0.0.1') {
     this.name = name;
     this.port = port;
     this.host = host;
@@ -218,6 +280,10 @@ class TelnetClient {
     this._rawBuf = Buffer.alloc(0);
     this.gmcpPackets = [];
     this.gmcpEnabled = false;
+    // True when no output can be in flight for this client (post-sentinel).
+    // Cleared whenever any client sends a command (its tick may broadcast
+    // output to us).
+    this.synced = false;
   }
 
   connect() {
@@ -245,6 +311,12 @@ class TelnetClient {
 
       this.socket.on('close', () => {
         this.connected = false;
+        // Wake any pending waiter so it can fail fast instead of timing out.
+        if (this._resolve) {
+          const fn = this._resolve;
+          this._resolve = null;
+          fn();
+        }
       });
 
       this.socket.connect(this.port, this.host, () => {
@@ -376,6 +448,12 @@ class TelnetClient {
     this.socket.write(text + '\n');
   }
 
+  // The assertion-safe view of everything this client has seen since the last
+  // clearBuffer(): ANSI-stripped, CR-stripped, sentinel plumbing removed.
+  view() {
+    return filterSentinels(normalize(this.buffer));
+  }
+
   waitFor(text, timeoutMs = 3000) {
     return new Promise((resolve, reject) => {
       let timer = null;
@@ -394,8 +472,14 @@ class TelnetClient {
       };
 
       const check = () => {
-        if (this.buffer.toLowerCase().includes(text.toLowerCase())) {
+        if (containsText(this.buffer, text)) {
           done(resolve, true);
+          return;
+        }
+        if (!this.connected) {
+          done(reject, new Error(
+            `${this.name}: connection closed while waiting for "${text}" — buffer:\n${normalize(this.buffer).slice(-500)}`
+          ));
           return;
         }
         this._resolve = check;
@@ -403,11 +487,55 @@ class TelnetClient {
 
       timer = setTimeout(() => {
         done(reject, new Error(
-          `${this.name}: timeout waiting for "${text}" — buffer:\n${this.buffer.slice(-500)}`
+          `${this.name}: timeout (${timeoutMs}ms) waiting for "${text}" — buffer:\n${normalize(this.buffer).slice(-500)}`
         ));
       }, timeoutMs);
 
       check();
+    });
+  }
+
+  // Completion barrier: queue a sentinel help lookup and wait for its echo.
+  // When this returns, all output triggered by this client's earlier commands
+  // has been delivered (to this client AND broadcast to others' sockets).
+  // A connection closed by the scenario itself (e.g. `quit`) counts as synced.
+  async sync(timeoutMs = SYNC_WAIT_MS) {
+    if (!this.connected) {
+      this.synced = true;
+      return;
+    }
+    const token = nextSyncToken();
+    try {
+      this.send(`help ${token}`);
+      await this.waitFor(`No help found for '${token}'`, timeoutMs);
+    } catch (err) {
+      if (!this.connected) {
+        // Closed mid-sync (quit/server shutdown): whatever was sent before the
+        // close is already in the buffer; that's as synced as it gets.
+        this.synced = true;
+        return;
+      }
+      throw err;
+    }
+    this.synced = true;
+  }
+
+  // Poll for a GMCP packet matching `predicate` — bounded, event-paced.
+  waitForGmcp(predicate, timeoutMs = GMCP_WAIT_MS) {
+    return new Promise((resolve) => {
+      const deadline = Date.now() + timeoutMs;
+      const poll = () => {
+        if (this.gmcpPackets.some(predicate)) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() >= deadline || !this.connected) {
+          resolve(false);
+          return;
+        }
+        setTimeout(poll, 50);
+      };
+      poll();
     });
   }
 
@@ -417,38 +545,6 @@ class TelnetClient {
 
   clearGmcpPackets() {
     this.gmcpPackets = [];
-  }
-
-  drain() {
-    const content = this.buffer;
-    this.buffer = '';
-    return content;
-  }
-
-  waitForData(timeoutMs = 3000) {
-    return new Promise((resolve, reject) => {
-      if (this.buffer.length > 0) {
-        resolve();
-        return;
-      }
-      let timer = null;
-      let settled = false;
-      const done = (fn, arg) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        if (timer) {
-          clearTimeout(timer);
-        }
-        this._resolve = null;
-        fn(arg);
-      };
-      this._resolve = () => done(resolve);
-      timer = setTimeout(() => {
-        done(reject, new Error(`${this.name}: timeout waiting for any data`));
-      }, timeoutMs);
-    });
   }
 
   settle(ms = 500) {
@@ -465,11 +561,29 @@ class TelnetClient {
 
 // ─── Runner Core ───────────────────────────────────────────────────
 
-function stripAnsi(text) {
-  return text.replace(/\x1b\[[0-9;]*m/g, '');
+class ScenarioTimeoutError extends Error {}
+
+function makeDeadline(seconds) {
+  const end = Date.now() + seconds * 1000;
+  return {
+    check(label) {
+      if (Date.now() > end) {
+        throw new ScenarioTimeoutError(
+          `scenario exceeded ${seconds}s wall-clock cap (at: ${label})`
+        );
+      }
+    },
+    remainingMs() {
+      return Math.max(0, end - Date.now());
+    },
+    clamp(timeoutMs) {
+      return Math.max(1, Math.min(timeoutMs, this.remainingMs()));
+    }
+  };
 }
 
-async function runScenario(scenario, defaultLoginSteps, port, delay) {
+async function runScenario(scenario, defaultLoginSteps, opts) {
+  const { port, delay, adminPlayer, scenarioTimeoutS } = opts;
   const result = {
     name: scenario.name,
     status: 'pass',
@@ -479,78 +593,99 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
   };
 
   const clients = {};
+  const deadline = makeDeadline(scenarioTimeoutS);
+
+  // Mark every client un-synced: `actor` just ran a command whose tick may
+  // have broadcast output to anyone; re-sync before trusting their buffers.
+  const markAllUnsynced = () => {
+    for (const c of Object.values(clients)) {
+      c.synced = false;
+    }
+  };
+
+  // Barrier for assertions: guarantee no in-flight output for this player.
+  const ensureSynced = async (client) => {
+    if (!client.synced) {
+      await client.sync(deadline.clamp(SYNC_WAIT_MS));
+    }
+  };
 
   try {
     for (const playerName of scenario.players) {
+      deadline.check(`connect ${playerName}`);
       const client = new TelnetClient(playerName, port);
       await client.connect();
-      await client.settle(300);
       clients[playerName] = client;
       result.transcript.push(`[${playerName} connected]`);
     }
 
     for (const playerName of scenario.players) {
+      deadline.check(`login ${playerName}`);
       const client = clients[playerName];
       const loginSteps = scenario.login[playerName]
         || resolveDefaultLogin(defaultLoginSteps, playerName);
 
       for (const step of loginSteps) {
         if (step.type === 'wait') {
-          await client.waitFor(step.text);
+          await client.waitFor(step.text, deadline.clamp(LOGIN_WAIT_MS));
         } else if (step.type === 'send') {
           client.send(step.text);
-          await client.settle(150);
         }
       }
-      await client.waitForData();
-      if (delay > 0) {
-        await client.settle(delay);
-      }
 
-      // Reset position to spawn point between scenarios
+      // "Welcome" arrives while the login flow still owns the session; input
+      // sent before handoff is consumed by the flow, not the command router.
+      // The first prompt flush ("[HP]: ...") only happens once the session is
+      // actually playing — wait for it before issuing any command.
+      await client.waitFor('[HP]:', deadline.clamp(LOGIN_WAIT_MS));
+
+      // Reset position to spawn point, then barrier + clean slate.
       client.send('recall');
-      await client.waitForData();
-      await client.settle(delay > 0 ? delay : 150);
-
+      await client.sync(deadline.clamp(SYNC_WAIT_MS));
       client.clearBuffer();
     }
 
     if (scenario.room === 'different' && scenario.players.length > 1) {
       for (let i = 1; i < scenario.players.length; i++) {
+        deadline.check(`room placement ${scenario.players[i]}`);
         const client = clients[scenario.players[i]];
         client.send('north');
-        await client.waitForData();
-        if (delay > 0) {
-          await client.settle(delay);
-        }
+        await client.sync(deadline.clamp(SYNC_WAIT_MS));
         client.clearBuffer();
       }
+      // The mover's departure was broadcast to player 1's room — flush it.
+      await clients[scenario.players[0]].sync(deadline.clamp(SYNC_WAIT_MS));
       clients[scenario.players[0]].clearBuffer();
     }
 
     if (scenario.room && scenario.room !== 'same' && scenario.room !== 'different') {
-      const adminClient = new TelnetClient('Admin', port);
+      deadline.check('admin room placement');
+      const adminClient = new TelnetClient(adminPlayer, port);
       await adminClient.connect();
-      const adminLoginSteps = resolveDefaultLogin(defaultLoginSteps, 'Admin');
+      const adminLoginSteps = resolveDefaultLogin(defaultLoginSteps, adminPlayer);
       for (const step of adminLoginSteps) {
-        if (step.type === 'wait') { await adminClient.waitFor(step.text); }
-        else if (step.type === 'send') { adminClient.send(step.text); }
+        if (step.type === 'wait') {
+          await adminClient.waitFor(step.text, deadline.clamp(LOGIN_WAIT_MS));
+        } else if (step.type === 'send') {
+          adminClient.send(step.text);
+        }
       }
-      await adminClient.waitForData();
+      await adminClient.waitFor('[HP]:', deadline.clamp(LOGIN_WAIT_MS));
       for (const playerName of scenario.players) {
         adminClient.send(`teleport ${playerName} ${scenario.room}`);
-        await adminClient.waitForData();
-        await adminClient.settle(300);
       }
+      await adminClient.sync(deadline.clamp(SYNC_WAIT_MS));
       adminClient.disconnect();
-      await new Promise(r => setTimeout(r, 2000));
       for (const playerName of scenario.players) {
-        clients[playerName].clearBuffer();
+        const c = clients[playerName];
+        await c.sync(deadline.clamp(SYNC_WAIT_MS));
+        c.clearBuffer();
       }
     }
 
     for (let i = 0; i < scenario.steps.length; i++) {
       const step = scenario.steps[i];
+      deadline.check(`step ${i + 1}`);
       const client = step.player ? clients[step.player] : null;
 
       if (!client && step.type !== 'assert_gmcp_order') {
@@ -566,13 +701,26 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
         client.clearBuffer();
         client.send(step.text);
         result.transcript.push(`> ${step.player}: ${step.text}`);
-        await client.waitForData();
-        await client.settle(delay > 0 ? delay : 150);
+        markAllUnsynced();
+        await client.sync(deadline.clamp(SYNC_WAIT_MS));
+        if (delay > 0) {
+          await client.settle(delay);
+        }
       } else if (step.type === 'assert_sees') {
-        const buf = stripAnsi(client.buffer);
-        if (buf.toLowerCase().includes(step.text.toLowerCase())) {
+        // Positive assert: bounded wait, instant when already present.
+        let seen = client.view().toLowerCase().includes(normalize(step.text).toLowerCase());
+        if (!seen) {
+          try {
+            await client.waitFor(step.text, deadline.clamp(ASSERT_WAIT_MS));
+            seen = true;
+          } catch (_) {
+            seen = client.view().toLowerCase().includes(normalize(step.text).toLowerCase());
+          }
+        }
+        if (seen) {
           result.transcript.push(`< ${step.player}: ✓ sees "${step.text}"`);
         } else {
+          const buf = client.view();
           result.transcript.push(`< ${step.player}: ✗ expected to see "${step.text}" in "${buf.slice(-200).replace(/\n/g, '\\n')}"`);
           result.failures.push({
             step: i + 1,
@@ -585,13 +733,10 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
         }
       } else if (step.type === 'wait_for_sees') {
         try {
-          await client.waitFor(step.text, 30000);
-          // settle so other clients can receive related messages
-          await client.settle(delay > 0 ? delay : 500);
-          const buf = stripAnsi(client.buffer);
+          await client.waitFor(step.text, deadline.clamp(WAIT_FOR_SEES_MS));
           result.transcript.push(`< ${step.player}: ✓ waited and sees "${step.text}"`);
         } catch (err) {
-          const buf = stripAnsi(client.buffer);
+          const buf = client.view();
           result.transcript.push(`< ${step.player}: ✗ timed out waiting for "${step.text}" in "${buf.slice(-200).replace(/\n/g, '\\n')}"`);
           result.failures.push({
             step: i + 1,
@@ -603,8 +748,9 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
           result.status = 'fail';
         }
       } else if (step.type === 'assert_sees_one_of') {
-        const buf = stripAnsi(client.buffer);
-        const found = step.texts.some(t => buf.toLowerCase().includes(t.toLowerCase()));
+        await ensureSynced(client);
+        const buf = client.view();
+        const found = step.texts.some(t => buf.toLowerCase().includes(normalize(t).toLowerCase()));
         if (found) {
           result.transcript.push(`< ${step.player}: ✓ sees one of: ${step.texts.map(t => '"' + t + '"').join(', ')}`);
         } else {
@@ -619,8 +765,10 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
           result.status = 'fail';
         }
       } else if (step.type === 'assert_not_sees') {
-        const buf = stripAnsi(client.buffer);
-        if (!buf.toLowerCase().includes(step.text.toLowerCase())) {
+        // Negative assert: barrier first — only meaningful on a quiesced buffer.
+        await ensureSynced(client);
+        const buf = client.view();
+        if (!buf.toLowerCase().includes(normalize(step.text).toLowerCase())) {
           result.transcript.push(`< ${step.player}: ✓ does not see "${step.text}"`);
         } else {
           result.transcript.push(`< ${step.player}: ✗ unexpectedly sees "${step.text}" in "${buf.slice(-200).replace(/\n/g, '\\n')}"`);
@@ -634,8 +782,9 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
           result.status = 'fail';
         }
       } else if (step.type === 'assert_gmcp') {
-        const found = client.gmcpPackets.some(p =>
-          p.package.toLowerCase() === step.package.toLowerCase()
+        const found = await client.waitForGmcp(
+          p => p.package.toLowerCase() === step.package.toLowerCase(),
+          deadline.clamp(GMCP_WAIT_MS)
         );
         if (found) {
           result.transcript.push(`< ${step.player}: ✓ received GMCP "${step.package}"`);
@@ -652,6 +801,10 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
           result.status = 'fail';
         }
       } else if (step.type === 'assert_gmcp_field') {
+        await client.waitForGmcp(
+          p => p.package.toLowerCase() === step.package.toLowerCase(),
+          deadline.clamp(GMCP_WAIT_MS)
+        );
         const pkt = client.gmcpPackets.find(p =>
           p.package.toLowerCase() === step.package.toLowerCase()
         );
@@ -693,6 +846,11 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
           result.failures.push({ step: i + 1, error: 'No client for GMCP order check' });
           result.status = 'fail';
         } else {
+          // Make sure both packets have had a chance to arrive before judging order.
+          await firstClient.waitForGmcp(
+            p => p.package.toLowerCase() === step.second.toLowerCase(),
+            deadline.clamp(GMCP_WAIT_MS)
+          );
           const firstIdx = firstClient.gmcpPackets.findIndex(p =>
             p.package.toLowerCase() === step.first.toLowerCase()
           );
@@ -729,6 +887,11 @@ async function runScenario(scenario, defaultLoginSteps, port, delay) {
     const errMsg = err instanceof Error ? (err.message || err.stack) : String(err);
     result.failures.push({ step: 0, error: errMsg });
     result.transcript.push(`[ERROR: ${errMsg}]`);
+    // Dump every player's buffer — an error is exactly when you need them.
+    for (const [playerName, client] of Object.entries(clients)) {
+      const tail = client.view().slice(-1000);
+      result.transcript.push(`[${playerName} buffer tail]\n${tail}`);
+    }
   } finally {
     for (const [playerName, client] of Object.entries(clients)) {
       client.disconnect();
@@ -746,44 +909,17 @@ function resolveDefaultLogin(defaultSteps, playerName) {
   }));
 }
 
-// Create an isolated, ephemeral config for a managed run: a temp dir holding a
-// copy of server.test.yaml whose save_path points inside that temp dir. The
-// server then boots against an empty save store every run, so stale saves can
-// never mask a broken seed/persistence path (as they did before the repos were
-// lifted to a clean machine). The caller removes tmpDir when the run finishes.
-function createManagedConfig(projectRoot) {
-  const baseConfig = path.join(projectRoot, 'server.test.yaml');
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-test-'));
-  // Copy the config verbatim into the temp dir. The server resolves the relative
-  // save_path (./data/saves) against the config's own directory, so persistence
-  // lands inside tmpDir without rewriting any paths.
-  const configPath = path.join(tmpDir, 'server.test.yaml');
-  fs.copyFileSync(baseConfig, configPath);
-  return { tmpDir, configPath };
-}
-
-async function restartServer(projectRoot, port, configPath) {
-  await killExistingServer();
-  const serverProcess = startServer(projectRoot, port, configPath);
-  await waitForPort(port);
-  return serverProcess;
-}
-
-async function runScenarioFile(filePath, defaultsDir, port, delay) {
+async function runScenarioFile(filePath, defaultsDir, opts) {
   const scenarios = parseScenarioFile(filePath);
   const defaultLoginSteps = parseDefaultLogin(defaultsDir);
   const results = [];
 
-  for (let i = 0; i < scenarios.length; i++) {
-    const scenario = scenarios[i];
+  for (const scenario of scenarios) {
     if (scenario.skip != null) {
       results.push({ name: scenario.name, status: 'skip', skipReason: scenario.skip, failures: [], transcript: [] });
       continue;
     }
-    if (i > 0) {
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    const result = await runScenario(scenario, defaultLoginSteps, port, delay);
+    const result = await runScenario(scenario, defaultLoginSteps, opts);
     results.push(result);
   }
 
@@ -791,6 +927,247 @@ async function runScenarioFile(filePath, defaultsDir, port, delay) {
     file: path.relative(process.cwd(), filePath),
     scenarios: results
   };
+}
+
+// ─── Server Lifecycle (managed mode) ───────────────────────────────
+
+function findProjectRoot() {
+  let dir = __dirname;
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'src', 'Tapestry.Server'))) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+// Locate the built server dll for the given configuration. Running the dll
+// directly (instead of `dotnet run`) gives us a single child process we own:
+// no wrapper tree to orphan, one PID to kill.
+function findServerDll(projectRoot, configuration) {
+  const binDir = path.join(projectRoot, 'src', 'Tapestry.Server', 'bin', configuration);
+  if (!fs.existsSync(binDir)) {
+    return null;
+  }
+  const tfms = fs.readdirSync(binDir).filter(d => d.startsWith('net'));
+  for (const tfm of tfms.sort().reverse()) {
+    const dll = path.join(binDir, tfm, 'Tapestry.Server.dll');
+    if (fs.existsSync(dll)) {
+      return dll;
+    }
+  }
+  return null;
+}
+
+function findFreePorts(count) {
+  return new Promise((resolve, reject) => {
+    const servers = [];
+    const ports = [];
+    const next = () => {
+      if (ports.length === count) {
+        for (const s of servers) {
+          s.close();
+        }
+        resolve(ports);
+        return;
+      }
+      const srv = net.createServer();
+      srv.once('error', reject);
+      srv.listen(0, '127.0.0.1', () => {
+        servers.push(srv);
+        ports.push(srv.address().port);
+        next();
+      });
+    };
+    next();
+  });
+}
+
+// Isolated, ephemeral config for a managed run: a temp dir holding a copy of
+// server.test.yaml with the ports rewritten to free ones. The server resolves
+// the relative save_path (./data/saves) against the config's own directory,
+// so persistence lands inside tmpDir — every run boots a virgin save store on
+// a port nothing else is using. The caller removes tmpDir when the run ends.
+function rewriteConfigPorts(yaml, telnetPort, websocketPort) {
+  return yaml
+    .replace(/^(\s*telnet_port:\s*)\d+/m, `$1${telnetPort}`)
+    .replace(/^(\s*websocket_port:\s*)\d+/m, `$1${websocketPort}`);
+}
+
+function countConfigPacks(yaml) {
+  const lines = yaml.split('\n');
+  let inPacks = false;
+  let count = 0;
+  for (const line of lines) {
+    if (/^packs:\s*$/.test(line)) {
+      inPacks = true;
+      continue;
+    }
+    if (inPacks) {
+      if (/^\s+-\s+\S/.test(line)) {
+        count++;
+      } else if (line.trim() !== '') {
+        break;
+      }
+    }
+  }
+  return count;
+}
+
+function createManagedConfig(projectRoot, telnetPort, websocketPort) {
+  const baseConfig = path.join(projectRoot, 'server.test.yaml');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-test-'));
+  const yaml = fs.readFileSync(baseConfig, 'utf-8');
+  const rewritten = rewriteConfigPorts(yaml, telnetPort, websocketPort);
+  const configPath = path.join(tmpDir, 'server.test.yaml');
+  fs.writeFileSync(configPath, rewritten);
+  return { tmpDir, configPath, expectedPacks: countConfigPacks(yaml) };
+}
+
+class ManagedServer {
+  constructor(projectRoot, configuration, packsDir) {
+    this.projectRoot = projectRoot;
+    this.configuration = configuration;
+    this.packsDir = packsDir;
+    this.child = null;
+    this.exited = false;
+    this.exitCode = null;
+    this.logPath = null;
+    this.config = null;
+    this.port = null;
+  }
+
+  async start() {
+    const dll = findServerDll(this.projectRoot, this.configuration);
+    if (!dll) {
+      throw new Error(
+        `Tapestry.Server.dll not found for configuration "${this.configuration}". Build first (dotnet build src/Tapestry.Server -c ${this.configuration}).`
+      );
+    }
+
+    const [telnetPort, websocketPort] = await findFreePorts(2);
+    this.port = telnetPort;
+    this.config = createManagedConfig(this.projectRoot, telnetPort, websocketPort);
+    this.logPath = path.join(this.config.tmpDir, 'server.log');
+
+    const logFd = fs.openSync(this.logPath, 'a');
+    this.child = spawn('dotnet', [dll, '--config', this.config.configPath, '--packs', this.packsDir], {
+      cwd: this.projectRoot,
+      stdio: ['ignore', logFd, logFd],
+      windowsHide: true
+    });
+    fs.closeSync(logFd);
+
+    this.child.on('exit', (code) => {
+      this.exited = true;
+      this.exitCode = code;
+    });
+
+    await this._waitForBoot();
+  }
+
+  readLog() {
+    try {
+      return fs.readFileSync(this.logPath, 'utf-8');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  logTail(lines = 25) {
+    const all = this.readLog().split('\n').filter(l => l.trim());
+    return all.slice(-lines).join('\n');
+  }
+
+  // Boot gate: the server must (a) stay alive, (b) log one "Loaded pack:" per
+  // configured pack — an empty/missing packs dir is a SILENT no-op in the
+  // engine (ContentLoadingModule), so a world that failed to load would
+  // otherwise boot "fine" and hang every scenario — and (c) start the game
+  // loop and accept a TCP connection that shows the login banner.
+  async _waitForBoot() {
+    const start = Date.now();
+    const expected = Math.max(1, this.config.expectedPacks);
+
+    while (true) {
+      if (this.exited) {
+        throw new Error(
+          `Server exited during boot (code ${this.exitCode}).\n--- server log tail ---\n${this.logTail()}`
+        );
+      }
+      if (Date.now() - start > BOOT_TIMEOUT_MS) {
+        throw new Error(
+          `Server did not finish booting within ${BOOT_TIMEOUT_MS}ms.\n--- server log tail ---\n${this.logTail()}`
+        );
+      }
+
+      const log = this.readLog();
+      const loadedPacks = (log.match(/Loaded pack:/g) || []).length;
+      const loopStarted = log.includes('Game loop starting');
+      // The telnet listener binds AFTER the game loop starts — probing before
+      // this line appears races the bind and sees ECONNREFUSED.
+      const listening = log.includes(`Telnet server listening on port ${this.port}`);
+
+      if (loopStarted && listening) {
+        if (loadedPacks < expected) {
+          throw new Error(
+            `World is empty or incomplete: game loop started with ${loadedPacks}/${expected} configured packs loaded. ` +
+            `Check --packs (${this.packsDir}).\n--- server log tail ---\n${this.logTail()}`
+          );
+        }
+        break;
+      }
+      if (loopStarted && !listening && loadedPacks < expected) {
+        // Don't wait the full boot timeout to report a bad world.
+        throw new Error(
+          `World is empty or incomplete: game loop started with ${loadedPacks}/${expected} configured packs loaded. ` +
+          `Check --packs (${this.packsDir}).\n--- server log tail ---\n${this.logTail()}`
+        );
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    // Banner probe: TCP up is not enough — prove the login flow answers.
+    const probe = new TelnetClient('BootProbe', this.port);
+    try {
+      await probe.connect();
+      await probe.waitFor('Speak your name', BANNER_PROBE_MS);
+    } catch (err) {
+      throw new Error(
+        `Server booted but the login banner never arrived: ${describeError(err)}\n--- server log tail ---\n${this.logTail()}`
+      );
+    } finally {
+      probe.disconnect();
+    }
+
+    console.log(`Managed server up on port ${this.port} (${this.config.expectedPacks} packs, save store: ${this.config.tmpDir})`);
+  }
+
+  async stop() {
+    if (this.child && !this.exited) {
+      this.child.kill();
+      // Bounded wait for exit; force-kill is the fallback, never a hang.
+      const start = Date.now();
+      while (!this.exited && Date.now() - start < 5000) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      if (!this.exited) {
+        try {
+          this.child.kill('SIGKILL');
+        } catch (_) { /* already gone */ }
+      }
+    }
+  }
+
+  cleanup(keepLogs) {
+    if (this.config && fs.existsSync(this.config.tmpDir)) {
+      if (keepLogs) {
+        console.error(`Server log kept at: ${this.logPath}`);
+        return;
+      }
+      fs.rmSync(this.config.tmpDir, { recursive: true, force: true });
+    }
+  }
 }
 
 // ─── Reporter ──────────────────────────────────────────────────────
@@ -830,6 +1207,7 @@ function printSummary(allResults) {
   let totalScenarios = 0;
   let totalPassed = 0;
   let totalFailed = 0;
+  let totalErrored = 0;
   let totalSkipped = 0;
 
   for (const fileResult of allResults) {
@@ -839,6 +1217,8 @@ function printSummary(allResults) {
         totalPassed++;
       } else if (scenario.status === 'skip') {
         totalSkipped++;
+      } else if (scenario.status === 'error') {
+        totalErrored++;
       } else {
         totalFailed++;
       }
@@ -846,6 +1226,7 @@ function printSummary(allResults) {
   }
 
   const parts = [`${totalPassed} passed`, `${totalFailed} failed`];
+  if (totalErrored > 0) { parts.push(`${totalErrored} errored`); }
   if (totalSkipped > 0) { parts.push(`${totalSkipped} skipped`); }
   parts.push(`${totalScenarios} total`);
 
@@ -855,8 +1236,8 @@ function printSummary(allResults) {
 
   for (const fileResult of allResults) {
     for (const scenario of fileResult.scenarios) {
-      if (scenario.status === 'fail') {
-        console.log(`\n✗ ${fileResult.file} > ${scenario.name}`);
+      if (scenario.status === 'fail' || scenario.status === 'error') {
+        console.log(`\n✗ ${fileResult.file} > ${scenario.name} [${scenario.status}]`);
         for (const f of scenario.failures) {
           if (f.error) {
             console.log(`  Step ${f.step}: ${f.error}`);
@@ -878,6 +1259,28 @@ function printSummary(allResults) {
       }
     }
   }
+}
+
+function writeResultsJson(allResults, resultsDir) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const jsonPath = path.join(resultsDir, `${timestamp}-results.json`);
+  const summary = allResults.flatMap(r =>
+    r.scenarios.map(s => ({
+      file: r.file,
+      scenario: s.name,
+      status: s.status,
+      failures: s.failures.map(f => ({
+        step: f.step,
+        player: f.player,
+        assertion: f.assertion,
+        expected: f.expected,
+        error: f.error
+      }))
+    }))
+  );
+  fs.mkdirSync(resultsDir, { recursive: true });
+  fs.writeFileSync(jsonPath, JSON.stringify(summary, null, 2));
+  return jsonPath;
 }
 
 // ─── CLI ───────────────────────────────────────────────────────────
@@ -908,15 +1311,21 @@ function findScenarioFiles(targetPath) {
   return [];
 }
 
-function discoverAllScenarioFiles(projectRoot) {
+function discoverAllScenarioFiles(projectRoot, packsDir) {
   const allFiles = [];
   const seen = new Set();
 
   const addDir = (dir) => {
     if (!fs.existsSync(dir)) { return; }
     for (const f of findScenarioFiles(dir)) {
-      if (!seen.has(f)) {
-        seen.add(f);
+      // Dedup on real path: locally the packs dir is often a link into the
+      // packs repo, so the same scenario is reachable via two paths.
+      let key = f;
+      try {
+        key = fs.realpathSync(f);
+      } catch (_) { /* fall back to the literal path */ }
+      if (!seen.has(key)) {
+        seen.add(key);
         allFiles.push(f);
       }
     }
@@ -924,11 +1333,29 @@ function discoverAllScenarioFiles(projectRoot) {
 
   addDir(path.join(projectRoot, 'tests', 'scenarios'));
 
-  const packsDir = path.join(projectRoot, 'packs');
-  if (fs.existsSync(packsDir)) {
-    for (const packName of fs.readdirSync(packsDir)) {
-      addDir(path.join(packsDir, packName, 'tests'));
+  // Pack-owned scenarios: <pack>/tests/ inside the packs corpus, including
+  // scoped layouts (@tapestry/<pack>/tests/). Honors --packs, so CI finds
+  // them in the cloned corpus too.
+  const addPackTests = (dir) => {
+    if (!fs.existsSync(dir)) { return; }
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) { continue; }
+      const entryPath = path.join(dir, entry.name);
+      if (entry.name.startsWith('@')) {
+        for (const sub of fs.readdirSync(entryPath, { withFileTypes: true })) {
+          if (sub.isDirectory()) {
+            addDir(path.join(entryPath, sub.name, 'tests'));
+          }
+        }
+      } else {
+        addDir(path.join(entryPath, 'tests'));
+      }
     }
+  };
+
+  addPackTests(path.join(projectRoot, 'packs'));
+  if (packsDir && path.resolve(packsDir) !== path.resolve(path.join(projectRoot, 'packs'))) {
+    addPackTests(packsDir);
   }
 
   return allFiles;
@@ -943,83 +1370,12 @@ function getArg(flag, defaultValue) {
   return Number.isNaN(parsed) ? defaultValue : parsed;
 }
 
-// ─── Server Lifecycle ──────────────────────────────────────────────
-
-function findProjectRoot() {
-  let dir = __dirname;
-  while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, 'src', 'Tapestry.Server'))) {
-      return dir;
-    }
-    dir = path.dirname(dir);
+function getStringArg(flag, defaultValue) {
+  const idx = process.argv.indexOf(flag);
+  if (idx === -1 || idx + 1 >= process.argv.length) {
+    return defaultValue;
   }
-  return null;
-}
-
-function killExistingServer() {
-  try {
-    if (process.platform === 'win32') {
-      execSync('taskkill /F /IM Tapestry.Server.exe', { stdio: 'ignore', windowsHide: true });
-    } else {
-      execSync('pkill -f Tapestry.Server', { stdio: 'ignore' });
-    }
-  } catch (_) {
-    // no server running — that's fine
-  }
-  // wait for port to be released
-  return new Promise(resolve => {
-    const check = () => {
-      const sock = new net.Socket();
-      sock.once('connect', () => {
-        // port still in use — wait and retry
-        sock.destroy();
-        setTimeout(check, 200);
-      });
-      sock.once('error', () => {
-        // port free
-        sock.destroy();
-        resolve();
-      });
-      sock.connect(4000, 'localhost');
-    };
-    // give the OS a moment before first check
-    setTimeout(check, 300);
-  });
-}
-
-function startServer(projectRoot, port, configPath) {
-  const serverProj = path.join(projectRoot, 'src', 'Tapestry.Server');
-  const cfg = configPath || path.join(projectRoot, 'server.test.yaml');
-  const child = spawn('dotnet', ['run', '--project', serverProj, '--no-build', '--', cfg], {
-    cwd: projectRoot,
-    stdio: 'ignore',
-    windowsHide: true
-  });
-  child.unref();
-  return child;
-}
-
-function waitForPort(port, timeoutMs = 45000) {
-  const start = Date.now();
-  return new Promise((resolve, reject) => {
-    const attempt = () => {
-      const sock = new net.Socket();
-      sock.once('connect', () => {
-        sock.destroy();
-        resolve(Date.now() - start);
-      });
-      sock.once('error', () => {
-        sock.destroy();
-        if (Date.now() - start > timeoutMs) {
-          reject(new Error(`Server did not start within ${timeoutMs}ms`));
-        } else {
-          setTimeout(attempt, 200);
-        }
-      });
-      sock.connect(port, 'localhost');
-    };
-    attempt();
-  });
+  return process.argv[idx + 1];
 }
 
 function printHelp() {
@@ -1028,32 +1384,47 @@ function printHelp() {
   console.log('Usage:');
   console.log('  node telnet-runner.js <file-or-dir>  [options]   Run a scenario file or directory');
   console.log('  node telnet-runner.js --all-packs    [options]   Run all scenarios across core + every pack');
-  console.log('  node telnet-runner.js --self-test               Run parser self-tests (no server needed)');
+  console.log('  node telnet-runner.js --self-test                Run parser/normalizer self-tests (no server)');
   console.log('  node telnet-runner.js --connect-test [--port N]  Test raw telnet connectivity');
   console.log('  node telnet-runner.js --help                     Show this help');
   console.log('');
   console.log('Options:');
-  console.log('  --port N     Telnet port to connect to (default: 4000)');
-  console.log('  --delay N    Settle delay in ms between steps (default: 500)');
-  console.log('  --managed    Build + boot a fresh server with an isolated, ephemeral save store');
-  console.log('               (temp dir, removed after) so stale saves can\'t mask seed/persist bugs');
-  console.log('  --clean      Delete old result files from the results/ dir before running');
-  console.log('  --all-packs  Discover scenarios from tests/scenarios/ plus packs/*/tests/');
-  console.log('  --json       Print results as JSON to stdout instead of human-readable summary');
+  console.log('  --managed               Boot a fresh server on a free port with an isolated,');
+  console.log('                          ephemeral save store; verify the world actually loaded');
+  console.log('                          (pack count + game loop + login banner) before running.');
+  console.log('  --configuration C      Build configuration for --managed (Debug|Release, default Debug).');
+  console.log('                          The server must already be built; the runner does not build.');
+  console.log('  --packs DIR            Packs directory for --managed (default: <repo>/packs).');
+  console.log('  --port N               Telnet port for non-managed runs (default: 4000).');
+  console.log('  --admin-player NAME    Seeded admin used for room placement (default: Gamemaster).');
+  console.log('  --scenario-timeout S   Per-scenario wall-clock cap in seconds (default: ' + DEFAULT_SCENARIO_TIMEOUT_S + ').');
+  console.log('  --suite-timeout S      Whole-run hard cap in seconds (default: ' + DEFAULT_SUITE_TIMEOUT_S + '). On expiry the');
+  console.log('                          runner dumps what it has, kills the server, exits 1. It cannot hang.');
+  console.log('  --delay N              EXTRA settle ms after each command (default 0; sync is');
+  console.log('                          deterministic via a sentinel barrier, no sleeps needed).');
+  console.log('  --all-packs            Discover scenarios from tests/scenarios/ plus packs/*/tests/.');
+  console.log('  --clean                Delete old result files from the results/ dir before running.');
+  console.log('  --json                 Print results as JSON to stdout instead of human-readable summary.');
   console.log('');
   console.log('Output:');
   console.log('  Transcripts  tests/scenarios/results/<timestamp>-<name>.md  (one per scenario file)');
-  console.log('  JSON summary tests/scenarios/results/<timestamp>-results.json  (machine-readable, diff-friendly)');
+  console.log('  JSON summary tests/scenarios/results/<timestamp>-results.json');
+  console.log('');
+  console.log('Exit code: 0 only when every scenario passed. Failures, errors, timeouts,');
+  console.log('and boot problems all exit nonzero.');
   console.log('');
   console.log('Examples:');
-  console.log('  node telnet-runner.js --all-packs --managed --clean');
-  console.log('  node telnet-runner.js tests/scenarios/commands/say.md --port 4000');
-  console.log('  node telnet-runner.js tests/scenarios/ --delay 200');
+  console.log('  dotnet build src/Tapestry.Server -v q && node tests/tools/telnet-runner.js --all-packs --managed --clean');
+  console.log('  node tests/tools/telnet-runner.js tests/scenarios/smoke/new-player.md --managed');
+  console.log('  node tests/tools/telnet-runner.js tests/scenarios/ --port 4000');
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const flagsWithValues = new Set(['--port', '--delay']);
+  const flagsWithValues = new Set([
+    '--port', '--delay', '--configuration', '--packs', '--admin-player',
+    '--scenario-timeout', '--suite-timeout'
+  ]);
   const flags = [];
   const positional = [];
   for (let i = 0; i < args.length; i++) {
@@ -1079,29 +1450,23 @@ async function main() {
     process.exit(1);
   }
 
-  const port = getArg('--port', 4000);
-  const delay = getArg('--delay', 500);
+  const delay = getArg('--delay', 0);
   const jsonOnly = flags.includes('--json');
   const managed = flags.includes('--managed');
   const clean = flags.includes('--clean');
+  const configuration = getStringArg('--configuration', 'Debug');
+  const adminPlayer = getStringArg('--admin-player', 'Gamemaster');
+  const scenarioTimeoutS = getArg('--scenario-timeout', DEFAULT_SCENARIO_TIMEOUT_S);
+  const suiteTimeoutS = getArg('--suite-timeout', DEFAULT_SUITE_TIMEOUT_S);
 
-  let projectRoot = null;
-  let managedConfig = null;
-  if (managed) {
-    projectRoot = findProjectRoot();
-    if (!projectRoot) {
-      console.error('Cannot find Tapestry.Server project. Run from within the repo.');
-      process.exit(1);
-    }
-    // Build once up front so per-file restarts use --no-build
-    console.log('Building server...');
-    execSync(`dotnet build "${path.join(projectRoot, 'src', 'Tapestry.Server')}" -v q`, { stdio: 'inherit' });
-    // Isolated, ephemeral save store so every managed run starts from a clean slate.
-    managedConfig = createManagedConfig(projectRoot);
-    console.log(`Isolated save store: ${managedConfig.tmpDir}`);
+  const projectRoot = findProjectRoot();
+  if (managed && !projectRoot) {
+    console.error('Cannot find Tapestry.Server project. Run from within the repo.');
+    process.exit(1);
   }
+  const root = projectRoot || process.cwd();
+  const packsDir = path.resolve(getStringArg('--packs', path.join(root, 'packs')));
 
-  const root = projectRoot || findProjectRoot() || process.cwd();
   const targets = allPacks ? [] : positional.map(p => path.resolve(p));
 
   const firstTarget = targets.length > 0 ? targets[0] : null;
@@ -1136,7 +1501,7 @@ async function main() {
     : path.join(firstTarget ? path.dirname(firstTarget) : root, 'results');
 
   if (clean && fs.existsSync(resultsDir)) {
-    const old = fs.readdirSync(resultsDir).filter(f => f.endsWith('.md'));
+    const old = fs.readdirSync(resultsDir).filter(f => f.endsWith('.md') || f.endsWith('.json'));
     for (const f of old) {
       fs.unlinkSync(path.join(resultsDir, f));
     }
@@ -1146,39 +1511,70 @@ async function main() {
   }
 
   const files = allPacks
-    ? discoverAllScenarioFiles(root)
+    ? discoverAllScenarioFiles(root, packsDir)
     : targets.flatMap(t => findScenarioFiles(t));
   if (files.length === 0) {
     console.error('No scenario files found at:', targets.join(', '));
     process.exit(1);
   }
 
-  console.log(`Running ${files.length} scenario file(s) against localhost:${port}...\n`);
-
-  let managedProcess = null;
-  if (managed) {
+  // ── Suite watchdog: this process CANNOT outlive the cap. ──
+  const allResults = [];
+  let server = null;
+  const watchdog = setTimeout(async () => {
+    console.error(`\nSUITE TIMEOUT: exceeded ${suiteTimeoutS}s — aborting.`);
     try {
-      managedProcess = await restartServer(projectRoot, port, managedConfig.configPath);
-    } catch (err) {
-      console.error(`Failed to start server: ${err.message}`);
-      if (managedConfig) {
-        fs.rmSync(managedConfig.tmpDir, { recursive: true, force: true });
+      if (allResults.length > 0 && resultsDir) {
+        writeResultsJson(allResults, resultsDir);
       }
+      printSummary(allResults);
+      if (server) {
+        console.error(`--- server log tail ---\n${server.logTail()}`);
+        await server.stop();
+        server.cleanup(true);
+      }
+    } catch (_) { /* abort path: best effort */ }
+    process.exit(1);
+  }, suiteTimeoutS * 1000);
+  watchdog.unref();
+
+  let port = getArg('--port', 4000);
+
+  if (managed) {
+    server = new ManagedServer(projectRoot, configuration, packsDir);
+    try {
+      await server.start();
+    } catch (err) {
+      console.error(`BOOT FAILURE: ${err.message}`);
+      await server.stop();
+      server.cleanup(true);
       process.exit(1);
+    }
+    port = server.port;
+  } else {
+    // Non-managed: prove the target server is alive before running anything.
+    const probe = new TelnetClient('BootProbe', port);
+    try {
+      await probe.connect();
+      await probe.waitFor('Speak your name', BANNER_PROBE_MS);
+    } catch (err) {
+      console.error(`Target server on port ${port} is not answering logins: ${describeError(err)}`);
+      process.exit(1);
+    } finally {
+      probe.disconnect();
     }
   }
 
-  const allResults = [];
-  for (let fi = 0; fi < files.length; fi++) {
-    if (fi > 0) {
-      await new Promise(r => setTimeout(r, 1000));
-    }
+  console.log(`Running ${files.length} scenario file(s) against localhost:${port}...\n`);
 
-    const file = files[fi];
+  const opts = { port, delay, adminPlayer, scenarioTimeoutS };
+  const suiteStart = Date.now();
+
+  for (const file of files) {
     if (!jsonOnly) {
       console.log(`▶ ${path.relative(process.cwd(), file)}`);
     }
-    const fileResult = await runScenarioFile(file, defaultsDir || '', port, delay);
+    const fileResult = await runScenarioFile(file, defaultsDir || '', opts);
     allResults.push(fileResult);
 
     if (resultsDir) {
@@ -1193,41 +1589,26 @@ async function main() {
     console.log(JSON.stringify(allResults, null, 2));
   } else {
     printSummary(allResults);
+    console.log(`\nSuite wall-clock: ${((Date.now() - suiteStart) / 1000).toFixed(1)}s`);
   }
 
-  // Always write results.json for diffing between runs
   if (resultsDir) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const jsonPath = path.join(resultsDir, `${timestamp}-results.json`);
-    const summary = allResults.flatMap(r =>
-      r.scenarios.map(s => ({
-        file: r.file,
-        scenario: s.name,
-        status: s.status,
-        failures: s.failures.map(f => ({
-          step: f.step,
-          player: f.player,
-          assertion: f.assertion,
-          expected: f.expected,
-          error: f.error
-        }))
-      }))
-    );
-    fs.mkdirSync(resultsDir, { recursive: true });
-    fs.writeFileSync(jsonPath, JSON.stringify(summary, null, 2));
+    writeResultsJson(allResults, resultsDir);
   }
 
-  if (managed) {
-    await killExistingServer();
-    if (managedConfig) {
-      fs.rmSync(managedConfig.tmpDir, { recursive: true, force: true });
-    }
-  }
-
-  const anyFailed = allResults.some(r =>
-    r.scenarios.some(s => s.status === 'fail')
+  const anyBad = allResults.some(r =>
+    r.scenarios.some(s => s.status === 'fail' || s.status === 'error')
   );
-  process.exit(anyFailed ? 1 : 0);
+
+  if (server) {
+    if (anyBad) {
+      console.error(`--- server log tail ---\n${server.logTail()}`);
+    }
+    await server.stop();
+    server.cleanup(anyBad);
+  }
+
+  process.exit(anyBad ? 1 : 0);
 }
 
 // ─── Self-Test ─────────────────────────────────────────────────────
@@ -1338,6 +1719,30 @@ function selfTest() {
   const badStep = parseLoginStep('just some text');
   assert('parseLoginStep bad input', badStep === null);
 
+  console.log('Normalizer self-tests:');
+
+  assert('stripAnsi removes color codes',
+    stripAnsi('\x1b[31mred\x1b[0m text') === 'red text');
+  assert('normalize removes CR (CRLF vs LF parity)',
+    normalize('line one\r\nline two\r\n') === 'line one\nline two\n');
+  assert('containsText matches across CRLF/ANSI/case',
+    containsText('\x1b[32mThe \x1b[1mNexus\x1b[0m\r\n', 'the nexus'));
+  assert('containsText negative',
+    !containsText('hello world', 'farewell'));
+  assert('filterSentinels drops sync lines',
+    filterSentinels(`look output\nNo help found for '${SYNC_PREFIX}9__'.\nmore output`) === 'look output\nmore output');
+  assert('filterSentinels keeps everything else',
+    filterSentinels('a\nb\nc') === 'a\nb\nc');
+
+  console.log('Managed-config self-tests:');
+
+  const sampleYaml = 'server:\n  name: "X"\n  telnet_port: 4000\n  websocket_port: 4001\n\npacks:\n  - tapestry-core\n  - tapestry-biomes\n  - tapestry-cooking\n  - example-pack\n';
+  const rewritten = rewriteConfigPorts(sampleYaml, 41234, 41235);
+  assert('rewrites telnet_port', rewritten.includes('telnet_port: 41234'));
+  assert('rewrites websocket_port', rewritten.includes('websocket_port: 41235'));
+  assert('counts config packs', countConfigPacks(sampleYaml) === 4);
+  assert('counts zero packs when absent', countConfigPacks('server:\n  name: x\n') === 0);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   return failed === 0;
 }
@@ -1372,7 +1777,7 @@ if (process.argv.includes('--self-test')) {
   })();
 } else {
   main().catch(err => {
-    console.error('Fatal error:', err.message);
+    console.error('Fatal error:', err.stack || err.message);
     process.exit(1);
   });
 }
