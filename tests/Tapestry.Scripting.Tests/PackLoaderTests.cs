@@ -320,7 +320,7 @@ public class PackLoaderTests
             new RarityModule(rarityRegistry, themeRegistry, registrationPolicy),
             new EssenceModule(essenceRegistry, themeRegistry, registrationPolicy),
             new StackingModule(stackingService, world),
-            new FlowsModule(flowRegistry, flowEngine, sessions),
+            new FlowsModule(flowRegistry, flowEngine, sessions, registrationPolicy),
             new GmcpModule(new NullGmcpModuleAdapter()),
         };
 
@@ -577,7 +577,7 @@ public class PackLoaderTests
             new RarityModule(rarityRegistry, themeRegistry, registrationPolicy),
             new EssenceModule(essenceRegistry, themeRegistry, registrationPolicy),
             new StackingModule(stackingService, world),
-            new FlowsModule(flowRegistry, flowEngine, sessions),
+            new FlowsModule(flowRegistry, flowEngine, sessions, registrationPolicy),
             new GmcpModule(new NullGmcpModuleAdapter()),
         };
 
