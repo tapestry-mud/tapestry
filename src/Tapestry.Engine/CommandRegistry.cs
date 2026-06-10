@@ -148,14 +148,26 @@ public class CommandRegistry
         return prefixMatches.Count > 0 ? ElectWinner(prefixMatches, source) : null;
     }
 
+    // Actor-type roles (who may invoke) vs privilege roles like admin (gated later in
+    // CommandRouter). Specificity counts only these — privilege narrowness is not specificity.
+    private static readonly HashSet<string> ActorTypeRoles = new(["player", "mob"], StringComparer.OrdinalIgnoreCase);
+
     private static CommandRegistration? ElectWinner(IEnumerable<CommandRegistration> regs, string source)
     {
         return regs
             .Where(r => MatchesSource(r, source))
             .OrderByDescending(r => r.Priority)
-            .ThenBy(r => r.Roles.Length)        // actor-type specificity: ["mob"] beats ["player","mob"] for mobs
+            .ThenBy(r => ActorTypeRoleCount(r)) // actor-type specificity: ["mob"] beats ["player","mob"]
             .ThenBy(r => r.RegistrationOrder)
             .FirstOrDefault();
+    }
+
+    private static int ActorTypeRoleCount(CommandRegistration reg)
+    {
+        var count = reg.Roles.Count(role => ActorTypeRoles.Contains(role));
+        // No actor-type roles (e.g. admin-only) = least specific, not most — it must never
+        // outrank a registration that actually names the actor type.
+        return count == 0 ? int.MaxValue : count;
     }
 
     private static bool MatchesSource(CommandRegistration reg, string source)

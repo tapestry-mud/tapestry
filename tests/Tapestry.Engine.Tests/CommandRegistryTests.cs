@@ -253,4 +253,29 @@ public class CommandRegistryTests
         registry.Register("say", _ => { }, roles: ["mob"]);
         registry.Resolve("say").Should().NotBeNull(); // role-blind callers (HelpSeal, validators) see everything
     }
+
+    [Fact]
+    public void Resolve_PrefixElection_PlayerVerbBeatsAdminOnlyCommand()
+    {
+        // Privilege narrowness is not actor-type specificity: an admin-only registration
+        // (visible to players, privilege-gated later) must not outrank a broader
+        // player verb on cross-keyword prefix election.
+        var registry = new CommandRegistry();
+        registry.Register("abilities", _ => { }, roles: ["player", "mob"]);
+        registry.Register("abjure", _ => { }, roles: ["admin"]);
+        var reg = registry.Resolve("ab", "player");
+        reg.Should().NotBeNull();
+        reg!.Keyword.Should().Be("abilities");
+    }
+
+    [Fact]
+    public void Resolve_MobSource_HighPriorityDualRoleBeatsLowPriorityMobOnly()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("say", _ => { }, roles: ["player", "mob"], priority: 10);
+        registry.Register("say", _ => { }, roles: ["mob"], priority: 0);
+        var reg = registry.Resolve("say", "mob");
+        reg.Should().NotBeNull();
+        reg!.Priority.Should().Be(10); // priority outranks specificity -- the override contract
+    }
 }
