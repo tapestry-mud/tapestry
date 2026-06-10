@@ -30,3 +30,4 @@ fly.toml
 # /packs/ ignores the directory, plain /packs also catches the symlink
 /packs/
 /packs
+.strict-boot/

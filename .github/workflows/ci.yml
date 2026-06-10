@@ -1,13 +1,33 @@
 name: CI
 
+# The single pipeline. Every artifact-producing step (image push, channel
+# registration) sits behind the full gate chain ON THE SAME REF:
+#   test -> strict-boot -> scenarios -> publish
+# build.yml is gone - its build-and-push job lives here as `publish`, which
+# is why a release image structurally cannot exist without a green test run
+# on its ref (foundation-health 2026-06-09, risk #1).
+
 on:
   push:
     branches: [master]
+    tags: ['v*']
   pull_request:
     branches: [master]
+  # Manual runs against any ref (gate proofs on scratch/ci-proof-*, reruns).
+  workflow_dispatch:
+
+# One run per ref. Superseded PR/scratch runs are cancelled; master/tag runs
+# never are - cancelling a half-published run is worse than wasted compute.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: tapestry-mud/tapestry
 
 jobs:
-  server:
+  test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,7 +37,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Build
         run: dotnet build --configuration Release
@@ -25,15 +45,49 @@ jobs:
       - name: Test
         run: dotnet test --configuration Release --no-build
 
+      # Fails CLOSED: pipefail makes a scanner error red, not silently green.
       - name: Check for vulnerable packages
         run: |
+          set -euo pipefail
           dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
           if grep -qi 'has the following vulnerable packages' vuln-report.txt; then
             echo "::error::Vulnerable NuGet packages detected"
             exit 1
           fi
 
+  strict-boot:
+    # Composition gate: boot the engine to seal against the published
+    # @tapestry/* stable corpus - the exact composition prod meets when an
+    # engine is promoted (promote = stop && start; packs do NOT update).
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Build server
+        run: dotnet build src/Tapestry.Server --configuration Release -v q
+
+      - name: Strict-boot the published stable corpus
+        run: node tests/tools/strict-boot-gate.js --configuration Release --workdir .strict-boot
+
+      - name: Upload boot log on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: strict-boot-log
+          path: .strict-boot/server.log
+          if-no-files-found: ignore
+
   scenarios:
+    needs: strict-boot
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -56,7 +110,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Build server
         run: dotnet build src/Tapestry.Server --configuration Release -v q
@@ -70,3 +124,81 @@ jobs:
         with:
           name: scenario-results
           path: tests/scenarios/results/
+
+  publish:
+    # The old build.yml, now strictly behind the gates. On non-master/non-tag
+    # refs (gate proofs) it still runs - build-only, no image push, no channel
+    # registration - so the ordering is exercised end to end with no side
+    # effects.
+    needs: [test, strict-boot, scenarios]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      SHOULD_PUSH: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge,branch=master
+            type=semver,pattern={{version}}
+
+      - name: Compute ENGINE_VERSION
+        id: engine-version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "value=${{ steps.meta.outputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=edge" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to ghcr.io
+        if: env.SHOULD_PUSH == 'true'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: .
+          push: ${{ env.SHOULD_PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            ENGINE_VERSION=${{ steps.engine-version.outputs.value }}
+
+      - name: Register nightly channel
+        if: github.ref == 'refs/heads/master'
+        run: |
+          OIDC_TOKEN=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://registry.tapestryengine.com" | jq -r '.value')
+          curl -sf -X PATCH \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"docker_tag":"edge","version":"edge"}' \
+            https://registry.tapestryengine.com/v1/admin/engine-channels/nightly
+
+      - name: Register version channel
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          OIDC_TOKEN=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://registry.tapestryengine.com" | jq -r '.value')
+          curl -sf -X PATCH \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"docker_tag\":\"$VERSION\",\"version\":\"$VERSION\"}" \
+            "https://registry.tapestryengine.com/v1/admin/engine-channels/$VERSION"
