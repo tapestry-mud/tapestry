@@ -269,7 +269,7 @@ public class JintRuntimeTests
             new ItemsModule(itemRegistry, world),
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, NullLogger<ProgressionModule>.Instance),
-            new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, NullLogger<MobsModule>.Instance),
+            new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry()),
         };
 
@@ -302,6 +302,7 @@ public class JintRuntimeTests
                 }
             });
             """, "test-pack");
+        ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         // Spawn a mob and place it in a room
         var room = new Room("test:room", "Town", "A room.");
@@ -340,6 +341,7 @@ public class JintRuntimeTests
                 }
             });
             """, "test-pack");
+        ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         var room = new Room("test:room", "Town", "A room.");
         ctx.World.AddRoom(room);
