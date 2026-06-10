@@ -64,6 +64,15 @@ public class QuestScriptLoader : IQuestScriptLoader
         return _scripts.ContainsKey(questId);
     }
 
+    /// <summary>
+    /// Test/diagnostic accessor: the owning pack recorded for a quest's hooks, or null if
+    /// no hooks are registered for the quest. Pins that hooks bind under their real owner.
+    /// </summary>
+    internal string? OwnerOf(string questId)
+    {
+        return _scripts.TryGetValue(questId, out var hooks) ? hooks.Pack : null;
+    }
+
     public bool CallOnGranted(string questId, Guid playerId)
     {
         if (!_scripts.TryGetValue(questId, out var hooks) || hooks.OnGranted == null || JintEngine == null)

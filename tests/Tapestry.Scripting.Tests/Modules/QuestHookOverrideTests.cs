@@ -80,4 +80,15 @@ public class QuestHookOverrideTests
         rt.Execute(IntroBOverride, "pack-b", "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
+
+    [Fact]
+    public void RegisterScript_ViaGlobPath_RecordsRealOwner()
+    {
+        var (rt, policy, loader, _) = BuildRuntime();
+        rt.Execute(Intro, "pack-a", "scripts/quests/intro.js");
+        policy.Resolve();
+
+        loader.OwnerOf("quest:intro").Should().Be("pack-a",
+            "hooks executed through the attributed glob path must bind under their real owning pack");
+    }
 }
