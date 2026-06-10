@@ -22,6 +22,7 @@ using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
@@ -214,7 +215,57 @@ public class PackLoaderTests
         }
     }
 
-    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader, AreaRegistry AreaRegistry) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null)
+    [Fact]
+    public void LoadPack_ThemeYamlCollision_ThrowsAtSeal_NamingBothPacks()
+    {
+        var policy = TestRegistrationPolicy.Create();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn(policy: policy);
+
+        var dirA = WriteThemePack("@test/pack-a");
+        var dirB = WriteThemePack("@test/pack-b");
+        try
+        {
+            loader.Load(dirA);
+            loader.Load(dirB);
+
+            // Themes route through RegistrationPolicy: the collision is a located boot
+            // error at the seal, not a silent last-wins clobber at load.
+            var act = () => policy.Resolve();
+            act.Should().Throw<InvalidOperationException>()
+                .Which.Message.Should()
+                .Contain("ui.alert")
+                .And.Contain("test-pack-a")
+                .And.Contain("test-pack-b")
+                .And.Contain("theme.yaml");
+        }
+        finally
+        {
+            Directory.Delete(dirA, recursive: true);
+            Directory.Delete(dirB, recursive: true);
+        }
+    }
+
+    private static string WriteThemePack(string packName)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-theme-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "tapestry.yaml"), $"""
+            name: "{packName}"
+            version: "1.0.0"
+            active: true
+            load_order: 0
+            content:
+              strings: "theme.yaml"
+            """);
+        File.WriteAllText(Path.Combine(dir, "theme.yaml"), """
+            theme:
+              ui.alert:
+                fg: red
+            """);
+        return dir;
+    }
+
+    private static (World World, ItemRegistry ItemRegistry, SpawnManager SpawnManager, PackLoader Loader, AreaRegistry AreaRegistry) CreateLoaderDepsWithSpawn(TagRegistry? tagRegistry = null, RegistrationPolicy? policy = null)
     {
         var world = new World();
         var eventBus = new EventBus();
@@ -238,7 +289,7 @@ public class PackLoaderTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
-        var registrationPolicy = TestRegistrationPolicy.Create();
+        var registrationPolicy = policy ?? TestRegistrationPolicy.Create();
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
@@ -296,7 +347,7 @@ public class PackLoaderTests
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
-            new ThemeModule(themeRegistry),
+            new ThemeModule(themeRegistry, registrationPolicy),
             new DiceModule(),
             new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig, registrationPolicy),
             new EffectsModule(effectManager, world, abilityRegistry),
@@ -333,7 +384,7 @@ public class PackLoaderTests
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
             propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry(),
-            new LoadedPackNamespaces());
+            new LoadedPackNamespaces(), registrationPolicy);
 
         return (world, itemRegistry, spawnManager, loader, areaRegistry);
     }
@@ -553,7 +604,7 @@ public class PackLoaderTests
             new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, NullLogger<MobsModule>.Instance),
-            new ThemeModule(themeRegistry),
+            new ThemeModule(themeRegistry, registrationPolicy),
             new DiceModule(),
             new AbilitiesModule(abilityRegistry, proficiencyManager, world, gameLoop, eventBus, alignmentConfig, registrationPolicy),
             new EffectsModule(effectManager, world, abilityRegistry),
@@ -591,7 +642,7 @@ public class PackLoaderTests
         return new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
             propertyRegistry, questRegistry, scheduleModule, registry,
-            new LoadedPackNamespaces());
+            new LoadedPackNamespaces(), registrationPolicy);
     }
 
     [Fact]

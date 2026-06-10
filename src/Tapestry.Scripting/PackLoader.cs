@@ -9,6 +9,7 @@ using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
@@ -42,6 +43,7 @@ public class PackLoader : IPackManifestProvider
     private readonly ScheduleModule _scheduleModule;
     private readonly InteropCallSiteRegistry _callSites;
     private readonly LoadedPackNamespaces _loadedNamespaces;
+    private readonly RegistrationPolicy _registrationPolicy;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -62,7 +64,8 @@ public class PackLoader : IPackManifestProvider
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
                      ScheduleModule scheduleModule,
                      InteropCallSiteRegistry callSites,
-                     LoadedPackNamespaces loadedNamespaces)
+                     LoadedPackNamespaces loadedNamespaces,
+                     RegistrationPolicy registrationPolicy)
     {
         _world = world;
         _slotRegistry = slotRegistry;
@@ -81,6 +84,7 @@ public class PackLoader : IPackManifestProvider
         _scheduleModule = scheduleModule;
         _callSites = callSites;
         _loadedNamespaces = loadedNamespaces;
+        _registrationPolicy = registrationPolicy;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -202,7 +206,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Strings))
         {
-            LoadThemes(packDirectory, manifest.Content.Strings);
+            LoadThemes(packDirectory, manifest.Content.Strings, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Mobs))
@@ -488,7 +492,7 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadThemes(string packDir, string glob)
+    private void LoadThemes(string packDir, string glob, string packNamespace)
     {
         var files = MatchFiles(packDir, glob);
         foreach (var file in files)
@@ -499,7 +503,18 @@ public class PackLoader : IPackManifestProvider
                 var entries = YamlContentLoader.LoadTheme(yaml);
                 foreach (var (tag, entry) in entries)
                 {
-                    _theme.Register(tag, new ThemeEntry { Fg = entry.Fg, Bg = entry.Bg });
+                    // Declarative: the registry write replays at Resolve() (the seal barrier),
+                    // turning the silent last-wins clobber into a located boot error.
+                    var fg = entry.Fg;
+                    var bg = entry.Bg;
+                    _registrationPolicy.Record(new RegistrationCandidate(
+                        Kind: "theme",
+                        Name: tag,
+                        Owner: packNamespace,
+                        IsOverride: entry.Override,
+                        Commit: () => _theme.Register(tag, new ThemeEntry { Fg = fg, Bg = bg }),
+                        SourceFile: file,
+                        Line: 0));
                     _logger.LogDebug("  Theme: {Tag}", tag);
                 }
             }

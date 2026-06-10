@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Color;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Persistence;
@@ -36,6 +37,7 @@ public class GameLoopService : IHostedService
     private readonly AbilityCommandBridge _abilityCommandBridge;
     private readonly Tapestry.Scripting.PackValidator _packValidator;
     private readonly Modules.PlayerInitModule _playerInit;
+    private readonly ThemeRegistry _themeRegistry;
     private Task? _runTask;
 
     public GameLoopService(
@@ -62,7 +64,8 @@ public class GameLoopService : IHostedService
         SpawnManager spawns,
         AbilityCommandBridge abilityCommandBridge,
         Tapestry.Scripting.PackValidator packValidator,
-        Modules.PlayerInitModule playerInit)
+        Modules.PlayerInitModule playerInit,
+        ThemeRegistry themeRegistry)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -88,6 +91,7 @@ public class GameLoopService : IHostedService
         _abilityCommandBridge = abilityCommandBridge;
         _packValidator = packValidator;
         _playerInit = playerInit;
+        _themeRegistry = themeRegistry;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -298,6 +302,13 @@ public class GameLoopService : IHostedService
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
         _registrationPolicy.Resolve();
+        // Theme compile AFTER the seal: theme tags (theme.register / theme.yaml, plus the
+        // rarity/essence item.*/essence.* side-effects) only commit to ThemeRegistry at
+        // Resolve(). (Was: end of ContentLoadingModule.Configure, pre-seal -- the compiled
+        // ANSI lookup would never see seal-committed tags.) Nothing earlier in boot renders
+        // themed output: ColorRenderer/PanelRenderer/GMCP Display run per-connection, and
+        // TelnetService starts after GameLoopService.
+        _themeRegistry.Compile();
         // Ability commands wire AFTER the seal: the ability registry only commits at
         // Resolve(). (Was: ContentLoadingModule.Configure, pre-seal — would see no abilities.)
         // Before HelpSeal so help shadow-validation/auto-gen sees the ability commands.
