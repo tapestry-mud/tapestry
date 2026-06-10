@@ -7,6 +7,7 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Classes;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Races;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using JintEngine = Jint.Engine;
 
@@ -19,14 +20,16 @@ public class ClassesModule : IJintApiModule
     private readonly World _world;
     private readonly ProficiencyManager _proficiency;
     private readonly IGmcpModuleAdapter _gmcp;
+    private readonly RegistrationPolicy _registrationPolicy;
 
-    public ClassesModule(ClassRegistry registry, RaceRegistry raceRegistry, World world, ProficiencyManager proficiency, IGmcpModuleAdapter gmcp)
+    public ClassesModule(ClassRegistry registry, RaceRegistry raceRegistry, World world, ProficiencyManager proficiency, IGmcpModuleAdapter gmcp, RegistrationPolicy registrationPolicy)
     {
         _registry = registry;
         _raceRegistry = raceRegistry;
         _world = world;
         _proficiency = proficiency;
         _gmcp = gmcp;
+        _registrationPolicy = registrationPolicy;
     }
 
     public string Namespace => "classes";
@@ -47,6 +50,14 @@ public class ClassesModule : IJintApiModule
                 var packNameVal = engine.GetValue("__currentPack");
                 var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
                     ? packNameVal.ToString() : "";
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var overrideVal = obj.Get("override");
+                bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 var statGrowth = new Dictionary<StatType, string>();
                 var growthVal = obj.Get("stat_growth");
@@ -126,7 +137,7 @@ public class ClassesModule : IJintApiModule
                     }
                 }
 
-                _registry.Register(new ClassDefinition
+                var classDef = new ClassDefinition
                 {
                     Id = id,
                     Name = name,
@@ -143,7 +154,18 @@ public class ClassesModule : IJintApiModule
                     Path = path,
                     TrainsPerLevel = trainsPerLevel,
                     GrowthBonuses = growthBonuses
-                });
+                };
+
+                // Declarative: the registry write replays at Resolve() (the seal barrier),
+                // turning the silent priority-wins clobber into a located boot error.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "class",
+                    Name: id,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _registry.Register(classDef),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             get = new Func<string, object?>(id =>

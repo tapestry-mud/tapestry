@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Classes;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Modules;
@@ -9,7 +10,9 @@ namespace Tapestry.Scripting.Tests.Modules;
 
 public class ClassesModuleTests
 {
-    private (JintRuntime rt, ClassRegistry reg, World world) BuildRuntime()
+    // register() defers the registry write to the RegistrationPolicy seal barrier;
+    // tests that register via JS call policy.Resolve() before reading back.
+    private (JintRuntime rt, ClassRegistry reg, World world, RegistrationPolicy policy) BuildRuntime()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -18,13 +21,14 @@ public class ClassesModuleTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<ClassRegistry>(), provider.GetRequiredService<World>());
+        return (rt, provider.GetRequiredService<ClassRegistry>(), provider.GetRequiredService<World>(),
+                provider.GetRequiredService<RegistrationPolicy>());
     }
 
     [Fact]
     public void Register_PersistsNewFields()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.classes.register({
                 id: 'warrior',
@@ -43,6 +47,7 @@ public class ClassesModuleTests
                 ]
             });
         ");
+        policy.Resolve();
         var def = reg.Get("warrior");
         Assert.NotNull(def);
         Assert.Equal("Master swordsman", def!.Tagline);
@@ -63,7 +68,7 @@ public class ClassesModuleTests
     [Fact]
     public void Get_ExposesAllNewFields()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         reg.Register(new ClassDefinition
         {
             Id = "warrior",
@@ -85,7 +90,7 @@ public class ClassesModuleTests
     [Fact]
     public void GetEligibleClasses_FiltersCorrectly()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.races.register({
                 id: 'human',
@@ -108,6 +113,7 @@ public class ClassesModuleTests
                 stat_growth: {}
             });
         ");
+        policy.Resolve();
         var result = rt.Evaluate(
             "tapestry.classes.getEligibleClasses({ race: 'human', gender: 'male' })");
         Assert.NotNull(result);
@@ -120,7 +126,7 @@ public class ClassesModuleTests
     [Fact]
     public void GetEligibleClasses_UsesRaceIdAsCategoryFallback()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.races.register({
                 id: 'human',
@@ -135,6 +141,7 @@ public class ClassesModuleTests
                 stat_growth: {}
             });
         ");
+        policy.Resolve();
         var result = rt.Evaluate(
             "tapestry.classes.getEligibleClasses({ race: 'human', gender: 'male' })");
         var arr = result as object[];
@@ -145,7 +152,7 @@ public class ClassesModuleTests
     [Fact]
     public void Register_StoresClassInRegistry()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.classes.register({
                 id: 'warrior',
@@ -153,6 +160,7 @@ public class ClassesModuleTests
                 stat_growth: { max_hp: '2d6+2', max_movement: '1d4' }
             });
         ");
+        policy.Resolve();
         var def = reg.Get("warrior");
         Assert.NotNull(def);
         Assert.Equal("Warrior", def!.Name);
@@ -162,7 +170,7 @@ public class ClassesModuleTests
     [Fact]
     public void Get_ReturnsRegisteredClassDefinition()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         reg.Register(new ClassDefinition { Id = "human", Name = "Human" });
         var result = rt.Evaluate("tapestry.classes.get('human')");
         Assert.NotNull(result);
@@ -171,13 +179,14 @@ public class ClassesModuleTests
     [Fact]
     public void Register_TrainsPerLevel_RoundTrips()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.classes.register({
                 id: 'warrior', name: 'Warrior',
                 trains_per_level: 7
             });
         ");
+        policy.Resolve();
         var def = reg.Get("warrior");
         Assert.NotNull(def);
         Assert.Equal(7, def!.TrainsPerLevel);
@@ -186,13 +195,14 @@ public class ClassesModuleTests
     [Fact]
     public void Register_GrowthBonuses_RoundTrips()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"
             tapestry.classes.register({
                 id: 'warrior', name: 'Warrior',
                 growth_bonuses: { max_hp: 'constitution', max_movement: 'dexterity' }
             });
         ");
+        policy.Resolve();
         var def = reg.Get("warrior");
         Assert.NotNull(def);
         Assert.Equal(StatType.Constitution, def!.GrowthBonuses[StatType.MaxHp]);
@@ -202,15 +212,16 @@ public class ClassesModuleTests
     [Fact]
     public void Register_TrainsPerLevel_DefaultsWhenOmitted()
     {
-        var (rt, reg, _) = BuildRuntime();
+        var (rt, reg, _, policy) = BuildRuntime();
         rt.Execute(@"tapestry.classes.register({ id: 'empty', name: 'Empty' });");
+        policy.Resolve();
         Assert.Equal(5, reg.Get("empty")!.TrainsPerLevel);
     }
 
     [Fact]
     public void SetClass_StoresClassPropertyOnEntity()
     {
-        var (rt, reg, world) = BuildRuntime();
+        var (rt, reg, world, _) = BuildRuntime();
         reg.Register(new ClassDefinition { Id = "warrior", Name = "Warrior" });
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);

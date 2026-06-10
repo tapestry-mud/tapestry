@@ -4,19 +4,14 @@ public class ClassRegistry
 {
     private readonly Dictionary<string, ClassDefinition> _classes = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
+    /// time a write lands here, the policy has already elected the winner. Priority stays
+    /// on the definition for parse compatibility but no longer arbitrates.
+    /// </summary>
     public void Register(ClassDefinition definition)
     {
-        if (_classes.TryGetValue(definition.Id, out var existing))
-        {
-            if (definition.Priority > existing.Priority)
-            {
-                _classes[definition.Id] = definition;
-            }
-        }
-        else
-        {
-            _classes[definition.Id] = definition;
-        }
+        _classes[definition.Id] = definition;
     }
 
     public ClassDefinition? Get(string id)

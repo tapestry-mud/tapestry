@@ -32,6 +32,7 @@ public class GameLoopService : IHostedService
     private readonly IWatchRosterSource _watchRosterSource;
     private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
     private readonly Tapestry.Engine.Help.HelpSeal _helpSeal;
+    private readonly SpawnManager _spawns;
     private Task? _runTask;
 
     public GameLoopService(
@@ -54,7 +55,8 @@ public class GameLoopService : IHostedService
         WatchSessionHub watchSessionHub,
         IWatchRosterSource watchRosterSource,
         Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy,
-        Tapestry.Engine.Help.HelpSeal helpSeal)
+        Tapestry.Engine.Help.HelpSeal helpSeal,
+        SpawnManager spawns)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -76,6 +78,7 @@ public class GameLoopService : IHostedService
         _watchRosterSource = watchRosterSource;
         _registrationPolicy = registrationPolicy;
         _helpSeal = helpSeal;
+        _spawns = spawns;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -289,6 +292,15 @@ public class GameLoopService : IHostedService
         // Help resolves AFTER commands (help shadows commands): validate command-shadowing
         // authority against the now-committed registry, then auto-gen fills only the gaps.
         _helpSeal.Seal();
+        // Initial mob spawns run AFTER the seal: MobStatDerivation reads the class/race
+        // registries, which only commit at Resolve(). (Was: PlayerInitModule.Configure,
+        // which runs at bootstrap — pre-seal — and would see empty registries.)
+        // GameLoopService starts before TelnetService, so the world is populated before
+        // any player can connect.
+        foreach (var areaName in _spawns.GetAreaNames())
+        {
+            _spawns.RunAreaReset(areaName);
+        }
         _runTask = _gameLoop.RunAsync(_config.Server.TickRateMs, _appLifetime.ApplicationStopping);
         return Task.CompletedTask;
     }

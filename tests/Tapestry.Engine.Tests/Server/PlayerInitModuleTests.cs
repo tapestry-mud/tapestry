@@ -34,11 +34,8 @@ public class PlayerInitModuleTests
             NullLogger<PlayerPersistenceService>.Instance);
         var accountService = new AccountService(accountStore);
         var raceRegistry = new RaceRegistry();
-        var eventBus = new EventBus();
-        var lootResolver = new LootTableResolver();
-        var spawns = new SpawnManager(world, eventBus, lootResolver, new ItemRegistry());
         return new PlayerInitModule(
-            config, packLoader, persistence, accountService, raceRegistry, spawns,
+            config, packLoader, persistence, accountService, raceRegistry,
             NullLogger<PlayerInitModule>.Instance);
     }
 
