@@ -26,10 +26,15 @@ public class QuestStartupModule : IGameModule
         // Quests are loaded by PackLoader.LoadContent via the quests: glob. Quest JS lifecycle
         // scripts are loaded by the SINGLE executor -- the pack scripts: glob (also PackLoader),
         // with full pack/source attribution. The legacy quest `script:` field no longer drives
-        // loading; here we only assert each declared script: was actually loaded by the glob
-        // (a strict pack fails the boot, a lenient pack warns), then start persistence + watcher.
+        // loading; here we only assert each declared script: was actually loaded by the glob.
+        //
+        // Fail-fast tradeoff: the old executor swallowed script exceptions and always reached
+        // the Start() calls below. Verify() instead THROWS on a strict pack whose script: can
+        // never bind -- halting boot rather than starting a degraded quest system. Deliberate:
+        // a quest whose hooks can never fire is worse than a clean boot failure.
         _coverageVerifier.Verify();
 
+        // Start persistence (subscribes to player.login), then the objective watcher.
         _persistenceService.Start();
         _objectiveWatcher.Start();
     }
