@@ -42,20 +42,44 @@ public class MobsModule : IJintApiModule
     {
         return new
         {
-            registerBehavior = new Action<string, JsValue>((name, handler) =>
+            registerBehavior = new Action<string, JsValue, JsValue>((name, handler, optionsJs) =>
             {
                 var packName = engine.GetValue("__currentPack").ToString();
-                _mobAIManager.RegisterBehavior(name, ctx =>
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString()
+                    : "";
+
+                // Optional third arg: { override: true }. A missing JS arg marshals to CLR null
+                // (Jint 4.7.1); a missing field reads Undefined -- only Type==Boolean counts.
+                var isOverride = false;
+                if (optionsJs is ObjectInstance optObj)
                 {
-                    var contextObj = new
+                    var overrideVal = optObj.Get("override");
+                    isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
+                }
+
+                // Declarative: the MobAIManager write replays at Resolve() (the seal barrier),
+                // turning the silent last-wins clobber into a located boot error.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "mob-behavior",
+                    Name: name,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _mobAIManager.RegisterBehavior(name, ctx =>
                     {
-                        entityId = ctx.EntityId.ToString(),
-                        name = ctx.Name,
-                        roomId = ctx.RoomId,
-                        behavior = ctx.Behavior
-                    };
-                    engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
-                });
+                        var contextObj = new
+                        {
+                            entityId = ctx.EntityId.ToString(),
+                            name = ctx.Name,
+                            roomId = ctx.RoomId,
+                            behavior = ctx.Behavior
+                        };
+                        engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
+                    }),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
 
             registerCommand = new Action<string, JsValue>((verb, options) =>
