@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Abilities;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 
 namespace Tapestry.Scripting.Tests.Modules;
@@ -26,6 +27,7 @@ public class AbilitiesModuleAlignmentTests
                 alignment_range: { max: -700 }
             });
         ");
+        sp.GetRequiredService<RegistrationPolicy>().Resolve();
 
         var def = registry.Get("invoke_darkness");
         Assert.NotNull(def!.AlignmentRange);
@@ -52,6 +54,7 @@ public class AbilitiesModuleAlignmentTests
                 alignment_range: { buckets: ['evil'] }
             });
         ");
+        sp.GetRequiredService<RegistrationPolicy>().Resolve();
 
         var def = registry.Get("evil_only");
         Assert.NotNull(def!.AlignmentRange);

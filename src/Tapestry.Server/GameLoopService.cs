@@ -33,6 +33,8 @@ public class GameLoopService : IHostedService
     private readonly Tapestry.Engine.Registration.RegistrationPolicy _registrationPolicy;
     private readonly Tapestry.Engine.Help.HelpSeal _helpSeal;
     private readonly SpawnManager _spawns;
+    private readonly AbilityCommandBridge _abilityCommandBridge;
+    private readonly Tapestry.Scripting.PackValidator _packValidator;
     private Task? _runTask;
 
     public GameLoopService(
@@ -56,7 +58,9 @@ public class GameLoopService : IHostedService
         IWatchRosterSource watchRosterSource,
         Tapestry.Engine.Registration.RegistrationPolicy registrationPolicy,
         Tapestry.Engine.Help.HelpSeal helpSeal,
-        SpawnManager spawns)
+        SpawnManager spawns,
+        AbilityCommandBridge abilityCommandBridge,
+        Tapestry.Scripting.PackValidator packValidator)
     {
         _gameLoop = gameLoop;
         _sessions = sessions;
@@ -79,6 +83,8 @@ public class GameLoopService : IHostedService
         _registrationPolicy = registrationPolicy;
         _helpSeal = helpSeal;
         _spawns = spawns;
+        _abilityCommandBridge = abilityCommandBridge;
+        _packValidator = packValidator;
 
         WireEvents();
         _metrics.RegisterWorldCensus(_world.SampleCensus);
@@ -289,6 +295,13 @@ public class GameLoopService : IHostedService
     {
         _logger.LogInformation("Game loop starting. Tick rate: {TickRate}ms", _config.Server.TickRateMs);
         _registrationPolicy.Resolve();
+        // Ability commands wire AFTER the seal: the ability registry only commits at
+        // Resolve(). (Was: ContentLoadingModule.Configure, pre-seal — would see no abilities.)
+        // Before HelpSeal so help shadow-validation/auto-gen sees the ability commands.
+        _abilityCommandBridge.WireAll();
+        // Pack validation AFTER the seal for the same reason: its mob ability/battlecommand
+        // checks read the now-committed ability and command registries.
+        _packValidator.Validate();
         // Help resolves AFTER commands (help shadows commands): validate command-shadowing
         // authority against the now-committed registry, then auto-gen fills only the gaps.
         _helpSeal.Seal();

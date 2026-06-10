@@ -4,19 +4,14 @@ public class AbilityRegistry
 {
     private readonly Dictionary<string, AbilityDefinition> _abilities = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
+    /// time a write lands here, the policy has already elected the winner. Priority stays
+    /// on the definition for parse compatibility but no longer arbitrates.
+    /// </summary>
     public void Register(AbilityDefinition definition)
     {
-        if (_abilities.TryGetValue(definition.Id, out var existing))
-        {
-            if (definition.Priority > existing.Priority)
-            {
-                _abilities[definition.Id] = definition;
-            }
-        }
-        else
-        {
-            _abilities[definition.Id] = definition;
-        }
+        _abilities[definition.Id] = definition;
     }
 
     public AbilityDefinition? Get(string id)
