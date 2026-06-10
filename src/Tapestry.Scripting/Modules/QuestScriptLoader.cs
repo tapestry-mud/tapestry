@@ -32,6 +32,10 @@ public class QuestScriptLoader : IQuestScriptLoader
         _logger = logger;
     }
 
+    /// <summary>
+    /// Plain write (upsert). Collision resolution is the RegistrationPolicy's job — by the
+    /// time a write lands here, the policy has already elected the winner.
+    /// </summary>
     public void Register(string questId, JsValue hooksObj, string pack = "")
     {
         if (hooksObj is not ObjectInstance obj)

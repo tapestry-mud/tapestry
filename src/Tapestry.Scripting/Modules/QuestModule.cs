@@ -3,6 +3,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Registration;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
@@ -14,16 +15,18 @@ public class QuestModule : IJintApiModule
     private readonly World _world;
     private readonly QuestScriptLoader _scriptLoader;
     private readonly QuestMarkerService _questMarkerService;
+    private readonly RegistrationPolicy _registrationPolicy;
 
     public string Namespace => "quests";
 
-    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world, QuestScriptLoader scriptLoader, QuestMarkerService questMarkerService)
+    public QuestModule(QuestService questService, QuestRegistry questRegistry, World world, QuestScriptLoader scriptLoader, QuestMarkerService questMarkerService, RegistrationPolicy registrationPolicy)
     {
         _questService = questService;
         _questRegistry = questRegistry;
         _world = world;
         _scriptLoader = scriptLoader;
         _questMarkerService = questMarkerService;
+        _registrationPolicy = registrationPolicy;
     }
 
     public object Build(JintEngine engine)
@@ -198,13 +201,38 @@ public class QuestModule : IJintApiModule
 
             registerScript = new Action<string, JsValue>((questId, hooksObj) =>
             {
+                // Engine wiring, not a registration: must happen at registration time
+                // regardless of which candidate wins the seal, so it stays outside Commit.
                 if (_scriptLoader.JintEngine == null)
                 {
                     _scriptLoader.JintEngine = engine;
                 }
 
                 var packName = engine.GetValue("__currentPack").ToString();
-                _scriptLoader.Register(questId, hooksObj, packName);
+
+                var sourceFileVal = engine.GetValue("__currentSource");
+                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
+                    ? sourceFileVal.ToString() : "";
+
+                // The hooks object holds functions; a non-function `override: true` key is fine.
+                // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
+                var isOverride = false;
+                if (hooksObj is ObjectInstance hooks)
+                {
+                    var overrideVal = hooks.Get("override");
+                    isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
+                }
+
+                // Declarative: the loader write replays at Resolve() (the seal barrier),
+                // turning the silent last-wins clobber into a located boot error.
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "quest-hook",
+                    Name: questId,
+                    Owner: packName,
+                    IsOverride: isOverride,
+                    Commit: () => _scriptLoader.Register(questId, hooksObj, packName),
+                    SourceFile: sourceFile,
+                    Line: 0));
             }),
         };
     }
