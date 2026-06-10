@@ -27,6 +27,7 @@ public class ServerConfig
     public LinkDeadSection LinkDead { get; set; } = new();
     public OutputSection Output { get; set; } = new();
     public WatchSection Watch { get; set; } = new();
+    public MobAiSection MobAi { get; set; } = new();
 
     public string ConfigDirectory { get; private set; } = "";
 
@@ -223,6 +224,19 @@ public class WatchSection
 {
     public bool Enabled { get; set; } = false;
     public int RosterIntervalTicks { get; set; } = 25;
+}
+
+// Mob-AI loop bounding (2026-06-07 outage fix). Defaults grounded in prod data
+// 2026-06-10 (~11us mean per-mob): the caps only engage on pathology, not on
+// legitimate behaviors. tick_budget_ms bounds the whole sweep (deferred mobs
+// resume next tick via cursor); invocation_cap_ms bounds one behavior call
+// (Jint-interruptible since 4.9.3); quarantine_strikes disables a behavior
+// after that many cap violations, until reboot.
+public class MobAiSection
+{
+    public int TickBudgetMs { get; set; } = 25;
+    public int InvocationCapMs { get; set; } = 50;
+    public int QuarantineStrikes { get; set; } = 3;
 }
 
 public class TrainingSection

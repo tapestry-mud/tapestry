@@ -359,4 +359,14 @@ public class MobAIManagerTests
             new[] { "scan", "behavior", "publish", "disposition" });
         phases.First(p => p.phase == "behavior").ms.Should().BeGreaterThan(10);
     }
+
+    [Fact]
+    public void MobAiSection_Defaults_AreGroundedValues()
+    {
+        var config = new Tapestry.Data.ServerConfig();
+
+        Assert.Equal(25, config.MobAi.TickBudgetMs);
+        Assert.Equal(50, config.MobAi.InvocationCapMs);
+        Assert.Equal(3, config.MobAi.QuarantineStrikes);
+    }
 }
