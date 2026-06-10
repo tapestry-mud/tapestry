@@ -356,6 +356,50 @@
         "sortOrder": "Descending",
         "dedupStrategy": "none"
       }
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "id": 21,
+      "title": "Mob-AI budget exhausted /min",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(tapestry_mob_ai_budget_exhausted_total[5m]) * 60", "legendFormat": "exhausted/min", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "id": 22,
+      "title": "Mob-AI cursor lag (deferred mobs)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "tapestry_mob_ai_cursor_lag", "legendFormat": "deferred", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 51 },
+      "id": 23,
+      "title": "Mob-AI invocation-cap strikes by behavior (1h)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (behavior) (increase(tapestry_mob_ai_invocation_cap_total[1h]))", "legendFormat": "{{behavior}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 51 },
+      "id": 24,
+      "title": "Mob-AI quarantines (behavior/pack)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (behavior, pack) (increase(tapestry_mob_ai_quarantine_total[1h]))", "legendFormat": "{{behavior}} ({{pack}})", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     }
   ],
   "schemaVersion": 39,
