@@ -1,0 +1,19 @@
+name: "@tapestry/test-fixtures"
+version: "0.0.1"
+type: world
+display_name: "Test Fixtures (NEVER PUBLISH)"
+description: "Scenario-harness fixtures: seeded test accounts and the isolated test arena. Lives in the engine repo under tests/ so it is structurally impossible to publish to the registry or package into an image. The telnet runner stages it into the managed corpus; nothing else should ever load it."
+author: "Tapestry"
+license: "AGPL-3.0"
+engine: ">=0.1.7"
+validation: strict
+dependencies:
+  "@tapestry/core": "0.1.4"
+  "@tapestry/biomes": "0.1.1"
+active: true
+load_order: 99
+
+content:
+  area_definitions: "areas/**/area.yaml"
+  rooms: "areas/**/rooms/*.yaml"
+  mobs: "areas/**/mobs/*.yaml"

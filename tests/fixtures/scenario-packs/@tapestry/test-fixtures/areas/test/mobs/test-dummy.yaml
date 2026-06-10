@@ -1,0 +1,26 @@
+id: "tapestry-test-fixtures:test-dummy"
+name: "a training dummy"
+type: "npc"
+tags: []
+keywords: [dummy, training]
+behavior: stationary
+stats:
+  strength: 1
+  dexterity: 1
+  constitution: 1
+  intelligence: 1
+  wisdom: 1
+  luck: 1
+  max_hp: 99999
+  max_resource: 0
+  max_movement: 0
+properties:
+  mob_level: 1
+  corpse_decay: 60
+  description: "A sturdy wooden dummy wrapped in leather. It exists only to be hit."
+  ac:
+    slash: 0
+    pierce: 0
+    bash: 0
+    exotic: 0
+equipment: []

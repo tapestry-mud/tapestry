@@ -1007,7 +1007,7 @@ function countConfigPacks(yaml) {
     if (inPacks) {
       if (/^\s+-\s+\S/.test(line)) {
         count++;
-      } else if (line.trim() !== '') {
+      } else if (line.trim() !== '' && !line.trim().startsWith('#')) {
         break;
       }
     }
@@ -1023,6 +1023,60 @@ function createManagedConfig(projectRoot, telnetPort, websocketPort) {
   const configPath = path.join(tmpDir, 'server.test.yaml');
   fs.writeFileSync(configPath, rewritten);
   return { tmpDir, configPath, expectedPacks: countConfigPacks(yaml) };
+}
+
+// Link (junction on Windows — works without elevation; symlink elsewhere) with
+// a copy fallback, so staging works on locked-down filesystems too.
+function linkOrCopyDir(target, linkPath) {
+  try {
+    fs.symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (_) {
+    fs.cpSync(target, linkPath, { recursive: true });
+  }
+}
+
+// Stage a merged pack corpus into tmpDir: per-pack links to the real corpus,
+// then the engine-repo scenario fixtures overlaid. The fixtures pack
+// (@tapestry/test-fixtures — seed accounts, test arena) deliberately lives
+// under tests/ in the engine repo so it can NEVER be published or packaged;
+// merging at run time is what lets the managed server still load it.
+function stageCorpus(tmpDir, realPacksDir, fixturesDir) {
+  const corpusDir = path.join(tmpDir, 'packs');
+  fs.mkdirSync(corpusDir, { recursive: true });
+
+  const overlay = (sourceRoot) => {
+    if (!sourceRoot || !fs.existsSync(sourceRoot)) {
+      return;
+    }
+    for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const sourcePath = path.join(sourceRoot, entry.name);
+      if (entry.name.startsWith('@')) {
+        const scopeDir = path.join(corpusDir, entry.name);
+        fs.mkdirSync(scopeDir, { recursive: true });
+        for (const child of fs.readdirSync(sourcePath, { withFileTypes: true })) {
+          if (!child.isDirectory()) {
+            continue;
+          }
+          const dest = path.join(scopeDir, child.name);
+          if (!fs.existsSync(dest)) {
+            linkOrCopyDir(path.join(sourcePath, child.name), dest);
+          }
+        }
+      } else {
+        const dest = path.join(corpusDir, entry.name);
+        if (!fs.existsSync(dest)) {
+          linkOrCopyDir(sourcePath, dest);
+        }
+      }
+    }
+  };
+
+  overlay(realPacksDir);
+  overlay(fixturesDir);
+  return corpusDir;
 }
 
 class ManagedServer {
@@ -1051,8 +1105,13 @@ class ManagedServer {
     this.config = createManagedConfig(this.projectRoot, telnetPort, websocketPort);
     this.logPath = path.join(this.config.tmpDir, 'server.log');
 
+    // Merged corpus: the real packs plus the never-published scenario fixtures.
+    const fixturesDir = path.join(this.projectRoot, 'tests', 'fixtures', 'scenario-packs');
+    const stagedPacksDir = stageCorpus(this.config.tmpDir, this.packsDir, fixturesDir);
+    this.stagedPacksDir = stagedPacksDir;
+
     const logFd = fs.openSync(this.logPath, 'a');
-    this.child = spawn('dotnet', [dll, '--config', this.config.configPath, '--packs', this.packsDir], {
+    this.child = spawn('dotnet', [dll, '--config', this.config.configPath, '--packs', stagedPacksDir], {
       cwd: this.projectRoot,
       stdio: ['ignore', logFd, logFd],
       windowsHide: true
@@ -1742,6 +1801,8 @@ function selfTest() {
   assert('rewrites websocket_port', rewritten.includes('websocket_port: 41235'));
   assert('counts config packs', countConfigPacks(sampleYaml) === 4);
   assert('counts zero packs when absent', countConfigPacks('server:\n  name: x\n') === 0);
+  assert('counts packs across comment lines',
+    countConfigPacks('packs:\n  - a\n  # comment\n  - b\n') === 2);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   return failed === 0;

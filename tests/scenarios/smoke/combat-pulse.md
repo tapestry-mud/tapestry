@@ -12,10 +12,10 @@ window or combat is dead.
 - Players: Wanderer, Gamemaster
 
 ### Steps
-1. Gamemaster: `teleport Gamemaster tapestry-example-pack:test-arena`
-2. Gamemaster: `spawn tapestry-example-pack:test-dummy`
+1. Gamemaster: `teleport Gamemaster tapestry-test-fixtures:test-arena`
+2. Gamemaster: `spawn tapestry-test-fixtures:test-dummy`
 3. Assert Gamemaster sees: `Spawned: a training dummy`
-4. Gamemaster: `teleport Wanderer tapestry-example-pack:test-arena`
+4. Gamemaster: `teleport Wanderer tapestry-test-fixtures:test-arena`
 5. Wanderer: `kill dummy`
 6. Assert Wanderer sees: `You attack a training dummy!`
 7. Wait for Wanderer sees: `a training dummy.`

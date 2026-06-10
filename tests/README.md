@@ -87,8 +87,13 @@ packs corpus:
   <pack>/tests/**/*.md # Pack-owned scenarios (e.g. @tapestry/example-pack), via --all-packs
 ```
 
-Test players (`Wanderer`, `Alice`, `Gamemaster` — admin) are seeded by
-`@tapestry/example-pack/players.yaml` with password `testpass123`.
+Test players (`Wanderer`, `Alice`, `Gamemaster` — admin) are seeded by the
+`@tapestry/test-fixtures` pack (`tests/fixtures/scenario-packs/`, password
+`testpass123`). That pack lives in the engine repo under `tests/` precisely so
+it can never be published to the registry or packaged into an image — the
+runner stages it into the managed corpus at run time. **Never add accounts to
+a pack under `tapestry-packs/packages`** — a committed credential in a shipped
+pack is a backdoor regardless of password strength.
 
 Format — smoke journey (one scenario per file) or command file (multiple
 `## Scenario:` blocks):
@@ -135,13 +140,13 @@ Format — smoke journey (one scenario per file) or command file (multiple
 
 | Command | Example |
 |---------|---------|
-| `spawn` | `spawn tapestry-example-pack:test-dummy` |
-| `teleport` | `teleport Wanderer tapestry-example-pack:test-arena` |
+| `spawn` | `spawn tapestry-test-fixtures:test-dummy` |
+| `teleport` | `teleport Wanderer tapestry-test-fixtures:test-arena` |
 | `purge` | `purge npc` |
 | `loaditem` | `loaditem <item-template-id>` |
 
 Tips:
-- `tapestry-example-pack:test-arena` ("The Void") is the isolated combat
+- `tapestry-test-fixtures:test-arena` ("The Void") is the isolated combat
   room — no exits, no pre-existing mobs; `test-dummy` is a 99999-HP target.
 - Use `Wait for` for anything tick-driven; plain `Assert` for direct
   command output.
