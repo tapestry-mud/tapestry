@@ -286,7 +286,7 @@ public class PackLoaderTests
         var modules = new IJintApiModule[]
         {
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
-            new EmotesModule(emoteRegistry),
+            new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
@@ -543,7 +543,7 @@ public class PackLoaderTests
         var modules = new IJintApiModule[]
         {
             new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
-            new EmotesModule(emoteRegistry),
+            new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
             new StatsModule(stats, statDisplayNames, world),
