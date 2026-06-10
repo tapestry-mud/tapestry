@@ -1,6 +1,7 @@
 // src/Tapestry.Engine/Mobs/MobAIManager.cs
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
@@ -32,10 +33,13 @@ public class MobAIManager
     private long _currentTick;
 
     private readonly RegistrationGate? _gate;
+    private readonly TimeProvider _time;
+    private readonly MobAiSection _budget;
 
     public MobAIManager(World world, EventBus eventBus, CombatManager combat,
         DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger,
-        TapestryMetrics metrics, RegistrationGate? gate = null)
+        TapestryMetrics metrics, RegistrationGate? gate = null,
+        ServerConfig? config = null, TimeProvider? time = null)
     {
         _world = world;
         _eventBus = eventBus;
@@ -44,6 +48,8 @@ public class MobAIManager
         _logger = logger;
         _metrics = metrics;
         _gate = gate;
+        _budget = config?.MobAi ?? new MobAiSection();
+        _time = time ?? TimeProvider.System;
     }
 
     public void RegisterBehavior(string name, Action<MobContext> handler)
@@ -112,19 +118,21 @@ public class MobAIManager
         long publishTicks = 0;
         long dispositionTicks = 0;
 
-        var scanStart = Stopwatch.GetTimestamp();
-        var npcs = _world.GetEntitiesByType("npc").ToList();
-        var scanTicks = Stopwatch.GetTimestamp() - scanStart;
+        // Occupancy-driven sweep (WeatherService precedent): enumerate only rooms in
+        // player-active areas and take their npc contents, instead of scanning every
+        // entity in the world. Ordered by entity id: the stable ordering the
+        // round-robin cursor resumes against.
+        var scanStart = _time.GetTimestamp();
+        var npcs = _world.AllRooms
+            .Where(r => _activeAreas.Contains(GetAreaFromRoomId(r.Id)))
+            .SelectMany(r => r.Entities.Where(e => e.Type == EntityTypes.Npc))
+            .OrderBy(e => e.Id)
+            .ToList();
+        var scanTicks = _time.GetTimestamp() - scanStart;
 
         foreach (var entity in npcs)
         {
             if (entity.LocationRoomId == null)
-            {
-                continue;
-            }
-
-            var area = GetAreaFromRoomId(entity.LocationRoomId);
-            if (!_activeAreas.Contains(area))
             {
                 continue;
             }
@@ -142,7 +150,7 @@ public class MobAIManager
                         RoomId = entity.LocationRoomId,
                         Behavior = behavior
                     };
-                    var behaviorStart = Stopwatch.GetTimestamp();
+                    var behaviorStart = _time.GetTimestamp();
                     try
                     {
                         handler(context);
@@ -153,12 +161,12 @@ public class MobAIManager
                             "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
                             entity.Id, entity.Name, behavior);
                     }
-                    behaviorTicks += Stopwatch.GetTimestamp() - behaviorStart;
+                    behaviorTicks += _time.GetTimestamp() - behaviorStart;
                 }
 
                 // Publish even if no handler is registered: mob.ai.tick signals the mob was
                 // considered this tick, regardless of whether a behavior handler ran.
-                var publishStart = Stopwatch.GetTimestamp();
+                var publishStart = _time.GetTimestamp();
                 _eventBus.Publish(new GameEvent
                 {
                     Type = "mob.ai.tick",
@@ -172,12 +180,12 @@ public class MobAIManager
                         ["behavior"] = behavior
                     }
                 });
-                publishTicks += Stopwatch.GetTimestamp() - publishStart;
+                publishTicks += _time.GetTimestamp() - publishStart;
             }
 
             if (entity.DispositionRules != null)
             {
-                var dispositionStart = Stopwatch.GetTimestamp();
+                var dispositionStart = _time.GetTimestamp();
                 var room = _world.GetRoom(entity.LocationRoomId);
                 if (room != null)
                 {
@@ -186,7 +194,7 @@ public class MobAIManager
                         _dispositionEvaluator.EvaluateForMob(entity, player);
                     }
                 }
-                dispositionTicks += Stopwatch.GetTimestamp() - dispositionStart;
+                dispositionTicks += _time.GetTimestamp() - dispositionStart;
             }
         }
 
@@ -198,7 +206,7 @@ public class MobAIManager
 
     private void RecordPhase(string phase, long elapsedTicks)
     {
-        var ms = elapsedTicks * 1000.0 / Stopwatch.Frequency;
+        var ms = elapsedTicks * 1000.0 / _time.TimestampFrequency;
         _metrics.MobAiPhaseMs.Record(ms, new KeyValuePair<string, object?>("phase", phase));
     }
 

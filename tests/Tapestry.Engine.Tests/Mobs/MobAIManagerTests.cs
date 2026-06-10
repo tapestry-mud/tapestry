@@ -369,4 +369,28 @@ public class MobAIManagerTests
         Assert.Equal(50, config.MobAi.InvocationCapMs);
         Assert.Equal(3, config.MobAi.QuarantineStrikes);
     }
+
+    [Fact]
+    public void Tick_SweepsRoomContents_NotTagIndex()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+
+        var mobEntity = new Entity("npc", "a goblin");
+        mobEntity.SetProperty("behavior", "test-behavior");
+        mobEntity.LocationRoomId = "core:town-square";
+        room.AddEntity(mobEntity);
+        // Deliberately NOT world.TrackEntity / AddTag / SwapTagBuffers:
+        // the sweep must come from room contents, not the tag index.
+
+        var manager = BuildManager(world);
+        var handlerCalled = false;
+        manager.RegisterBehavior("test-behavior", (_) => { handlerCalled = true; });
+
+        manager.PlayerEnteredRoom("core:town-square");
+        manager.Tick();
+
+        Assert.True(handlerCalled);
+    }
 }
