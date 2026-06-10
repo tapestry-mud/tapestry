@@ -2,6 +2,7 @@ using Jint.Native;
 using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
+using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Registration;
@@ -18,6 +19,8 @@ public class MobsModule : IJintApiModule
     private readonly MobCommandQueue _mobCommandQueue;
     private readonly CommandRegistry _commandRegistry;
     private readonly RegistrationPolicy _registrationPolicy;
+    private readonly MobInvocationBudget _invocationBudget;
+    private readonly ServerConfig _config;
     private readonly Dictionary<string, (string Pack, JsValue Hooks)> _mobScriptRegistry = new();
     private readonly ILogger<MobsModule> _logger;
 
@@ -25,6 +28,8 @@ public class MobsModule : IJintApiModule
         MobCommandRegistry mobCommandRegistry, MobCommandQueue mobCommandQueue,
         CommandRegistry commandRegistry,
         RegistrationPolicy registrationPolicy,
+        MobInvocationBudget invocationBudget,
+        ServerConfig config,
         ILogger<MobsModule> logger)
     {
         _mobs = mobs;
@@ -33,6 +38,8 @@ public class MobsModule : IJintApiModule
         _mobCommandQueue = mobCommandQueue;
         _commandRegistry = commandRegistry;
         _registrationPolicy = registrationPolicy;
+        _invocationBudget = invocationBudget;
+        _config = config;
         _logger = logger;
     }
 
@@ -76,8 +83,14 @@ public class MobsModule : IJintApiModule
                             roomId = ctx.RoomId,
                             behavior = ctx.Behavior
                         };
-                        engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
-                    }),
+                        // Armed only for the behavior call: the one place pack JS runs
+                        // unbounded work on the game loop's mob sweep. Disarms via using
+                        // even when the constraint interrupts mid-script.
+                        using (_invocationBudget.Arm(_config.MobAi.InvocationCapMs))
+                        {
+                            engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
+                        }
+                    }, owner: packName),
                     SourceFile: sourceFile,
                     Line: 0));
             }),
