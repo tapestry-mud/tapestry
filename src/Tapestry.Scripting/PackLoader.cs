@@ -569,14 +569,23 @@ public class PackLoader : IPackManifestProvider
         var slots = YamlContentLoader.LoadEquipmentSlots(yaml);
         foreach (var slotDef in slots)
         {
-            if (packNamespace == "tapestry-core")
-            {
-                _slotRegistry.RegisterEngineSlot(slotDef.Name, slotDef.Display, slotDef.Max);
-            }
-            else
-            {
-                _slotRegistry.RegisterPackSlot(packNamespace, slotDef.Name, slotDef.Display, slotDef.Max);
-            }
+            // Every pack's slots are pack-owned -- including @tapestry/core's. (Was: a
+            // tapestry-core special case registering owner "engine", which made core's
+            // slots non-overridable -- contradicting the locked contract that engine/kernel
+            // are non-overridable but @tapestry/core CONTENT is overridable via the edge.
+            // RegisterEngineSlot remains the seam for genuine engine C# callers.)
+            // The registry write replays at Resolve() (the seal barrier).
+            var name = slotDef.Name;
+            var display = slotDef.Display;
+            var max = slotDef.Max;
+            _registrationPolicy.Record(new RegistrationCandidate(
+                Kind: "slot",
+                Name: name,
+                Owner: packNamespace,
+                IsOverride: slotDef.Override,
+                Commit: () => _slotRegistry.RegisterPackSlot(packNamespace, name, display, max),
+                SourceFile: fullPath,
+                Line: 0));
             _logger.LogDebug("  Slot: {Name} (max {Max})", slotDef.Name, slotDef.Max);
         }
     }

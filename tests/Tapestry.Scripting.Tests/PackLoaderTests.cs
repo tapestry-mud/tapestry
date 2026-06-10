@@ -245,6 +245,57 @@ public class PackLoaderTests
         }
     }
 
+    [Fact]
+    public void LoadPack_EquipmentSlotsYamlCollision_ThrowsAtSeal_NamingBothPacks()
+    {
+        var policy = TestRegistrationPolicy.Create();
+        var (_, _, _, loader, _) = CreateLoaderDepsWithSpawn(policy: policy);
+
+        var dirA = WriteSlotPack("@test/pack-a");
+        var dirB = WriteSlotPack("@test/pack-b");
+        try
+        {
+            loader.Load(dirA);
+            loader.Load(dirB);
+
+            // Slots route through RegistrationPolicy: the collision is a located boot
+            // error at the seal, not a silent last-wins clobber at load.
+            var act = () => policy.Resolve();
+            act.Should().Throw<InvalidOperationException>()
+                .Which.Message.Should()
+                .Contain("head")
+                .And.Contain("test-pack-a")
+                .And.Contain("test-pack-b")
+                .And.Contain("equipment_slots.yaml");
+        }
+        finally
+        {
+            Directory.Delete(dirA, recursive: true);
+            Directory.Delete(dirB, recursive: true);
+        }
+    }
+
+    private static string WriteSlotPack(string packName)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-slot-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "tapestry.yaml"), $"""
+            name: "{packName}"
+            version: "1.0.0"
+            active: true
+            load_order: 0
+            content:
+              equipment_slots: "equipment_slots.yaml"
+            """);
+        File.WriteAllText(Path.Combine(dir, "equipment_slots.yaml"), """
+            equipment_slots:
+              - name: head
+                display: "<worn on head>"
+                max: 1
+            """);
+        return dir;
+    }
+
     private static string WriteThemePack(string packName)
     {
         var dir = Path.Combine(Path.GetTempPath(), "tapestry-theme-" + Guid.NewGuid().ToString("N")[..8]);
