@@ -535,4 +535,90 @@ public class MobAIManagerTests
         Assert.True(calls.Count >= 3);
         Assert.True(calls.Count(n => n == victim.Name) <= 1);
     }
+
+    [Fact]
+    public void Behavior_QuarantinedAfterThreeStrikes_PublishStillFires()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "hot", "goblin-a");
+
+        // Built inline (not via BuildManager) so the EventBus is in reach for the
+        // publish assertion. Subscribe signature matches WeatherService.cs:28.
+        var time = new FakeTime();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var alignmentConfig = new AlignmentConfig();
+        var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
+        var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
+        var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), gate: null,
+            config: new Tapestry.Data.ServerConfig(), time: time);
+
+        var publishes = 0;
+        eventBus.Subscribe("mob.ai.tick", _ => publishes++);
+
+        var calls = 0;
+        manager.RegisterBehavior("hot", _ =>
+        {
+            calls++;
+            time.AdvanceMs(60); // > 50ms invocation cap => strike via wall measurement
+        }, owner: "@tapestry/badpack");
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick();
+        manager.Tick();
+        manager.Tick();
+        Assert.True(manager.IsBehaviorQuarantined("hot"));
+        Assert.Equal(3, calls);
+        Assert.Equal(3, publishes);
+
+        manager.Tick();
+        Assert.Equal(3, calls);     // handler no longer invoked...
+        Assert.Equal(4, publishes); // ...but the mob is still considered: publish fires
+    }
+
+    [Fact]
+    public void Behavior_HitsCapViaInterrupt_CountsStrike()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "wedge", "goblin-a");
+
+        var time = new FakeTime();
+        var manager = BuildManager(world, new Tapestry.Data.ServerConfig(), time);
+
+        manager.RegisterBehavior("wedge", _ => throw new MobBudgetExceededException(50));
+        manager.PlayerEnteredRoom("core:town-square");
+
+        manager.Tick();
+        manager.Tick();
+        manager.Tick();
+
+        Assert.True(manager.IsBehaviorQuarantined("wedge"));
+    }
+
+    [Fact]
+    public void Behavior_OrdinaryException_DoesNotStrike()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        AddMob(world, room, "buggy", "goblin-a");
+
+        var time = new FakeTime();
+        var manager = BuildManager(world, new Tapestry.Data.ServerConfig(), time);
+
+        manager.RegisterBehavior("buggy", _ => throw new InvalidOperationException("boom"));
+        manager.PlayerEnteredRoom("core:town-square");
+
+        for (var i = 0; i < 5; i++)
+        {
+            manager.Tick();
+        }
+
+        Assert.False(manager.IsBehaviorQuarantined("buggy")); // log-and-continue, as today
+    }
 }

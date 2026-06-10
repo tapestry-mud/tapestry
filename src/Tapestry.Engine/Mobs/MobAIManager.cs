@@ -28,6 +28,9 @@ public class MobAIManager
     private readonly HashSet<string> _activeAreas = new();
     private readonly Dictionary<string, int> _areaPlayerCounts = new();
     private readonly Dictionary<string, Action<MobContext>> _behaviors = new();
+    private readonly Dictionary<string, string> _behaviorOwners = new();
+    private readonly Dictionary<string, int> _strikes = new();
+    private readonly HashSet<string> _quarantined = new();
     private readonly Dictionary<Guid, long> _lastActionTick = new();
     private long _currentTick;
 
@@ -58,15 +61,21 @@ public class MobAIManager
         metrics.RegisterMobAiCursorLag(() => _cursorLag);
     }
 
-    public void RegisterBehavior(string name, Action<MobContext> handler)
+    public void RegisterBehavior(string name, Action<MobContext> handler, string owner = "kernel")
     {
         _gate?.AssertCommitScope("mob-behavior", name);
         _behaviors[name] = handler;
+        _behaviorOwners[name] = owner;
     }
 
     public bool HasBehavior(string name)
     {
         return _behaviors.ContainsKey(name);
+    }
+
+    public bool IsBehaviorQuarantined(string name)
+    {
+        return _quarantined.Contains(name);
     }
 
     public void ActivateArea(string area)
@@ -191,7 +200,8 @@ public class MobAIManager
 
         if (behavior != null && !TryFlee(entity))
         {
-            if (_behaviors.TryGetValue(behavior, out var handler))
+            if (!_quarantined.Contains(behavior)
+                && _behaviors.TryGetValue(behavior, out var handler))
             {
                 var context = new MobContext
                 {
@@ -201,9 +211,17 @@ public class MobAIManager
                     Behavior = behavior
                 };
                 var behaviorStart = _time.GetTimestamp();
+                var interrupted = false;
                 try
                 {
                     handler(context);
+                }
+                catch (MobBudgetExceededException ex)
+                {
+                    interrupted = true;
+                    _logger.LogWarning(ex,
+                        "Mob behavior interrupted at its invocation cap: entity={EntityId} name={Name} behavior={Behavior}",
+                        entity.Id, entity.Name, behavior);
                 }
                 catch (Exception ex)
                 {
@@ -211,11 +229,19 @@ public class MobAIManager
                         "Mob AI error: entity={EntityId} name={Name} behavior={Behavior}",
                         entity.Id, entity.Name, behavior);
                 }
-                behaviorTicks += _time.GetTimestamp() - behaviorStart;
+                var elapsed = _time.GetTimestamp() - behaviorStart;
+                behaviorTicks += elapsed;
+
+                var capTicks = _budget.InvocationCapMs * _time.TimestampFrequency / 1000;
+                if (interrupted || elapsed >= capTicks)
+                {
+                    RecordStrike(behavior, entity);
+                }
             }
 
             // Publish even if no handler is registered: mob.ai.tick signals the mob was
             // considered this tick, regardless of whether a behavior handler ran.
+            // Quarantined behaviors must NOT skip this block -- the mob is still alive.
             var publishStart = _time.GetTimestamp();
             _eventBus.Publish(new GameEvent
             {
@@ -245,6 +271,31 @@ public class MobAIManager
                 }
             }
             dispositionTicks += _time.GetTimestamp() - dispositionStart;
+        }
+    }
+
+    private void RecordStrike(string behavior, Entity entity)
+    {
+        _metrics.MobAiInvocationCap.Add(1,
+            new KeyValuePair<string, object?>("behavior", behavior));
+
+        var strikes = _strikes.GetValueOrDefault(behavior) + 1;
+        _strikes[behavior] = strikes;
+        var owner = _behaviorOwners.GetValueOrDefault(behavior, "kernel");
+
+        _logger.LogWarning(
+            "Mob behavior '{Behavior}' (pack {Pack}) blew its {CapMs}ms invocation cap: strike {Strikes}/{Max} (entity={EntityId} name={Name})",
+            behavior, owner, _budget.InvocationCapMs, strikes, _budget.QuarantineStrikes,
+            entity.Id, entity.Name);
+
+        if (strikes >= _budget.QuarantineStrikes && _quarantined.Add(behavior))
+        {
+            _metrics.MobAiQuarantine.Add(1,
+                new KeyValuePair<string, object?>("behavior", behavior),
+                new KeyValuePair<string, object?>("pack", owner));
+            _logger.LogError(
+                "Mob behavior '{Behavior}' from pack '{Pack}' QUARANTINED after {Strikes} budget strikes. Its mobs are inert (publish/disposition unaffected) until reboot. Fix the script and redeploy.",
+                behavior, owner, strikes);
         }
     }
 
