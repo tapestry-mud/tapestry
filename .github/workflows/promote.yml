@@ -9,7 +9,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write   # create GitHub Releases at promote time (fires the GitHub->Discord #announcements webhook)
   packages: write
   id-token: write
 
@@ -50,6 +50,23 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"docker_tag\":\"${{ inputs.version }}\",\"version\":\"${{ inputs.version }}\"}" \
             https://registry.tapestryengine.com/v1/admin/engine-channels/stable
+
+      - name: Announce release on Discord (via GitHub Release)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Promotion is the moment a version becomes real. Creating a GitHub Release
+          # for the existing v<version> tag fires the GitHub->Discord webhook (hook
+          # 639452136, 'release' events) which posts to #announcements. Our flow only
+          # pushes tags, so without this no Release event ever fires.
+          TAG="v${{ inputs.version }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $TAG already exists -- skipping (idempotent re-promote / rollback)."
+          else
+            gh release create "$TAG" --repo "${{ github.repository }}" \
+              --title "$TAG" --generate-notes --verify-tag
+            echo "Created GitHub Release $TAG."
+          fi
 
       - name: Mint deploy token
         id: app-token
