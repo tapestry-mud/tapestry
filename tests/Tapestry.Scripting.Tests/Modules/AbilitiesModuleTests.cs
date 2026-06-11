@@ -103,4 +103,52 @@ public class AbilitiesModuleTests
         Assert.NotNull(def);
         Assert.Equal(0.25, def!.FailureProficiencyGainMultiplier);
     }
+
+    [Fact]
+    public void Search_ByNameFragment_ReturnsMatchingRows()
+    {
+        var (rt, reg, policy) = BuildRuntime();
+        rt.Execute(@"
+            tapestry.abilities.register({ id: 'fireball', name: 'Fireball', type: 'active', category: 'spell' });
+            tapestry.abilities.register({ id: 'fire_shield', name: 'Fire Shield', type: 'passive', category: 'spell' });
+            tapestry.abilities.register({ id: 'bash', name: 'Bash', type: 'active', category: 'skill' });
+        ");
+        policy.Resolve();
+
+        var json = rt.Evaluate("JSON.stringify(tapestry.abilities.search('fire'))")?.ToString() ?? "";
+        Assert.Contains("fireball", json);
+        Assert.Contains("fire_shield", json);
+        Assert.DoesNotContain("bash", json);
+    }
+
+    [Fact]
+    public void Search_AllKeyword_ReturnsEverything()
+    {
+        var (rt, reg, policy) = BuildRuntime();
+        rt.Execute(@"
+            tapestry.abilities.register({ id: 'kick', name: 'Kick', type: 'active', category: 'skill' });
+            tapestry.abilities.register({ id: 'mend', name: 'Mend', type: 'active', category: 'spell' });
+        ");
+        policy.Resolve();
+
+        var json = rt.Evaluate("JSON.stringify(tapestry.abilities.search('all'))")?.ToString() ?? "";
+        Assert.Contains("kick", json);
+        Assert.Contains("mend", json);
+    }
+
+    [Fact]
+    public void Search_WhitespaceOrNoMatch_ReturnsEmpty()
+    {
+        var (rt, reg, policy) = BuildRuntime();
+        rt.Execute(@"
+            tapestry.abilities.register({ id: 'dodge', name: 'Dodge', type: 'passive', category: 'skill' });
+        ");
+        policy.Resolve();
+
+        var whitespaceJson = rt.Evaluate("JSON.stringify(tapestry.abilities.search('   '))")?.ToString() ?? "";
+        Assert.Equal("[]", whitespaceJson);
+
+        var noMatchJson = rt.Evaluate("JSON.stringify(tapestry.abilities.search('zzznomatch'))")?.ToString() ?? "";
+        Assert.Equal("[]", noMatchJson);
+    }
 }

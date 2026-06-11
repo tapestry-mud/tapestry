@@ -539,6 +539,28 @@ public class AbilitiesModule : IJintApiModule
                     .ToArray();
             }),
 
+            search = new Func<string, object[]>((keyword) =>
+            {
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    return [];
+                }
+                var all = string.Equals(keyword.Trim(), "all", StringComparison.OrdinalIgnoreCase);
+                return _registry.GetAll()
+                    .Where(def => all
+                        || def.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                        || def.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                    .Select(def => (object)new
+                    {
+                        id = def.Id,
+                        name = def.Name,
+                        type = def.Type == AbilityType.Active ? "active" : "passive",
+                        category = def.Category == AbilityCategory.Skill ? "skill" : "spell",
+                        pack = def.PackName
+                    })
+                    .ToArray();
+            }),
+
             queue = new Action<string, string, string>((entityIdStr, abilityId, targetIdStr) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId))
