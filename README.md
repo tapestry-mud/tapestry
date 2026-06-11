@@ -1,5 +1,7 @@
 # Tapestry
 
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?logo=discord&logoColor=white)](https://discord.gg/YQtbBqZ69J)
+
 A modular MUD engine where the engine ships plumbing and packs ship the game.
 
 Rooms, NPCs, quests, shops, items, branching quest chains -- all YAML config files. If you can write a config file, you can build a MUD. JavaScript is available for event-driven behavior (NPC reactions, custom commands, quest lifecycle hooks), but most worlds never need it.
