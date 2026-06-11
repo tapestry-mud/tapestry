@@ -270,7 +270,7 @@ public class MobAIManager
             publishTicks += _time.GetTimestamp() - publishStart;
         }
 
-        if (entity.DispositionRules != null)
+        if (entity.DispositionRules != null || entity.Disposition == Disposition.Hostile)
         {
             var dispositionStart = _time.GetTimestamp();
             var room = _world.GetRoom(entity.LocationRoomId);
@@ -365,6 +365,13 @@ public class MobAIManager
             : 0;
 
         if (hpPercent >= threshold)
+        {
+            return false;
+        }
+
+        // A mob that just fled is on cooldown -- it stands and fights rather than
+        // chain-fleeing every tick, which makes a fleeing mob catchable.
+        if (_combat.HasFleeCooldown(entity.Id, _currentTick))
         {
             return false;
         }

@@ -281,6 +281,13 @@ public class GameSection
 public class CombatSection
 {
     public double LuckScale { get; set; } = 0.002;
+
+    /// <summary>Ticks a combatant must wait after fleeing before it can flee again
+    /// (and before it can re-engage). Makes a fleeing mob catchable. ~80 = 8s.</summary>
+    public int FleeCooldownTicks { get; set; } = 80;
+
+    /// <summary>Movement points spent on a successful flee.</summary>
+    public int FleeMoveCost { get; set; } = 10;
 }
 
 public class AdminSeedSection

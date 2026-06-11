@@ -268,6 +268,62 @@ public class MobAIManagerTests
     }
 
     [Fact]
+    public void Tick_WimpyMobOnFleeCooldown_StandsAndFights()
+    {
+        var world = new World();
+        var room1 = new Room("zone:room1", "Room1", "Test.");
+        var room2 = new Room("zone:room2", "Room2", "Test.");
+        world.AddRoom(room1);
+        world.AddRoom(room2);
+        room1.SetExit(Direction.North, new Exit("zone:room2"));
+        room2.SetExit(Direction.South, new Exit("zone:room1"));
+
+        var eventBus = new EventBus();
+        var combat = new CombatManager(world, eventBus);
+        var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
+        var disposition = new DispositionEvaluator(world, eventBus, alignmentManager);
+        var ai = new MobAIManager(world, eventBus, combat, disposition,
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+        ai.RegisterBehavior("stationary", _ => { });
+        ai.ActivateArea("zone");
+
+        var player = new Entity("player", "Hero") { LocationRoomId = "zone:room1" };
+        player.AddTag("player");
+        player.Stats.BaseMaxHp = 100;
+        player.Stats.Hp = 100;
+        room1.AddEntity(player);
+        world.TrackEntity(player);
+
+        var mob = new Entity("npc", "a goblin") { LocationRoomId = "zone:room1" };
+        mob.AddTag("npc");
+        mob.Stats.BaseMaxHp = 40;
+        mob.Stats.Hp = 10; // 25% -- below the 0.5 flee threshold
+        mob.SetProperty(MobProperties.Behavior, "stationary");
+        mob.SetProperty("flee_threshold", 0.5);
+        room1.AddEntity(mob);
+        world.TrackEntity(mob);
+        world.SwapTagBuffers();
+
+        combat.Engage(player, mob);
+
+        // First sweep: low HP, in combat, no cooldown -> the mob flees to room2.
+        ai.Tick();
+        Assert.Equal("zone:room2", mob.LocationRoomId);
+
+        // The player chases and re-engages; the mob is still at low HP.
+        room1.RemoveEntity(player);
+        player.LocationRoomId = "zone:room2";
+        room2.AddEntity(player);
+        combat.Engage(player, mob);
+
+        // Second sweep: still inside the flee cooldown -> it must stand and fight,
+        // not chain-flee. (Before the fix it flees again every tick.)
+        ai.Tick();
+        Assert.Equal("zone:room2", mob.LocationRoomId);
+        Assert.True(combat.IsInCombat(mob.Id));
+    }
+
+    [Fact]
     public void GetTicksSinceLastAction_TracksPerMob()
     {
         var world = new World();

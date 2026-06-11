@@ -21,15 +21,17 @@ public class CombatManager
     private readonly AlignmentManager? _alignmentManager;
     private readonly Dictionary<Guid, List<Guid>> _combatLists = new();
     private readonly Dictionary<Guid, long> _fleeCooldowns = new();
-    private const int FleeCooldownTicks = 80; // ~2 combat rounds (8 seconds)
+    private readonly Tapestry.Data.CombatSection _combatConfig;
 
     public CombatManager(World world, EventBus eventBus, List<ICombatPhase>? phases = null,
         Random? random = null, AbilityRegistry? abilityRegistry = null,
         ProficiencyManager? proficiencyManager = null, SessionManager? sessionManager = null,
-        EffectManager? effectManager = null, AlignmentManager? alignmentManager = null)
+        EffectManager? effectManager = null, AlignmentManager? alignmentManager = null,
+        Tapestry.Data.ServerConfig? config = null)
     {
         _world = world;
         _eventBus = eventBus;
+        _combatConfig = config?.Combat ?? new Tapestry.Data.CombatSection();
         _random = random ?? new Random();
         _abilityRegistry = abilityRegistry;
         _proficiencyManager = proficiencyManager;
@@ -241,7 +243,10 @@ public class CombatManager
 
         RemoveEntityFromAllCombat(entity.Id);
         _world.MoveEntity(entity, direction);
-        _fleeCooldowns[entity.Id] = context.CurrentTick + FleeCooldownTicks;
+        _fleeCooldowns[entity.Id] = context.CurrentTick + _combatConfig.FleeCooldownTicks;
+
+        // Fleeing burns movement (ROM-style); floor at zero.
+        entity.Stats.Movement = Math.Max(0, entity.Stats.Movement - _combatConfig.FleeMoveCost);
 
         context.EventBus.Publish(new GameEvent
         {

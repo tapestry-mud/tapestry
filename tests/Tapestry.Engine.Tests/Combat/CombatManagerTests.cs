@@ -1,4 +1,5 @@
 // tests/Tapestry.Engine.Tests/Combat/CombatManagerTests.cs
+using Tapestry.Data;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
@@ -280,6 +281,41 @@ public class CombatManagerTests
         _combat.AttemptFlee(player, context);
         Assert.True(_combat.HasFleeCooldown(player.Id, 100));
         Assert.False(_combat.HasFleeCooldown(player.Id, 200));
+    }
+
+    [Fact]
+    public void AttemptFlee_DeductsMovement()
+    {
+        _world = new World();
+        _eventBus = new EventBus();
+        var config = new ServerConfig();
+        config.Combat.FleeMoveCost = 15;
+        _combat = new CombatManager(_world, _eventBus, config: config);
+        _room = new Room("core:arena", "Arena", "A test arena.");
+        _world.AddRoom(_room);
+        var exitRoom = new Room("core:hallway", "Hallway", "A hallway.");
+        _world.AddRoom(exitRoom);
+        _room.SetExit(Direction.North, new Exit("core:hallway"));
+
+        var player = CreatePlayer();
+        player.Stats.BaseMaxMovement = 100;
+        player.Stats.Movement = 50;
+        var mob = CreateMob();
+        _combat.Engage(player, mob);
+        var context = new PulseContext
+        {
+            CurrentTick = 100,
+            CurrentPulse = 100,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combat,
+            EffectManager = new EffectManager(_world, _eventBus),
+            Random = new Random(42)
+        };
+
+        var result = _combat.AttemptFlee(player, context);
+        Assert.True(result);
+        Assert.Equal(35, player.Stats.Movement); // 50 - 15 flee cost
     }
 
     [Fact]
