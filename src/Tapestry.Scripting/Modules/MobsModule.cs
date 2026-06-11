@@ -226,7 +226,20 @@ public class MobsModule : IJintApiModule
                 }
                 try
                 {
-                    engine.InvokeAsPack(script.Pack, fn, mobObj, playerObj, extraArg);
+                    // Hooks (onSay/onGive/onLook/onAttack/onDeath) fire from the game loop,
+                    // so they run under the same per-invocation wall-clock budget as mob
+                    // behaviors: a runaway hook is interrupted and struck out rather than
+                    // wedging the loop. Disarms via using even when the constraint trips.
+                    using (_invocationBudget.Arm(_config.MobAi.InvocationCapMs))
+                    {
+                        engine.InvokeAsPack(script.Pack, fn, mobObj, playerObj, extraArg);
+                    }
+                }
+                catch (MobBudgetExceededException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Mob hook '{Hook}' on template {TemplateId} (pack {Pack}) blew its {CapMs}ms invocation cap and was interrupted; the game loop is protected.",
+                        hookName, templateId, script.Pack, _config.MobAi.InvocationCapMs);
                 }
                 catch (Exception ex)
                 {
