@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Shared;
 
@@ -15,10 +16,12 @@ public class ApiWorld
     private readonly ApiMessaging _messaging;
     private readonly DoorService _doorService;
     private readonly VisibilityFilter _visibility;
+    private readonly SpawnManager _spawnManager;
+    private readonly ItemRegistry _itemRegistry;
 
     public ApiWorld(World world, EventBus eventBus, SessionManager sessions, MobAIManager mobAIManager,
                     AlignmentManager alignmentManager, ApiMessaging messaging, DoorService doorService,
-                    VisibilityFilter visibility)
+                    VisibilityFilter visibility, SpawnManager spawnManager, ItemRegistry itemRegistry)
     {
         _world = world;
         _eventBus = eventBus;
@@ -28,6 +31,8 @@ public class ApiWorld
         _messaging = messaging;
         _doorService = doorService;
         _visibility = visibility;
+        _spawnManager = spawnManager;
+        _itemRegistry = itemRegistry;
     }
 
     // --- Movement ---
@@ -441,6 +446,55 @@ public class ApiWorld
                 };
             })
             .ToArray();
+    }
+
+    /// <summary>Tapestry's vnum equivalent: search mob + item templates by keyword
+    /// ('all' = everything; otherwise case-insensitive Contains on id OR name),
+    /// each row carrying the live instance count for that template. Covers both
+    /// ROM vnum-lookup and ROM count in one seam.</summary>
+    public object[] SearchTemplates(string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            return [];
+        }
+
+        var all = string.Equals(keyword, "all", StringComparison.OrdinalIgnoreCase);
+        bool Match(string id, string name) =>
+            all
+            || id.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+            || name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+
+        var results = new List<object>();
+        foreach (var t in _spawnManager.AllTemplates)
+        {
+            if (Match(t.Id, t.Name))
+            {
+                results.Add(new
+                {
+                    id = t.Id,
+                    name = t.Name,
+                    kind = "mob",
+                    instances = _world.GetEntitiesByTemplateId(t.Id).Count()
+                });
+            }
+        }
+
+        foreach (var t in _itemRegistry.AllTemplates)
+        {
+            if (Match(t.Id, t.Name))
+            {
+                results.Add(new
+                {
+                    id = t.Id,
+                    name = t.Name,
+                    kind = "item",
+                    instances = _world.GetEntitiesByTemplateId(t.Id).Count()
+                });
+            }
+        }
+
+        return results.ToArray();
     }
 
     /// <summary>Walk the Container back-pointer chain until an entity with a room

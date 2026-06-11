@@ -268,9 +268,9 @@ public class JintRuntimeTests
         var messaging = new ApiMessaging(world, sessions, new NullGmcpModuleAdapter(), new CommandResponseContext(), new VisibilityFilter(), questMarkerService);
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
-        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter());
-        var stats = new ApiStats(world, statDisplayNames);
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
+        var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter(), spawnManager, itemRegistry);
+        var stats = new ApiStats(world, statDisplayNames);
         var mobs = new ApiMobs(world, mobAIManager, spawnManager);
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);

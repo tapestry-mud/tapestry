@@ -352,6 +352,7 @@ public class WorldModule : IJintApiModule
                     .ToArray();
             }),
             findEntitiesByName = new Func<string, object[]>(_worldOps.FindEntitiesByName),
+            searchTemplates = new Func<string, object[]>(_worldOps.SearchTemplates),
             buildInfo = new Func<object>(() =>
             {
                 var info = GetBuildInfo();

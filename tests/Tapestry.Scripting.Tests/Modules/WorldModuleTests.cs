@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Items;
+using Tapestry.Engine.Mobs;
 using Tapestry.Scripting;
 
 namespace Tapestry.Scripting.Tests.Modules;
@@ -8,6 +10,12 @@ public class WorldModuleTests
 {
     private (JintRuntime rt, World world) BuildRuntime()
     {
+        var (rt, world, _) = BuildRuntimeWithProvider();
+        return (rt, world);
+    }
+
+    private (JintRuntime rt, World world, ServiceProvider provider) BuildRuntimeWithProvider()
+    {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddTapestryEngine();
@@ -15,7 +23,7 @@ public class WorldModuleTests
         var provider = services.BuildServiceProvider();
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
-        return (rt, provider.GetRequiredService<World>());
+        return (rt, provider.GetRequiredService<World>(), provider);
     }
 
     /// <summary>Two rooms; a goblin npc + goblin item in the lair, a player in the temple.</summary>
@@ -105,6 +113,74 @@ public class WorldModuleTests
         // through the holder's container chain.
         Assert.Equal("test:temple", rt.Evaluate("r[0].roomId"));
         Assert.Equal("Quiet Temple", rt.Evaluate("r[0].roomName"));
+    }
+
+    /// <summary>Register a mob + item template directly on the C# registries and
+    /// seed live instances by tracking entities stamped with template_id (the
+    /// same property GetEntitiesByTemplateId matches on).</summary>
+    private static void SeedTemplates(ServiceProvider provider, World world)
+    {
+        provider.GetRequiredService<SpawnManager>().RegisterTemplate(
+            new MobTemplate { Id = "test:goblin_scout", Name = "Goblin Scout" });
+        provider.GetRequiredService<ItemRegistry>().Register(
+            new ItemTemplate { Id = "test:rusty_sword", Name = "Rusty Sword" });
+
+        for (var i = 0; i < 2; i++)
+        {
+            var mob = new Entity(EntityTypes.Npc, "Goblin Scout");
+            mob.SetProperty(CommonProperties.TemplateId, "test:goblin_scout");
+            world.TrackEntity(mob);
+        }
+    }
+
+    [Fact]
+    public void SearchTemplates_KeywordMatch_ReturnsKindAndLiveInstanceCounts()
+    {
+        var (rt, world, provider) = BuildRuntimeWithProvider();
+        SeedTemplates(provider, world);
+
+        rt.Execute("var mobs = tapestry.world.searchTemplates('gob');");
+        Assert.Equal(1d, (double)rt.Evaluate("mobs.length")!);
+        Assert.Equal("test:goblin_scout", rt.Evaluate("mobs[0].id"));
+        Assert.Equal("Goblin Scout", rt.Evaluate("mobs[0].name"));
+        Assert.Equal("mob", rt.Evaluate("mobs[0].kind"));
+        Assert.Equal(2d, (double)rt.Evaluate("mobs[0].instances")!);
+
+        rt.Execute("var items = tapestry.world.searchTemplates('rusty');");
+        Assert.Equal(1d, (double)rt.Evaluate("items.length")!);
+        Assert.Equal("test:rusty_sword", rt.Evaluate("items[0].id"));
+        Assert.Equal("item", rt.Evaluate("items[0].kind"));
+        Assert.Equal(0d, (double)rt.Evaluate("items[0].instances")!);
+    }
+
+    [Fact]
+    public void SearchTemplates_All_ReturnsEveryTemplate()
+    {
+        var (rt, world, provider) = BuildRuntimeWithProvider();
+        SeedTemplates(provider, world);
+
+        rt.Execute("var r = tapestry.world.searchTemplates('ALL');");
+
+        Assert.True((double)rt.Evaluate("r.length")! >= 2d);
+        rt.Execute(
+            "function pickId(arr, id) {" +
+            "  for (var i = 0; i < arr.length; i++) {" +
+            "    if (arr[i].id === id) { return arr[i]; }" +
+            "  }" +
+            "  return null;" +
+            "}");
+        Assert.Equal("mob", rt.Evaluate("pickId(r, 'test:goblin_scout').kind"));
+        Assert.Equal("item", rt.Evaluate("pickId(r, 'test:rusty_sword').kind"));
+    }
+
+    [Fact]
+    public void SearchTemplates_EmptyOrWhitespaceKeyword_ReturnsEmptyArray()
+    {
+        var (rt, world, provider) = BuildRuntimeWithProvider();
+        SeedTemplates(provider, world);
+
+        Assert.Equal(0d, (double)rt.Evaluate("tapestry.world.searchTemplates('').length")!);
+        Assert.Equal(0d, (double)rt.Evaluate("tapestry.world.searchTemplates('   ').length")!);
     }
 
     [Fact]
