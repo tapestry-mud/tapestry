@@ -45,6 +45,34 @@ public class CombatModuleTests
     }
 
     [Fact]
+    public void RemoveFromAllCombat_MultiOpponent_ClearsAllThreeSides()
+    {
+        // A is engaged with BOTH B and C (two symmetric pairs: A-B, A-C).
+        // B and C each have only A as their opponent.
+        // Removing A from all combat must clear A, B, and C — the foreach
+        // over A's opponent list is the path under test.
+        var (rt, world, combat) = BuildRuntime();
+        var entityA = new Entity("npc", "goblin");
+        var entityB = new Entity("npc", "orc");
+        var entityC = new Entity("npc", "troll");
+        world.TrackEntity(entityA);
+        world.TrackEntity(entityB);
+        world.TrackEntity(entityC);
+        combat.Engage(entityA, entityB);
+        combat.Engage(entityA, entityC);
+
+        Assert.True(combat.IsInCombat(entityA.Id));
+        Assert.True(combat.IsInCombat(entityB.Id));
+        Assert.True(combat.IsInCombat(entityC.Id));
+
+        rt.Execute($"tapestry.combat.removeFromAllCombat('{entityA.Id}')");
+
+        Assert.False(combat.IsInCombat(entityA.Id));
+        Assert.False(combat.IsInCombat(entityB.Id));
+        Assert.False(combat.IsInCombat(entityC.Id));
+    }
+
+    [Fact]
     public void RemoveFromAllCombat_UnknownId_DoesNotThrow()
     {
         var (rt, _, _) = BuildRuntime();
