@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Mobs;
+using Tapestry.Engine.Rest;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Mobs;
@@ -168,6 +169,102 @@ public class MobAIManagerTests
         manager.Tick();
 
         Assert.False(handlerCalled);
+    }
+
+    [Fact]
+    public void Tick_SleepingMob_SkipsBehavior()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        var mob = AddMob(world, room, "wander", "a sleepy goblin");
+        mob.SetProperty(RestProperties.RestState, RestProperties.StateSleeping);
+
+        var manager = BuildManager(world);
+        var handlerCalled = false;
+        manager.RegisterBehavior("wander", _ => { handlerCalled = true; });
+
+        world.SwapTagBuffers();
+        manager.PlayerEnteredRoom("core:town-square");
+        manager.Tick();
+
+        Assert.False(handlerCalled);
+    }
+
+    [Fact]
+    public void Tick_RestingMob_SkipsBehavior()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        var mob = AddMob(world, room, "wander", "a resting goblin");
+        mob.SetProperty(RestProperties.RestState, RestProperties.StateResting);
+
+        var manager = BuildManager(world);
+        var handlerCalled = false;
+        manager.RegisterBehavior("wander", _ => { handlerCalled = true; });
+
+        world.SwapTagBuffers();
+        manager.PlayerEnteredRoom("core:town-square");
+        manager.Tick();
+
+        Assert.False(handlerCalled);
+    }
+
+    [Fact]
+    public void Tick_SleepingMob_SkipsMobAiTickPublish()
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combatManager = new CombatManager(world, eventBus);
+        var alignmentConfig = new AlignmentConfig();
+        var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
+        var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
+        var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+
+        var mob = new Entity("npc", "a sleepy goblin");
+        mob.LocationRoomId = "core:town-square";
+        mob.SetProperty("behavior", "wander");
+        mob.SetProperty(RestProperties.RestState, RestProperties.StateSleeping);
+        mob.AddTag("npc");
+        room.AddEntity(mob);
+        world.TrackEntity(mob);
+
+        manager.RegisterBehavior("wander", _ => { });
+        world.SwapTagBuffers();
+        manager.PlayerEnteredRoom("core:town-square");
+
+        var received = new List<GameEvent>();
+        eventBus.Subscribe("mob.ai.tick", evt => { received.Add(evt); });
+
+        manager.Tick();
+
+        Assert.Empty(received); // settled mobs aren't "considered" -- no idle/battle dispatch
+    }
+
+    [Fact]
+    public void Tick_AwakeMob_RunsBehavior_AfterRestStateCleared()
+    {
+        var world = new World();
+        var room = new Room("core:town-square", "Town Square", "A square.");
+        world.AddRoom(room);
+        var mob = AddMob(world, room, "wander", "a goblin");
+        // Explicitly awake -- the gate must not suppress a standing mob.
+        mob.SetProperty(RestProperties.RestState, RestProperties.StateAwake);
+
+        var manager = BuildManager(world);
+        var handlerCalled = false;
+        manager.RegisterBehavior("wander", _ => { handlerCalled = true; });
+
+        world.SwapTagBuffers();
+        manager.PlayerEnteredRoom("core:town-square");
+        manager.Tick();
+
+        Assert.True(handlerCalled);
     }
 
     [Fact]

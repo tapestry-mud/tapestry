@@ -5,6 +5,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Engine.Registration;
+using Tapestry.Engine.Rest;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Mobs;
@@ -196,9 +197,19 @@ public class MobAIManager
             return;
         }
 
+        // Posture gate: a resting or sleeping mob doesn't run its idle/wander behavior
+        // (both require an awake, standing mob -- ROM mobiles only act when standing).
+        // mob.ai.tick drives idle AND battle commands; both are moot here -- combat
+        // auto-wake flips a mob back to awake before any battle behavior matters.
+        // Disposition still runs below, so an aggressive mob can notice an intruder and
+        // wake via the resulting engage. Lives on the budget/cursor path: a settled mob
+        // costs one property read and is otherwise skipped.
+        var restState = entity.GetProperty<string?>(RestProperties.RestState) ?? RestProperties.StateAwake;
+        var settled = restState == RestProperties.StateResting || restState == RestProperties.StateSleeping;
+
         var behavior = entity.GetProperty<string>(MobProperties.Behavior);
 
-        if (behavior != null && !TryFlee(entity))
+        if (!settled && behavior != null && !TryFlee(entity))
         {
             if (!_quarantined.Contains(behavior)
                 && _behaviors.TryGetValue(behavior, out var handler))
