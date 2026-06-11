@@ -1,6 +1,7 @@
 // src/Tapestry.Engine/Mobs/DispositionEvaluator.cs
 using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
+using Tapestry.Engine.Rest;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Mobs;
@@ -48,9 +49,18 @@ public class DispositionEvaluator
         if (_cache.ContainsKey(key)) { return; }
 
         var def = mob.DispositionRules;
-        if (def == null) { return; }
+        var hostile = mob.Disposition == Disposition.Hostile;
+        // A base_disposition:hostile mob has Disposition==Hostile but no rules block
+        // (def==null) -- it must still aggro. Only bail when there's neither a rules
+        // definition NOR innate hostility.
+        if (def == null && !hostile) { return; }
 
-        var reaction = mob.Disposition == Disposition.Hostile ? "hostile" : EvaluateRules(def, player);
+        // A sleeping mob is unaware: it neither aggros nor reacts until woken (combat
+        // auto-wake on being attacked). Resting mobs stay aware by design.
+        var restState = mob.GetProperty<string?>(RestProperties.RestState) ?? RestProperties.StateAwake;
+        if (restState == RestProperties.StateSleeping) { return; }
+
+        var reaction = hostile ? "hostile" : EvaluateRules(def!, player);
 
         if (aggroOnly)
         {
@@ -86,7 +96,10 @@ public class DispositionEvaluator
         var room = _world.GetRoom(roomId);
         if (room == null) { return; }
 
-        foreach (var entity in room.Entities.Where(e => e.Type == EntityTypes.Npc && e.DispositionRules != null).ToList())
+        // Include base_disposition:hostile mobs (Disposition==Hostile, no rules block)
+        // alongside rules-driven mobs -- both can react to a player entering the room.
+        foreach (var entity in room.Entities.Where(e => e.Type == EntityTypes.Npc
+            && (e.DispositionRules != null || e.Disposition == Disposition.Hostile)).ToList())
         {
             EvaluateForMob(entity, player, aggroOnly);
         }
