@@ -115,6 +115,16 @@ public class CombatModule : IJintApiModule
                 return _combat.IsInCombat(entityId);
             }),
 
+            removeFromAllCombat = new Action<string>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId))
+                {
+                    return;
+                }
+
+                _combat.RemoveEntityFromAllCombat(entityId);
+            }),
+
             getCombatants = new Func<string, string[]>((entityIdStr) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId))
