@@ -48,9 +48,12 @@ public class StatsModule : IJintApiModule
                     case StatType.Dexterity: entity.Stats.BaseDexterity = value; break;
                     case StatType.Constitution: entity.Stats.BaseConstitution = value; break;
                     case StatType.Luck: entity.Stats.BaseLuck = value; break;
-                    case StatType.MaxHp: entity.Stats.BaseMaxHp = value; break;
-                    case StatType.MaxResource: entity.Stats.BaseMaxResource = value; break;
-                    case StatType.MaxMovement: entity.Stats.BaseMaxMovement = value; break;
+                    // Vital caps floor at 1: a non-positive effective max makes the
+                    // current-vital setters' Math.Clamp(value, 0, Max*) throw (min > max)
+                    // on every subsequent write, including the regen tick.
+                    case StatType.MaxHp: if (value >= 1) { entity.Stats.BaseMaxHp = value; } break;
+                    case StatType.MaxResource: if (value >= 1) { entity.Stats.BaseMaxResource = value; } break;
+                    case StatType.MaxMovement: if (value >= 1) { entity.Stats.BaseMaxMovement = value; } break;
                 }
                 entity.Stats.Invalidate();
             })

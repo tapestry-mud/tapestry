@@ -91,6 +91,32 @@ public class StatsModuleTests
         Assert.Equal(50, mob.Stats.Movement);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-50)]
+    public void SetBase_NonPositiveVitalCap_IsRejected_AndVitalWritesStillWork(int badValue)
+    {
+        // A non-positive effective max would make the current-vital setters'
+        // Math.Clamp(value, 0, Max*) throw (min > max) on every later write,
+        // including the regen tick. setBase must floor vital caps at 1.
+        var (rt, world) = BuildRuntime();
+        var mob = new Entity("npc", "goblin guard");
+        mob.AddTag("npc");
+        world.TrackEntity(mob);
+        mob.Stats.BaseMaxHp = 100;
+        mob.Stats.Invalidate();
+        mob.Stats.Hp = 40;
+
+        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_hp', {badValue})");
+        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_resource', {badValue})");
+        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_movement', {badValue})");
+
+        Assert.Equal(100, mob.Stats.MaxHp);
+        var ex = Record.Exception(() => { mob.Stats.Hp = 60; mob.Stats.Resource = 1; mob.Stats.Movement = 1; });
+        Assert.Null(ex);
+        Assert.Equal(60, mob.Stats.Hp);
+    }
+
     [Fact]
     public void RestoreVitals_InvalidId_DoesNotThrow()
     {
