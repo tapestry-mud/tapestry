@@ -245,32 +245,12 @@ public class GameLoop
                     session.ReceivedInput = true;
                 }
 
-                var parsed = CommandInputParser.Parse(actualInput);
-                foreach (var cmd in parsed)
+                // Parse (chaining/repeat/alias expansion) lives on the router so that
+                // admin.executeAs dispatches through the exact same path as queued input.
+                var contexts = _router.ParseInput(session.PlayerEntity.Id, actualInput,
+                    session.Phase == LoginPhase.Creating);
+                foreach (var ctx in contexts)
                 {
-                    var verb = cmd.Verb;
-                    var args = cmd.Args;
-
-                    // Preserve alias expansion: single-char non-alphanumeric prefix that resolves as command
-                    if (verb.Length > 1 && !char.IsLetterOrDigit(verb[0]))
-                    {
-                        var alias = verb[0].ToString();
-                        if (_router.Resolve(alias) != null)
-                        {
-                            args = new[] { verb[1..] }.Concat(args).ToArray();
-                            verb = alias;
-                        }
-                    }
-
-                    var ctx = new CommandContext
-                    {
-                        PlayerEntityId = session.PlayerEntity.Id,
-                        RawInput = actualInput,
-                        Command = verb,
-                        Args = args,
-                        IsChargen = session.Phase == LoginPhase.Creating
-                    };
-
                     var handlerSw = Stopwatch.StartNew();
                     using var handlerActivity = TapestryTracing.Source.StartActivity($"Command.{ctx.Command}");
                     handlerActivity?.SetTag("command.name", ctx.Command);

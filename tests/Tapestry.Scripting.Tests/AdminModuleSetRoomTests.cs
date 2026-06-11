@@ -31,7 +31,8 @@ public class AdminModuleSetRoomTests
             new PanelRenderer(),
             NullLogger<AdminModule>.Instance,
             props,
-            tags);
+            tags,
+            new CommandRouter(new CommandRegistry(), sessions, world));
     }
 
     [Fact]

@@ -478,6 +478,161 @@ public class AdminModuleTests
         Assert.DoesNotContain("Starting unlink wizard", string.Join("", connection.SentText));
     }
 
+    // --- executeAs: synchronous dispatch-as-entity (force/at seam) ---
+
+    private (Entity target, FakeConnection conn) CreatePlayingSession(
+        World world, SessionManager sessions, string name = "Target")
+    {
+        var conn = new FakeConnection();
+        var target = new Entity("player", name);
+        world.TrackEntity(target);
+        var session = new PlayerSession(conn, target) { Phase = LoginPhase.Playing };
+        sessions.Add(session);
+        return (target, conn);
+    }
+
+    [Fact]
+    public void ExecuteAs_DispatchesCommandAsTargetEntity_ReturnsTrue()
+    {
+        var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
+        var (target, _) = CreatePlayingSession(world, sessions);
+
+        rt.Execute(@"
+            globalThis.waveActor = null;
+            tapestry.commands.register({
+                name: 'wave',
+                description: 'Wave.',
+                priority: 10,
+                handler: function(player, args) { globalThis.waveActor = player.entityId; }
+            });
+        ");
+        policy.Resolve();
+
+        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'wave')");
+
+        Assert.Equal("true", result?.ToString()?.ToLower());
+        Assert.Equal(target.Id.ToString(), rt.Evaluate("globalThis.waveActor")?.ToString());
+    }
+
+    [Fact]
+    public void ExecuteAs_ArgsFlowThroughRealParse()
+    {
+        var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
+        var (target, _) = CreatePlayingSession(world, sessions);
+
+        rt.Execute(@"
+            globalThis.sayArgs = null;
+            tapestry.commands.register({
+                name: 'say',
+                description: 'Say.',
+                priority: 10,
+                handler: function(player, args) { globalThis.sayArgs = args; }
+            });
+        ");
+        policy.Resolve();
+
+        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'say hello world')");
+
+        Assert.Equal("true", result?.ToString()?.ToLower());
+        Assert.Equal(2, Convert.ToInt32(rt.Evaluate("globalThis.sayArgs.length")));
+        Assert.Equal("hello", rt.Evaluate("globalThis.sayArgs[0]")?.ToString());
+        Assert.Equal("world", rt.Evaluate("globalThis.sayArgs[1]")?.ToString());
+    }
+
+    [Fact]
+    public void ExecuteAs_UnknownEntity_ReturnsFalse_NothingDispatched()
+    {
+        var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
+        CreatePlayingSession(world, sessions);
+
+        rt.Execute(@"
+            globalThis.waveActor = null;
+            tapestry.commands.register({
+                name: 'wave',
+                description: 'Wave.',
+                priority: 10,
+                handler: function(player, args) { globalThis.waveActor = player.entityId; }
+            });
+        ");
+        policy.Resolve();
+
+        var result = rt.Evaluate($"tapestry.admin.executeAs('{Guid.NewGuid()}', 'wave')");
+
+        Assert.Equal("false", result?.ToString()?.ToLower());
+        Assert.Equal("null", rt.Evaluate("globalThis.waveActor === null ? 'null' : 'set'")?.ToString());
+    }
+
+    [Fact]
+    public void ExecuteAs_GarbageGuid_ReturnsFalse()
+    {
+        var (rt, _, _, _, _) = BuildRuntimeWithSessions();
+        var result = rt.Evaluate("tapestry.admin.executeAs('not-a-guid', 'wave')");
+        Assert.Equal("false", result?.ToString()?.ToLower());
+    }
+
+    [Fact]
+    public void ExecuteAs_BlankCommand_ReturnsFalse()
+    {
+        var (rt, world, _, sessions, _) = BuildRuntimeWithSessions();
+        var (target, _) = CreatePlayingSession(world, sessions);
+
+        var blank = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', '')");
+        var whitespace = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', '   ')");
+
+        Assert.Equal("false", blank?.ToString()?.ToLower());
+        Assert.Equal("false", whitespace?.ToString()?.ToLower());
+    }
+
+    [Fact]
+    public void ExecuteAs_DoesNotEscalatePrivilege_TargetGetsHuh()
+    {
+        var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
+        var (target, conn) = CreatePlayingSession(world, sessions);
+
+        rt.Execute(@"
+            globalThis.secretRan = false;
+            tapestry.commands.register({
+                name: 'secret',
+                description: 'Admin only.',
+                priority: 10,
+                roles: ['admin'],
+                handler: function(player, args) { globalThis.secretRan = true; }
+            });
+        ");
+        policy.Resolve();
+
+        // Target has NO admin role: the router must re-gate as the TARGET and deny.
+        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'secret')");
+
+        Assert.Equal("true", result?.ToString()?.ToLower()); // dispatched into the router...
+        Assert.Equal("false", rt.Evaluate("globalThis.secretRan")?.ToString()?.ToLower()); // ...but denied
+        Assert.Contains("Huh?", string.Join("", conn.SentText));
+    }
+
+    [Fact]
+    public void ExecuteAs_ForcedOutputGoesToTargetSession()
+    {
+        var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
+        var (target, targetConn) = CreatePlayingSession(world, sessions, "Target");
+        var (_, forcerConn) = CreatePlayingSession(world, sessions, "Forcer");
+
+        rt.Execute(@"
+            tapestry.commands.register({
+                name: 'greet',
+                description: 'Greet.',
+                priority: 10,
+                handler: function(player, args) { player.send('forced hello\r\n'); }
+            });
+        ");
+        policy.Resolve();
+
+        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'greet')");
+
+        Assert.Equal("true", result?.ToString()?.ToLower());
+        Assert.Contains("forced hello", string.Join("", targetConn.SentText));
+        Assert.DoesNotContain("forced hello", string.Join("", forcerConn.SentText));
+    }
+
     [Fact]
     public void ConnectionsCommand_NonAdminPlayer_ReceivesHuhAndListingNotShown()
     {

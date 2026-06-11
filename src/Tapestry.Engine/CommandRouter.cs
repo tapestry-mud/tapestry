@@ -99,6 +99,45 @@ public class CommandRouter
         return _registry.Resolve(keyword);
     }
 
+    /// <summary>
+    /// Parses one raw input line into routable contexts exactly as the game loop does for
+    /// drained session input: semicolon chaining + repeat expansion (CommandInputParser),
+    /// then single-character alias expansion ('hello -> ' hello). This is the single parse
+    /// seam -- both the game loop's input drain and admin.executeAs (the force/at seam)
+    /// build their CommandContexts here.
+    /// </summary>
+    public IReadOnlyList<CommandContext> ParseInput(Guid playerEntityId, string input, bool isChargen = false)
+    {
+        var parsed = CommandInputParser.Parse(input);
+        var contexts = new List<CommandContext>(parsed.Count);
+        foreach (var cmd in parsed)
+        {
+            var verb = cmd.Verb;
+            var args = cmd.Args;
+
+            // Preserve alias expansion: single-char non-alphanumeric prefix that resolves as command
+            if (verb.Length > 1 && !char.IsLetterOrDigit(verb[0]))
+            {
+                var alias = verb[0].ToString();
+                if (Resolve(alias) != null)
+                {
+                    args = new[] { verb[1..] }.Concat(args).ToArray();
+                    verb = alias;
+                }
+            }
+
+            contexts.Add(new CommandContext
+            {
+                PlayerEntityId = playerEntityId,
+                RawInput = input,
+                Command = verb,
+                Args = args,
+                IsChargen = isChargen
+            });
+        }
+        return contexts;
+    }
+
     private ActorContext BuildPlayerActorContext(CommandContext ctx)
     {
         var entity = _world.GetEntity(ctx.PlayerEntityId);

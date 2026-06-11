@@ -29,6 +29,7 @@ public class AdminModule : IJintApiModule
     private readonly PropertyRegistry _propertyRegistry;
     private readonly TagRegistry _tagRegistry;
     private readonly AttributeWriter _attributeWriter;
+    private readonly CommandRouter _router;
 
     private readonly Dictionary<(string Kind, string Type), GrantKindRegistration> _grantKinds = new();
 
@@ -42,7 +43,8 @@ public class AdminModule : IJintApiModule
         PanelRenderer renderer,
         ILogger<AdminModule> logger,
         PropertyRegistry propertyRegistry,
-        TagRegistry tagRegistry)
+        TagRegistry tagRegistry,
+        CommandRouter router)
     {
         _world = world;
         _messaging = messaging;
@@ -52,6 +54,7 @@ public class AdminModule : IJintApiModule
         _propertyRegistry = propertyRegistry;
         _tagRegistry = tagRegistry;
         _attributeWriter = new AttributeWriter(propertyRegistry, tagRegistry);
+        _router = router;
     }
 
     public string Namespace => "admin";
@@ -92,6 +95,37 @@ public class AdminModule : IJintApiModule
                 entity.Stats.BaseMaxHp = value;
                 entity.Stats.Invalidate();
                 entity.Stats.Hp = entity.Stats.MaxHp;
+            }),
+            // executeAs: synchronously dispatch a command line AS the target entity, through
+            // the SAME parse + CommandRouter.Route path that queued session input takes
+            // (the force/at seam). Privilege is NOT escalated: the router re-gates as the
+            // TARGET, so forcing a non-admin into an admin command yields the target's "Huh?",
+            // and the forced command's output goes to the target's session -- ROM force
+            // semantics. Session-backed players only: mobs have no PlayerSession (use
+            // tapestry.mobs.command for mob dispatch). Returns true if dispatched; false for
+            // an invalid/sessionless entity or a blank command line.
+            executeAs = new Func<string, string, bool>((entityIdStr, commandLine) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId) || string.IsNullOrWhiteSpace(commandLine))
+                {
+                    return false;
+                }
+                var session = _sessions.GetByEntityId(entityId);
+                if (session == null)
+                {
+                    return false;
+                }
+                var contexts = _router.ParseInput(entityId, commandLine,
+                    session.Phase == LoginPhase.Creating);
+                if (contexts.Count == 0)
+                {
+                    return false;
+                }
+                foreach (var ctx in contexts)
+                {
+                    _router.Route(ctx);
+                }
+                return true;
             }),
         };
     }
