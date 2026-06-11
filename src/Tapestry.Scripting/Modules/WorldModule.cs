@@ -351,6 +351,20 @@ public class WorldModule : IJintApiModule
                     })
                     .ToArray();
             }),
+            getNpcsInWorld = new Func<object[]>(() =>
+            {
+                return _world.GetAllTrackedEntities()
+                    .Where(e => e.Type == EntityTypes.Npc)
+                    .Select(e => (object)new { id = e.Id.ToString(), name = e.Name, roomId = e.LocationRoomId ?? "" })
+                    .ToArray();
+            }),
+            getItemsInWorld = new Func<object[]>(() =>
+            {
+                return _world.GetAllTrackedEntities()
+                    .Where(e => e.Type == EntityTypes.Item)
+                    .Select(e => (object)new { id = e.Id.ToString(), name = e.Name, roomId = e.LocationRoomId ?? "" })
+                    .ToArray();
+            }),
             findEntitiesByName = new Func<string, object[]>(_worldOps.FindEntitiesByName),
             searchTemplates = new Func<string, object[]>(_worldOps.SearchTemplates),
             buildInfo = new Func<object>(() =>

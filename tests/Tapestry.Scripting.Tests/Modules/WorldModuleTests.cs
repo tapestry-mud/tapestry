@@ -197,4 +197,58 @@ public class WorldModuleTests
         Assert.Equal("", rt.Evaluate("r[0].roomName"));
         Assert.Equal("", rt.Evaluate("r[0].holderName"));
     }
+
+    [Fact]
+    public void GetNpcsInWorld_ReturnsOnlyNpcs_WithIdNameRoomId()
+    {
+        var (rt, world) = BuildRuntime();
+        var (npc, _, _) = SeedWorld(world);
+
+        rt.Execute("var r = tapestry.world.getNpcsInWorld();");
+
+        Assert.Equal(1d, (double)rt.Evaluate("r.length")!);
+        Assert.Equal(npc.Id.ToString(), rt.Evaluate("r[0].id"));
+        Assert.Equal("Goblin Scout", rt.Evaluate("r[0].name"));
+        Assert.Equal("test:lair", rt.Evaluate("r[0].roomId"));
+    }
+
+    [Fact]
+    public void GetItemsInWorld_ReturnsOnlyItems_WithIdNameRoomId()
+    {
+        var (rt, world) = BuildRuntime();
+        var (_, item, _) = SeedWorld(world);
+
+        rt.Execute("var r = tapestry.world.getItemsInWorld();");
+
+        Assert.Equal(1d, (double)rt.Evaluate("r.length")!);
+        Assert.Equal(item.Id.ToString(), rt.Evaluate("r[0].id"));
+        Assert.Equal("goblin ear", rt.Evaluate("r[0].name"));
+        Assert.Equal("test:lair", rt.Evaluate("r[0].roomId"));
+    }
+
+    [Fact]
+    public void GetNpcsInWorld_ExcludesPlayersAndItems()
+    {
+        var (rt, world) = BuildRuntime();
+        SeedWorld(world);
+
+        rt.Execute("var r = tapestry.world.getNpcsInWorld();");
+
+        // Only the one npc; no player, no item
+        Assert.Equal(1d, (double)rt.Evaluate("r.length")!);
+        Assert.Equal("Goblin Scout", rt.Evaluate("r[0].name"));
+    }
+
+    [Fact]
+    public void GetItemsInWorld_ExcludesPlayersAndNpcs()
+    {
+        var (rt, world) = BuildRuntime();
+        SeedWorld(world);
+
+        rt.Execute("var r = tapestry.world.getItemsInWorld();");
+
+        // Only the one item; no player, no npc
+        Assert.Equal(1d, (double)rt.Evaluate("r.length")!);
+        Assert.Equal("goblin ear", rt.Evaluate("r[0].name"));
+    }
 }
