@@ -412,6 +412,55 @@ public class ApiWorld
 
     // --- Entity queries ---
 
+    /// <summary>Locate every tracked entity whose name contains the keyword
+    /// (case-insensitive). Rooms live in a separate index and are never tracked
+    /// entities, so no type filter is needed. Carried items have no
+    /// LocationRoomId; their room resolves through the container chain and the
+    /// immediate holder is reported as holderName.</summary>
+    public object[] FindEntitiesByName(string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            return Array.Empty<object>();
+        }
+
+        return _world.GetAllTrackedEntities()
+            .Where(e => e.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            .Select(e =>
+            {
+                var roomId = ResolveContainedRoomId(e);
+                return (object)new
+                {
+                    id = e.Id.ToString(),
+                    name = e.Name,
+                    type = e.Type,
+                    roomId = roomId ?? "",
+                    roomName = roomId != null ? _world.GetRoom(roomId)?.Name ?? "" : "",
+                    holderName = e.Container?.Name ?? "",
+                    templateId = e.TryGetProperty<string>("template_id", out var tid) ? tid ?? "" : ""
+                };
+            })
+            .ToArray();
+    }
+
+    /// <summary>Walk the Container back-pointer chain until an entity with a room
+    /// is found. Bounded as a defense against container cycles.</summary>
+    private static string? ResolveContainedRoomId(Entity entity)
+    {
+        var current = entity;
+        var depth = 0;
+        while (current != null && depth < 16)
+        {
+            if (current.LocationRoomId != null)
+            {
+                return current.LocationRoomId;
+            }
+            current = current.Container;
+            depth++;
+        }
+        return null;
+    }
+
     public string? GetEntityName(string entityIdStr)
     {
         if (!Guid.TryParse(entityIdStr, out var entityId))
