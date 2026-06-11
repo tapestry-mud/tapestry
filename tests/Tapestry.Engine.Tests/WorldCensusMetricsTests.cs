@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 using FluentAssertions;
 using Tapestry.Engine;
@@ -19,7 +20,13 @@ public class WorldCensusMetricsTests
         var metrics = new TapestryMetrics();
         metrics.RegisterWorldCensus(world.SampleCensus);
 
-        var observed = new List<(string instrument, int value, string? type)>();
+        // ConcurrentBag, not List: the listener filters by meter NAME ("Tapestry"),
+        // which every TapestryMetrics instance shares, so parallel test classes
+        // emitting on their own "Tapestry" meters fire this listener's callbacks too.
+        // Those concurrent Add()s used to corrupt a List mid-assertion ("Collection
+        // was modified"). A bag's Add is thread-safe and its enumeration is a
+        // moment-in-time snapshot, so Contain is race-free.
+        var observed = new ConcurrentBag<(string instrument, int value, string? type)>();
         using var listener = new MeterListener();
         listener.InstrumentPublished = (inst, l) =>
         {

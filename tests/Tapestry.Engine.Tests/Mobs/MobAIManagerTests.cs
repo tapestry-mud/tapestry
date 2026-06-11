@@ -468,7 +468,12 @@ public class MobAIManagerTests
         room.AddEntity(mob);
         world.TrackEntity(mob);
 
-        var phases = new List<(string phase, double ms)>();
+        // ConcurrentBag, not List: the MeterListener filters by meter NAME, which
+        // every TapestryMetrics instance shares, so parallel test classes emitting
+        // on their own "Tapestry" meters fire this callback too. A List would corrupt
+        // mid-assertion under those concurrent Add()s; a bag's Add is thread-safe and
+        // its enumeration is a snapshot.
+        var phases = new System.Collections.Concurrent.ConcurrentBag<(string phase, double ms)>();
         using var listener = new MeterListener();
         listener.InstrumentPublished = (inst, l) =>
         {
