@@ -678,4 +678,18 @@ public class AdminModuleTests
         Assert.DoesNotContain("Connections for", string.Join("", connection.SentText));
         Assert.DoesNotContain("No connections", string.Join("", connection.SentText));
     }
+
+    [Fact]
+    public void Wizlock_DefaultsUnlocked_AndTogglesViaJs()
+    {
+        var (rt, _) = BuildRuntime();
+
+        Assert.False(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+
+        rt.Execute("tapestry.admin.setWizlock(true);");
+        Assert.True(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+
+        rt.Execute("tapestry.admin.setWizlock(false);");
+        Assert.False(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+    }
 }

@@ -32,7 +32,8 @@ public class AdminModuleSetRoomTests
             NullLogger<AdminModule>.Instance,
             props,
             tags,
-            new CommandRouter(new CommandRegistry(), sessions, world));
+            new CommandRouter(new CommandRegistry(), sessions, world),
+            new Tapestry.Engine.Login.WizlockState());
     }
 
     [Fact]

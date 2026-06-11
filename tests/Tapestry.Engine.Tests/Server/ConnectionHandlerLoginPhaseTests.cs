@@ -216,6 +216,7 @@ public class ConnectionHandlerLoginPhaseTests
             new Tapestry.Engine.Text.OutputWrapper(),
             new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig()),
             new LoginGateRegistry(),
+            new WizlockState(),
             connectionManager,
             loginHandler,
             spawner,

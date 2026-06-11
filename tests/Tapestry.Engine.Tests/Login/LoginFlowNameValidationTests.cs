@@ -42,6 +42,7 @@ public class LoginFlowNameValidationTests
             config: MakeConfig(),
             logger: NullLogger<LoginFlow>.Instance,
             metrics: null!,
+            wizlock: new WizlockState(),
             flowEngine: null);
     }
 

@@ -3,6 +3,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Ui;
@@ -30,6 +31,7 @@ public class AdminModule : IJintApiModule
     private readonly TagRegistry _tagRegistry;
     private readonly AttributeWriter _attributeWriter;
     private readonly CommandRouter _router;
+    private readonly WizlockState _wizlock;
 
     private readonly Dictionary<(string Kind, string Type), GrantKindRegistration> _grantKinds = new();
 
@@ -44,7 +46,8 @@ public class AdminModule : IJintApiModule
         ILogger<AdminModule> logger,
         PropertyRegistry propertyRegistry,
         TagRegistry tagRegistry,
-        CommandRouter router)
+        CommandRouter router,
+        WizlockState wizlock)
     {
         _world = world;
         _messaging = messaging;
@@ -55,6 +58,7 @@ public class AdminModule : IJintApiModule
         _tagRegistry = tagRegistry;
         _attributeWriter = new AttributeWriter(propertyRegistry, tagRegistry);
         _router = router;
+        _wizlock = wizlock;
     }
 
     public string Namespace => "admin";
@@ -127,6 +131,10 @@ public class AdminModule : IJintApiModule
                 }
                 return true;
             }),
+            // Wizlock (ROM parity): runtime-only login lock -- while set, only
+            // admin-role characters may log in. Resets on reboot by design.
+            setWizlock = new Action<bool>(locked => { _wizlock.Locked = locked; }),
+            isWizlocked = new Func<bool>(() => _wizlock.Locked),
         };
     }
 

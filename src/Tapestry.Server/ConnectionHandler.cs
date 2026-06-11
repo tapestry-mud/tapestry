@@ -28,6 +28,7 @@ public class ConnectionHandler
     private readonly OutputWrapper _outputWrapper;
     private readonly OutputWidthService _outputWidthService;
     private readonly LoginGateRegistry _loginGates;
+    private readonly WizlockState _wizlock;
     private readonly IGmcpConnectionManager _connectionManager;
     private readonly LoginHandler _loginHandler;
     private readonly PlayerSpawner _spawner;
@@ -46,6 +47,7 @@ public class ConnectionHandler
         OutputWrapper outputWrapper,
         OutputWidthService outputWidthService,
         LoginGateRegistry loginGates,
+        WizlockState wizlock,
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
         PlayerSpawner spawner,
@@ -63,6 +65,7 @@ public class ConnectionHandler
         _outputWrapper = outputWrapper;
         _outputWidthService = outputWidthService;
         _loginGates = loginGates;
+        _wizlock = wizlock;
         _connectionManager = connectionManager;
         _loginHandler = loginHandler;
         _spawner = spawner;
@@ -94,7 +97,7 @@ public class ConnectionHandler
 
         var flow = new LoginFlow(
             adapter, loginContext, _persistence, _accountService, _sessions, _loginGates, _loginHandler, _config,
-            _loginFlowLogger, _metrics, _flowEngine);
+            _loginFlowLogger, _metrics, _wizlock, _flowEngine);
 
         _ = Task.Run(async () =>
         {

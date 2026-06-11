@@ -55,6 +55,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<World>(),
             sp.GetRequiredService<BadInputTracker>()));
         services.AddSingleton<SessionManager>();
+        // Runtime-only (resets on reboot, ROM behavior) -- see WizlockState docs.
+        services.AddSingleton<Login.WizlockState>();
         services.AddSingleton<WatchRegistry>();
         services.AddSingleton<WatchSessionHub>();
         services.AddSingleton<IWatchRosterSource, WatchRosterSource>();

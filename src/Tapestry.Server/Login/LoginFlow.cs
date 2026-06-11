@@ -23,6 +23,7 @@ public class LoginFlow
     private readonly ServerConfig _config;
     private readonly ILogger<LoginFlow> _logger;
     private readonly TapestryMetrics _metrics;
+    private readonly WizlockState _wizlock;
     private readonly FlowEngine? _flowEngine;
     private readonly object _nameReservationLock = new();
 
@@ -41,6 +42,7 @@ public class LoginFlow
         ServerConfig config,
         ILogger<LoginFlow> logger,
         TapestryMetrics metrics,
+        WizlockState wizlock,
         FlowEngine? flowEngine = null)
     {
         _adapter = adapter;
@@ -53,6 +55,7 @@ public class LoginFlow
         _config = config;
         _logger = logger;
         _metrics = metrics;
+        _wizlock = wizlock;
         _flowEngine = flowEngine;
     }
 
@@ -132,20 +135,33 @@ public class LoginFlow
 
     private async Task<bool> HandleExistingPlayerAsync(string name, PlayerSpawner spawner)
     {
+        // Load before prompting: the save carries the character's roles, which
+        // the wizlock check below needs before any password exchange.
+        var data = await _persistence.LoadPlayer(name);
+        if (data == null)
+        {
+            _adapter.SendLine("Error loading character. Please try again.");
+            return false;
+        }
+
+        // Wizlock (ROM parity): runtime-only flag; while locked only characters
+        // that already hold the admin role may log in. Refused before the
+        // password prompt, and the link is closed like ROM's wizlock. Players
+        // already in the world are never kicked -- enforcement lives only here
+        // on the login path (and its web-login equivalents).
+        if (_wizlock.Locked && !data.Entity.HasRole("admin"))
+        {
+            _adapter.SendLine(WizlockState.Message);
+            _adapter.Disconnect("wizlock");
+            return true;
+        }
+
         SetPhase(LoginPhase.Password);
         _adapter.SendLine("");
         _adapter.SendLine("Welcome back, " + name + ".");
         _adapter.SuppressEcho();
         _adapter.SendLine("Password:");
         SendGmcpPrompt("Enter your password");
-
-        var data = await _persistence.LoadPlayer(name);
-        if (data == null)
-        {
-            _adapter.RestoreEcho();
-            _adapter.SendLine("Error loading character. Please try again.");
-            return false;
-        }
 
         var failedAttempts = 0;
         var maxAttempts = _config.Persistence.MaxLoginAttempts;

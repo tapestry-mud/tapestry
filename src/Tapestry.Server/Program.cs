@@ -605,10 +605,19 @@ app.MapFallback(async context =>
             // the success paths that already removed it.
             connection.OnDisconnected += () => sessionMgr.RemovePreLogin(connection.Id);
 
+            var wizlock = context.RequestServices.GetRequiredService<WizlockState>();
+
             if (preAuthToken.Intent == PreAuthIntent.Login)
             {
                 var data = await persistence.LoadPlayer(preAuthToken.Name);
-                if (data == null)
+                if (data != null && wizlock.Locked && !data.Entity.HasRole("admin"))
+                {
+                    // Wizlock (ROM parity): refuse non-admin web logins at token
+                    // redemption -- the one choke point every web login crosses.
+                    colorConn.SendLine(WizlockState.Message);
+                    colorConn.Disconnect("wizlock");
+                }
+                else if (data == null)
                 {
                     // Save no longer exists -> existing fallback (resolver not reached).
                     handler.HandleNewConnection(connection, connection.GmcpHandler);
@@ -667,6 +676,14 @@ app.MapFallback(async context =>
                     });
                 }
             }
+            else if (wizlock.Locked)
+            {
+                // Create-intent tokens pass the WizlockGate at issue time, but the
+                // flag may have been toggled on between issue and redemption -- a
+                // brand-new character can never be an admin, so refuse here too.
+                colorConn.SendLine(WizlockState.Message);
+                colorConn.Disconnect("wizlock");
+            }
             else
             {
                 spawner.CompleteNewCharacter(
@@ -690,6 +707,7 @@ app.MapFallback(async context =>
 // Bootstrap: load packs, wire events, register tick handlers
 var loginGates = app.Services.GetRequiredService<LoginGateRegistry>();
 loginGates.Register(new ReservedNameGate());
+loginGates.Register(new WizlockGate(app.Services.GetRequiredService<WizlockState>()));
 app.Services.GetRequiredService<GameBootstrapper>().Configure();
 
 // Force-resolve event-subscriber singletons so their constructors wire up EventBus subscriptions
