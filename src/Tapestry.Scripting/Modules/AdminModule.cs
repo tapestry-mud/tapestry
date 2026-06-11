@@ -93,6 +93,15 @@ public class AdminModule : IJintApiModule
                 entity.Stats.Invalidate();
                 entity.Stats.Hp = entity.Stats.MaxHp;
             }),
+            restoreVitals = new Action<string>((entityIdStr) =>
+            {
+                if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
+                var entity = _world.GetEntity(entityId);
+                if (entity == null) { return; }
+                entity.Stats.Hp = entity.Stats.MaxHp;
+                entity.Stats.Resource = entity.Stats.MaxResource;
+                entity.Stats.Movement = entity.Stats.MaxMovement;
+            }),
         };
     }
 
