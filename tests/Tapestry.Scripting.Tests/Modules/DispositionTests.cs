@@ -219,6 +219,31 @@ public class DispositionTests
     }
 
     [Fact]
+    public void AdminPlayer_NotAggrod()
+    {
+        // Hostile mobs must not aggro an admin (observing/building).
+        var sp = BuildProvider();
+        var world = sp.GetRequiredService<World>();
+        var evaluator = sp.GetRequiredService<DispositionEvaluator>();
+        var eventBus = sp.GetRequiredService<EventBus>();
+        var published = new List<GameEvent>();
+        eventBus.Subscribe("mob.aggro", e => { published.Add(e); });
+
+        var mob = new Entity("npc", "a goblin");
+        mob.AddTag("npc");
+        mob.Disposition = Disposition.Hostile;
+        world.TrackEntity(mob);
+
+        var admin = new Entity("player", "Gamemaster");
+        admin.AddTag("player");
+        admin.AddRole("admin");
+        world.TrackEntity(admin);
+
+        evaluator.EvaluateForMob(mob, admin);
+        Assert.Empty(published);
+    }
+
+    [Fact]
     public void MobWithoutDispositionBlock_NoEvents()
     {
         var sp = BuildProvider();

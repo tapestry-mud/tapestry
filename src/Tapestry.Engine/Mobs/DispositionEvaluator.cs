@@ -62,6 +62,12 @@ public class DispositionEvaluator
 
         var reaction = hostile ? "hostile" : EvaluateRules(def!, player);
 
+        // Never aggro an admin -- they observe and build without being attacked.
+        if (reaction == "hostile" && player.HasRole("admin"))
+        {
+            return;
+        }
+
         if (aggroOnly)
         {
             if (reaction == "hostile")
