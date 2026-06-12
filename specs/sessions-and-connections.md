@@ -182,13 +182,8 @@ bad-input tracking.
 
 ## Rejected and Reverted
 
-No tombstones found in the examined git history or source comments for this
-capability scope. The 15-commit window shows only additive work (link-dead
-helpers, heartbeat, keepalive, cross-buffer IAC parsing, AccountId index).
+- None on record.
 
 ---
 
 ## Change Log
-
-| Date | Author | Summary |
-|------|--------|---------|
