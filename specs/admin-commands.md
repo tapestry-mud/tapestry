@@ -21,92 +21,92 @@ a pack command.
 
 - All pack admin commands carry `admin: true` in their registration; the
   command router enforces role-gating before dispatch.
-  [packs/@tapestry/core/scripts/commands/admin-teleport.js]
+  (packs/@tapestry/core/scripts/commands/admin-teleport.js)
 - The kernel `badinput` command is registered with `roles: ["admin"]`.
-  [src/Tapestry.Server/Modules/BadInputModule.cs]
+  (src/Tapestry.Server/Modules/BadInputModule.cs)
 - Wizlock is a runtime-only flag on `WizlockState`. While set, the login flow
   refuses non-admin characters; already-connected players are unaffected.
   The flag is not persisted and resets to unlocked on reboot (ROM parity).
-  [src/Tapestry.Engine/Login/WizlockState.cs, commit be2610e]
+  (src/Tapestry.Engine/Login/WizlockState.cs; commit be2610e)
 - JS surface: `tapestry.admin.setWizlock(bool)` / `tapestry.admin.isWizlocked()`.
   The pack `wizlock` command toggles the state.
-  [packs/@tapestry/core/scripts/commands/admin-wizlock.js]
+  (packs/@tapestry/core/scripts/commands/admin-wizlock.js)
 
 ### Entity management: set
 
 - `set` dispatches through `AdminModule.DispatchSet`. Settable targets are
   `player`, `npc`, `item`, and `room`.
-  [src/Tapestry.Scripting/Modules/AdminModule.cs L193-289]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:193-289)
 - For `player`, `npc`, and `item` the engine resolves the target from the
   calling admin's context: players by online session, NPCs from the admin's
   current room, items from the admin's inventory/equipment.
-  [AdminModule.cs L541-689]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:541-689)
 - Ordinal syntax (`2.keyword`) is supported for disambiguating multiple matches.
-  [AdminModule.cs L553-558]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:553-558)
 - For `room`, no target token is accepted; the admin's current room is the
-  implicit target. [AdminModule.cs L235-259]
+  implicit target. (src/Tapestry.Scripting/Modules/AdminModule.cs:235-259)
 - Declared attributes (PropertyRegistry / TagRegistry entries marked
   `IsAdminSettable`) flow through `AttributeWriter`. Out-of-registry
   subsystem ops (stats, alignment, gold, npc hp, proficiency, training cap)
   are handled by retained pack-side domain handlers in `admin-set.js`.
-  [packs/@tapestry/core/scripts/commands/admin-set.js L52-114]
+  (packs/@tapestry/core/scripts/commands/admin-set.js:52-114)
 - `set ?`, `set [kind] ?`, and `set [kind] [attr] ?` display discovery panels
-  rendered via `PanelRenderer`. [AdminModule.cs L196-231]
+  rendered via `PanelRenderer`. (src/Tapestry.Scripting/Modules/AdminModule.cs:196-231)
 
 ### Entity management: grant
 
 - `grant` dispatches through `AdminModule.DispatchGrant` to JS handlers
   registered via `tapestry.admin.grant.register({kind, type, handler, ...})`.
   Allowed kinds: `player`, `npc`, `item`, `room`.
-  [AdminModule.cs L291-350]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:291-350)
 - Duplicate `(kind, type)` keys log a warning; the later registration wins.
-  [AdminModule.cs L186-190]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:186-190)
 - Built-in grant types in core: `player xp`, `player train`, `player gold`.
-  [packs/@tapestry/core/scripts/commands/admin-grant.js]
+  (packs/@tapestry/core/scripts/commands/admin-grant.js)
 - `grantrole` / `revokerole` add or remove roles from online players via
   `tapestry.world.addRole`. Separate commands from `grant` to avoid keyword
-  collision. [packs/@tapestry/core/scripts/commands/admin-grant-role.js]
+  collision. (packs/@tapestry/core/scripts/commands/admin-grant-role.js)
 
 ### World manipulation: spawn, loaditem, purge, restore, peace
 
 - `spawn <templateId>` spawns a mob from a template into the admin's current
-  room. [packs/@tapestry/core/scripts/commands/admin-spawn.js]
+  room. (packs/@tapestry/core/scripts/commands/admin-spawn.js)
 - `loaditem <templateId>` instantiates an item template into the admin's
-  inventory. [packs/@tapestry/core/scripts/commands/admin-loaditem.js]
+  inventory. (packs/@tapestry/core/scripts/commands/admin-loaditem.js)
 - `purge [npc|items|all]` removes matching entities from the admin's room;
-  defaults to all. [packs/@tapestry/core/scripts/commands/admin-purge.js]
+  defaults to all. (packs/@tapestry/core/scripts/commands/admin-purge.js)
 - `restore [player|all]` refills vitals for a named player or all online
   players via `tapestry.stats.restoreVitals`.
-  [packs/@tapestry/core/scripts/commands/admin-restore.js]
+  (packs/@tapestry/core/scripts/commands/admin-restore.js)
 - `peace` removes all combatants in the admin's room from combat.
-  [packs/@tapestry/core/scripts/commands/admin-peace.js]
+  (packs/@tapestry/core/scripts/commands/admin-peace.js)
 
 ### Teleport / goto
 
 - `teleport <player> <roomId>` (aliases: `tp`) moves an online player to a
   room by id. Fails if the player is not online or the room id is unknown.
-  [packs/@tapestry/core/scripts/commands/admin-teleport.js]
+  (packs/@tapestry/core/scripts/commands/admin-teleport.js)
 
 ### Inspect and locate
 
 - `inspect [entity]` shows full stats, properties, tags, equipment, inventory,
   alignment, proficiency for a visible entity in the admin's room.
-  [packs/@tapestry/core/scripts/commands/admin-inspect.js]
+  (packs/@tapestry/core/scripts/commands/admin-inspect.js)
 - `inspect room [id]` shows name, description, area, biome, terrain, flags,
   properties, exits, and occupants for the given room (defaults to current).
-  [admin-inspect.js L139-210]
+  (packs/@tapestry/core/scripts/commands/admin-inspect.js:139-210)
 - `inspect area [id]` shows area metadata including level range, reset interval,
   and provenance (pack-supplied, pack+edits, or hand-authored).
-  [admin-inspect.js L212-234]
+  (packs/@tapestry/core/scripts/commands/admin-inspect.js:212-234)
 - `whereis <keyword>` scans all world entities; `mwhere` filters to NPCs;
   `owhere` filters to items and containers. Results cap at 100.
-  [packs/@tapestry/core/scripts/commands/admin-whereis.js]
+  (packs/@tapestry/core/scripts/commands/admin-whereis.js)
 
 ### Combat admin
 
 - `peace` clears combat for all occupants in the admin's room (see above).
 - `set npc hp <target> <value>` calls `admin.setEntityHp` which sets both
-  base max HP and current HP simultaneously. [AdminModule.cs L94-102]
+  base max HP and current HP simultaneously. (src/Tapestry.Scripting/Modules/AdminModule.cs:94-102)
 
 ### executeAs seam
 
@@ -114,7 +114,7 @@ a pack command.
   as the target entity through the standard parse+route path. Privilege is NOT
   escalated; output goes to the target's session. Session-backed players only;
   returns `false` for sessionless or invalid entities.
-  [AdminModule.cs L111-133]
+  (src/Tapestry.Scripting/Modules/AdminModule.cs:111-133)
 - This seam is the backing primitive for pack `force`/`at` commands.
   Full documentation is in command-dispatch.md.
 
@@ -123,21 +123,21 @@ a pack command.
 - `TeeConnection` is an output decorator inserted in the connection chain
   between `ColorRenderingConnection` and `WrappingConnection`. Every write is
   forwarded to the owning player and mirrored to all subscribed watchers.
-  [src/Tapestry.Engine/Watch/TeeConnection.cs]
+  (src/Tapestry.Engine/Watch/TeeConnection.cs)
 - `ShouldBroadcast` (default `true`) is a per-connection gate; a future
   producer may set it false for private writes. `WatchBroadcastScope.Suppressed`
-  is a per-write suppression seam (Slice C). [TeeConnection.cs L23, L49]
+  is a per-write suppression seam (Slice C). (src/Tapestry.Engine/Watch/TeeConnection.cs:23,49)
 - Watcher sinks resolve live on each broadcast; a reconnected watcher (new
   connection, same entity id) keeps receiving output without re-subscribing.
-  [src/Tapestry.Scripting/Modules/WatchModule.cs L43-51, commit 70db6ab]
+  (src/Tapestry.Scripting/Modules/WatchModule.cs:43-51; commit 70db6ab)
 - Self-subscription is rejected to prevent infinite recursion through the tee.
-  [WatchModule.cs L39]
+  (src/Tapestry.Scripting/Modules/WatchModule.cs:39)
 - Admins may not snoop other admins; the `snoop` command checks the target's
   roles before calling `tapestry.watch.start`.
-  [packs/@tapestry/core/scripts/commands/snoop.js L40-46]
+  (packs/@tapestry/core/scripts/commands/snoop.js:40-46)
 - JS surface: `tapestry.watch.start(watcherEntityId, targetEntityId)` and
   `tapestry.watch.stop(watcherEntityId)`.
-  [WatchModule.cs L29-58]
+  (src/Tapestry.Scripting/Modules/WatchModule.cs:29-58)
 - Full output pipeline ownership of TeeConnection is documented in
   output-pipeline.md.
 
@@ -152,9 +152,6 @@ a pack command.
 ---
 
 ## Change Log
-
-| Change Record | Summary |
-|---------------|---------|
 
 ---
 
