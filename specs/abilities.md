@@ -244,15 +244,8 @@ levelling (character-progression.md), the effect lifecycle after
 
 ## Rejected and Reverted
 
-No tombstoned ability behaviors identified in the commit range reviewed
-(commits a2dd1be through 8cc5489). The `Priority` field on
-`AbilityDefinition` was demoted from collision-arbitration to parse-compat
-storage only in commit 8cc5489; it no longer controls which pack's definition
-wins a conflict.
+- None on record.
 
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
