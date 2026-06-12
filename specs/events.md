@@ -165,14 +165,9 @@ once per game-loop tick, not on the publishing thread.
 
 ## Rejected and Reverted
 
-No tombstoned or reverted event-bus behaviors were found in git history or
-code comments for this capability.
+- None on record.
 
 ## Change Log
-
-| Date | Change | Commit |
-|------|--------|--------|
-|      |        |        |
 
 ---
 
