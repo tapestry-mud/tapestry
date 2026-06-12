@@ -210,6 +210,3 @@ DispositionEvaluator alignment-based system handles all aggro dispatch. Engine c
 53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
