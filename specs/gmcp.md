@@ -134,6 +134,3 @@ printed to the screen is available as structured data (README.md:162).
   client's job.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
