@@ -97,12 +97,8 @@ Out of scope here: ability definitions and the resolution pipeline that calls
 
 ## Rejected and Reverted
 
-No tombstoned effect behaviors identified in the commit range reviewed
-(commits a2dd1be through 8cc5489).
+- None on record.
 
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
