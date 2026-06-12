@@ -15,7 +15,7 @@ Tapestry.Server       Entry point, DI wiring
 
 ## Pack system
 
-Packs are directories under `packs/`. Each has a `pack.yaml` manifest. Scripts are JavaScript (Jint). YAML files define areas, rooms, mobs, items.
+Packs are directories under `packs/`, nested by scope (e.g. `packs/@tapestry/core/`). Each has a `pack.yaml` manifest. Scripts are JavaScript (Jint). YAML files define areas, rooms, mobs, items.
 
 The engine discovers and loads packs listed in `server.yaml`.
 
@@ -41,8 +41,8 @@ dotnet test tests/Tapestry.Engine.Tests
 ## Key files
 
 - `server.yaml` - server config, lists which packs to load
-- `packs/tapestry-core/` - minimal engine-required content (recall room, admin commands)
-- `packs/example-pack/` - complete example with human race, warrior/mage classes, starter area
+- `packs/@tapestry/core/` - minimal engine-required content (recall room, admin commands)
+- `packs/@tapestry/example-pack/` - complete example with human race, warrior/mage classes, starter area
 
 ## Security
 
