@@ -295,6 +295,3 @@ character save layout (see persistence.md).
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
