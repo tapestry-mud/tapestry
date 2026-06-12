@@ -211,9 +211,6 @@ covered in equipment-and-modifiers.md.
 
 ## Rejected and Reverted
 
-(No tombstones recorded at time of writing.)
+- None on record.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
