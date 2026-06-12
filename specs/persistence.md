@@ -221,14 +221,8 @@ persistence mechanism and has no connection to the save/load system described ab
 
 ## Rejected and Reverted
 
-No tombstoned behaviors on record. The account system and directory-per-character layout
-were introduced in the commit range documented in git history (see commits d9850c5
-through b5c1340 in `git log -- src/Tapestry.Engine/Persistence/`); no prior design was
-reverted post-ship.
+- None on record.
 
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
