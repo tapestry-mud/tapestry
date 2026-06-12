@@ -24,13 +24,13 @@ covered in pack-loading.md.
 ### IJintApiModule -- module self-registration
 
 - `IJintApiModule` exposes two members: `string Namespace { get; }` and
-  `object Build(JintEngine engine)`. (IJintApiModule.cs:1-9)
+  `object Build(JintEngine engine)`. (src/Tapestry.Scripting/IJintApiModule.cs:1-9)
 - `JintRuntime.SetupApi` builds one `ExpandoObject` as the `tapestry` global. For each
   registered module it writes `tapestry[module.Namespace] = module.Build(engine)`.
-  (JintRuntime.cs:113-121)
+  (src/Tapestry.Scripting/JintRuntime.cs:113-121)
 - All modules are registered as `IJintApiModule` singletons in DI; JintRuntime receives
-  them via `IEnumerable<IJintApiModule>` constructor injection. (ServiceCollectionExtensions.cs:36-90;
-  JintRuntime.cs:22-24)
+  them via `IEnumerable<IJintApiModule>` constructor injection. (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:36-90;
+  src/Tapestry.Scripting/JintRuntime.cs:22-24)
 
 ### tapestry.* API surface (namespaces)
 
@@ -43,77 +43,77 @@ The following namespaces are available to pack scripts as `tapestry.<namespace>`
   `data`, `rarity`, `essence`, `stacking`, `packs`, `quests`, `watch`, `args`, `flows`,
   `schedule`, `gmcp`, `respond`, `notifications`, `connections`, `rooms`, `authoring`, `fs`
 
-(ServiceCollectionExtensions.cs:37-199; each module's `Namespace` property)
+(src/Tapestry.Scripting/ServiceCollectionExtensions.cs:37-199; each module's `Namespace` property)
 
 Notes on two commonly misspelled names:
-- `quests` (not `quest`) -- QuestModule.Namespace (QuestModule.cs:20)
-- `returnaddress` (not `returnAddress`) -- ReturnAddressModule.Namespace (ReturnAddressModule.cs:11)
+- `quests` (not `quest`) -- QuestModule.Namespace (src/Tapestry.Scripting/Modules/QuestModule.cs:20)
+- `returnaddress` (not `returnAddress`) -- ReturnAddressModule.Namespace (src/Tapestry.Scripting/Modules/ReturnAddressModule.cs:11)
 
 ### PackContext -- current-pack attribution
 
 - `PackContext` holds `CurrentPackDir` and `CurrentPackNamespace` as mutable strings.
-  PackLoader updates these before each content-loading step. (PackContext.cs:1-7;
-  PackLoader.cs:111,186)
+  PackLoader updates these before each content-loading step. (src/Tapestry.Scripting/PackContext.cs:1-7;
+  src/Tapestry.Scripting/PackLoader.cs:111,186)
 - `PackScope.InvokeAsPack` saves the current `__currentPack` global, sets it to the
   handler-owner's pack name, runs the invocation, then restores the previous value. All
   registered handlers (commands, events, schedules, abilities, flows) are dispatched through
-  this scope so attribution is correct at call time, not load time. (PackScope.cs:14-44)
+  this scope so attribution is correct at call time, not load time. (src/Tapestry.Scripting/PackScope.cs:14-44)
 
 ### Export/require system
 
 - A pack exports a value via `tapestry.packs.export(name, handler, metadata)`. The export
   name must match the JS identifier pattern `^[a-zA-Z_$][a-zA-Z0-9_$]*$`. Exporting a
-  non-function, non-object value throws `InteropException`. (PacksModule.cs:96-147;
-  PacksModule.cs:17)
+  non-function, non-object value throws `InteropException`. (src/Tapestry.Scripting/Modules/PacksModule.cs:96-147;
+  src/Tapestry.Scripting/Modules/PacksModule.cs:17)
 - Function exports are invoked via `tapestry.packs.call(pack, name, ...args)`, which
   enforces a declared dependency edge and runs the handler attributed to the exporting pack.
   Namespace/data exports are accessed via `tapestry.packs.require(pack)` which returns a
-  `RequireProxy`. (PacksModule.cs:149-224)
+  `RequireProxy`. (src/Tapestry.Scripting/Modules/PacksModule.cs:149-224)
 - `tapestry.packs.has(pack)` returns true if the pack is loaded; `tapestry.packs.has(pack,
   name)` also checks that the export exists. Both enforce the dependency edge.
-  (PacksModule.cs:227-238)
+  (src/Tapestry.Scripting/Modules/PacksModule.cs:227-238)
 - `tapestry.packs.require(pack)` returns a `RequireProxy` whose member access resolves
   against `PackExportRegistry` at USE time (not at require-call time). This allows a pack to
   obtain a proxy before its dependency has exported. Function members are wrapped to run
   attributed to the exporting pack. Namespace/data members are returned as-is.
-  (RequireProxy.cs:15-20; RequireProxy.cs:44-78)
+  (src/Tapestry.Scripting/Interop/RequireProxy.cs:15-20; src/Tapestry.Scripting/Interop/RequireProxy.cs:44-78)
 - The proxy is read-only; assignment or property definition throws `InteropException`.
   Enumeration yields no keys; use `tapestry.packs.getExportRegistry()` for introspection.
-  (RequireProxy.cs:85-95; RequireProxy.cs:19-20)
+  (src/Tapestry.Scripting/Interop/RequireProxy.cs:85-95; src/Tapestry.Scripting/Interop/RequireProxy.cs:19-20)
 - `PackExportRegistry` keys entries by `(pack.ToLowerInvariant(), name)` -- the pack
   namespace half is lowercased for case-insensitive pack lookup, but the export name is
   case-sensitive. Collision and override legality is decided by `RegistrationPolicy` at the
-  seal; the registry itself upserts. (PackExportRegistry.cs:27-28,34)
+  seal; the registry itself upserts. (src/Tapestry.Scripting/Interop/PackExportRegistry.cs:27-28,34)
 - Exports registered before the seal are eagerly visible to load-time interop calls (safe
-  because dependency-ordered loading ensures the exporter runs first). (PacksModule.cs:138-146)
+  because dependency-ordered loading ensures the exporter runs first). (src/Tapestry.Scripting/Modules/PacksModule.cs:138-146)
 
 ### InteropCallSite static scanning
 
 - During script loading, `InteropCallSiteScanner.Extract` parses the source with Acornima
   and walks the AST to record every `tapestry.packs.call`, `tapestry.packs.has`, and
   `tapestry.packs.require` site whose pack and export arguments are string literals. Dynamic-
-  dispatch sites are not recorded. (InteropCallSiteScanner.cs:16-101)
+  dispatch sites are not recorded. (src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs:16-101)
 - Recorded sites accumulate in `InteropCallSiteRegistry` for the duration of the boot.
   `PackValidator.ValidateInteropCallSites` drains the registry at seal time to perform static
   interop resolution: edge present, target loaded, export exists (for `call`).
-  (InteropCallSiteRegistry.cs:1-17; PackValidator.cs:382-409)
+  (src/Tapestry.Scripting/Interop/InteropCallSiteRegistry.cs:1-17; src/Tapestry.Scripting/PackValidator.cs:382-409)
 - A parse failure in `InteropCallSiteScanner` yields zero sites; Jint's subsequent
-  `Execute` will surface the canonical syntax error. (InteropCallSiteScanner.cs:22-29)
+  `Execute` will surface the canonical syntax error. (src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs:22-29)
 
 ### FsModule -- file API
 
 - `tapestry.fs` exposes two methods: `writeYaml(relativePath, data)` and
   `deleteFile(relativePath)`. Both are restricted to the server's `connections/` subdirectory;
   the resolved absolute path must start with the resolved connections-dir prefix or the call
-  throws. (FsModule.cs:31-63)
+  throws. (src/Tapestry.Scripting/Modules/FsModule.cs:31-63)
 - `writeYaml` serialises the JS value to YAML using `UnderscoredNamingConvention` with
   null-omission, then writes to `<serverRoot>/connections/<relativePath>`, creating the
-  directory if absent. (FsModule.cs:31-41)
+  directory if absent. (src/Tapestry.Scripting/Modules/FsModule.cs:31-41)
 - `deleteFile` deletes `<serverRoot>/connections/<relativePath>` if it exists; no error if
-  absent. (FsModule.cs:43-49)
+  absent. (src/Tapestry.Scripting/Modules/FsModule.cs:43-49)
 - `FsModule` is constructed with `config.ConfigDirectory` as the server root path, injected
-  by the DI factory in `ServiceCollectionExtensions`. (ServiceCollectionExtensions.cs:193-198;
-  FsModule.cs:21-23)
+  by the DI factory in `ServiceCollectionExtensions`. (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:193-198;
+  src/Tapestry.Scripting/Modules/FsModule.cs:21-23)
 
 ### LoadedPackNamespaces -- live namespace set
 
@@ -121,13 +121,10 @@ Notes on two commonly misspelled names:
   `PackLoader.LoadDeclarations` as each active pack is declared. Modules (e.g.
   `WorldAuthoringModule`) that need the loaded set hold the SAME mutable instance so that
   late population (packs finishing load after the module was constructed) is visible without
-  a snapshot. (LoadedPackNamespaces.cs:1-26; ServiceCollectionExtensions.cs:152-153)
+  a snapshot. (src/Tapestry.Scripting/LoadedPackNamespaces.cs:1-26; src/Tapestry.Scripting/ServiceCollectionExtensions.cs:152-153)
 
 ## Rejected and Reverted
 
-(none for this scope -- see pack-loading.md for pack-loading tombstones)
+- None on record.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
