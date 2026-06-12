@@ -196,11 +196,6 @@ banners) that are drained once per game tick.
 
 ## Rejected and Reverted
 
-No reversals on record. The word-wrap feature dropped a NAWS-derived floor on the effective
-width (commit a97c7e5: "address word-wrap review -- ANSI-aware wrap, drop NAWS floor"); this
-was a deliberate simplification, not a revert of shipped behavior.
+- None on record.
 
 ## Change Log
-
-| Release | Change record | Summary |
-|---------|---------------|---------|
