@@ -173,9 +173,6 @@ a diagnostic snapshot sampled on demand.
 
 ## Rejected and Reverted
 
-_No tombstones recorded._
+- None on record.
 
 ## Change Log
-
-| Change Record | Summary |
-|---------------|---------|
