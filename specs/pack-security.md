@@ -21,52 +21,52 @@ registries-and-seal.md and is out of scope here.
 
 - The Jint engine is constructed with a 5-second execution timeout per top-level call,
   a recursion limit of 100 frames, and a memory cap of 50 MB per engine instance.
-  (JintRuntime.cs:27-36)
-- Strict mode is enabled for all scripts. (JintRuntime.cs:32)
+  (src/Tapestry.Scripting/JintRuntime.cs:27-36)
+- Strict mode is enabled for all scripts. (src/Tapestry.Scripting/JintRuntime.cs:32)
 - Mob behavior scripts carry an additional armable per-invocation wall-clock budget
   (MobInvocationBudget). The budget is disarmed by default (zero overhead for non-mob
   scripts) and armed around each mob AI invocation. A violation throws
   MobBudgetExceededException, which Jint propagates before the next constraint check.
-  (MobInvocationBudget.cs:1-74)
+  (src/Tapestry.Scripting/MobInvocationBudget.cs:1-74)
 - No direct CLR type access is granted to pack scripts. The engine exposes a single
   global object `tapestry` whose properties are the explicit module namespaces built by
   registered IJintApiModule implementations. All CLR delegates are wrapped as JS values;
   no AllowClr or equivalent general-purpose CLR bridge is enabled.
-  (JintRuntime.cs:113-121; Tapestry.Scripting/ServiceCollectionExtensions.cs:36-199)
+  (src/Tapestry.Scripting/JintRuntime.cs:113-121; src/Tapestry.Scripting/ServiceCollectionExtensions.cs:36-199)
 
 ### API surface exposed to pack scripts
 
 - All pack-facing APIs live under `tapestry.<namespace>` and are constructed from
   named IJintApiModule instances (JintRuntime.SetupApi). The full list of registered
-  modules is in Tapestry.Scripting/ServiceCollectionExtensions.cs (lines 37-199). No module exposes
+  modules is in src/Tapestry.Scripting/ServiceCollectionExtensions.cs (lines 37-199). No module exposes
   raw engine internals; each wraps specific engine services.
 - The `tapestry.fs` module (FsModule.cs) exposes `writeYaml` and `deleteFile`. Both
   operations are restricted to the server's `connections/` subdirectory by a path
   traversal check: the resolved absolute path must start with the resolved connections
-  directory prefix, or the call throws. (FsModule.cs:54-63)
+  directory prefix, or the call throws. (src/Tapestry.Scripting/Modules/FsModule.cs:54-63)
 - The `tapestry.packs` module (PacksModule.cs) is the inter-pack call surface. A pack
   may only call, probe (`has`), or require another pack if it has declared an explicit
   dependency edge on that pack in its manifest. Self-calls are exempt. Violation throws
-  InteropException at call time. (PacksModule.cs:255-267)
+  InteropException at call time. (src/Tapestry.Scripting/Modules/PacksModule.cs:255-267)
 
 ### Inter-pack dependency enforcement
 
 - Pack dependency edges are built from `dependencies` and `optional_dependencies` in
   each pack manifest into a PackDependencyGraph. Both required and optional deps
-  contribute edges. (PackDependencyGraph.cs:17-23)
+  contribute edges. (src/Tapestry.Scripting/Interop/PackDependencyGraph.cs:17-23)
 - At boot, PackValidator.ValidateInteropCallSites resolves every literal-argument
   `tapestry.packs.call` and `tapestry.packs.has` site recorded during script load and
   confirms an edge exists for each. A missing edge is a fatal boot error. An absent
-  optional dependency is skipped (expected has-guarded pattern). (PackValidator.cs:382-409)
+  optional dependency is skipped (expected has-guarded pattern). (src/Tapestry.Scripting/PackValidator.cs:382-409)
 - Cross-pack item `spawn_on` selectors are also edge-checked at boot: referencing a
-  tag or id from another pack requires a declared dependency. (PackValidator.cs:191-218)
+  tag or id from another pack requires a declared dependency. (src/Tapestry.Scripting/PackValidator.cs:191-218)
 
 ### Entity namespace enforcement
 
 - Entity IDs are namespaced by pack. When a pack loads a room, mob, or item YAML file,
   `ValidateEntityId` checks that the ID's namespace prefix matches the current pack's
   namespace, throwing on mismatch. A duplicate ID across any two files is also fatal.
-  (PackLoader.cs:487-505)
+  (src/Tapestry.Scripting/PackLoader.cs:487-505)
 
 ### Registration gate
 
@@ -75,10 +75,10 @@ registries-and-seal.md and is out of scope here.
   commit scope then throws, preventing pack JS (or future pack scripts) from bypassing
   the policy by calling a raw C# registration function. The gate is disarmed by default
   so engine-internal C# boot registrations and unit tests are unaffected.
-  (RegistrationGate.cs:1-53; PackLoader.cs:103-105)
+  (src/Tapestry.Engine/Registration/RegistrationGate.cs:1-53; src/Tapestry.Scripting/PackLoader.cs:103-105)
 - This wall was introduced to close the v0.1.20 mobs.registerCommand bypass (tapestry#98),
   where JS could write to a registry directly without going through the policy.
-  (RegistrationGate.cs:7; PackLoader.cs:103)
+  (src/Tapestry.Engine/Registration/RegistrationGate.cs:7; src/Tapestry.Scripting/PackLoader.cs:103)
 
 ### CI scenario fixture isolation
 
@@ -108,6 +108,3 @@ registries-and-seal.md and is out of scope here.
   registry or bundled with the engine. (commit bf45105)
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
