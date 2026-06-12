@@ -188,6 +188,3 @@ files (written under the game data root at runtime).
   src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-48)
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
