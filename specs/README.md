@@ -17,6 +17,18 @@ known constraints, and change history.
 | Combat | [combat.md](combat.md) | 2026-06-12 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-12 |
 | Persistence | [persistence.md](persistence.md) | 2026-06-12 |
+| Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-12 |
+| Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-12 |
+| Events | [events.md](events.md) | 2026-06-12 |
+| World and Entities | [world-and-entities.md](world-and-entities.md) | 2026-06-12 |
+| Items and Equipment | [items-and-equipment.md](items-and-equipment.md) | 2026-06-12 |
+| Quests | [quests.md](quests.md) | 2026-06-12 |
+| Character Progression | [character-progression.md](character-progression.md) | 2026-06-12 |
+| Abilities and Effects | [abilities-and-effects.md](abilities-and-effects.md) | 2026-06-12 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-12 |
+| Economy and Shops | [economy-and-shops.md](economy-and-shops.md) | 2026-06-12 |
+| World Simulation | [world-simulation.md](world-simulation.md) | 2026-06-12 |
+| Admin and Telemetry | [admin-and-telemetry.md](admin-and-telemetry.md) | 2026-06-12 |
 
 ## Contract summary
 
