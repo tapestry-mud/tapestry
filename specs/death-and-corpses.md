@@ -191,11 +191,8 @@ default 300, player fixed 600).
 
 ## Rejected and Reverted
 
-_(none recorded)_
+- None on record.
 
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
