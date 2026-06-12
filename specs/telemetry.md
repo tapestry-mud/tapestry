@@ -21,9 +21,9 @@ counter per occurrence.
 ### Meter and tracing source
 
 - Meter name: `"Tapestry"`, version `"1.0.0"`.
-  [src/Tapestry.Engine/TapestryMetrics.cs L7]
+  (src/Tapestry.Engine/TapestryMetrics.cs:7)
 - ActivitySource name: `"Tapestry"`, version `"1.0.0"`.
-  [src/Tapestry.Engine/TapestryTracing.cs L7-9]
+  (src/Tapestry.Engine/TapestryTracing.cs:7-9)
 
 ### Defined metrics
 
@@ -65,33 +65,28 @@ World census (registered via `RegisterWorldCensus`, pull-based at scrape time):
 
 World census gauges never throw into the export path; if the sampler races and
 returns null, that scrape emits no data (a gap, not a misleading zero).
-[TapestryMetrics.cs L120-163]
-
-[src/Tapestry.Engine/TapestryMetrics.cs]
+(src/Tapestry.Engine/TapestryMetrics.cs:120-163)
 
 ### BadInputTracker
 
 - Every unrecognized command verb is passed to `BadInputTracker.Record`. The
   tracker accumulates a `ConcurrentDictionary` keyed on the normalized
   (lowercased) verb; each entry stores count, first-seen, and last-seen
-  timestamps. [src/Tapestry.Engine/BadInputTracker.cs]
+  timestamps. (src/Tapestry.Engine/BadInputTracker.cs)
 - Each call increments the `tapestry_bad_input_total` OTel counter with a
   `verb` tag and emits a structured `LogInformation` line with verb, full
-  input, player name, and room id. [BadInputTracker.cs L32-36]
+  input, player name, and room id. (src/Tapestry.Engine/BadInputTracker.cs:32-36)
 - The kernel `badinput` admin command lists entries sorted by count descending,
   or clears the log with `badinput clear`. There is no threshold-based
   automatic action; the tracker is purely observational.
-  [src/Tapestry.Server/Modules/BadInputModule.cs]
+  (src/Tapestry.Server/Modules/BadInputModule.cs)
 
 ---
 
 ## Rejected and Reverted
 
-None.
+- None on record.
 
 ---
 
 ## Change Log
-
-| Change Record | Summary |
-|---------------|---------|
