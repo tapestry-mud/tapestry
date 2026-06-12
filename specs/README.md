@@ -11,6 +11,12 @@ known constraints, and change history.
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-12 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-12 |
+| GMCP | [gmcp.md](gmcp.md) | 2026-06-12 |
+| Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-12 |
+| Mob AI | [mob-ai.md](mob-ai.md) | 2026-06-12 |
+| Combat | [combat.md](combat.md) | 2026-06-12 |
+| Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-12 |
+| Persistence | [persistence.md](persistence.md) | 2026-06-12 |
 
 ## Contract summary
 
