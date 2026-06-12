@@ -229,35 +229,3 @@ the examined history.
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-## Sources Consulted
-
-- src/Tapestry.Engine/Classes/ClassDefinition.cs
-- src/Tapestry.Engine/Classes/ClassPathEntry.cs
-- src/Tapestry.Engine/Classes/ClassPathProcessor.cs
-- src/Tapestry.Engine/Classes/StatGrowthOnLevelUp.cs
-- src/Tapestry.Engine/Classes/ClassRegistry.cs
-- src/Tapestry.Engine/Progression/ProgressionProperties.cs
-- src/Tapestry.Engine/Progression/ProgressionManager.cs
-- src/Tapestry.Engine/Progression/TrackDefinition.cs
-- src/Tapestry.Engine/Races/RaceDefinition.cs
-- src/Tapestry.Engine/Races/RaceRegistry.cs
-- src/Tapestry.Engine/Races/RaceCostCalculator.cs
-- src/Tapestry.Engine/Training/TrainingManager.cs
-- src/Tapestry.Engine/Training/TrainingConfig.cs
-- src/Tapestry.Engine/Training/TrainingProperties.cs
-- src/Tapestry.Engine/Training/CapTier.cs
-- src/Tapestry.Engine/Training/TrainerConfig.cs
-- src/Tapestry.Scripting/Modules/ClassesModule.cs
-- src/Tapestry.Scripting/Modules/ProgressionModule.cs
-- src/Tapestry.Scripting/Modules/RacesModule.cs
-- src/Tapestry.Scripting/Modules/TrainingModule.cs
-- packs/@tapestry/example-pack/scripts/classes/warrior.js
-- packs/@tapestry/example-pack/scripts/classes/mage.js
-- packs/@tapestry/example-pack/scripts/races/human.js
-- packs/@tapestry/example-pack/scripts/races/elf.js
-- git log --oneline -15 -- src/Tapestry.Engine/Classes/ src/Tapestry.Engine/Races/ src/Tapestry.Engine/Training/
-
-UNVERIFIED count: 0

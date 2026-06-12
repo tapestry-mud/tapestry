@@ -123,22 +123,3 @@ No reversals on record as of 2026-06-12.
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-## Sources consulted
-
-- `src/Tapestry.Engine/Rest/RestService.cs`
-- `src/Tapestry.Engine/Rest/RestConfig.cs`
-- `src/Tapestry.Engine/Rest/RestProperties.cs`
-- `src/Tapestry.Scripting/Modules/RestModule.cs`
-- `src/Tapestry.Engine/GameLoop.cs` (RegisterRegenHandler, lines 445-552)
-- `src/Tapestry.Server/Modules/TickHandlerModule.cs` (regen registration, lines 90-92)
-- `packs/@tapestry/core/scripts/commands/rest.js`
-- `packs/@tapestry/core/scripts/commands/sleep.js`
-- `packs/@tapestry/core/scripts/commands/wake.js`
-- `specs/heartbeat.md` (regen handler table entry and regen events section)
-
-UNVERIFIED count: 1
-- `RestConfig.MinSleepTicksForWellRested` and `SleepStartTick` -- defined and settable,
-  but no consuming call site was found in the codebase. Documented as dead fields.

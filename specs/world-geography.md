@@ -128,17 +128,3 @@ _No tombstones recorded._
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-Sources consulted:
-- src/Tapestry.Engine/World.cs (384 lines)
-- src/Tapestry.Engine/AreaDefinition.cs (22 lines)
-- src/Tapestry.Engine/AreaRegistry.cs (12 lines)
-- src/Tapestry.Engine/Room.cs (165 lines)
-- src/Tapestry.Engine/Exit.cs (14 lines)
-- src/Tapestry.Engine/DoorService.cs (195 lines)
-- src/Tapestry.Engine/DoorState.cs (18 lines)
-- src/Tapestry.Engine/TemporaryExitService.cs (212 lines)
-
-UNVERIFIED count: 0 -- all claims have inline source anchors.

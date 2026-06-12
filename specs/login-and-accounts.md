@@ -235,31 +235,4 @@ flow (flows-and-wizards.md).
 ## Change Log
 
 | Date | Change | Spec ref |
-
----
-
-sources consulted:
-- src/Tapestry.Server/Login/LoginFlow.cs (lines 65-84, 88, 195-218, 225-241,
-  263-270, 282-309, 303-309, 316-373, 379, 403-418, 426-427, 431-491)
-- src/Tapestry.Server/Login/InteractiveTakeoverConfirmer.cs
-- src/Tapestry.Server/Login/WizlockGate.cs
-- src/Tapestry.Server/Login/ReservedNameGate.cs
-- src/Tapestry.Server/Program.cs lines 237-704
-- src/Tapestry.Server/PreAuth/PreAuthTokenService.cs
-- src/Tapestry.Engine/Persistence/AccountService.cs
-- src/Tapestry.Engine/Login/LoginContext.cs
-- src/Tapestry.Engine/Login/LoginGateRegistry.cs
-- src/Tapestry.Engine/Login/ILoginGate.cs
-- src/Tapestry.Engine/Login/EmailValidator.cs
-- src/Tapestry.Engine/Login/WizlockState.cs
-- src/Tapestry.Engine/NameValidator.cs
-- src/Tapestry.Engine/LoginPhase.cs
-- src/Tapestry.Data/PreAuthSection.cs
-- src/Tapestry.Server/PreAuth/PreAuthToken.cs
-- tests/Tapestry.Engine.Tests/Login/LoginFlowWizlockTests.cs
-- tests/Tapestry.Engine.Tests/Login/LoginFlowNameValidationTests.cs
-
-UNVERIFIED count: 1
-
-1. Full revert history beyond the 15-commit window -- the Rejected section
-   cannot be closed definitively without it.
+|------|--------|----------|

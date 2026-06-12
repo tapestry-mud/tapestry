@@ -156,26 +156,3 @@ No reversals on record as of 2026-06-12.
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-## Sources consulted
-
-- `src/Tapestry.Engine/Economy/CurrencyService.cs`
-- `src/Tapestry.Engine/Economy/CurrencyProperties.cs`
-- `src/Tapestry.Engine/Economy/EconomyConfig.cs`
-- `src/Tapestry.Engine/Economy/ShopService.cs`
-- `src/Tapestry.Engine/Economy/ShopConfig.cs`
-- `src/Tapestry.Engine/Economy/ShopProperties.cs`
-- `src/Tapestry.Engine/Economy/ShopResults.cs`
-- `src/Tapestry.Scripting/Modules/ShopModule.cs`
-- `src/Tapestry.Scripting/Modules/CurrencyModule.cs`
-- `src/Tapestry.Scripting/PackLoader.cs` (shop config loading, lines 421-460)
-- `src/Tapestry.Scripting/PackValidator.cs` (shop tag validation)
-- `src/Tapestry.Engine/GameLoop.cs` (ShopService.Sell sell flow, lines 174-190;
-  GetListings value filter, lines 63-66)
-- `packs/@tapestry/core/scripts/commands/shop.js`
-- `packs/@tapestry/example-pack/areas/starter-town/mobs/merchant.yaml`
-- `tests/Tapestry.Engine.Tests/Economy/ShopServiceTests.cs`
-
-UNVERIFIED count: 0

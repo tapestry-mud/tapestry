@@ -152,22 +152,3 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 
 | Date | Change Record | Summary |
 |------|---------------|---------|
-
----
-
-Sources consulted:
-- src/Tapestry.Server/Modules/ContentLoadingModule.cs (lines 127-206)
-- src/Tapestry.Scripting/PackLoader.cs
-- src/Tapestry.Scripting/PackValidator.cs
-- src/Tapestry.Scripting/ServiceCollectionExtensions.cs (lines 95-96)
-- src/Tapestry.Scripting/Interop/PackDependencyGraph.cs
-- src/Tapestry.Scripting/JintRuntime.cs
-- src/Tapestry.Scripting/YamlContentLoader.cs (lines 30-71)
-- src/Tapestry.Shared/PackManifest.cs
-- packs/@tapestry/core/pack.yaml (engine: field present, verified no engine_version key)
-- packs/@tapestry/example-pack/pack.yaml
-- tests/Tapestry.Scripting.Tests/PackManifestOptionalDepsTests.cs
-- tests/Tapestry.Scripting.Tests/TwoPhaseLoadingTests.cs
-- git log --oneline (commit f0d8f14 verified)
-
-UNVERIFIED count: 0

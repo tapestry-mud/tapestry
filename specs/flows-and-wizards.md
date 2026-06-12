@@ -230,24 +230,3 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:259-278)
 
 | Date | Change | Spec ref |
 |------|--------|----------|
-
----
-
-sources consulted:
-- src/Tapestry.Scripting/Modules/FlowsModule.cs (444 lines, read in full)
-- src/Tapestry.Engine/Flow/FlowEngine.cs (289 lines, read in full)
-- src/Tapestry.Engine/Flow/FlowInstance.cs (483 lines, read in full)
-- src/Tapestry.Engine/Flow/FlowDefinition.cs
-- src/Tapestry.Engine/Flow/FlowStepDefinition.cs
-- src/Tapestry.Engine/Flow/FlowRegistry.cs
-- src/Tapestry.Engine/Flow/FlowInstance.cs
-- src/Tapestry.Engine/Flow/PlayerCreator.cs
-- src/Tapestry.Engine/Flow/WizardStep.cs
-- src/Tapestry.Engine/Flow/IFlowPersistence.cs
-- src/Tapestry.Server/Persistence/FlowPersistenceAdapter.cs
-- src/Tapestry.Server/Login/LoginFlow.cs (lines 426-427 for trigger entry point)
-
-UNVERIFIED count: 1
-
-1. Full revert history beyond the 15-commit window -- the Rejected section
-   cannot be closed definitively without it.

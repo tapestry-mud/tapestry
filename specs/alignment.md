@@ -128,14 +128,3 @@ the examined history.
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-## Sources Consulted
-
-- src/Tapestry.Engine/Alignment/AlignmentConfig.cs
-- src/Tapestry.Engine/Alignment/AlignmentManager.cs
-- src/Tapestry.Engine/Alignment/AlignmentRange.cs
-- src/Tapestry.Scripting/Modules/AlignmentModule.cs
-
-UNVERIFIED count: 0

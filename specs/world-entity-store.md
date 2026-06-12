@@ -179,17 +179,3 @@ _No tombstones recorded._
 
 | Change Record | Summary |
 |---------------|---------|
-
----
-
-Sources consulted:
-- src/Tapestry.Engine/World.cs (384 lines)
-- src/Tapestry.Engine/Entity.cs (293 lines)
-- src/Tapestry.Engine/ITagObserver.cs (7 lines)
-- src/Tapestry.Engine/WorldCensus.cs (16 lines)
-- src/Tapestry.Engine/CommonProperties.cs (52 lines)
-- src/Tapestry.Engine/Tags/TagRegistry.cs (99 lines)
-- src/Tapestry.Engine/Tags/TagRegistryEntry.cs (15 lines)
-- tests/Tapestry.Engine.Tests/WorldTagIndexTests.cs (173 lines)
-
-UNVERIFIED count: 0 -- all claims have inline source anchors.

@@ -131,27 +131,3 @@ Notes on two commonly misspelled names:
 
 | Date | Change Record | Summary |
 |------|---------------|---------|
-
----
-
-Sources consulted:
-- src/Tapestry.Scripting/JintRuntime.cs
-- src/Tapestry.Scripting/ServiceCollectionExtensions.cs
-- src/Tapestry.Scripting/Interop/PackExportRegistry.cs (lines 27-28)
-- src/Tapestry.Scripting/Interop/RequireProxy.cs
-- src/Tapestry.Scripting/Interop/InteropCallSiteRegistry.cs
-- src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs
-- src/Tapestry.Scripting/Modules/PacksModule.cs
-- src/Tapestry.Scripting/Modules/FsModule.cs
-- src/Tapestry.Scripting/Modules/QuestModule.cs (Namespace property)
-- src/Tapestry.Scripting/Modules/ReturnAddressModule.cs (Namespace property)
-- src/Tapestry.Scripting/Modules/*.cs (all Namespace properties via grep)
-- src/Tapestry.Scripting/PackContext.cs
-- src/Tapestry.Scripting/PackScope.cs
-- src/Tapestry.Scripting/LoadedPackNamespaces.cs
-- src/Tapestry.Scripting/IJintApiModule.cs
-- src/Tapestry.Scripting/PackValidator.cs
-- src/Tapestry.Shared/PackManifest.cs
-- git log --oneline (for 00-prefix tombstone verification)
-
-UNVERIFIED count: 0
