@@ -340,6 +340,3 @@ Registered engine properties on items and NPCs:
 ---
 
 ## Change Log
-
-| Release | Record | Summary |
-|---------|--------|---------|
