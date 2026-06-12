@@ -57,4 +57,3 @@ declared override.
 
 | Date | Change Record | Summary |
 |------|---------------|---------|
-| 2026-06-10 | [2026-06-10-registry-routing-pass.md](changes/2026-06-10-registry-routing-pass.md) | All registration kinds routed through the seal; Jint upgraded to 4.9.3 |

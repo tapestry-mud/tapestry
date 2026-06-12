@@ -62,4 +62,3 @@ the verb to a handler and invokes it.
 
 | Date | Change Record | Summary |
 |------|---------------|---------|
-| 2026-06-11 | [2026-06-11-rom-admin-command-suite.md](changes/2026-06-11-rom-admin-command-suite.md) | executeAs seam, wizlock, 11 admin commands |
