@@ -158,9 +158,6 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 
 ## Rejected and Reverted
 
-No features in this capability have been reverted or rejected to date.
+- None on record.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
