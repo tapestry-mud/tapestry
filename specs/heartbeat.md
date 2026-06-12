@@ -1,7 +1,6 @@
 ---
 capability: heartbeat
 last-updated: 2026-06-12
-specs: heartbeat
 ---
 
 # Heartbeat / Tick System
@@ -224,11 +223,6 @@ reading game clock state from scripts.
 
 ## Rejected and Reverted
 
-No tombstones on file. The code comment at `GameLoop.RegisterHeartbeatHandler` (GameLoop.cs:430)
-documents a naming hazard ("NOT 'heartbeat', which is the combat pulse handler") but this
-is a current constraint, not a reversal of shipped behavior.
+- None on record.
 
 ## Change Log
-
-| Date | Change Record | Summary |
-|------|---------------|---------|
