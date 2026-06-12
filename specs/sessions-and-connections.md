@@ -11,107 +11,20 @@ WebSocket. Both implement the `IConnection` interface and produce a
 agnostic; all transport-specific behavior is confined to `Tapestry.Networking`
 and the `ConnectionHandler` entry point in `Tapestry.Server`.
 
-NOTE: this file is 260+ lines -- split into `flood-protection.md` and
-`connection-lifecycle.md` is warranted once either grows further.
+Telnet wire-level behavior (option negotiation, parse state machine, protocol
+constants, TCP_NODELAY) is documented in `specs/telnet-protocol.md`. This file
+covers session lifecycle, WebSocket session behavior, flood protection, and
+bad-input tracking.
 
 ---
 
 ## Behavior
 
-### Telnet connection acceptance
-
-- `TelnetServer` binds `IPAddress.Any` on the configured port and loops on
-  `AcceptTcpClientAsync`. Each accepted `TcpClient` immediately has TCP_NODELAY
-  set on the resulting `TelnetConnection`
-  (src/Tapestry.Networking/TelnetConnection.cs:43).
-- If keepalive is enabled, `TcpKeepAlive.Apply` is called on the socket before
-  any other processing. A `SocketException` from that call is logged as a warning
-  and swallowed so it never kills the accept loop
-  (src/Tapestry.Networking/TelnetServer.cs:62-75).
-- `TelnetServer` keeps an internal `List<TelnetConnection>` protected by a lock.
-  Connections register an `OnDisconnected` callback that removes them from the
-  list (src/Tapestry.Networking/TelnetServer.cs:101-113).
-- On server shutdown, all connections in the list receive `Disconnect("server
-  shutdown")` (src/Tapestry.Networking/TelnetServer.cs:134-145).
-
-### Telnet protocol negotiation
-
-- Immediately after accepting, `TelnetNegotiator.NegotiateAsync` is called with
-  a configurable timeout (default parameter name `negotiationTimeoutMs`)
-  (src/Tapestry.Networking/TelnetServer.cs:83-84).
-- The negotiator opens by sending `IAC DO TTYPE` and `IAC DO NAWS` in one write,
-  then sends the negotiate-request of each registered `IProtocolHandler` (MSSP,
-  GMCP) (src/Tapestry.Networking/TelnetNegotiator.cs:53-59).
-- If the client replies `IAC WILL TTYPE`, the negotiator replies
-  `IAC SB TTYPE SEND IAC SE` once (src/Tapestry.Networking/TelnetNegotiator.cs:96-103).
-- NAWS data is read as two big-endian 16-bit values (width, height)
-  (src/Tapestry.Networking/TelnetNegotiator.cs:142-147).
-- If the client sends `IAC DO <option>` and a registered handler owns that
-  option, `handler.HandleRemoteDo` is called; a `DO GMCP` response sets the
-  `gmcpActive` flag (src/Tapestry.Networking/TelnetNegotiator.cs:106-109).
-- The negotiation loop exits early when both `gotTtypeValue` and `gotNawsData`
-  are true, or when the timeout fires (src/Tapestry.Networking/TelnetNegotiator.cs:66).
-- On `OperationCanceledException` (timeout), negotiation builds capabilities
-  from whatever was collected; falls back to `ClientCapabilities.Default` if
-  nothing was gathered (src/Tapestry.Networking/TelnetNegotiator.cs:161-179).
-- `ClientCapabilities.Default` is: 80x24 window, no ANSI color, server-echo on,
-  GMCP off (src/Tapestry.Networking/ClientCapabilities.cs:61-70).
-- Color support is derived from TTYPE: known MUD client names yield
-  `ColorSupport.Extended`; a TTYPE containing "TRUECOLOR" yields `TrueColor`;
-  "256COLOR" yields `Extended`; any other TTYPE yields `Basic`; no TTYPE yields
-  `None` (src/Tapestry.Networking/ClientCapabilities.cs:99-124).
-- Known MUD clients (zmud, cmud, mudlet, mushclient, etc.) additionally flip
-  `UseServerEcho` to false and `IsMudClient` to true
-  (src/Tapestry.Networking/ClientCapabilities.cs:79-81).
-- After negotiation, handlers with `IsSessionLong == true` are registered into a
-  `TelnetProtocolRouter` that is attached to the connection for the session
-  lifetime (src/Tapestry.Networking/TelnetNegotiator.cs:166-171).
-- If negotiation throws for any reason, `ClientCapabilities.Default` is applied
-  and a warning is logged (src/Tapestry.Networking/TelnetServer.cs:96-99).
-
-### Telnet parse state machine
-
-- `TelnetConnection.ReadLoopAsync` reads a 1024-byte buffer in a loop and feeds
-  bytes to `ProcessInboundBytes`
-  (src/Tapestry.Networking/TelnetConnection.cs:193-226).
-- The parse state machine (`Normal / Iac / Negotiate / SubnegOption / Subneg /
-  SubnegIac`) persists across `ReadAsync` calls so IAC sequences split across
-  reads are handled correctly (src/Tapestry.Networking/TelnetConnection.cs:22-25).
-- Subnegotiation payloads are dispatched to `TelnetProtocolRouter` on `IAC SE`;
-  doubled `IAC IAC` inside subneg data is unescaped to a single `0xFF`
-  (src/Tapestry.Networking/TelnetConnection.cs:282-296).
-- On a newline (`\n`), the buffered line is trimmed of trailing `\r`, fired on
-  `OnInput`, and the buffer cleared. `\r` bytes are ignored; backspace (0x08/0x7F)
-  removes the last character (src/Tapestry.Networking/TelnetConnection.cs:307-331).
-- Input buffer cap: a line longer than 4096 bytes is discarded with a warning
-  message to the client; an `_inputBuffer` exceeding 65536 bytes disconnects the
-  connection (src/Tapestry.Networking/TelnetConnection.cs:207-212, 337-342).
-  Both limits are tested (tests/Tapestry.Networking.Tests/TelnetConnectionHardeningTests.cs:9-13).
-- `Disconnect` is idempotent (guarded by `_disconnectFired`); it closes the TCP
-  client, disposes the router, and fires `OnDisconnectedWithReason` then
-  `OnDisconnected` (src/Tapestry.Networking/TelnetConnection.cs:180-191).
-
-### Telnet heartbeat (keep-alive liveness probe)
-
-- `TelnetConnection.Heartbeat` writes `IAC NOP` (0xFF 0xF1) to the peer. It is
-  a liveness probe, not a ping/pong: the write forces a TCP send; against a half-
-  open peer the write eventually errors and calls `Disconnect`
-  (src/Tapestry.Networking/TelnetConnection.cs:122-135). Tested in
-  tests/Tapestry.Networking.Tests/TelnetConnectionHardeningTests.cs:149-169.
-- `GameLoop.RegisterHeartbeatHandler` registers a tick handler named
-  "connection-heartbeat" that calls `Heartbeat()` on every `LoginPhase.Playing`
-  session at the configured interval
-  (src/Tapestry.Engine/GameLoop.cs:433-443).
-- `GameLoopService` wires this handler when
-  `config.Networking.KeepAlive.Enabled && HeartbeatSeconds > 0`; the interval in
-  ticks is `round(HeartbeatSeconds * 1000 / TickRateMs)` with a floor of 1
-  (src/Tapestry.Server/GameLoopService.cs:200-205).
-
 ### WebSocket connection establishment
 
-- `WebSocketConnection` wraps an `System.Net.WebSockets.WebSocket` (ASP.NET
+- `WebSocketConnection` wraps a `System.Net.WebSockets.WebSocket` (ASP.NET
   Core's managed WebSocket). `IsConnected` reflects `WebSocketState.Open`
-  (src/Tapestry.Networking/WebSocketConnection.cs:22-23).
+  (src/Tapestry.Networking/WebSocketConnection.cs:26).
 - `SupportsAnsi` is always `true` for WebSocket connections
   (src/Tapestry.Networking/WebSocketConnection.cs:27).
 - `RunAsync` races a read loop against a write loop; whichever exits first causes
@@ -169,18 +82,30 @@ NOTE: this file is 260+ lines -- split into `flood-protection.md` and
 
 - `GameLoop.ConfigureIdleTimeout` converts seconds to ticks using
   `_timer.SecondsToTicks` (src/Tapestry.Engine/GameLoop.cs:129-133).
-- The idle-timeout handler runs every 300 ticks (approx. 30 s at 100 ms tick rate)
-  (src/Tapestry.Engine/GameLoop.cs:384).
+- The idle-timeout handler runs every 300 ticks (approx. 30 s at 100 ms tick
+  rate) (src/Tapestry.Engine/GameLoop.cs:384).
 - Admin sessions (checked via `HasRole(adminTag)`) are exempt from idle kicks
   (src/Tapestry.Engine/GameLoop.cs:400).
 - Idle check applies only to `LoginPhase.Playing` sessions, never mid-login
   (src/Tapestry.Engine/GameLoop.cs:398).
 - Idle ticks are computed as `_tickCount - session.LastInputTick`. A warning
   message is sent once (`IdleWarned` flag) at `_idleWarningTicks`; at
-  `_idleTimeoutTicks` the session is enqueued for disconnect
-  (src/Tapestry.Engine/GameLoop.cs:404-420).
+  `_idleTimeoutTicks` the session is disconnected synchronously and a
+  `DisconnectEvent` is enqueued for the game loop
+  (src/Tapestry.Engine/GameLoop.cs:406-413).
 - `UpdateLastInputTick` resets `IdleWarned` to false
   (src/Tapestry.Engine/PlayerSession.cs:63-66).
+
+### GameLoop connection heartbeat
+
+- `GameLoop.RegisterHeartbeatHandler` registers a tick handler named
+  "connection-heartbeat" that calls `Heartbeat()` on every `LoginPhase.Playing`
+  session at the configured interval
+  (src/Tapestry.Engine/GameLoop.cs:433-443).
+- `GameLoopService` wires this handler when
+  `config.Networking.KeepAlive.Enabled && HeartbeatSeconds > 0`; the interval in
+  ticks is `round(HeartbeatSeconds * 1000 / TickRateMs)` with a floor of 1
+  (src/Tapestry.Server/GameLoopService.cs:200-205).
 
 ### Link-dead handling
 
@@ -235,6 +160,10 @@ NOTE: this file is 260+ lines -- split into `flood-protection.md` and
   reason "command flooding" (src/Tapestry.Engine/PlayerSession.cs:134-143).
 - If no `FloodContext` is provided to the session constructor, all token checks
   return true unconditionally (src/Tapestry.Engine/PlayerSession.cs:86).
+- The test at tests/Tapestry.Networking.Tests/TelnetConnectionHardeningTests.cs:9-13
+  pins the flood-limit constants (`MaxLineLength = 4096`, `MaxBufferSize = 65536`)
+  on `TelnetConnection`. There is no behavior-level test for the token-bucket
+  throttle mechanism itself.
 
 ### BadInputTracker
 

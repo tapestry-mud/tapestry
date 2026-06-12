@@ -58,9 +58,11 @@ once per game-loop tick, not on the publishing thread.
 - Subscribing with event type `"*"` adds the handler to a separate
   `_wildcardHandlers` list rather than the per-type map.
   (src/Tapestry.Engine/EventBus.cs:30-38)
-- On every `Publish`, wildcard handlers are merged with the specific-type
-  handlers by priority before dispatch; they participate in the same priority
-  ordering as specific-type handlers. (src/Tapestry.Engine/EventBus.cs:140-148)
+- Wildcard handlers are merged with specific-type handlers by priority when the
+  handler cache entry is built for an event type; the resulting sorted array is
+  stored in `_cache` and reused on subsequent publishes until the cache is
+  invalidated. They participate in the same priority ordering as specific-type
+  handlers. (src/Tapestry.Engine/EventBus.cs:109-120)
 - Adding a wildcard subscription clears the entire handler cache so subsequent
   publishes rebuild merged handler arrays that include the new wildcard.
   (src/Tapestry.Engine/EventBus.cs:35)
@@ -139,14 +141,15 @@ once per game-loop tick, not on the publishing thread.
 - Packs publish events via `events.publish(eventType, dataObj)`. Properties of
   the JS object are extracted into the `Data` dictionary; no entity IDs are
   set. (src/Tapestry.Scripting/Modules/EventsModule.cs:33-49)
-- UNVERIFIED: there is no rate-limiting or guard on pack-published events; a
-  pack script can publish arbitrarily. (No counter-evidence found in code.)
+- There is no dedicated rate limit on pack event publishing via the event bus;
+  pack event handlers are subject only to the engine-wide Jint execution
+  timeout (JintRuntime.cs:29-31).
 
 ### IGameModule and server-side event wiring
 
-- `IGameModule` has a single `Configure()` method. The contract contains no
-  event-specific logic -- it is a general bootstrap hook.
-  (src/Tapestry.Contracts/IGameModule.cs:1-7)
+- `IGameModule` declares a `Name` string property and a `Configure()` method.
+  The contract contains no event-specific logic -- it is a general bootstrap
+  hook. (src/Tapestry.Contracts/IGameModule.cs:1-7)
 - At startup `GameBootstrapper.Configure()` iterates all registered
   `IGameModule` implementations and calls `Configure()` on each.
   (src/Tapestry.Server/GameBootstrapper.cs:8, 24)
@@ -163,8 +166,7 @@ once per game-loop tick, not on the publishing thread.
 ## Rejected and Reverted
 
 No tombstoned or reverted event-bus behaviors were found in git history or
-code comments for this capability. (git log --oneline -15 --
-src/Tapestry.Engine/EventBus.cs; commits a2dd1be, 8816776, 9bd2684)
+code comments for this capability.
 
 ## Change Log
 
@@ -174,30 +176,10 @@ src/Tapestry.Engine/EventBus.cs; commits a2dd1be, 8816776, 9bd2684)
 
 ---
 
-Sources consulted:
-- src/Tapestry.Engine/EventBus.cs (154 lines, read in full)
-- src/Tapestry.Engine/SystemEvent.cs
-- src/Tapestry.Engine/SystemEventQueue.cs
-- src/Tapestry.Contracts/IGameModule.cs
-- src/Tapestry.Scripting/Modules/EventsModule.cs
-- src/Tapestry.Server/Modules/WorldEventModule.cs
-- src/Tapestry.Shared/GameEvent.cs
-- src/Tapestry.Engine/GameLoop.cs (lines 160-199)
-- src/Tapestry.Server/PlayerSpawner.cs (grep excerpt)
-- src/Tapestry.Engine/ServiceCollectionExtensions.cs (grep excerpt)
-- src/Tapestry.Server/GameBootstrapper.cs (grep excerpt)
-- src/Tapestry.Server/Program.cs (grep excerpt)
-- tests/Tapestry.Engine.Tests/EventBusTests.cs (196 lines, read in full)
-- git log --oneline -15 -- src/Tapestry.Engine/EventBus.cs
+## Related capabilities
 
-UNVERIFIED count: 1
-  - No rate-limiting on pack-published events (no code found either confirming
-    or denying; marked UNVERIFIED)
+Specific event types fired by combat, movement, progression, GMCP, and other
+subsystems are covered in those subsystems' capability specs, not here.
 
-Out-of-scope notes:
-  - Specific event types fired by combat, movement, progression, GMCP, and
-    other subsystems are not documented here; they belong in those subsystems'
-    capability specs.
-  - `ConnectEvent` is defined but no call site for enqueuing it was found in
-    the grep results; its dispatch path is not documented here to avoid
-    unverified claims.
+`ConnectEvent` is defined in `SystemEvent.cs` but its enqueue call site has
+not been confirmed; its dispatch path is not documented in this spec.

@@ -1,6 +1,7 @@
 ---
 capability: heartbeat
 last-updated: 2026-06-12
+specs: heartbeat
 ---
 
 # Heartbeat / Tick System
@@ -17,6 +18,11 @@ optionally scaled by player occupancy.
 
 Combat resolution is handled inside the `CombatPulse` IPulseHandler; that logic is out of
 scope for this spec and is covered in combat.md.
+
+Game-clock semantics (time periods, in-game hour/period events) are owned by
+world-simulation.md; this spec covers only the tick dispatch mechanics.
+
+Regen events (entity.regen, RestService multipliers) are documented in rest-and-recovery.md.
 
 ## Behavior
 
@@ -68,12 +74,13 @@ Each call to `GameLoop.Tick()` executes the following phases in order.
 - `TickTimer` converts between ticks and real-time seconds using a `TicksPerSecond`
   constant set at construction. (src/Tapestry.Engine/TickTimer.cs)
 
-- Slow-tick detection fires `OnSlowTick` and logs a warning when any single tick or any
-  individual handler exceeds `slow_tick_threshold_ms` (default 50 ms). Per-handler wall and
-  CPU time are recorded as OpenTelemetry histogram metrics
-  (`tapestry.tick.handler_wall_ms`, `tapestry.tick.handler_cpu_ms`) and the handler is
-  classified as "cpu-bound" or "preempted" based on CPU vs wall ratio.
-  (GameLoop.cs:336; GameLoopTests.Tick_CapturesHandlerCpu_DistinguishesSleepFromSpin)
+- Slow-tick detection fires `OnSlowTick` and logs a warning when the entire tick exceeds
+  `slow_tick_threshold_ms` (default 50 ms). The warning fires once per tick, covering the
+  whole tick duration; per-handler overruns are logged separately but do not individually
+  trigger `OnSlowTick`. Per-handler wall and CPU time are recorded as OpenTelemetry
+  histogram metrics (`tapestry.tick.handler_wall_ms`, `tapestry.tick.handler_cpu_ms`) and
+  the handler is classified as "cpu-bound" or "preempted" based on CPU vs wall ratio.
+  (GameLoop.cs:366-377; GameLoopTests.Tick_CapturesHandlerCpu_DistinguishesSleepFromSpin)
 
 ### Tick handler registration
 
@@ -96,9 +103,9 @@ Each call to `GameLoop.Tick()` executes the following phases in order.
   (from the dispatch maps). A cancel issued inside a running handler is safe because
   rescheduling happens before invocation. (GameLoop.cs:106)
 
-### Built-in tick handlers (registered by TickHandlerModule)
+### Built-in tick handlers (registered by TickHandlerModule.Configure)
 
-All of the following are wired by `TickHandlerModule.Configure`.
+The following handlers are wired by `TickHandlerModule.Configure`.
 (src/Tapestry.Server/Modules/TickHandlerModule.cs)
 
 | Name | Interval | Purpose |
@@ -114,9 +121,18 @@ All of the following are wired by `TickHandlerModule.Configure`.
 | regen | 30 ticks | Regenerates HP/resource/movement for players and NPCs |
 | corpse-decay | 30 ticks | Checks and removes expired corpses |
 | autosave | config | Snapshots and writes all player saves (`persistence.autosave_interval`) |
-| idle-timeout | 300 ticks | AFK warning and kick sweep (when idle config is set) |
-| connection-heartbeat | config | Writes a liveness byte to each PLAYING session to detect half-open TCP |
-| linkdead-cleanup | 300 ticks | Reaps sessions that have been link-dead past the timeout |
+
+### Built-in tick handlers (registered by GameLoopService.Configure)
+
+The following handlers are wired by `GameLoopService.Configure`.
+(src/Tapestry.Server/GameLoopService.cs)
+
+| Name | Interval | Purpose |
+|------|----------|---------|
+| idle-timeout | 300 ticks | AFK warning and kick sweep (conditional: only when `idle.warn_seconds` or `idle.timeout_seconds` > 0) (GameLoopService.cs:195) |
+| connection-heartbeat | config | Writes a liveness byte to each PLAYING session to detect half-open TCP (conditional: only when `networking.keep_alive.enabled` and `heartbeat_seconds` > 0) (GameLoopService.cs:205) |
+| linkdead-cleanup | 300 ticks | Reaps sessions that have been link-dead past the timeout (conditional: only when `link_dead.enabled`) (GameLoopService.cs:213) |
+| watch-roster | config | Re-pushes the watchable-player roster to anonymous spectators (conditional: only when `watch.enabled`) (GameLoopService.cs:274) |
 
 ### HeartbeatManager and IPulseHandler
 
@@ -179,10 +195,10 @@ has reached its effective interval.
 
 `GameClock.Tick()` is called every game-loop tick. A new in-game hour advances when
 `tickCount % config.Game.TicksPerGameHour == 0`. Day/night period boundaries (dawn, day,
-dusk, night) are defined by four hour values in `server.yaml` (`game.period_boundaries`
-UNVERIFIED: field name not confirmed in server.yaml snapshot). When the period changes, a
-`time.period.change` event is published; every hour change also emits `time.hour.change`.
-(src/Tapestry.Engine/GameClock.cs)
+dusk, night) are configurable via the `game.period_boundaries` key in `server.yaml`
+(defaults: [5,8,18,20]); the shipped server.yaml omits the key so defaults always apply.
+When the period changes, a `time.period.change` event is published; every hour change also
+emits `time.hour.change`. (src/Tapestry.Engine/GameClock.cs)
 
 ### Pack JS scheduling API
 
@@ -199,22 +215,12 @@ Packs can schedule periodic work from JavaScript via the `schedule` namespace
 
 Handler names are auto-generated as `<packName>:sched:<n>`. All handlers registered by a
 pack are tracked; `ScheduleModule.ResetPack` cancels them all (used during pack reload).
-Packs may not override each other's tick handlers -- tick handlers are marked
-`IsOverride: false` and there is no JS override path. (ScheduleModule.cs:87 comment
-"tick handlers are kernel-only today; no JS override path")
+Packs may not override each other's tick handlers -- tick handlers are kernel-only; no JS
+override path exists. (GameLoop.cs:90 comment)
 
 The `time` JS namespace (`src/Tapestry.Scripting/Modules/TimeModule.cs`) exposes
 `time.hour()`, `time.period()`, `time.dayCount()`, and `time.ticksPerHour()` for
 reading game clock state from scripts.
-
-### Regen events
-
-The regen handler publishes `entity.regen` events with `{ vital, amount }` before applying
-each regen tick. A subscriber may cancel the event (set `evt.Cancelled = true`) or mutate
-`amount`; the engine reads the final `amount` value after all subscribers run.
-Rest state and furniture/room bonuses are applied as a multiplier when a `RestConfig` is
-provided. Entities tagged `no_regen` are skipped entirely.
-(GameLoop.cs:445; GameLoopTests.RegisterRegenHandler_MovementRegenEvent_IsRespectedWhenMutated)
 
 ## Rejected and Reverted
 

@@ -8,7 +8,7 @@ last-updated: 2026-06-12
 ## Overview
 
 Character progression covers how player and NPC entities gain experience, advance
-levels, grow stats, and spend training points. It spans five subsystems:
+levels, grow stats, and spend training points. It spans four subsystems:
 
 - **Progression tracks** -- named XP/level containers (ProgressionManager, TrackDefinition)
 - **Classes** -- define which track to use, stat growth tables, ability unlock paths
@@ -16,15 +16,14 @@ levels, grow stats, and spend training points. It spans five subsystems:
 - **Races** -- define per-stat caps and an ability-cost modifier (RaceDefinition, RaceRegistry)
 - **Training** -- lets players spend train points on stats or practice ability tiers
   (TrainingManager, TrainingConfig, CapTier)
-- **Alignment** -- a numeric [-1000, 1000] moral axis that buckets into evil/neutral/good
-  (AlignmentManager, AlignmentConfig)
 
 All subsystems are engine-generic; no game content is hardcoded. Packs register
 definitions via pack JavaScript using the `tapestry.classes`, `tapestry.races`,
-`tapestry.progression`, `tapestry.training`, and `tapestry.alignment` JS namespaces.
+`tapestry.progression`, and `tapestry.training` JS namespaces.
 
-Out of scope here: ability definitions and effects (abilities-and-effects.md),
-player persistence (persistence.md), combat outcomes (combat.md).
+Out of scope here: alignment (alignment.md), ability definitions and effects
+(abilities-and-effects.md), player persistence (persistence.md), combat outcomes
+(combat.md).
 
 ---
 
@@ -90,11 +89,17 @@ player persistence (persistence.md), combat outcomes (combat.md).
   empty or contains the gender (both case-insensitive).
   (src/Tapestry.Engine/Classes/ClassRegistry.cs:41-46)
 
-- `ClassPathEntry` is a record of `(Level, AbilityId, UnlockedVia?)`. Entries with a
-  non-null `UnlockedVia` are skipped by the automatic path processor; they are
-  reserved for quest or choice-driven unlocks. UNVERIFIED: no current engine code
-  resolves `UnlockedVia` at runtime -- the field is stored but not acted on.
-  (src/Tapestry.Engine/Classes/ClassPathProcessor.cs:78)
+- `ClassPathEntry` is a record of `(Level, AbilityId, UnlockedVia?)` defined at
+  ClassPathEntry.cs:3. `ClassPathEntry.UnlockedVia` is write-only -- no engine code
+  reads or enforces it (ClassPathEntry.cs:3). It is stored but has no effect.
+
+- `ClassPathProcessor.GrantPathEntries` skips entries where `UnlockedVia` is non-null
+  or empty (ClassPathProcessor.cs:78). This means level-up and character-creation
+  grants respect the field.
+
+- `setClass` (ClassesModule.cs:253-259) back-grants path entries without checking
+  `UnlockedVia` -- unlike ClassPathProcessor, which respects it. This means
+  quest-gated path entries can be leaked via setClass.
 
 - On `character.created`, `ClassPathProcessor` grants all path entries at level 1
   that have no `UnlockedVia`.
@@ -213,60 +218,6 @@ player persistence (persistence.md), combat outcomes (combat.md).
 
 ---
 
-### Alignment System
-
-- Alignment is an integer clamped to [-1000, 1000] stored in the `alignment` property.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:8-9)
-
-- `AlignmentConfig` defines `EvilThreshold` (default -350) and `GoodThreshold`
-  (default 350). `BucketFor(alignment)` returns "evil" if <= evil threshold, "good"
-  if >= good threshold, "neutral" otherwise.
-  (src/Tapestry.Engine/Alignment/AlignmentConfig.cs:6-19)
-
-- `AlignmentConfig.ResolveBuckets(buckets)` converts a set of bucket name strings to
-  a min/max numeric range, resolved at registration time. The degenerate case
-  (evil + good simultaneously) returns (null, null) -- unrestricted.
-  (src/Tapestry.Engine/Alignment/AlignmentConfig.cs:24-37)
-
-- `AlignmentManager.Shift(entityId, delta, reason)` fires a cancellable
-  `alignment.shift.check` event; scripts can set `cancel = true` or override
-  `suggestedDelta`. Admins (entities with the `admin` role) are never shifted.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:60-97)
-
-- After a successful shift, `alignment.shifted` is published with `oldValue`,
-  `newValue`, `delta`, `reason`, and `bucketChanged`. If the bucket changes,
-  `alignment.bucket.changed` is also published with `oldBucket` and `newBucket`.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:116-144)
-
-- `AlignmentManager.Set` hard-sets alignment (no events fired, no admin check);
-  intended for admin commands and tests.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:48-55)
-
-- The bucket tag (`alignment_evil`, `alignment_neutral`, or `alignment_good`) is
-  kept in sync on the entity on every shift or bucket read.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:147-153)
-
-- Alignment history is a rolling list capped at 20 entries, each recording
-  `(Timestamp, Delta, Reason, NewValue)`.
-  (src/Tapestry.Engine/Alignment/AlignmentManager.cs:155-161)
-
-- `alignment.configure({ thresholds: { evil, good } })` lets packs reconfigure
-  both thresholds at startup.
-  (src/Tapestry.Scripting/Modules/AlignmentModule.cs:63-74)
-
-- `alignment.setGender` / `alignment.getGender` are exposed under the alignment
-  namespace; they write/read the `gender` property on the entity. UNVERIFIED: the
-  coupling to the alignment module appears incidental -- no alignment logic depends
-  on gender.
-  (src/Tapestry.Scripting/Modules/AlignmentModule.cs:76-88)
-
-- `AlignmentRange` is a record with optional `Min` and `Max`; its `Allows(int)`
-  method is used by other subsystems (e.g., class/ability eligibility) to gate
-  content by alignment score.
-  (src/Tapestry.Engine/Alignment/AlignmentRange.cs:4-14)
-
----
-
 ## Rejected and Reverted
 
 No tombstones. No behavior in this area has been shipped and then reverted as of
@@ -288,9 +239,6 @@ the examined history.
 - src/Tapestry.Engine/Classes/ClassPathProcessor.cs
 - src/Tapestry.Engine/Classes/StatGrowthOnLevelUp.cs
 - src/Tapestry.Engine/Classes/ClassRegistry.cs
-- src/Tapestry.Engine/Alignment/AlignmentConfig.cs
-- src/Tapestry.Engine/Alignment/AlignmentManager.cs
-- src/Tapestry.Engine/Alignment/AlignmentRange.cs
 - src/Tapestry.Engine/Progression/ProgressionProperties.cs
 - src/Tapestry.Engine/Progression/ProgressionManager.cs
 - src/Tapestry.Engine/Progression/TrackDefinition.cs
@@ -306,19 +254,10 @@ the examined history.
 - src/Tapestry.Scripting/Modules/ProgressionModule.cs
 - src/Tapestry.Scripting/Modules/RacesModule.cs
 - src/Tapestry.Scripting/Modules/TrainingModule.cs
-- src/Tapestry.Scripting/Modules/AlignmentModule.cs
 - packs/@tapestry/example-pack/scripts/classes/warrior.js
 - packs/@tapestry/example-pack/scripts/classes/mage.js
 - packs/@tapestry/example-pack/scripts/races/human.js
 - packs/@tapestry/example-pack/scripts/races/elf.js
 - git log --oneline -15 -- src/Tapestry.Engine/Classes/ src/Tapestry.Engine/Races/ src/Tapestry.Engine/Training/
 
-UNVERIFIED count: 2
-  1. ClassPathEntry.UnlockedVia is stored but no runtime resolution code was found.
-  2. alignment.setGender/getGender coupling to alignment namespace appears incidental.
-
-Out-of-scope notes:
-  Ability definitions, proficiency storage, and ability effects are in
-  abilities-and-effects.md scope. Combat XP dispatch (who calls GrantExperience
-  and when) is in combat.md scope. Entity persistence of all properties above is
-  in persistence.md scope.
+UNVERIFIED count: 0

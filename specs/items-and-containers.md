@@ -1,24 +1,19 @@
 ---
-capability: items-and-equipment
+capability: items-and-containers
 last-updated: 2026-06-12
 ---
 
-# Items and Equipment
+# Items and Containers
 
 ## Overview
 
-NOTE -- SPLIT CANDIDATE: This spec is ~300 lines (double the 150-line guideline).
-Candidate split: items-and-equipment-core.md (template model, inventory, keywords,
-equipment slots) + items-and-equipment-advanced.md (containers, stacking, essence,
-rarity, consumables, loot tables). Split deferred until a second author confirms
-the boundary is stable.
-
-Covers the full lifecycle of items in the world: template definition, runtime
-instantiation, player inventory, equipment slots and stat modifiers, containers,
-keyword resolution, stacking display, essence and rarity metadata, consumable
-use, and loot table resolution. Persistence of inventory state is covered in
-persistence.md. Mob death loot-drop timing is covered in mob-ai.md. Economy,
-pricing, and shop transactions are covered in economy-and-shops.md.
+Covers the item template model, runtime instantiation, player inventory
+(pickup, drop, give, destroy), keyword resolution, stacking display,
+containers, consumables, and loot table resolution. Persistence of
+inventory state is covered in persistence.md. Mob death loot-drop timing
+is covered in mob-ai.md. Economy, pricing, and shop transactions are
+covered in economy-and-shops.md. Equipment slots and stat modifiers are
+covered in equipment-and-modifiers.md.
 
 ## Behavior
 
@@ -106,45 +101,6 @@ pricing, and shop transactions are covered in economy-and-shops.md.
   room floor.
   (src/Tapestry.Scripting/Modules/InventoryModule.cs:197-240, 37-64)
 
-### Equipment slots
-
-- `SlotDefinition` has fields `Name`, `Display`, `Max` (maximum concurrent items
-  in this slot), and `Scope` (`engine` or pack name). `IsEngineSlot` is true
-  when Scope == "engine".
-  (src/Tapestry.Engine/Inventory/SlotDefinition.cs:3-18)
-
-- Slot names must match `^[a-z][a-z0-9_]*$` (snake_case); hyphens are rejected
-  at registration time.
-  (src/Tapestry.Engine/Inventory/SlotRegistry.cs:58-67)
-
-- Multi-slot slots (Max > 1) use sub-keys `slotname:0`, `slotname:1`, ... up to
-  `Max - 1` for individual equipment positions.
-  (src/Tapestry.Engine/Inventory/EquipmentManager.cs:62-75)
-
-- `EquipmentManager.Equip` requires the item to be in the entity's inventory;
-  validates the slot exists; if all sub-slots are full, auto-swaps the first
-  occupied sub-slot (sub-slot :0 for multi-slots) back to inventory.
-  (src/Tapestry.Engine/Inventory/EquipmentManager.cs:32-103)
-
-- On equip, stat modifiers from the item's `modifiers` property are applied to
-  the entity's stat block under the source key `equipment:<itemId>`. On unequip,
-  those modifiers are removed by source key.
-  (src/Tapestry.Engine/Inventory/EquipmentManager.cs:80-89, 115-119)
-
-- Equip fires `entity.equipped`; unequip fires `entity.unequipped` (unless
-  `silent: true`). The event carries `itemId` and the base slot name.
-  (src/Tapestry.Engine/Inventory/EquipmentManager.cs:91-101, 120-136)
-
-- Scripts register new slots via `equipment.registerSlot({name, display, max,
-  override})` which records a `RegistrationCandidate` of kind "slot"; the actual
-  `SlotRegistry` write is deferred until Resolve() (the seal barrier). Duplicate
-  slot names from different packs without `override: true` are a boot error.
-  (src/Tapestry.Scripting/Modules/EquipmentModule.cs:238-269)
-
-- `getSlots` returns all slots in registration order with per-slot equipped item
-  details including `rarityKey` and `essenceKey`.
-  (src/Tapestry.Scripting/Modules/EquipmentModule.cs:181-232)
-
 ### Containers
 
 - Container entities have type `container`. Engine-registered properties:
@@ -169,13 +125,17 @@ pricing, and shop transactions are covered in economy-and-shops.md.
 
 - Container contents in `putAllInContainer` stop on the first `full` or
   `too_heavy` failure; other per-item failures (e.g., cancelled) are skipped
-  silently without stopping.
-  (src/Tapestry.Engine/Inventory/InventoryManager.cs:712-719)
+  silently without stopping. The loop iterates only non-container items from
+  the actor's `Contents`.
+  (src/Tapestry.Scripting/Modules/InventoryModule.cs:704-721)
 
 - `FillItem` fills a liquid-bearing item (must have `max_charges`) from a source
-  entity tagged `fill_source`. Refuses if liquid types would be mixed with
-  existing charges. Decrements `fill_supply` on the source if set.
-  (src/Tapestry.Engine/Inventory/InventoryManager.cs:205-263)
+  entity. The source entity's `fill_source` property determines the liquid type;
+  if the property is absent or empty, the engine falls back to checking whether
+  the source entity has a `fill_source` tag, defaulting to "water" when that
+  tag is present. Refuses if liquid types would be mixed with existing charges.
+  Decrements `fill_supply` on the source if set.
+  (src/Tapestry.Engine/Inventory/InventoryManager.cs:205-263, especially 214-219)
 
 ### Stacking
 
@@ -192,52 +152,6 @@ pricing, and shop transactions are covered in economy-and-shops.md.
 - Each `StackEntry` exposes `templateId`, `name`, `quantity`, `rarityKey`,
   `essenceKey`, and `itemIds` (list of actual entity GUIDs in the stack).
   (src/Tapestry.Engine/Inventory/StackEntry.cs:3-11)
-
-### Essence
-
-- `EssenceDefinition` is a record with `Key`, `Glyph`, and `Color`.
-  (src/Tapestry.Engine/Inventory/EssenceDefinition.cs:3)
-
-- Packs register essence types via `essence.register({key, glyph, color, html,
-  override})`; registration is deferred to seal. Duplicate keys without override
-  are boot errors.
-  (src/Tapestry.Scripting/Modules/EssenceModule.cs:30-70)
-
-- Registration also writes a theme entry under `essence.<key>` with the given
-  color and html values.
-  (src/Tapestry.Scripting/Modules/EssenceModule.cs:65-68)
-
-- `essence.format(essenceKey)` produces a formatted display string; `essence.
-  getEssence(key)` returns `{key, glyph, color}`.
-  (src/Tapestry.Scripting/Modules/EssenceModule.cs:73-80)
-
-- Items carry essence as the string property `essence` (engine-registered,
-  applies to EntityTypes.Item).
-  (src/Tapestry.Engine/Items/ItemProperties.cs:9, 14)
-
-### Rarity tiers
-
-- `RarityTierDefinition` is a record with `Key`, `Order` (int sort position),
-  `DisplayText` (nullable), `Decorators` (nullable left/right bracket pair),
-  `Color`, and `Visible` (bool).
-  (src/Tapestry.Engine/Inventory/RarityTierDefinition.cs:3-10)
-
-- Packs register rarity tiers via `rarity.register({key, order, visible,
-  displayText, decorators, color, html, override})`; deferred to seal. Duplicate
-  keys without override are boot errors.
-  (src/Tapestry.Scripting/Modules/RarityModule.cs:30-87)
-
-- Registration also writes a theme entry under `item.<key>` with color and html.
-  (src/Tapestry.Scripting/Modules/RarityModule.cs:83-86)
-
-- `rarity.format(key)` / `rarity.formatInline(key)` produce display strings.
-  `rarity.getTier(key)` returns the tier object. `rarity.tagWidth()` returns
-  the fixed width used for rarity tag padding.
-  (src/Tapestry.Scripting/Modules/RarityModule.cs:89-108)
-
-- Items carry rarity as the string property `rarity` (engine-registered, applies
-  to EntityTypes.Item).
-  (src/Tapestry.Engine/Items/ItemProperties.cs:8, 13)
 
 ### Consumables
 

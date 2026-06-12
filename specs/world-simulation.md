@@ -48,6 +48,9 @@ definitions, emote names, or period messages of its own. Heartbeat timing that d
   advance or set the clock directly.
   (src/Tapestry.Scripting/Modules/TimeModule.cs:24-28)
 
+This spec owns game-clock semantics. The heartbeat.md spec covers only the tick
+dispatch mechanics that drive the clock; it does not duplicate clock behavior.
+
 ### Weather zones -- definition and registration
 
 - A `WeatherZoneDefinition` has an `Id`, a `States` list, a `Transitions` map, a
@@ -72,7 +75,7 @@ definitions, emote names, or period messages of its own. Heartbeat timing that d
   by calling `WeatherZoneRegistry.Register(def)` from a script or YAML loader. The
   shipped `@tapestry/core` pack registers a `temperate` zone with states
   `[clear, cloudy, rain, storm]` and terrain messages for `forest`, `city`, and `road`.
-  (src/Tapestry.Engine/WeatherZoneRegistry.cs; tests/.../weather_zones.yaml:1-71)
+  (src/Tapestry.Engine/WeatherZoneRegistry.cs; packs/@tapestry/core/areas/weather_zones.yaml:1-71)
 
 - An area opts in to weather by setting `WeatherZone` to a zone id in its area
   definition. Areas with no `WeatherZone` are silently skipped by the roll loop.
@@ -130,9 +133,10 @@ definitions, emote names, or period messages of its own. Heartbeat timing that d
 ### Emote registry -- registration and formatting
 
 - `EmoteDefinition` has `Name`, `SelfMessage`, `RoomMessage`, and optional
-  `TargetMessage` / `TargetRoomMessage`. `TargetRoomMessage` is on the data model but
-  `EmotesModule` does not read it from JS at registration time. UNVERIFIED: whether any
-  code path dispatches `TargetRoomMessage` at all.
+  `TargetMessage` / `TargetRoomMessage`. `EmoteDefinition` defines a `TargetRoomMessage`
+  field (EmoteRegistry.cs:9) for a third-party-observer message, but it is never
+  populated during registration and is never dispatched; emotes have no third-party
+  observer message.
   (src/Tapestry.Engine/EmoteRegistry.cs:1-10; EmotesModule.cs:61-67)
 
 - `EmoteRegistry.Register(emote)` is an upsert gated by a `RegistrationGate`. Writes
@@ -163,30 +167,3 @@ formally reverted -- this is an implementation change, not a reversal of game be
 
 | Date | Change Record | Summary |
 |------|---------------|---------|
-
----
-
-Sources consulted:
-- src/Tapestry.Engine/WeatherService.cs
-- src/Tapestry.Engine/WeatherZoneDefinition.cs
-- src/Tapestry.Engine/WeatherZoneRegistry.cs
-- src/Tapestry.Engine/GameClock.cs
-- src/Tapestry.Engine/EmoteRegistry.cs
-- src/Tapestry.Scripting/Modules/WeatherModule.cs
-- src/Tapestry.Scripting/Modules/TimeModule.cs
-- src/Tapestry.Scripting/Modules/EmotesModule.cs
-- tests/Tapestry.Engine.Tests/WeatherServiceTests.cs
-- tests/Tapestry.Engine.Tests/bin/.../packs/@tapestry/core/areas/weather_zones.yaml
-- src/Tapestry.Data/ServerConfig.cs (GameSection, defaults)
-- specs/heartbeat.md (cross-reference, GameClock mention)
-- git log output for the three primary source files (commits a2dd1be, 7d769c3, 8cc5489)
-
-UNVERIFIED count: 1
-- `TargetRoomMessage` dispatch: the field exists on `EmoteDefinition` but
-  `EmotesModule` does not write it and no call site in the read files uses it.
-
-Out-of-scope notes:
-- Heartbeat timing and how `GameClock.Tick()` is invoked: covered in heartbeat.md.
-- Area ticks (`area.tick` events, reset intervals): covered in heartbeat.md.
-- Combat resolution: covered in combat.md.
-- Pack registration policy and seal mechanics: covered in registries-and-seal.md.

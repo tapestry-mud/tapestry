@@ -1,9 +1,9 @@
 ---
-capability: abilities-and-effects
+capability: abilities
 last-updated: 2026-06-12
 ---
 
-# Abilities and Effects
+# Abilities
 
 ## Overview
 
@@ -11,12 +11,13 @@ The abilities system is the engine-level pipeline for player and NPC active
 skills, spells, and passive combat modifiers. Definitions are registered by
 pack scripts and stored in `AbilityRegistry`. Proficiency scores live on
 entities (not in the registry). Every active ability invocation is queued onto
-the entity and resolved one per pulse by `AbilityResolutionPhase`. Effects
-are discrete stat-modifier + flag bundles tracked in memory by `EffectManager`
-and broadcast over GMCP via `CharEffectsHandler`.
+the entity and resolved at most once per combat pulse by `AbilityResolutionPhase`,
+which runs as a sub-phase of `CombatPulse`. Effects produced by successful hits
+are handed off to `EffectManager` (see effects-and-modifiers.md).
 
 Out of scope here: auto-attack damage (combat.md), character stat growth and
-levelling (character-progression.md).
+levelling (character-progression.md), the effect lifecycle after
+`EffectManager.TryApply` (effects-and-modifiers.md).
 
 ---
 
@@ -141,8 +142,10 @@ levelling (character-progression.md).
   (src/Tapestry.Engine/Abilities/PassiveAbilityProcessor.cs)
 
 - `CheckBinaryPassive(entityId, abilityId, random)` -- rolls against
-  `proficiency * (variance/100)` (or `proficiency * (maxChance/100)` when
-  variance == 100). Returns bool. Used for one-shot passive checks.
+  `proficiency * (variance/100)` when variance < 100, or against
+  `proficiency * (maxChance/100)` when variance >= 100. Returns bool.
+  Used for one-shot passive checks.
+  (PassiveAbilityProcessor.cs:25-27)
 
 - `GetScalingBonus(entityId, abilityId)` -- returns a proportional integer
   bonus from 0 to `max_bonus` (metadata key) based on proficiency/100.
@@ -158,17 +161,31 @@ levelling (character-progression.md).
 
 ### Ability Resolution Phase
 
-- `AbilityResolutionPhase` implements `IPulseHandler` with `Cadence = 1`,
-  `Priority = 100`. It runs every pulse.
-  (src/Tapestry.Engine/Heartbeat/AbilityResolutionPhase.cs:13)
+- `AbilityResolutionPhase` implements `IPulseHandler` but is never registered
+  with the heartbeat directly. It is injected into `CombatPulse` and invoked
+  as a sub-phase at the start of each combat pulse.
+  (src/Tapestry.Engine/Heartbeat/AbilityResolutionPhase.cs:11;
+  src/Tapestry.Engine/Heartbeat/CombatPulse.cs:25)
 
-- Each pulse: for every entity that has `QueuedActions` set, dequeue entries
-  from the front until a valid one is found or the queue is exhausted. At most
-  one ability executes per entity per pulse.
+- `CombatPulse` has `Cadence = 20` and is the sole registered pulse handler
+  for combat. It is registered via `_heartbeat.Register(_combatPulse)` in
+  `TickHandlerModule`. Abilities therefore resolve once per combat pulse.
+  `PulseDelay` on an ability definition is denominated in combat pulses.
+  (CombatPulse.cs:12; src/Tapestry.Server/Modules/TickHandlerModule.cs:84)
+
+- Each combat pulse: for every entity that has `QueuedActions` set, dequeue
+  entries from the front until a valid one is found or the queue is exhausted.
+  At most one ability executes per entity per combat pulse.
   (AbilityResolutionPhase.cs:69)
 
-- Invalid queue entries (null, missing abilityId, unknown ability) are silently
-  dropped after publishing `ability.fizzled`. (AbilityResolutionPhase.cs:86)
+- Invalid queue entry handling (before validation):
+  - Null entry (not a `Dictionary<string, object?>`) -- dropped silently.
+    (AbilityResolutionPhase.cs:71-75)
+  - Entry missing `abilityId` key or with null value -- dropped silently.
+    (AbilityResolutionPhase.cs:78-83)
+  - Entry whose `abilityId` resolves to no registered definition --
+    `ability.fizzled` published with `reason = "unknown_ability"`.
+    (AbilityResolutionPhase.cs:85-90)
 
 - Validation order (all checks before execution):
   1. Rest state -- sleeping or resting -> `Asleep`.
@@ -193,7 +210,7 @@ levelling (character-progression.md).
      modifier applied via `RaceCostCalculator.AdjustCost` ->
      `Insufficient_Resources`. (AbilityResolutionPhase.cs:214)
 
-- On validation failure, `ability.fizzled` is published with `reason` =
+- On any validation failure, `ability.fizzled` is published with `reason` =
   snake_case enum name. (AbilityResolutionPhase.cs:470)
 
 - Offense classification: all Skills are offensive; a Spell is offensive if it
@@ -223,78 +240,12 @@ levelling (character-progression.md).
 - `ClearPulseDelays(entityId)` is available for external callers (e.g., combat
   end / flee events). (AbilityResolutionPhase.cs:55)
 
-### Effect Model
-
-- `ActiveEffect` fields: `Id`, `SourceAbilityId` (nullable), `SourceEntityId`,
-  `TargetEntityId`, `RemainingPulses` (mutable), `StatModifiers`, `Flags`,
-  `Metadata`. (src/Tapestry.Engine/Effects/ActiveEffect.cs)
-
-- `RemainingPulses < 0` signals a permanent effect (never expires).
-  (src/Tapestry.Engine/Effects/EffectManager.cs:138)
-
-- `StatModifier` source is set to `"effect:{effectId}"` at apply time so
-  modifiers can be tracked and removed cleanly without an additional lookup.
-  (AbilityResolutionPhase.cs:424; EffectsModule.cs:75)
-
-### EffectManager
-
-- `TryApply(effect)` rejects (returns false) if an effect with the same `Id`
-  is already active on the target entity -- no stacking of identical IDs.
-  (EffectManager.cs:32)
-
-- On apply: each stat modifier is applied via `entity.Stats.AddModifier` with
-  a duplicate guard (skipped if same Source+Stat already present, to survive
-  save/load without double-application). Each flag is added as an entity tag.
-  Publishes `effect.applied`. (EffectManager.cs:175)
-
-- `Remove(entityId, effectId)` reverses modifiers via
-  `Stats.RemoveModifiersBySource` and removes tags. Publishes `effect.removed`.
-  (EffectManager.cs:56)
-
-- `RemoveByFlag(entityId, flag)` removes all effects carrying the given flag,
-  reversing each. Publishes `effect.removed` per removal. (EffectManager.cs:85)
-
-- `TickPulse()` decrements `RemainingPulses` on all non-permanent effects; any
-  that reach <= 0 are expired: modifiers/tags reversed, `effect.expired`
-  published. Called by `ResolveStatusEffectsPhase` each combat pulse.
-  (EffectManager.cs:130; combat.md)
-
-### Pack JS API -- effects
-
-- `effects.apply(targetIdStr, def)` -- `def` shape:
-  `{id, duration (pulses; -1 = permanent), source_entity_id?, stat_modifiers?,
-  flags?}`. Returns bool (false if target unknown or effect already active).
-  (src/Tapestry.Scripting/Modules/EffectsModule.cs:32)
-
-- `effects.remove(entityIdStr, effectId)` -- explicit removal.
-
-- `effects.removeByFlag(entityIdStr, flag)` -- bulk removal.
-
-- `effects.hasEffect(entityIdStr, effectId)` -- returns bool.
-
-- `effects.getActive(entityIdStr)` -- returns array of
-  `{id, name, remaining_pulses, flags}`. Name resolves via `AbilityRegistry`
-  (SourceAbilityId), falls back to SourceAbilityId then id. (EffectsModule.cs:152)
-
-### GMCP -- Char.Effects
-
-- `CharEffectsHandler` subscribes to `effect.applied`, `effect.removed`, and
-  `effect.expired`. On any of these, if the target entity is a player, sends
-  a full `Char.Effects` refresh. (src/Tapestry.Server/Gmcp/Handlers/CharEffectsHandler.cs:40)
-
-- Payload shape: `{effects: [{id, name, remainingPulses, flags, type}]}`.
-  `type` = `"debuff"` if flags contains `"harmful"`, otherwise `"buff"`.
-  (CharEffectsHandler.cs:75)
-
-- `SendBurst` (called on login/reconnect) pushes the current full list to the
-  new connection immediately. (CharEffectsHandler.cs:59)
-
 ---
 
 ## Rejected and Reverted
 
-No tombstoned ability or effect behaviors identified in the commit range
-reviewed (commits a2dd1be through 8cc5489). The `Priority` field on
+No tombstoned ability behaviors identified in the commit range reviewed
+(commits a2dd1be through 8cc5489). The `Priority` field on
 `AbilityDefinition` was demoted from collision-arbitration to parse-compat
 storage only in commit 8cc5489; it no longer controls which pack's definition
 wins a conflict.
@@ -305,40 +256,3 @@ wins a conflict.
 
 | Release | Record | Summary |
 |---------|--------|---------|
-
----
-
-## Sources consulted
-
-- src/Tapestry.Engine/Abilities/AbilityDefinition.cs
-- src/Tapestry.Engine/Abilities/AbilityCategory.cs
-- src/Tapestry.Engine/Abilities/AbilityType.cs
-- src/Tapestry.Engine/Abilities/AbilityProperties.cs
-- src/Tapestry.Engine/Abilities/AbilityRegistry.cs
-- src/Tapestry.Engine/Abilities/PassiveAbilityProcessor.cs
-- src/Tapestry.Engine/Abilities/ProficiencyManager.cs
-- src/Tapestry.Engine/AbilityCommandBridge.cs
-- src/Tapestry.Engine/Effects/ActiveEffect.cs
-- src/Tapestry.Engine/Effects/EffectManager.cs
-- src/Tapestry.Engine/Heartbeat/AbilityResolutionPhase.cs
-- src/Tapestry.Scripting/Modules/AbilitiesModule.cs (lines 1-100 read)
-- src/Tapestry.Scripting/Modules/EffectsModule.cs
-- src/Tapestry.Server/Gmcp/Handlers/CharEffectsHandler.cs
-- packs/@tapestry/core/scripts/abilities/passives.js (excerpts via agent)
-- packs/@tapestry/core/scripts/abilities/skills.js (excerpts via agent)
-- packs/@tapestry/core/scripts/abilities/spells.js (excerpts via agent)
-- packs/@tapestry/example-pack area YAML (mob ability grants)
-- git log --oneline -15 -- abilities/ effects/ AbilityResolutionPhase.cs
-
-UNVERIFIED count: 0
-
-Out-of-scope notes:
-- Combat auto-attacks, extra-attack counts, and defensive passive triggers
-  are covered in combat.md.
-- The full AbilitiesModule.cs (674 lines) was partially read (100 lines);
-  the remaining JS API functions (register body, search, getAll) were
-  cross-verified via agent excerpt but the full registration parsing path
-  was not line-verified. No UNVERIFIED markers were warranted because the
-  behavior matches the engine-side AbilityRegistry contract exactly.
-- Character stat growth (gain_stat, levelling) is out of scope for
-  character-progression.md.

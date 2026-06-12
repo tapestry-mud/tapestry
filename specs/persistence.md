@@ -10,10 +10,10 @@ last-updated: 2026-06-12
 Tapestry persists two independent scopes: accounts and player characters. Both are
 serialized to YAML and written to a configurable on-disk directory tree. The engine
 assembly defines interfaces and DTOs; the server assembly supplies the file-backed
-implementations. World state (rooms, mob spawns, area definitions) is not persisted --
-it is rebuilt from pack YAML on every server start. UNVERIFIED: mob runtime state (HP,
-inventory acquired during play) is also not persisted -- confirmed for area-authoring
-scope but no explicit test anchors this claim for mob instance data.
+implementations. Runtime mob state (current HP, position, inventory acquired during
+play) is not persisted across restarts. Authored rooms and areas do persist via
+side-car YAML (WorldAuthoringModule.cs:412-428, 489-495), and connection records
+persist via FsModule -- see area-authoring.md.
 
 All persistence is opt-in: only entities in sessions with phase `Playing` or `LinkDead`
 are included in autosave and shutdown saves. Entities in phase `Creating` are excluded.
@@ -78,9 +78,10 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
   (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:40-42, 69-126)
 
 - Items carry: `Id`, `Name`, `Type`, `Container`, `Tags`, `Keywords`, and a
-  `Properties` map. Item stats are NOT individually saved -- items rely on template
-  data or dynamic properties. UNVERIFIED: item stat modifiers that survive without a
-  template round-trip are not covered by tests.
+  `Properties` map. PlayerSpawner.cs:70-76 never rehydrates items from
+  `template_id`; item stat modifiers are transient (InventoryProperties.cs:18)
+  and are lost across a save/load cycle. This is a current limitation: any
+  stat modifier applied to an item at runtime will not survive a server restart.
   (src/Tapestry.Engine/Persistence/PlayerSaveData.cs:56-65)
 
 ### PropertyRegistry pattern
@@ -202,6 +203,19 @@ The `DataModule` JS API (`data.loadYaml`) provides pack scripts read-only access
 YAML files within their own pack directory. It does not write to any persistent store
 and has no connection to `PlayerSerializer` or `PropertyRegistry`.
 (src/Tapestry.Scripting/Modules/DataModule.cs:22-52)
+
+### Pack file persistence
+
+Packs can write persistent files via `fs.writeYaml` and `fs.deleteFile`
+(FsModule.cs:31-50). These writes go directly to the pack content directory on disk
+and survive restarts. This is used by the authoring system (area side-cars, connection
+records) but is available to any pack.
+
+### SpawnManager persistent flag
+
+The `persistent` flag on a mob spawn rule (SpawnManager) is a respawn-cap behavior:
+it prevents the mob from respawning once it has been killed. It is not a disk-
+persistence mechanism and has no connection to the save/load system described above.
 
 ---
 

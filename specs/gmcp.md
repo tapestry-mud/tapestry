@@ -114,8 +114,8 @@ printed to the screen is available as structured data (README.md:162).
   `GmcpModuleAdapter.DispatchMessage` -- the only path that would fire `tapestry.gmcp.on`
   subscriptions (GmcpModuleAdapter.cs:37-47) -- has no production caller. Net effect:
   client-to-server GMCP only influences `Core.Supports.*` tracking; `tapestry.gmcp.on`
-  callbacks never fire. UNVERIFIED: whether this gap is intentional (subscribe-side shipped
-  ahead of routing) or a missed wiring.
+  callbacks never fire. This gap is unresolved: inbound GMCP routing is not yet wired in
+  production.
 
 - **Boundary:** MSSP (telnet option 70, server status for crawlers) is a sibling
   subnegotiation handler on the same negotiator (src/Tapestry.Networking/TelnetServer.cs:151-163,

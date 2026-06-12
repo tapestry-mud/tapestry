@@ -110,8 +110,9 @@ banners) that are drained once per game tick.
 - **Enqueue / Drain:** `NotificationQueue.Enqueue(entityId, Notification)` appends a
   `Notification` (Type, Priority, Text, GmcpPackage?, GmcpPayload?) to a per-entity
   `ConcurrentQueue`. `DrainFor(entityId)` dequeues all pending items, sorts ascending by
-  `Priority` (lower = higher urgency), preserves insertion order within equal priority, clears
-  the queue, and returns the sorted list. A drain on an unknown entity is a no-op
+  `Priority` (lower = higher urgency), clears the queue, and returns the sorted list. Within
+  the same priority, order is not guaranteed -- `List<T>.Sort`, which is used internally, is
+  documented as unstable. A drain on an unknown entity is a no-op
   (src/Tapestry.Engine/NotificationQueue.cs:14-43).
   Tests: `NotificationQueueTests.DrainFor_SortsByPriority_LowerFirst`,
   `DrainFor_SamePriority_PreservesInsertionOrder`, `DrainFor_EmptiesQueue_SecondCallReturnsEmpty`,
@@ -124,9 +125,25 @@ banners) that are drained once per game tick.
   src/Tapestry.Server/Gmcp/Handlers/NotificationHandler.cs:26-35).
   Test: `NotificationHandlerTests.DrainAndSend_SkipsNotifications_WithoutGmcpData`.
 
-- **JS API:** `tapestry.notifications.enqueue(entityId, type, priority, text)`. The JS API
-  does not expose `GmcpPackage` or `GmcpPayload`; those fields are set only from C#
+- **JS API:** `tapestry.notifications.enqueue(entityId, type, priority, text)`. `GmcpPackage`
+  and `GmcpPayload` on `Notification` can only be set from C#; no pack-JS path exists to set
+  them (`NotificationsModule.cs` never sets these fields)
   (src/Tapestry.Scripting/Modules/NotificationsModule.cs:21-28).
+
+### Prompt rendering
+
+- **Prompt append and flush:** After any content is sent to a session,
+  `SendContentToSession` sets `NeedsPromptRefresh = true` on that session. If a prompt was
+  already on screen and no new input has arrived, it also injects a bare `\r\n` before the
+  content to push the stale prompt off the line. At the end of each game-loop tick,
+  `FlushPrompts` iterates every active, logged-in session that is not mid-flow or in prompt
+  input mode; for each session where `NeedsPromptRefresh` is true it calls
+  `PromptRenderer.Render`, which expands `{token}` placeholders (hp, mana, mv, gold, etc.)
+  from the player's live stats, then sends `\r\n` + the rendered prompt string. After sending,
+  `NeedsPromptRefresh` is cleared and `PromptDisplayed` is set so the next content write
+  knows to push the prompt off-line before it outputs
+  (src/Tapestry.Engine/PlayerSession.cs:383-393,439-457,
+  src/Tapestry.Engine/Prompt/PromptRenderer.cs:17-39).
 
 ### Messaging bridge (pack JS to output)
 
@@ -148,8 +165,10 @@ banners) that are drained once per game tick.
 
 - **JS respond module:** `tapestry.respond(entityId, type, message, category)` sends a GMCP
   `Response.Feedback` packet directly, bypassing the text channel. `respond.suppress(entityId)`
-  silences the automatic feedback mirror on the next `ApiMessaging.Send` for that entity
-  (src/Tapestry.Scripting/Modules/RespondModule.cs:25-66).
+  silences the automatic feedback mirror for the remainder of the command dispatch; the
+  suppression flag is cleared in the dispatcher's finally block
+  (src/Tapestry.Scripting/Modules/RespondModule.cs:25-66,
+  src/Tapestry.Scripting/Modules/CommandsModule.cs:424-427).
 
 ### Admin observation (TeeConnection)
 

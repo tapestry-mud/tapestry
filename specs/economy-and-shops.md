@@ -7,11 +7,10 @@ last-updated: 2026-06-12
 
 ## Overview
 
-The economy system provides a single currency (gold), a shop mechanic attached to NPC
-entities, and a rest-state system that multiplies HP/resource regeneration. All three
-subsystems are data-driven: packs define item values, shopkeeper stock lists, and room
-healing rates in YAML; pack scripts call into three JS modules (`currency`, `shop`,
-`rest`). No game content is hardcoded in the engine.
+The economy system provides a single currency (gold) and a shop mechanic attached to NPC
+entities. Both subsystems are data-driven: packs define item values and shopkeeper stock
+lists in YAML; pack scripts call into two JS modules (`currency`, `shop`). No game content
+is hardcoded in the engine. Rest and regeneration are covered in rest-and-recovery.md.
 
 ---
 
@@ -54,11 +53,14 @@ healing rates in YAML; pack scripts call into three JS modules (`currency`, `sho
   checks for this tag.
   `src/Tapestry.Engine/Economy/ShopProperties.cs`; `src/Tapestry.Engine/Economy/ShopService.cs`
 
-- **[ShopConfig.YAML]** Shop configuration is declared in a mob YAML file in two
+- **[ShopConfig.YAML]** Shop configuration is declared in a mob YAML file in three
   supported forms:
   1. Nested block -- `shop: { sells: [...], buy_markup: 1.4, sell_discount: 0.3 }`
   2. Flat top-level field -- `shop_sells: [...]` (markup/discount fall back to server
      defaults when omitted or 0).
+  3. Legacy dotted property -- a `shop.sells` key in the `properties` map (only parsed
+     when the entity has the `shop` tag and `shop_sells` is empty). Markup/discount fall
+     back to server defaults.
   `src/Tapestry.Scripting/PackLoader.cs` (lines 421-460)
 
 - **[ShopConfig.Validation]** The pack validator emits a warning (not an error) when a
@@ -67,8 +69,9 @@ healing rates in YAML; pack scripts call into three JS modules (`currency`, `sho
 
 - **[ShopConfig.Stock]** Stock is a static ordered list of item template IDs. There is no
   runtime stock refresh or quantity tracking. Items missing from `ItemRegistry` are
-  silently skipped when building the listing.
-  `src/Tapestry.Engine/Economy/ShopService.cs` (`GetListings`)
+  silently skipped when building the listing. Items whose base `value` is <= 0 are also
+  skipped; they will not appear in `GetListings` output.
+  `src/Tapestry.Engine/Economy/ShopService.cs` (`GetListings`, lines 63-66)
 
 - **[ShopPricing.Buy]** Buy price = `round(itemValue * markup)`, minimum 1. The markup
   applied is the per-shop `BuyMarkup` when > 0, otherwise the server-wide
@@ -85,11 +88,13 @@ healing rates in YAML; pack scripts call into three JS modules (`currency`, `sho
   inventory. If `shop.buy` is cancelled the result reason is `ItemNotForSale`.
   `src/Tapestry.Engine/Economy/ShopService.cs` (`Buy`)
 
-- **[ShopSell.Flow]** `Sell` resolves an inventory item by prefix match, rejects items
-  tagged `no_sell` (reason `ItemIsNoSell`) or with value <= 0 (reason `ItemValueZero`),
-  auto-unequips the item if worn, publishes a cancellable `shop.sell` event, destroys the
-  item, and credits the sell price to the player.
-  `src/Tapestry.Engine/Economy/ShopService.cs` (`Sell`)
+- **[ShopSell.Flow]** `Sell` resolves an inventory item by prefix match and rejects items
+  tagged `no_sell` (reason `ItemIsNoSell`) or with value <= 0 (reason `ItemValueZero`).
+  It then publishes a cancellable `shop.sell` event; if the event is cancelled the result
+  reason is `ItemNotForSale`. Only after the event survives does the service auto-unequip
+  the item if worn/wielded, remove it from the world, and credit the sell price to the
+  player.
+  `src/Tapestry.Engine/Economy/ShopService.cs` (`Sell`, lines 174-190)
 
 - **[ShopValue]** `Value` performs an inventory-first lookup: if the player carries a
   matching item it returns the sell price with scope `inventory`; otherwise it falls back
@@ -120,48 +125,24 @@ healing rates in YAML; pack scripts call into three JS modules (`currency`, `sho
   carries the `shop` tag, or null if none exists or the player has no location.
   `src/Tapestry.Engine/Economy/ShopService.cs`
 
-### Rest system
+- **[ShopCommands.PlayerFacing]** The four player-facing shop commands are registered by
+  `packs/@tapestry/core/scripts/commands/shop.js`:
+  - `shop` / `list [filter]` -- calls `shop.listings(npcId)` and prints a formatted price
+    list; an optional keyword argument filters by item name. Also sends a
+    `Response.Shop.List` GMCP message.
+  - `buy <item>` -- calls `shop.buy(...)` and prints the outcome; sends
+    `Response.Shop.Buy` GMCP.
+  - `sell <item>` -- calls `shop.sell(...)` and prints the outcome; sends
+    `Response.Shop.Sell` GMCP.
+  - `value <item>` -- calls `shop.value(...)` and prints either what the shop would pay
+    (inventory scope) or what the item costs to buy (stock scope); sends
+    `Response.Shop.Value` GMCP.
+  `packs/@tapestry/core/scripts/commands/shop.js`
 
-- **[RestStates]** An entity has one of three rest states stored in the transient property
-  `rest_state`: `awake` (default), `resting`, `sleeping`.
-  `src/Tapestry.Engine/Rest/RestProperties.cs`; `src/Tapestry.Engine/Rest/RestService.cs`
-
-- **[RestService.Transition]** `SetRestState` publishes a cancellable
-  `entity.rest_state.changed` event before applying the new state. If cancelled, no
-  change is made. Transitioning to `awake` clears `rest_target`. Transitioning to
-  `sleeping` records the current tick in `sleep_start_tick`.
-  `src/Tapestry.Engine/Rest/RestService.cs`
-
-- **[RestService.Furniture]** A furniture entity ID may be passed to `SetRestState`; when
-  set, its ID is stored in `rest_target` and its `rest_bonus` (int) is added to the
-  entity's regen multiplier during the tick.
-  `src/Tapestry.Engine/Rest/RestService.cs`; `src/Tapestry.Engine/GameLoop.cs` (line 467)
-
-- **[RestConfig.Multipliers]** The regen multiplier applied per tick is:
-  `awake` -> 1.0, `resting` -> 2.0 (default), `sleeping` -> 3.0 (default). Defaults are
-  configurable via `RestConfig.Configure`.
-  `src/Tapestry.Engine/Rest/RestConfig.cs`
-
-- **[RestConfig.RoomBonus]** If an entity has a location, the room's `healing_rate`
-  property (int, registered for `EntityTypes.Room`) is added to the multiplier. This
-  stacks additively with furniture bonus and state multiplier.
-  `src/Tapestry.Engine/GameLoop.cs` (line 476);
-  `src/Tapestry.Engine/Rest/RestProperties.cs`
-
-- **[RestConfig.MinSleep]** `RestConfig` stores `MinSleepTicksForWellRested` (default
-  120). UNVERIFIED: no call site consuming this field was found in the current codebase;
-  it may be reserved for a future "well rested" bonus.
-  `src/Tapestry.Engine/Rest/RestConfig.cs`
-
-- **[RestModule.JS]** Pack scripts access rest via the `rest` JS namespace:
-  `rest.getRestState(entityId)` returns the state string (defaults to `"awake"`);
-  `rest.setRestState(entityId, newState, furnitureId?)` returns `{ success, reason }`.
-  `src/Tapestry.Scripting/Modules/RestModule.cs`
-
-- **[RestRegen.Integration]** `GameLoop.RegisterRegenHandler` applies the rest multiplier
-  to `regen_hp`, `regen_resource`, and `regen_movement` values each regen interval. Mobs
-  and players tagged `no_regen` are excluded. A final multiplier of 0.0 skips the entity.
-  `src/Tapestry.Engine/GameLoop.cs` (lines 445-486)
+- **[ShopPack.Example]** The example pack ships a working shop mob at
+  `packs/@tapestry/example-pack/areas/starter-town/mobs/merchant.yaml` (id
+  `tapestry-example-pack:merchant`, tag `shop`, uses the flat `shop_sells` config form
+  with ten stock items).
 
 ---
 
@@ -187,26 +168,14 @@ No reversals on record as of 2026-06-12.
 - `src/Tapestry.Engine/Economy/ShopConfig.cs`
 - `src/Tapestry.Engine/Economy/ShopProperties.cs`
 - `src/Tapestry.Engine/Economy/ShopResults.cs`
-- `src/Tapestry.Engine/Rest/RestService.cs`
-- `src/Tapestry.Engine/Rest/RestConfig.cs`
-- `src/Tapestry.Engine/Rest/RestProperties.cs`
 - `src/Tapestry.Scripting/Modules/ShopModule.cs`
 - `src/Tapestry.Scripting/Modules/CurrencyModule.cs`
-- `src/Tapestry.Scripting/Modules/RestModule.cs`
 - `src/Tapestry.Scripting/PackLoader.cs` (shop config loading, lines 421-460)
 - `src/Tapestry.Scripting/PackValidator.cs` (shop tag validation)
-- `src/Tapestry.Engine/Mobs/MobTemplate.cs`
-- `src/Tapestry.Engine/GameLoop.cs` (regen handler, lines 445-486)
+- `src/Tapestry.Engine/GameLoop.cs` (ShopService.Sell sell flow, lines 174-190;
+  GetListings value filter, lines 63-66)
+- `packs/@tapestry/core/scripts/commands/shop.js`
+- `packs/@tapestry/example-pack/areas/starter-town/mobs/merchant.yaml`
 - `tests/Tapestry.Engine.Tests/Economy/ShopServiceTests.cs`
-- `git log --oneline -15 -- src/Tapestry.Engine/Economy/ src/Tapestry.Engine/Rest/`
-- No pack YAML examples found (packs/ directory is empty in this repo)
 
-UNVERIFIED count: 1
-- `RestConfig.MinSleepTicksForWellRested` -- defined and configurable but no consuming
-  call site found in the codebase.
-
-Out-of-scope notes:
-- Item templates, item tags, equipment slots, and loot tables are covered by
-  items-and-equipment.md.
-- Gold persistence (the `gold` property is NOT transient and survives save/load) is
-  covered by persistence.md.
+UNVERIFIED count: 0

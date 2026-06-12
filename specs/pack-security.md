@@ -32,13 +32,13 @@ registries-and-seal.md and is out of scope here.
   global object `tapestry` whose properties are the explicit module namespaces built by
   registered IJintApiModule implementations. All CLR delegates are wrapped as JS values;
   no AllowClr or equivalent general-purpose CLR bridge is enabled.
-  (JintRuntime.cs:113-121; ServiceCollectionExtensions.cs:36-199)
+  (JintRuntime.cs:113-121; Tapestry.Scripting/ServiceCollectionExtensions.cs:36-199)
 
 ### API surface exposed to pack scripts
 
 - All pack-facing APIs live under `tapestry.<namespace>` and are constructed from
   named IJintApiModule instances (JintRuntime.SetupApi). The full list of registered
-  modules is in ServiceCollectionExtensions.cs (lines 37-199). No module exposes
+  modules is in Tapestry.Scripting/ServiceCollectionExtensions.cs (lines 37-199). No module exposes
   raw engine internals; each wraps specific engine services.
 - The `tapestry.fs` module (FsModule.cs) exposes `writeYaml` and `deleteFile`. Both
   operations are restricted to the server's `connections/` subdirectory by a path
@@ -91,8 +91,8 @@ registries-and-seal.md and is out of scope here.
   pack or an image." (tests/fixtures/scenario-packs/@tapestry/test-fixtures/players.yaml:1-4)
 - Physical separation is the enforcement mechanism: the packs publish workflow scans only
   the tapestry-packs registry path, and the engine image carries no packs at all
-  (.dockerignore + publish output only). UNVERIFIED: .dockerignore contents not confirmed
-  in this repo; asserted by commit bf45105 message.
+  (.dockerignore:7 excludes packs/; Dockerfile:9-15 copies only the publish output;
+  commits 3cc3f75 and bf45105).
 - The telnet runner stages the test-fixtures pack into a managed corpus at run time;
   it is never in the shipped pack list. (commit bf45105)
 
@@ -100,8 +100,8 @@ registries-and-seal.md and is out of scope here.
 
 - **Seeding user accounts in shipped packs (TOMBSTONE):** Packs MUST NOT ship with any
   seeded user accounts -- no admin accounts, backdoor logins, or default credentials of
-  any kind. A default admin/password seed in a shipped pack was a security defect. It was
-  caught by the CI scenario gate and removed in the counterpart de-seed of tapestry-packs
+  any kind. A default admin/password seed in a shipped pack was a security defect that was
+  removed in the counterpart de-seed of tapestry-packs
   (core 0.1.12 / example-pack 0.1.8). Test credentials now live only in
   `@tapestry/test-fixtures`, which is structurally isolated from any published path.
   There is no legitimate use case for seeded accounts in a pack distributed via the

@@ -7,8 +7,11 @@ last-updated: 2026-06-12
 
 ## Overview
 
-The quest system lives in `src/Tapestry.Engine/Quests/` and
-`src/Tapestry.Scripting/Modules/`. It provides a stage-and-objective model
+The quest system spans `src/Tapestry.Engine/Quests/`,
+`src/Tapestry.Scripting/Modules/`, `src/Tapestry.Scripting/PackLoader.cs`
+(quest YAML loading), and `src/Tapestry.Server/Modules/`
+(`QuestStartupModule`, `QuestScriptCoverageVerifier`). It provides a
+stage-and-objective model
 for player quests, event-driven objective tracking, reward dispatch on
 completion, per-player YAML persistence, and a JS scripting surface for pack
 authors. The engine carries no hardcoded quest content; all quest definitions
@@ -47,10 +50,12 @@ character save layout (see persistence.md).
 
 ### Registration
 
-- `QuestRegistry.Load(packDirectories)` scans each pack's `quests/`
-  subdirectory and deserializes every `*.yaml` file as a `QuestDefinition`
-  using underscored YAML naming. Later-loaded files with the same `id`
-  overwrite earlier ones silently. (QuestRegistry.cs:16)
+- In production, quest YAML files are loaded by `PackLoader` via the `quests:`
+  glob in each pack manifest. `PackLoader.LoadQuests` iterates the matched
+  files, deserializes each as a `QuestDefinition` via `YamlContentLoader`,
+  sets `PackDirectory` to the pack root, then registers the definition via
+  `QuestRegistry.Register`. Malformed files log a warning and are skipped;
+  they do not abort pack loading. (PackLoader.cs:246)
 
 - Objectives that have no explicit `id` in YAML are auto-assigned an ID of
   `{stage.id}-{obj.type}-{index}`. (QuestRegistry.cs:47)
@@ -175,9 +180,13 @@ character save layout (see persistence.md).
   placed in inventory. Null items (unknown templates) are skipped.
   (QuestRewardDispatcher.cs:57)
 
-- Rewards require the player entity to be in `_playerCache` (populated on
-  accept). If it is missing (UNVERIFIED: can occur if engine restarts mid-
-  quest and the player has not re-accepted), rewards are silently skipped.
+- Rewards require the player entity to be in `_playerCache`. `_playerCache` is
+  populated in `AcceptQuest` (QuestService.cs:89) but is never repopulated on
+  player login. After a server restart, `CompleteQuest` skips reward dispatch
+  (the player entity is absent from the cache) while still publishing
+  `quest.completed` -- rewards are permanently lost for non-repeatable quests
+  completed post-restart. The player name fallback also causes save files to
+  land at `players/{guid}/quests.yaml` rather than the correct path.
   (QuestService.cs:297)
 
 ### Persistence
@@ -270,7 +279,7 @@ character save layout (see persistence.md).
 
 - `quests.registerObjectiveType(type, handler)` -- currently a no-op
   placeholder; full wiring is not yet implemented.
-  (QuestModule.cs:196 comment)
+  (QuestModule.cs:196-200)
 
 ---
 
@@ -281,7 +290,7 @@ character save layout (see persistence.md).
   replaced: the single `scripts:` glob in the pack manifest is now the only
   quest-script executor. The `script:` field is retained solely as a
   coverage-verification hint. (QuestStartupModule.cs:26 comment;
-  commit 0edad9a context)
+  commit f0d8f14 "Unify quest script execution into PackLoader (#109)")
 
 ---
 

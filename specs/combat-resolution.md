@@ -1,9 +1,9 @@
 ---
-capability: combat
+capability: combat-resolution
 last-updated: 2026-06-12
 ---
 
-# Combat
+# Combat Resolution
 
 ## Overview
 
@@ -11,11 +11,10 @@ The combat system is a turn-based, round-driven system implemented in
 `src/Tapestry.Engine/Combat/`. All state lives in `CombatManager`; no game
 content is hardcoded there. Pack scripts supply player-facing commands and
 event-driven output. Rounds fire on a heartbeat cadence of 20 ticks (~2 s)
-via `CombatPulse`. Mob aggro, death handling, and GMCP updates are wired in
-`Tapestry.Server`.
+via `CombatPulse`. Mob aggro and GMCP updates are wired in `Tapestry.Server`.
 
 Out of scope here: combat pulse timing (see heartbeat.md), mob aggro
-disposition logic (see mob-ai.md).
+disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
 
 ---
 
@@ -129,7 +128,8 @@ disposition logic (see mob-ai.md).
   (ResolveAutoAttacksPhase.cs:116)
 
 - If HP reaches 0 during a swing, `entity.vital.depleted` (vital = "hp") is
-  published immediately and the swing loop breaks.
+  published immediately and the swing loop breaks. Death handling continues in
+  the death pipeline; see death-and-corpses.md.
   (ResolveAutoAttacksPhase.cs:99)
 
 - Status effects tick via `EffectManager.TickPulse()` in
@@ -160,9 +160,33 @@ disposition logic (see mob-ai.md).
 - Dice notation: `XdY[+-Z]` parsed by `DiceRoller.Roll`. Malformed notation
   returns 0. (src/Tapestry.Engine/Combat/DiceRoller.cs:10)
 
-- Damage verb for output is looked up by damage amount against a 19-tier
-  table in `CombatModule.FormatDamageVerb`, from "tickles" (0+) to "VAPORIZES"
-  (421+). (src/Tapestry.Scripting/Modules/CombatModule.cs:241)
+- Damage verb for output is looked up by damage amount against a 20-tier
+  table in `CombatModule.DamageVerbs`, exposed to pack scripts as
+  `tapestry.combat.formatDamageVerb(damage)`, from "tickles" (0+) to
+  "VAPORIZES" (421+). (src/Tapestry.Scripting/Modules/CombatModule.cs:241)
+
+  | Min Damage | Verb             |
+  |------------|------------------|
+  | 421        | VAPORIZES        |
+  | 341        | ERADICATES       |
+  | 281        | PULVERIZES       |
+  | 231        | DESTROYS         |
+  | 191        | OBLITERATES      |
+  | 156        | ANNIHILATES      |
+  | 126        | MASSACRES        |
+  | 101        | DISMEMBERS       |
+  | 85         | MUTILATES        |
+  | 69         | MAIMS            |
+  | 55         | devastates       |
+  | 43         | decimates        |
+  | 33         | mauls            |
+  | 25         | wounds           |
+  | 18         | injures          |
+  | 13         | hits             |
+  | 9          | grazes           |
+  | 6          | scratches        |
+  | 3          | barely scratches |
+  | 0          | tickles          |
 
 ### Health Tiers
 
@@ -224,30 +248,21 @@ disposition logic (see mob-ai.md).
 - The `flee` command is provided by the core pack and only functions when the
   player is in combat. (packs/@tapestry/core/scripts/combat/commands.js:32)
 
-### Death
+### How Combat Ends
 
-- `entity.vital.depleted` (vital = "hp") is the canonical signal that an
-  entity has reached 0 HP. (ResolveAutoAttacksPhase.cs:100)
+Combat between two entities ends when either:
 
-- `CombatEventModule` listens at priority 100. It resolves the killer (explicit
-  attackerId from event data, or the victim's primary target as fallback), then
-  publishes a cancellable `entity.death.check` event before proceeding.
-  (CombatEventModule.cs:62)
+1. `RemoveFromCombat(A, B)` is called (removes each from the other's list;
+   publishes `combat.end` for any side now idle). (CombatManager.cs:141)
 
-- If `entity.death.check` is not cancelled, `CombatManager.HandleEntityDeath`
-  is called, which: publishes `combat.kill` (with alignment shift hook),
-  publishes `mob.killed` for NPC deaths, and calls
-  `RemoveEntityFromAllCombat`. (CombatManager.cs:278)
+2. An entity flees (calls `RemoveEntityFromAllCombat` then teleports the
+   entity). (CombatManager.cs:244)
 
-- For player death, output.js handles `entity.vital.depleted`: creates a
-  corpse container, unequips and transfers all inventory to the corpse, places
-  the corpse in the death room, restores vitals, and teleports the player to
-  their recall room. A `player.death` event is then published for pack
-  extensions. (packs/@tapestry/core/scripts/combat/output.js:131)
-
-- NPC corpse handling is not present in the core pack scripts reviewed; pack
-  authors are expected to handle `mob.killed`. UNVERIFIED: whether a default
-  NPC corpse is created anywhere.
+3. An entity's HP reaches 0. `entity.vital.depleted` (vital = "hp") is
+   published; `CombatEventModule` calls `HandleEntityDeath`, which calls
+   `RemoveEntityFromAllCombat`. The full death pipeline is described in
+   death-and-corpses.md. (ResolveAutoAttacksPhase.cs:99;
+   CombatEventModule.cs:62; CombatManager.cs:278)
 
 ### Pack JS API (`tapestry.combat`)
 
@@ -279,9 +294,9 @@ disposition logic (see mob-ai.md).
 
 - `savingThrow(entityIdStr, saveType)` -- rolls 1-100 against
   `50 + (wisdom - 10) * 3 + entity.saves`. Returns true if roll > target
-  (save succeeds). Note: `saveType` parameter is accepted but not used in
-  the current implementation -- UNVERIFIED whether type differentiation is
-  planned. (CombatModule.cs:210)
+  (save succeeds). The `saveType` parameter is accepted but not used in the
+  current implementation; differentiation by type is not implemented.
+  (CombatModule.cs:210)
 
 - `formatDamageVerb(damage)` -- returns a tagged string for output.
   (CombatModule.cs:184)
@@ -294,15 +309,15 @@ disposition logic (see mob-ai.md).
 
 Registered engine properties on items and NPCs:
 
-| Property | Type | Description |
-|---|---|---|
-| `damage_type` | String | Damage type dealt |
-| `damage_dice` | String | Dice expression (e.g. `2d6+4`) |
-| `hit_bonus` | Int | Bonus to hit roll |
-| `combat_name` | String | Verb in combat messages |
-| `wimpy_threshold` | Int | HP% at which entity auto-flees |
-| `attack_speed` | Int | Attack speed modifier (UNVERIFIED: unused in current auto-attack code) |
-| `ac` | MapInt | Armor class per damage type |
+| Property          | Type    | Description                                          |
+|-------------------|---------|------------------------------------------------------|
+| `damage_type`     | String  | Damage type dealt                                    |
+| `damage_dice`     | String  | Dice expression (e.g. `2d6+4`)                       |
+| `hit_bonus`       | Int     | Bonus to hit roll                                    |
+| `combat_name`     | String  | Verb in combat messages                              |
+| `wimpy_threshold` | Int     | HP% at which entity auto-flees                       |
+| `attack_speed`    | Int     | Attack speed modifier (unused in current auto-attack code) |
+| `ac`              | MapInt  | Armor class per damage type                          |
 
 (src/Tapestry.Engine/Combat/CombatProperties.cs)
 

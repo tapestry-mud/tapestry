@@ -7,11 +7,13 @@ last-updated: 2026-06-12
 
 ## Overview
 
-The mob AI system coordinates NPC behavior, disposition/aggro, spawning, and loot. Key
-engine classes: `MobAIManager` (tick sweep, budget, quarantine), `DispositionEvaluator`
-(alignment-based reactions), `SpawnManager` (area reset, loot instantiation), and
-`MobCommandQueue` (delayed command sequencing). Pack scripts register named behaviors via
-the JS `mobs.registerBehavior` API. Combat round resolution is out of scope (see combat.md).
+The mob AI system coordinates NPC behavior dispatch, disposition/aggro, and combat
+gating. Key engine classes: `MobAIManager` (tick sweep, budget, quarantine),
+`DispositionEvaluator` (alignment-based reactions), and `MobCommandQueue` (delayed
+command sequencing). Pack scripts register named behaviors via the JS
+`mobs.registerBehavior` API. Spawning, stat derivation, and loot tables are out of
+scope here (see mob-lifecycle.md). Combat round resolution is out of scope (see
+combat.md).
 
 ## Behavior
 
@@ -85,37 +87,38 @@ the JS `mobs.registerBehavior` API. Combat round resolution is out of scope (see
 ### Built-in behaviors (core pack)
 
 - **stationary** -- empty handler; registered as a no-op placeholder.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:2-4)
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:2-4)
 - **wander** -- waits `wander_interval` ticks (default 30), rolls `wander_chance`
-  (default 0.3), then moves to a random adjacent exit. Skips exits tagged `no_wander`
-  and exits leaving the current area when `wander_boundary` == "area" (default).
-  Does not run while in combat.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:7-54)
+  (default 0.3), then moves to a random adjacent exit. Resolves the target room for the
+  chosen exit and skips if that room is tagged `no_wander`. Also skips exits leaving the
+  current area when `wander_boundary` == "area" (default). Does not run while in combat.
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:7-54)
 - **patrol** -- follows an ordered `patrol_route` room-ID list, bouncing direction at
   each end. Waits `patrol_interval` (default 30) and rolls `patrol_chance` (default 0.5).
   State persisted as `_patrol_index` / `_patrol_direction` entity properties.
   Does not run while in combat.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:57-123)
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:57-123)
 - Hostility is NOT a behavior. A mob combines movement behavior with `base_disposition:
   hostile`; aggro is entirely disposition-driven, orthogonal to movement.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:125-128)
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:125-128)
 
 ### Combatant logic (battle_commands)
 
 - Any mob with a non-empty `battle_commands` list dispatches a random command during
   combat via `mob.ai.tick`, regardless of behavior name. This makes combat abilities
   composable with any movement behavior.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:133-161)
-- Timing: `battle_interval` (default 15 ticks), `battle_chance` (default 0.4). An empty
-  string in the list is a deliberate noop (auto-attack only on that roll).
-  (src/Tapestry.Engine/Mobs/MobProperties.cs:29-30;
-  tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:146-158)
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:133-161)
+- Timing: `battle_interval` (default 15 ticks) and `battle_chance` (default 0.4) are
+  read from entity properties at runtime; JS defaults live in behaviors.js:146,152.
+  An empty string in the list is a deliberate noop (auto-attack only on that roll).
+  (packs/@tapestry/core/scripts/mobs/behaviors.js:146-158;
+  src/Tapestry.Engine/Mobs/MobProperties.cs:28-29)
 
 ### Idle commands
 
 - Mobs with `idle_commands` fire a random command when not in combat, governed by
   `idle_interval` (default 30 ticks) and `idle_chance` (default 0.3).
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/idle.js:1-27;
+  (packs/@tapestry/core/scripts/mobs/idle.js:1-27;
   src/Tapestry.Engine/Mobs/MobProperties.cs:21-22)
 
 ### Mob command dispatch
@@ -127,7 +130,7 @@ the JS `mobs.registerBehavior` API. Combat round resolution is out of scope (see
   src/Tapestry.Engine/Mobs/MobCommandQueue.cs:29-43)
 - Core pack registers `say` and `emote` as mob commands; both suppress output when no
   players are in the room.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/commands.js:1-20)
+  (packs/@tapestry/core/scripts/mobs/commands.js:1-20)
 
 ### Mob script hooks
 
@@ -137,7 +140,7 @@ the JS `mobs.registerBehavior` API. Combat round resolution is out of scope (see
   (triggered by `combat.engage` targeting the NPC), `onDeath` (triggered by `mob.death`
   after corpse creation -- the mob entity is already removed by this point). All hooks
   run under the same invocation cap as behaviors.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/onsay-dispatch.js,
+  (packs/@tapestry/core/scripts/mobs/onsay-dispatch.js,
   onattack-dispatch.js, ondeath-dispatch.js;
   src/Tapestry.Scripting/Modules/MobsModule.cs:214-248)
 
@@ -189,61 +192,22 @@ the JS `mobs.registerBehavior` API. Combat round resolution is out of scope (see
   fleeing; on cooldown the mob stands and fights.
   (src/Tapestry.Engine/Mobs/MobAIManager.cs:345-388;
   tests/Tapestry.Engine.Tests/Mobs/MobAIManagerTests.cs:Tick_WimpyMobOnFleeCooldown_StandsAndFights)
-- While the flee path fires, behavior dispatch is bypassed for that tick.
-  (src/Tapestry.Engine/Mobs/MobAIManager.cs:212)
-
-### Spawning and respawn
-
-- `SpawnManager` subscribes to `area.tick` and calls `RunAreaReset` for each area.
-  (src/Tapestry.Engine/Mobs/SpawnManager.cs:41-49)
-- `AreaTickService` fires `area.tick` per area once `reset_interval` engine ticks elapse.
-  An occupied-area modifier can reduce effective interval when players are present.
-  (src/Tapestry.Engine/AreaTickService.cs:26-57)
-- On reset: dead mobs are pruned from tracking, then missing count is topped up via
-  `SpawnMob`. "persistent"-tagged rules track surviving mobs by ID across rooms and
-  never overspawn. Non-persistent rules repopulate the spawn room to `Count` each reset.
-  (src/Tapestry.Engine/Mobs/SpawnManager.cs:218-270;
-  src/Tapestry.Engine/Mobs/SpawnRule.cs:9-17)
-- Each `SpawnRule` supports a `rare` override: if a random roll is below `Rare.Chance`,
-  the rare template spawns in place of the normal one.
-  (src/Tapestry.Engine/Mobs/SpawnManager.cs:258-262)
-
-### Mob stat derivation
-
-- At spawn, `MobStatDerivation.Apply` adds class stat growth (averaged per level from
-  dice notation) and applies race flags as entity tags. Vitals are restored to derived
-  max after class growth.
-  (src/Tapestry.Engine/Mobs/MobStatDerivation.cs:17-34)
-
-### Loot tables
-
-- If a template references a loot table, `LootTableResolver.Resolve` runs at spawn time
-  and places items in the mob's contents; `mob.loot.generated` is published.
-  (src/Tapestry.Engine/Mobs/SpawnManager.cs:163-187)
-- Table structure: `guaranteed` (always included), `pool` with weighted entries and
-  `pool_rolls` independent draws, optional `rare_bonus` (chance roll + weighted pool).
-  (src/Tapestry.Engine/Mobs/LootTable.cs;
-  tapestry-packs/packages/@tapestry/example-pack/areas/starter-town/mobs/goblin.yaml:37-55)
-
-### Death handling
-
-- On `entity.vital.depleted`, the core pack script creates a corpse container, transfers
-  all inventory and equipment to it, removes the mob, and publishes `mob.death`. Gold
-  from `gold_min`/`gold_max` is awarded to the killer.
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/death.js)
-- `ondeath-dispatch.js` fires the `onDeath` script hook after corpse creation (mob entity
-  is already gone).
-  (tapestry-packs/packages/@tapestry/core/scripts/mobs/ondeath-dispatch.js)
+- When a mob succeeds in fleeing (`TryFlee` returns true), the entire behavior dispatch
+  block is skipped for that tick, including the `mob.ai.tick` publish. The posture gate
+  and `TryFlee` share the same outer condition (MobAIManager.cs:212), so a fleeing mob
+  receives neither a behavior dispatch nor a `mob.ai.tick` event on that tick.
+  (src/Tapestry.Engine/Mobs/MobAIManager.cs:212-271)
 
 ## Rejected and Reverted
 
-The comment in behaviors.js explicitly records that aggro-as-a-behavior was considered
-and rejected in favor of disposition-driven aggro ("Aggro is NOT a behavior..."):
-(tapestry-packs/packages/@tapestry/core/scripts/mobs/behaviors.js:125-128)
-
-No in-repo commit evidence of a prior shipped aggro-behavior that was later reverted;
-this is a design-time exclusion rather than a post-ship reversion. UNVERIFIED: whether
-an earlier prototype ever shipped an aggro named behavior before this approach.
+**aggro behavior (reverted):** An `aggro` named behavior was shipped in commit a2dd1be
+(packs/tapestry-core/scripts/mobs/behaviors.js:126-142 in the original monorepo layout).
+It scanned the room for players, checked the `safe` tag, and published `mob.aggro`
+directly. It was retired when the packs directory was extracted to the tapestry-packs
+sibling repo (engine commit f617153) and was not carried forward; the current behaviors.js
+in packs/@tapestry/core replaces it with the comment "Aggro is NOT a behavior" and the
+DispositionEvaluator alignment-based system handles all aggro dispatch. Engine commit
+53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log
 

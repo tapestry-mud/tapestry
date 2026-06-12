@@ -5,14 +5,14 @@ last-updated: 2026-06-12
 
 ## Overview
 
-Handles all pre-game gating from raw TCP connection through character
-creation. Covers the login state machine, account authentication, name and
-email validation, the login-gate plugin API, wizlock, interactive session
-takeover, pre-auth tokens for web login, and the WizardStep-based character
-creation flow invoked by packs.
+Handles all pre-game gating from raw TCP connection through the start of play.
+Covers the login state machine, account authentication, name and email
+validation, the login-gate plugin API, wizlock, interactive session takeover,
+and pre-auth tokens for web login.
 
 Out of scope: save/load mechanics (persistence.md), transport and session
-lifecycle (sessions-and-connections.md).
+lifecycle (sessions-and-connections.md), the wizard-based character creation
+flow (flows-and-wizards.md).
 
 ---
 
@@ -33,9 +33,10 @@ lifecycle (sessions-and-connections.md).
   entry is absent or zero. (src/Tapestry.Server/Login/LoginFlow.cs:448-458)
 - `SetPhase` also emits a GMCP `Login.Phase` event with the lowercase phase
   name. (src/Tapestry.Server/Login/LoginFlow.cs:443)
-- On `OperationCanceledException` the flow sends "Connection timed out." and
-  disconnects; on any other exception it disconnects with "login error" and
-  removes the pre-login session. (src/Tapestry.Server/Login/LoginFlow.cs:69-83)
+- On `OperationCanceledException` the flow sends "Connection timed out.",
+  disconnects, and removes the pre-login session.
+  On any other exception it removes the pre-login session and disconnects with
+  "login error". (src/Tapestry.Server/Login/LoginFlow.cs:69-83)
 - `LoginContext` holds the connection, the current phase, `ConnectedAt`, and
   the live `PhaseCts`. (src/Tapestry.Engine/Login/LoginContext.cs:1-19)
 
@@ -137,9 +138,12 @@ lifecycle (sessions-and-connections.md).
 - `LoginGateRegistry.RunAll` iterates gates in registration order and returns
   the first denial, or `Allow` if all pass.
   (src/Tapestry.Engine/Login/LoginGateRegistry.cs:14-25)
-- Gates run only on the new-player path (after name validation, before email
-  prompt). Existing-player gating is handled separately (wizlock check after
-  save load). (src/Tapestry.Server/Login/LoginFlow.cs:225-241;
+- Gates run on the new-player path in the telnet login flow (after name
+  validation, before email prompt) and also on the `/auth/select` and
+  `/auth/register` HTTP endpoints for web logins. Existing-player gating is
+  handled separately (wizlock check after save load).
+  (src/Tapestry.Server/Login/LoginFlow.cs:225-241;
+  src/Tapestry.Server/Program.cs:356, 490;
   src/Tapestry.Server/Login/WizlockGate.cs:8-13)
 
 ### Wizlock gate
@@ -191,114 +195,71 @@ lifecycle (sessions-and-connections.md).
   (`Login` or `Create`), and an expiry timestamp.
   (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:1-39;
   src/Tapestry.Server/PreAuth/PreAuthToken.cs:1-27)
-- `Consume` atomically validates (`IsValid`: not used AND not expired),
-  marks used, removes from the map, and returns the token. An invalid or
-  absent token returns null. (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:22-38)
-- UNVERIFIED: the HTTP endpoints that issue and redeem pre-auth tokens are
-  in Program.cs; their exact routes were not read.
+- `Consume` uses a check-then-act sequence: it reads the token, checks
+  `IsValid` (not used AND not expired), sets `Used = true`, removes the entry,
+  and returns the token. Concurrent calls can both pass the validity check
+  before either marks the token used, so a single-use token may be redeemed
+  more than once under concurrent load.
+  (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:22-38)
 
-### Character creation flow (FlowEngine / WizardStep)
+### Pre-auth web path
 
-- On entry to `Creating` phase the engine fires `FlowEngine.Trigger(session,
-  "new_player_connect")`, which dispatches to the pack-registered flow with
-  that trigger. (src/Tapestry.Server/Login/LoginFlow.cs:427)
-- Packs register flows via `flows.register({...})` in JavaScript, providing
-  `id`, `trigger`, optional `display_name`, `cancellable`, `steps`, and
-  optional `wizard_steps` (array of `{id, label}` records for UI progress
-  display). (src/Tapestry.Scripting/Modules/FlowsModule.cs:34-127)
-- Step types: `info` (display text), `choice` (pick from options with
-  optional `help_hint`), `text` (free-form input with optional `validate`,
-  `invalid_message`, `secret`, `recommend_field`), `confirm` (y/n with
-  `on_yes`/`on_no` callbacks). Unknown step types throw at registration.
-  (src/Tapestry.Scripting/Modules/FlowsModule.cs:164-171)
-- `choice` and `text` steps accept either static values or callback functions
-  for `options`, `prompt`, and `recommend_field`, evaluated at runtime with
-  an entity proxy. (src/Tapestry.Scripting/Modules/FlowsModule.cs:202-333)
-- Flow definitions are registered through `RegistrationPolicy` (sealed at
-  pack resolution), making duplicate `id` without `override: true` a boot
-  error. (src/Tapestry.Scripting/Modules/FlowsModule.cs:119-127)
-- `flows.trigger(entityId, triggerName)` allows pack JS to start a new flow
-  for an online entity mid-session.
-  (src/Tapestry.Scripting/Modules/FlowsModule.cs:130-137)
-- `on_complete` receives an entity proxy and may return `{success, message}`;
-  returning a non-object is treated as success.
-  (src/Tapestry.Scripting/Modules/FlowsModule.cs:82-103)
-
-### Flow persistence (save/restore new player)
-
-- `IFlowPersistence` has two methods: `PlayerExists(name)` and
-  `SaveNewPlayer(entity, accountId)`.
-  (src/Tapestry.Engine/Flow/IFlowPersistence.cs:3-7)
-- The server wires `FlowPersistenceAdapter`, which delegates to
-  `PlayerPersistenceService`. `SaveNewPlayer` uses
-  `.GetAwaiter().GetResult()` because it is called on the connection input
-  thread with no async context to deadlock against.
-  (src/Tapestry.Server/Persistence/FlowPersistenceAdapter.cs:8-27)
-- A `NullFlowPersistence` no-op is registered by default so DI can resolve
-  `FlowEngine` in test contexts.
-  (src/Tapestry.Engine/Flow/IFlowPersistence.cs:9-18)
-- `PlayerCreator` maintains an in-memory map of pending (mid-creation) entity
-  GUIDs for lookup and cleanup during the creating phase.
-  (src/Tapestry.Engine/Flow/PlayerCreator.cs:1-29)
+- Issuance endpoints (`/auth/login`, `/auth/select`, `/auth/login-by-character`,
+  `/auth/register`) authenticate the caller and return a token. These endpoints
+  respond regardless of whether `PreAuth.Enabled` is set; the feature flag does
+  not gate issuance.
+  (src/Tapestry.Server/Program.cs:237-501)
+- `/auth/select` and `/auth/register` run `LoginGateRegistry.RunAll` before
+  issuing a Create-intent token, enforcing reserved-name and wizlock gates for
+  web registrations. (src/Tapestry.Server/Program.cs:356-361, 490-495)
+- Redemption occurs in the WebSocket fallback handler. The server only
+  attempts token redemption when both a `token` query parameter is present
+  and `config.PreAuth.Enabled` is true. An absent or expired token falls
+  through to the normal telnet-style `LoginFlow`.
+  (src/Tapestry.Server/Program.cs:568-703)
+- On redemption of a Login-intent token the wizlock check re-runs (the flag
+  may have been toggled between issuance and redemption). Create-intent tokens
+  also check wizlock at redemption for the same reason, since a newly created
+  character can never carry an admin role.
+  (src/Tapestry.Server/Program.cs:610-686)
 
 ---
 
 ## Rejected and Reverted
 
-- No tombstones identified in the surveyed commit range. UNVERIFIED: earlier
-  history (before the 15-commit window) may contain relevant reverts.
+- No tombstones identified in the surveyed commit range. Earlier history
+  (before the 15-commit window) was not read.
 
 ---
 
 ## Change Log
 
 | Date | Change | Spec ref |
-|------|--------|----------|
 
 ---
 
-## Sources consulted
+sources consulted:
+- src/Tapestry.Server/Login/LoginFlow.cs (lines 65-84, 88, 195-218, 225-241,
+  263-270, 282-309, 303-309, 316-373, 379, 403-418, 426-427, 431-491)
+- src/Tapestry.Server/Login/InteractiveTakeoverConfirmer.cs
+- src/Tapestry.Server/Login/WizlockGate.cs
+- src/Tapestry.Server/Login/ReservedNameGate.cs
+- src/Tapestry.Server/Program.cs lines 237-704
+- src/Tapestry.Server/PreAuth/PreAuthTokenService.cs
+- src/Tapestry.Engine/Persistence/AccountService.cs
+- src/Tapestry.Engine/Login/LoginContext.cs
+- src/Tapestry.Engine/Login/LoginGateRegistry.cs
+- src/Tapestry.Engine/Login/ILoginGate.cs
+- src/Tapestry.Engine/Login/EmailValidator.cs
+- src/Tapestry.Engine/Login/WizlockState.cs
+- src/Tapestry.Engine/NameValidator.cs
+- src/Tapestry.Engine/LoginPhase.cs
+- src/Tapestry.Data/PreAuthSection.cs
+- src/Tapestry.Server/PreAuth/PreAuthToken.cs
+- tests/Tapestry.Engine.Tests/Login/LoginFlowWizlockTests.cs
+- tests/Tapestry.Engine.Tests/Login/LoginFlowNameValidationTests.cs
 
-- src/Tapestry.Server/Login/LoginFlow.cs (492 lines, read in full)
-- src/Tapestry.Server/Login/InteractiveTakeoverConfirmer.cs (72 lines)
-- src/Tapestry.Server/Login/WizlockGate.cs (33 lines)
-- src/Tapestry.Server/Login/ReservedNameGate.cs (21 lines)
-- src/Tapestry.Engine/Login/LoginContext.cs (19 lines)
-- src/Tapestry.Engine/Login/LoginGateRegistry.cs (26 lines)
-- src/Tapestry.Engine/Login/ILoginGate.cs (40 lines)
-- src/Tapestry.Engine/Login/EmailValidator.cs (33 lines)
-- src/Tapestry.Engine/Login/WizlockState.cs (15 lines)
-- src/Tapestry.Engine/NameValidator.cs (42 lines)
-- src/Tapestry.Engine/LoginPhase.cs (13 lines)
-- src/Tapestry.Data/PreAuthSection.cs (7 lines)
-- src/Tapestry.Engine/Flow/PlayerCreator.cs (29 lines)
-- src/Tapestry.Engine/Flow/WizardStep.cs (3 lines)
-- src/Tapestry.Engine/Flow/IFlowPersistence.cs (18 lines)
-- src/Tapestry.Engine/Persistence/AccountService.cs (134 lines)
-- src/Tapestry.Scripting/Modules/FlowsModule.cs (444 lines)
-- src/Tapestry.Server/Persistence/FlowPersistenceAdapter.cs (27 lines)
-- src/Tapestry.Server/PreAuth/PreAuthToken.cs (27 lines)
-- src/Tapestry.Server/PreAuth/PreAuthTokenService.cs (39 lines)
-- tests/Tapestry.Engine.Tests/Login/LoginFlowWizlockTests.cs (152 lines)
-- tests/Tapestry.Engine.Tests/Login/LoginFlowNameValidationTests.cs (102 lines)
-- git log --oneline -15 -- src/Tapestry.Server/Login/ src/Tapestry.Engine/Login/
+UNVERIFIED count: 1
 
-## UNVERIFIED count: 2
-
-1. Pre-auth HTTP endpoints (routes, issuance logic) -- in Program.cs, not
-   read. Covered claim limited to what PreAuthTokenService and PreAuthToken
-   expose.
-2. Full revert history beyond the 15-commit window -- the Rejected section
+1. Full revert history beyond the 15-commit window -- the Rejected section
    cannot be closed definitively without it.
-
-## Out-of-scope notes
-
-- Account and player-save persistence mechanics (store implementations,
-  file layout, migration) -> persistence.md
-- Session lifecycle after login completes (PlayerSession, SessionManager,
-  link-dead handling, reconnect) -> sessions-and-connections.md
-- Transport-level concerns (telnet negotiation, WebSocket upgrade, GMCP
-  framing) -> sessions-and-connections.md
-- `GameEntryResolver` spawn/reconnect/takeover decision logic (referenced
-  but not detailed here) -- consider a separate game-entry.md if the
-  resolver grows.

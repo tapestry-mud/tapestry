@@ -44,19 +44,25 @@ the verb to a handler and invokes it.
   parse seam used by both the game loop's input drain and the admin `executeAs` path.
 
 - **executeAs seam:** Admin commands may call `executeAs(actor, commandString)` to invoke a
-  command in another actor's context. The privilege is the invoking admin's; the acting
-  context (room, entity) is the target's.
+  command in another actor's context using ROM-force semantics. The engine re-routes the
+  command through `ParseInput` + `CommandRouter.Route` as if the target entity issued it
+  directly: privilege checks re-gate as the target (forcing a non-admin into an admin command
+  yields the target's "Huh?"), and output goes to the target's session. The invoking admin's
+  privilege is not carried into the dispatched command. Session-backed players only; use
+  `tapestry.mobs.command` for mob dispatch.
+
+- **ActorContext:** `ActorContext` (`src/Tapestry.Engine/ActorContext.cs`) is an immutable,
+  init-only class (not a record) that captures the acting entity's id, name, current room,
+  source type, raw input, resolved command token, and raw args for the duration of one
+  command handler invocation. It is constructed by `ParseInput` and passed into each command
+  handler. On the `executeAs` path the context is built for the target entity, so all
+  handler code that reads the context operates as if the target issued the command.
 
 - **GMCP auto-publish:** After every non-mob player command, the engine publishes a
   `communication.message` event on a GMCP channel (`feedback` by default, overridable per
   command). Disable per-command with `gmcp: false`.
 
 ## Rejected and Reverted
-
-- **Multi-token routing (rejected):** Routing on two tokens was considered to reduce
-  sub-dispatch boilerplate in packs. Rejected: the single-token router is simpler and the
-  pack-side dispatch registry handles sub-commands cleanly. Two-token routing adds
-  complexity without eliminating the need for pack dispatch.
 
 ## Change Log
 

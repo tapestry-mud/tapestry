@@ -18,19 +18,27 @@ files (written under the game data root at runtime).
 ### Area YAML format
 
 - An area file is a YAML document with a single top-level key `area:` containing
-  fields: `id` (required), `name` (required), `level_range`, `reset_interval`,
-  `occupied_modifier`, `weather_zone`, `flags`, `weather_messages`, `time_messages`.
-  (src/Tapestry.Scripting/YamlContentLoader.cs:213-237, AreaDefinitionModel class)
+  fields: `id` (required), `name` (required), `short`, `description`, `theme`, `lore`,
+  `level_range`, `reset_interval`, `occupied_modifier`, `weather_zone`, `flags`,
+  `weather_messages`, `time_messages`.
+  (src/Tapestry.Scripting/YamlContentLoader.cs:213-237, AreaDefinitionModel class;
+  `short`/`description`/`theme`/`lore` mapped at YamlContentLoader.cs:719-722)
 
 - `level_range` defaults to `[1, 99]`; `reset_interval` defaults to `3000` seconds;
   `occupied_modifier` defaults to `3.0`. (src/Tapestry.Engine/AreaDefinition.cs:11-13)
 
 - `flags` is a list of strings; the engine recognizes the `wip` flag to mark an area
-  as work-in-progress (hidden from player-facing listings by default).
-  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:68)
+  as work-in-progress. WIP areas are excluded from the `areas` command listing for
+  non-builders: `GetAreas(includeWip)` skips any area whose flags contain `wip` when
+  `includeWip` is false. The area itself remains accessible; only the listing is gated.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:578-587;
+  pack side: packs/@tapestry/core/scripts/commands/areas.js:15-16)
 
-- Area files in packs are loaded by `PackLoader.LoadContent` before rooms; every room
-  must reference a registered area or the loader throws. (src/Tapestry.Scripting/PackLoader.cs:204-211)
+- Area files in packs are loaded by `PackLoader.LoadContent` before rooms. After rooms
+  are loaded, the loader validates that every room whose YAML declares an `area:` field
+  references a registered area, and throws if it does not. Rooms that omit the `area:`
+  field entirely are loaded without that validation.
+  (src/Tapestry.Scripting/PackLoader.cs:204-211)
 
 ### Room YAML format
 
@@ -38,7 +46,9 @@ files (written under the game data root at runtime).
   `name` (required), `description`, `area` (area id, no namespace), `exits`, `tags`,
   `biome`, `properties`, `spawns`, `fixtures`, `reset_interval`, `keyword_exits`,
   `alignment_range`, `alignment_block_message`, `weather_exposed`, `time_exposed`,
-  `weather_messages`, `time_messages`. (src/Tapestry.Scripting/YamlContentLoader.cs:686-708)
+  `weather_messages`, `time_messages`, `entry_point_description`, `entry_point_direction`.
+  (src/Tapestry.Scripting/YamlContentLoader.cs:686-708;
+  `entry_point_description`/`entry_point_direction` at YamlContentLoader.cs:706-707)
 
 - Exit values are either a string shorthand (`north: "pack:room-id"`) or an object
   with fields `target`, `name`, `door`. The `door` sub-object supports `name`, `closed`,
@@ -48,9 +58,24 @@ files (written under the game data root at runtime).
 - `biome:` is a single tag name with kind "biome" in the tag registry; placing it under
   `tags:` instead produces a load-time warning. (src/Tapestry.Scripting/YamlContentLoader.cs:92-103)
 
-- `terrain` set to `indoors` or `underground` makes `weather_exposed` and `time_exposed`
-  default to false; all other terrain values leave them exposed unless overridden.
-  (src/Tapestry.Scripting/YamlContentLoader.cs:601-605)
+- `terrain` is read from the room's `properties:` map (key `"terrain"`); setting it to
+  `indoors` or `underground` makes `weather_exposed` and `time_exposed` default to
+  false; all other terrain values leave them exposed unless overridden.
+  (src/Tapestry.Scripting/YamlContentLoader.cs:602-605)
+
+### Pack file layout
+
+- The engine discovers area definition files and room files via glob patterns declared
+  in the pack's `pack.yaml` under the `content:` key. Area definitions use the
+  `area_definitions:` field (glob relative to the pack directory, e.g.
+  `areas/**/area.yaml`) and rooms use the `rooms:` field (e.g. `areas/**/rooms/*.yaml`).
+  A pack that omits either field simply loads no content of that type; neither field is
+  required. (packs/@tapestry/core/pack.yaml:15-16;
+  packs/@tapestry/example-pack/pack.yaml:18-19)
+
+- The conventional layout places each area's definition at
+  `areas/<area-slug>/area.yaml` and its rooms at
+  `areas/<area-slug>/rooms/<room-key>.yaml`, matching the glob patterns above.
 
 ### Boot loading order
 

@@ -31,11 +31,6 @@ declared override.
   a declared override throws. This path is used internally; pack authors should not rely on
   it.
 
-- **IIFE and 00- prefix patterns (obsolete):** Early packs used immediately-invoked function
-  expressions or `00-` filename prefixes to control registration ordering. The seal's
-  dependency-based accumulation makes both patterns unnecessary. They are not supported and
-  may cause confusing behavior.
-
 - **Export/require surface:** Packs may export values and require exports from other packs
   via the seal's export surface. Cross-pack sharing uses this path, not ambient globals.
 
@@ -45,13 +40,7 @@ declared override.
 
 ## Rejected and Reverted
 
-- **00- prefix load ordering (removed):** Load order was previously controlled by naming
-  scripts with a `00-` prefix. Replaced by the dependency-edge accumulation model; the
-  prefix pattern is no longer respected and should not be used.
-
-- **IIFE workarounds (removed):** IIFEs were used to work around registration timing
-  issues during early engine development. The seal's accumulation model eliminated the
-  timing problem; IIFEs add no value and the pattern is not supported.
+None.
 
 ## Change Log
 
