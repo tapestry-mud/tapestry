@@ -227,12 +227,8 @@ flow (flows-and-wizards.md).
 
 ## Rejected and Reverted
 
-- No tombstones identified in the surveyed commit range. Earlier history
-  (before the 15-commit window) was not read.
+- None on record.
 
 ---
 
 ## Change Log
-
-| Date | Change | Spec ref |
-|------|--------|----------|
