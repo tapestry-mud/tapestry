@@ -220,12 +220,8 @@ Out of scope here: alignment (alignment.md), ability definitions and effects
 
 ## Rejected and Reverted
 
-No tombstones. No behavior in this area has been shipped and then reverted as of
-the examined history.
+- None on record.
 
 ---
 
 ## Change Log
-
-| Change Record | Summary |
-|---------------|---------|
