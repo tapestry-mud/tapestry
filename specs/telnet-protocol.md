@@ -197,13 +197,8 @@ All option codes and command bytes are defined in `TelnetProtocolConstants`
 
 ## Rejected and Reverted
 
-No tombstones found in the examined git history or source comments for this
-capability scope. The 15-commit window shows only additive work (keepalive,
-cross-buffer IAC parsing, heartbeat, subneg IAC-escape).
+- None on record.
 
 ---
 
 ## Change Log
-
-| Date | Author | Summary |
-|------|--------|---------|
