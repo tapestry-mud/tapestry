@@ -500,8 +500,10 @@ app.MapFallback(async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
-        context.Response.StatusCode = 400;
-        await context.Response.WriteAsync("WebSocket connections only");
+        // Anything that is not a WebSocket upgrade is an unmapped route: 404, no
+        // hint. Credential endpoints that are gated off (pre_auth disabled) land
+        // here, so they read as simply absent rather than advertising the surface.
+        context.Response.StatusCode = 404;
         return;
     }
 
@@ -735,3 +737,6 @@ Log.Information("{Name} is running. Telnet: {TelnetPort}, WebSocket: {WsPort}. C
 
 await app.RunAsync();
 await Log.CloseAndFlushAsync();
+
+// Exposes entry point type for WebApplicationFactory in integration tests
+public partial class Program { }

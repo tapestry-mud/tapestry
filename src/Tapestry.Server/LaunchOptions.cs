@@ -17,7 +17,8 @@ public static class LaunchOptions
     /// </summary>
     public static (string ConfigPath, string? PacksDirectory) Resolve(IConfiguration config)
     {
-        var configPath = config["config"];
+        var configPath = config["config"]
+            ?? Environment.GetEnvironmentVariable("TAPESTRY_CONFIG");
         var packs = config["packs"];
         return (
             string.IsNullOrWhiteSpace(configPath) ? DefaultConfigPath : configPath,
