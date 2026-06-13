@@ -98,6 +98,7 @@ builder.Services.AddSingleton(sp =>
     var cfg = sp.GetRequiredService<ServerConfig>();
     return new PreAuthTokenService(cfg.PreAuth.TokenExpirySeconds);
 });
+builder.Services.AddSingleton<AccountSessionService>();
 
 // TelnetServer needs port from config
 builder.Services.AddSingleton(sp =>
