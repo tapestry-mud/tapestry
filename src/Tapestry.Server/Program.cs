@@ -99,6 +99,7 @@ builder.Services.AddSingleton(sp =>
     return new PreAuthTokenService(cfg.PreAuth.TokenExpirySeconds);
 });
 builder.Services.AddSingleton<AccountSessionService>();
+builder.Services.AddSingleton(_ => new ConnectionLimiter(config.Server.MaxConnections));
 
 // TelnetServer needs port from config
 builder.Services.AddSingleton(sp =>
