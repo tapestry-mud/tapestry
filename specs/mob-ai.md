@@ -13,7 +13,7 @@ gating. Key engine classes: `MobAIManager` (tick sweep, budget, quarantine),
 command sequencing). Pack scripts register named behaviors via the JS
 `mobs.registerBehavior` API. Spawning, stat derivation, and loot tables are out of
 scope here (see mob-lifecycle.md). Combat round resolution is out of scope (see
-combat.md).
+combat-resolution.md).
 
 ## Behavior
 

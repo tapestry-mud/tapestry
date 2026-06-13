@@ -16,7 +16,7 @@ combat). Area-level ticks are a third layer: each area owns its own slower inter
 optionally scaled by player occupancy.
 
 Combat resolution is handled inside the `CombatPulse` IPulseHandler; that logic is out of
-scope for this spec and is covered in combat.md.
+scope for this spec and is covered in combat-resolution.md.
 
 Game-clock semantics (time periods, in-game hour/period events) are owned by
 world-simulation.md; this spec covers only the tick dispatch mechanics.

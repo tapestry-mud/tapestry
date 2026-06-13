@@ -21,7 +21,8 @@ declared override.
 
 - **Declarative accumulation:** All `tapestry.<registry>.register(...)` calls during the
   pack load phase record a `RegistrationCandidate` (fields: Kind, Name, Owner, IsOverride,
-  Commit). The seal barrier calls `RegistrationPolicy.Resolve()` once at the end of boot;
+  Commit, plus SourceFile/Line for located diagnostics). The seal barrier calls
+  `RegistrationPolicy.Resolve()` once at the end of boot;
   it groups candidates by `(Kind, Name)`, picks order-independent winners, and replays each
   winner's Commit.
   (src/Tapestry.Engine/Registration/RegistrationPolicy.cs:8-15,84-101)
@@ -31,7 +32,7 @@ declared override.
   owner pack. `kernel` and `engine` owners are non-overridable.
   (src/Tapestry.Engine/Registration/RegistrationPolicy.cs:32-33,122-180)
 
-- **Post-seal registration (D5):** The policy supports sanctioned runtime registrations
+- **Post-seal registration:** The policy supports sanctioned runtime registrations
   after the seal closes. New names bind immediately; a duplicate of a sealed winner without
   a declared override throws. This path is used internally; pack authors should not rely on
   it.

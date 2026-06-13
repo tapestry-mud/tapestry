@@ -54,6 +54,19 @@ of shipped behavior are mandatory.
 A capability spec is current if its Change Log references the latest shipped change record
 that names it in `specs:` (Rule 4).
 
+Format rules (mechanically linted):
+
+- Behavior claims carry inline anchors in exactly one form: `(repo-relative/path/File.ext:123)`,
+  where the line part may be a single line `:123` or a range `:123-145`, and may be omitted only
+  for whole-file claims. Several anchors may share one set of parentheses, joined by `; `. A test
+  name in the same parentheses also counts. Lint pattern (the gate IS this regex, keep them in
+  sync): `[\w./\\-]+\.(cs|js|ts|json|ya?ml)(:\d+(-\d+)?)?`. A file with no matches in its
+  Behavior section fails validation outright.
+- An empty Rejected and Reverted section contains the single line `- None on record.` under
+  the heading (the heading itself is always present).
+- Change Log is a one-line-per-record list, newest first: `- YYYY-MM-DD [slug](changes/...)`.
+  Not a table.
+
 ## Note on docs/ vs specs/
 
 `docs/` is gitignored -- internal design notes stay out of this repo. `specs/` is a

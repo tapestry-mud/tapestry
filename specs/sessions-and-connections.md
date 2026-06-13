@@ -3,6 +3,8 @@ capability: sessions-and-connections
 last-updated: 2026-06-12
 ---
 
+# Sessions and Connections
+
 ## Overview
 
 Tapestry accepts player connections over two transports: raw TCP (telnet) and

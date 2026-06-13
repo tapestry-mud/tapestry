@@ -11,7 +11,7 @@ Covers the item template model, runtime instantiation, player inventory
 (pickup, drop, give, destroy), keyword resolution, stacking display,
 containers, consumables, and loot table resolution. Persistence of
 inventory state is covered in persistence.md. Mob death loot-drop timing
-is covered in mob-ai.md. Economy, pricing, and shop transactions are
+is covered in mob-lifecycle.md. Economy, pricing, and shop transactions are
 covered in economy-and-shops.md. Equipment slots and stat modifiers are
 covered in equipment-and-modifiers.md.
 
@@ -207,7 +207,7 @@ covered in equipment-and-modifiers.md.
   areas/starter-town/mobs/goblin.yaml) use top-level keys `guaranteed`, `pool`,
   `pool_rolls`, and optionally `rare_bonus`. The resolver returns a list of
   template id strings; instantiation and placement are handled by caller code
-  (out of scope here -- see mob-ai.md).
+  (out of scope here -- see mob-lifecycle.md).
 
 ## Rejected and Reverted
 

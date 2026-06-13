@@ -3,6 +3,8 @@ capability: flows-and-wizards
 last-updated: 2026-06-12
 ---
 
+# Flows and Wizards
+
 ## Overview
 
 FlowEngine is a general-purpose wizard engine; character creation is its first
@@ -111,7 +113,8 @@ Accepts free-form input. Fields:
 - `recommend_field`: see base fields above.
 
 When `recommend_field` is set and the player types `~` (optionally followed by a
-hint), the engine suspends the step, calls `RecommendBroker`, and presents a
+hint), the engine suspends the step, calls `RecommendBroker` (the engine's
+suggestion service, src/Tapestry.Engine/Recommend/RecommendBroker.cs), and presents a
 numbered suggestion list. The player picks a number or types their own value.
 (src/Tapestry.Engine/Flow/FlowStepDefinition.cs:30-37;
 src/Tapestry.Engine/Flow/FlowInstance.cs:167-257)

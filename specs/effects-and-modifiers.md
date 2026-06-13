@@ -16,7 +16,7 @@ consumed by `CharEffectsHandler`, which broadcasts the current effect list to
 the player's GMCP connection.
 
 Out of scope here: ability definitions and the resolution pipeline that calls
-`TryApply` (abilities.md), auto-attack damage (combat.md).
+`TryApply` (abilities.md), auto-attack damage (combat-resolution.md).
 
 ---
 
@@ -57,7 +57,7 @@ Out of scope here: ability definitions and the resolution pipeline that calls
 - `TickPulse()` decrements `RemainingPulses` on all non-permanent effects; any
   that reach <= 0 are expired: modifiers/tags reversed, `effect.expired`
   published. Called by `ResolveStatusEffectsPhase` each combat pulse.
-  (EffectManager.cs:130; combat.md)
+  (EffectManager.cs:130; combat-resolution.md)
 
 ### Pack JS API -- effects
 

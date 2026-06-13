@@ -126,7 +126,7 @@ a pack command.
   (src/Tapestry.Engine/Watch/TeeConnection.cs)
 - `ShouldBroadcast` (default `true`) is a per-connection gate; a future
   producer may set it false for private writes. `WatchBroadcastScope.Suppressed`
-  is a per-write suppression seam (Slice C). (src/Tapestry.Engine/Watch/TeeConnection.cs:23,49)
+  is a per-write suppression seam. (src/Tapestry.Engine/Watch/TeeConnection.cs:23,49)
 - Watcher sinks resolve live on each broadcast; a reconnected watcher (new
   connection, same entity id) keeps receiving output without re-subscribing.
   (src/Tapestry.Scripting/Modules/WatchModule.cs:43-51; commit 70db6ab)

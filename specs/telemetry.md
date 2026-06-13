@@ -21,11 +21,14 @@ counter per occurrence.
 ### Meter and tracing source
 
 - Meter name: `"Tapestry"`, version `"1.0.0"`.
-  (src/Tapestry.Engine/TapestryMetrics.cs:7)
+  (src/Tapestry.Engine/TapestryMetrics.cs:7; src/Tapestry.Engine/TapestryMetrics.cs:33)
 - ActivitySource name: `"Tapestry"`, version `"1.0.0"`.
   (src/Tapestry.Engine/TapestryTracing.cs:7-9)
 
 ### Defined metrics
+
+All metrics below are created in the `TapestryMetrics` constructor except where a
+separate registration method is noted. (src/Tapestry.Engine/TapestryMetrics.cs:35-115)
 
 Tick / command throughput:
 - `tapestry.tick.duration_ms` Histogram[double] -- time per tick phase (ms)
@@ -54,7 +57,8 @@ Mob AI:
 - `tapestry.mob_ai.invocation_cap` Counter[long] -- behavior invocation-cap strikes, tagged by behavior
 - `tapestry.mob_ai.quarantine` Counter[long] -- behavior quarantine events, tagged by behavior and pack
 - `tapestry.mob_ai.cursor_lag` ObservableGauge[int] -- mobs deferred by tick budget in the latest sweep
-  (registered separately via `RegisterMobAiCursorLag`)
+  (registered separately via `RegisterMobAiCursorLag`,
+  src/Tapestry.Engine/TapestryMetrics.cs:170-176)
 
 World census (registered via `RegisterWorldCensus`, pull-based at scrape time):
 - `tapestry.world.entities` ObservableGauge[int] -- live entity count by `type` tag

@@ -57,7 +57,7 @@ rates are applied together each regen tick.
   configurable). `SleepStartTick` is recorded on the entity when sleep begins. No call
   site in the current codebase reads either field to apply a "well rested" bonus; both
   are dead fields reserved for a future feature.
-  (src/Tapestry.Engine/Rest/RestConfig.cs -- DEAD FIELD, no consumer found)
+  (src/Tapestry.Engine/Rest/RestConfig.cs)
 
 ### RestModule JS API
 
@@ -82,8 +82,8 @@ rates are applied together each regen tick.
   A `finalMultiplier` of exactly 0.0 causes the entity to be skipped entirely.
   (src/Tapestry.Engine/GameLoop.cs:450-482)
 
-- **[Regen.Event]** For each vital that has regen headroom (current < max) the handler
-  publishes an `entity.regen` event with data `{ "vital": "<hp|resource|movement>",
+- **[Regen.Event]** For each vital below max whose computed regen amount is positive,
+  the handler publishes an `entity.regen` event with data `{ "vital": "<hp|resource|movement>",
   "amount": <computed int> }`. The event is cancellable: a subscriber may set
   `evt.Cancelled = true` to suppress the regen application, or may mutate `amount` in the
   data dictionary to adjust the final value. The engine reads `amount` back from the

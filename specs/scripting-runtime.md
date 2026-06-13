@@ -94,7 +94,7 @@ Notes on two commonly misspelled names:
   `tapestry.packs.require` site whose pack and export arguments are string literals. Dynamic-
   dispatch sites are not recorded. (src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs:16-101)
 - Recorded sites accumulate in `InteropCallSiteRegistry` for the duration of the boot.
-  `PackValidator.ValidateInteropCallSites` drains the registry at seal time to perform static
+  `PackValidator.ValidateInteropCallSites` reads the registry at seal time to perform static
   interop resolution: edge present, target loaded, export exists (for `call`).
   (src/Tapestry.Scripting/Interop/InteropCallSiteRegistry.cs:1-17; src/Tapestry.Scripting/PackValidator.cs:382-409)
 - A parse failure in `InteropCallSiteScanner` yields zero sites; Jint's subsequent

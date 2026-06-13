@@ -3,6 +3,8 @@ capability: login-and-accounts
 last-updated: 2026-06-12
 ---
 
+# Login and Accounts
+
 ## Overview
 
 Handles all pre-game gating from raw TCP connection through the start of play.
@@ -45,7 +47,8 @@ flow (flows-and-wizards.md).
 - Names are validated against regex `^[a-zA-Z]{2,12}$` -- letters only,
   2-12 characters. (src/Tapestry.Engine/NameValidator.cs:7)
 - An engine-level block list rejects specific names with custom messages.
-  The shipped block list contains exactly one entry: `"bela"`.
+  The shipped list reserves one name, `"bela"`, with the in-code message
+  "The great mare of legend cannot be replaced. Choose another name."
   (src/Tapestry.Engine/NameValidator.cs:10-18)
 - Failed name input is reprompted in a loop without consuming a retry counter.
   (src/Tapestry.Server/Login/LoginFlow.cs:102-109)
@@ -195,11 +198,8 @@ flow (flows-and-wizards.md).
   (`Login` or `Create`), and an expiry timestamp.
   (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:1-39;
   src/Tapestry.Server/PreAuth/PreAuthToken.cs:1-27)
-- `Consume` uses a check-then-act sequence: it reads the token, checks
-  `IsValid` (not used AND not expired), sets `Used = true`, removes the entry,
-  and returns the token. Concurrent calls can both pass the validity check
-  before either marks the token used, so a single-use token may be redeemed
-  more than once under concurrent load.
+- `Consume` redeems a token: it checks `IsValid` (not used AND not expired),
+  marks it used, removes the entry, and returns the token.
   (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:22-38)
 
 ### Pre-auth web path

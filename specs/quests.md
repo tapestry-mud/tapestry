@@ -289,7 +289,7 @@ character save layout (see persistence.md).
   a dedicated script loader driven by each quest's `script:` field. This was
   replaced: the single `scripts:` glob in the pack manifest is now the only
   quest-script executor. The `script:` field is retained solely as a
-  coverage-verification hint. (QuestStartupModule.cs:26 comment;
+  coverage-verification hint. (src/Tapestry.Server/Modules/QuestStartupModule.cs:26 comment;
   commit f0d8f14 "Unify quest script execution into PackLoader (#109)")
 
 ---

@@ -22,8 +22,8 @@ definitions via pack JavaScript using the `tapestry.classes`, `tapestry.races`,
 `tapestry.progression`, and `tapestry.training` JS namespaces.
 
 Out of scope here: alignment (alignment.md), ability definitions and effects
-(abilities-and-effects.md), player persistence (persistence.md), combat outcomes
-(combat.md).
+(abilities.md, effects-and-modifiers.md), player persistence (persistence.md),
+combat outcomes (combat-resolution.md).
 
 ---
 

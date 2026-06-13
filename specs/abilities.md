@@ -15,7 +15,7 @@ the entity and resolved at most once per combat pulse by `AbilityResolutionPhase
 which runs as a sub-phase of `CombatPulse`. Effects produced by successful hits
 are handed off to `EffectManager` (see effects-and-modifiers.md).
 
-Out of scope here: auto-attack damage (combat.md), character stat growth and
+Out of scope here: auto-attack damage (combat-resolution.md), character stat growth and
 levelling (character-progression.md), the effect lifecycle after
 `EffectManager.TryApply` (effects-and-modifiers.md).
 
@@ -153,11 +153,11 @@ levelling (character-progression.md), the effect lifecycle after
 - `GetExtraAttackCount(entityId, random)` -- iterates all passives with
   `metadata.hook == "extra_attack"`, rolls each, and accumulates a count.
   Successful rolls also trigger a proficiency gain roll. Used by
-  `ResolveAutoAttacksPhase` (combat.md).
+  `ResolveAutoAttacksPhase` (combat-resolution.md).
 
 - `CheckDefensivePassives(entityId, random)` -- iterates passives with
   `metadata.hook == "defensive_check"` and returns the first that succeeds
-  its proficiency roll, or null. Used by `ResolveAutoAttacksPhase` (combat.md).
+  its proficiency roll, or null. Used by `ResolveAutoAttacksPhase` (combat-resolution.md).
 
 ### Ability Resolution Phase
 

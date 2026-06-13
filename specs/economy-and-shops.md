@@ -28,7 +28,8 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
 
 - **[CurrencyProperties.CurrencyTag]** Items tagged `currency` are auto-converted on
   pickup for player entities: the item is destroyed and its `value` is credited as gold.
-  Non-player entities are not auto-converted.
+  Conversion also requires `value` > 0; a zero- or invalid-value currency item is picked
+  up as a normal item. Non-player entities are not auto-converted.
   (src/Tapestry.Engine/Economy/CurrencyService.cs)
 
 - **[CurrencyService.Gold.Floor]** `AddGold` clamps the result to a minimum of 0; gold
@@ -54,13 +55,12 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
   (src/Tapestry.Engine/Economy/ShopProperties.cs; src/Tapestry.Engine/Economy/ShopService.cs)
 
 - **[ShopConfig.YAML]** Shop configuration is declared in a mob YAML file in three
-  supported forms:
+  supported forms; all three are parsed only when the entity carries the `shop` tag:
   1. Nested block -- `shop: { sells: [...], buy_markup: 1.4, sell_discount: 0.3 }`
   2. Flat top-level field -- `shop_sells: [...]` (markup/discount fall back to server
      defaults when omitted or 0).
   3. Legacy dotted property -- a `shop.sells` key in the `properties` map (only parsed
-     when the entity has the `shop` tag and `shop_sells` is empty). Markup/discount fall
-     back to server defaults.
+     when `shop_sells` is empty). Markup/discount fall back to server defaults.
   (src/Tapestry.Scripting/PackLoader.cs:421-460)
 
 - **[ShopConfig.Validation]** The pack validator emits a warning (not an error) when a
@@ -141,7 +141,7 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
 - **[ShopPack.Example]** The example pack ships a working shop mob at
   `packs/@tapestry/example-pack/areas/starter-town/mobs/merchant.yaml` (id
   `tapestry-example-pack:merchant`, tag `shop`, uses the flat `shop_sells` config form
-  with ten stock items).
+  with a 13-item stock list, including two cross-pack `tapestry-cooking:*` entries).
 
 ---
 

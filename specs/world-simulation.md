@@ -14,7 +14,7 @@ affected rooms; and `EmoteRegistry` lets packs register named emote templates th
 engine formats and delivers. All three are data-driven -- the engine defines no zone
 definitions, emote names, or period messages of its own. Heartbeat timing that drives
 `GameClock.Tick()` is out of scope (see heartbeat.md). Area resets are also out of scope
-(heartbeat.md). Combat is out of scope (combat.md).
+(heartbeat.md). Combat is out of scope (combat-resolution.md).
 
 ## Behavior
 

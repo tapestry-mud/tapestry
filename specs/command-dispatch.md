@@ -61,10 +61,11 @@ the verb to a handler and invokes it.
 - **ActorContext:** `ActorContext` is an immutable, init-only class (not a record) that
   captures the acting entity's id, name, current room, source type, raw input, resolved
   command token, and raw args for the duration of one command handler invocation. It is
-  constructed by `ParseInput` and passed into each command handler. On the `executeAs` path
+  constructed by `CommandRouter` (`Route`/`RouteForMob`) from the parsed `CommandContext`
+  and passed into each command handler. On the `executeAs` path
   the context is built for the target entity, so all handler code that reads the context
   operates as if the target issued the command.
-  (src/Tapestry.Engine/ActorContext.cs:1-12)
+  (src/Tapestry.Engine/ActorContext.cs:1-12; src/Tapestry.Engine/CommandRouter.cs:141-154)
 
 - **GMCP auto-publish:** After every non-mob player command, the engine publishes a
   `communication.message` event on a GMCP channel (`feedback` by default, overridable per

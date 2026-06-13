@@ -13,7 +13,7 @@ and affects class and ability eligibility checks. Pack scripts control threshold
 and can hook into shift events.
 
 Out of scope here: class/ability eligibility rules (character-progression.md,
-abilities-and-effects.md), persistence (persistence.md).
+abilities.md), persistence (persistence.md).
 
 ---
 

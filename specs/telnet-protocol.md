@@ -3,6 +3,8 @@ capability: telnet-protocol
 last-updated: 2026-06-12
 ---
 
+# Telnet Protocol
+
 ## Overview
 
 Tapestry accepts raw TCP (telnet) connections via `TelnetServer`. All telnet

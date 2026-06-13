@@ -176,5 +176,7 @@ once per game-loop tick, not on the publishing thread.
 Specific event types fired by combat, movement, progression, GMCP, and other
 subsystems are covered in those subsystems' capability specs, not here.
 
-`ConnectEvent` is defined in `SystemEvent.cs` but its enqueue call site has
-not been confirmed; its dispatch path is not documented in this spec.
+`ConnectEvent` is defined in `SystemEvent.cs` but has no production enqueue
+site; connect handling goes through `PlayerSpawner.CompleteLogin` and
+`GameLoop.Schedule` rather than the system-event queue
+(src/Tapestry.Engine/SystemEvent.cs:22-28; src/Tapestry.Server/PlayerSpawner.cs:78-139).

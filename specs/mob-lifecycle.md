@@ -130,7 +130,7 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 - Loot is defined inline in a mob YAML file under the `loot:` key. The loader constructs
   a `LootTable` keyed to the template ID and calls `SpawnManager.RegisterLootTable`.
   (src/Tapestry.Scripting/YamlContentLoader.cs:190-201;
-  src/Tapestry.Scripting\PackLoader.cs:476-480)
+  src/Tapestry.Scripting/PackLoader.cs:476-480)
 - `LootTable` fields:
   - `Guaranteed` -- list of `{ item, count }` entries; every item is always included.
   - `Pool` -- list of weighted entries `{ item, weight }`.
