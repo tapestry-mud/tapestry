@@ -5,6 +5,7 @@ using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Registration;
 using Tapestry.Server.Gmcp.Handlers;
+using Tapestry.Server.Login;
 
 namespace Tapestry.Server.Modules;
 
@@ -115,9 +116,10 @@ public class PersistenceModule : IGameModule
                     }
                     else if (promptStep == 1)
                     {
-                        if (input.Length < _config.Persistence.PasswordMinLength)
+                        var (pwOk, pwError) = PasswordValidator.Validate(input, _config.Persistence.PasswordMinLength);
+                        if (!pwOk)
                         {
-                            ExitPrompt($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
+                            ExitPrompt(pwError!);
                             return;
                         }
 
@@ -145,10 +147,10 @@ public class PersistenceModule : IGameModule
 
                 var targetName = ctx.RawArgs[0];
                 var newPassword = ctx.RawArgs[1];
-                if (newPassword.Length < _config.Persistence.PasswordMinLength)
+                var (pwOk2, pwError2) = PasswordValidator.Validate(newPassword, _config.Persistence.PasswordMinLength);
+                if (!pwOk2)
                 {
-                    _sessions.SendToPlayer(ctx.EntityId,
-                        $"Password must be at least {_config.Persistence.PasswordMinLength} characters.\r\n");
+                    _sessions.SendToPlayer(ctx.EntityId, pwError2 + "\r\n");
                     return;
                 }
 

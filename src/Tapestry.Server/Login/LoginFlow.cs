@@ -329,7 +329,8 @@ public class LoginFlow
                 _adapter.SendLine("");
                 var candidatePw = passwordInput.Trim();
 
-                if (candidatePw.Length < _config.Persistence.PasswordMinLength)
+                var (pwOk, pwError) = PasswordValidator.Validate(candidatePw, _config.Persistence.PasswordMinLength);
+                if (!pwOk)
                 {
                     creationAttempts++;
                     if (creationAttempts >= 3)
@@ -339,7 +340,7 @@ public class LoginFlow
                         _adapter.Disconnect("login failed");
                         return true;
                     }
-                    _adapter.SendLine($"Password must be at least {_config.Persistence.PasswordMinLength} characters.");
+                    _adapter.SendLine(pwError!);
                     _adapter.SendLine("Choose a password:");
                     SendGmcpPrompt("Choose a password");
                     continue;

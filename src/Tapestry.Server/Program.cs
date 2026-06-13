@@ -437,6 +437,13 @@ app.MapPost("/auth/register", async (HttpContext httpContext,
         return Results.Json(new { error = "character is required" });
     }
 
+    var (pwOk, pwError) = PasswordValidator.Validate(body.Password, config.Persistence.PasswordMinLength);
+    if (!pwOk)
+    {
+        httpContext.Response.StatusCode = 400;
+        return Results.Json(new { error = pwError });
+    }
+
     var (emailValid, emailError) = EmailValidator.Validate(body.Email);
     if (!emailValid)
     {
