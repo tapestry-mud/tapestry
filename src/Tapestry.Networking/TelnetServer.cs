@@ -23,6 +23,12 @@ public class TelnetServer
 
     public event Action<IConnection>? OnConnectionAccepted;
 
+    /// <summary>Called on each accepted socket. Returns false to refuse over-cap. Null = always accept.</summary>
+    public Func<bool>? ConnectionGate { get; set; }
+
+    /// <summary>Called whenever an acquired connection slot is freed (disconnect or early-setup failure).</summary>
+    public Action? OnConnectionReleased { get; set; }
+
     public TelnetServer(
         int port,
         int negotiationTimeoutMs,
@@ -74,7 +80,33 @@ public class TelnetServer
                     }
                 }
 
-                var connection = new TelnetConnection(client, _logger);
+                if (ConnectionGate != null && !ConnectionGate())
+                {
+                    try
+                    {
+                        var msg = System.Text.Encoding.ASCII.GetBytes("Server full. Try again later.\r\n");
+                        await client.GetStream().WriteAsync(msg, ct).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // Best-effort notice; the socket may already be gone.
+                    }
+                    client.Close();
+                    continue;
+                }
+
+                TelnetConnection connection;
+                try
+                {
+                    connection = new TelnetConnection(client, _logger);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to initialize connection from {Remote}", client.Client.RemoteEndPoint);
+                    OnConnectionReleased?.Invoke();
+                    client.Close();
+                    continue;
+                }
                 _logger.LogInformation("New telnet connection: {Id} from {Remote}", connection.Id, client.Client.RemoteEndPoint);
 
                 try
@@ -109,6 +141,7 @@ public class TelnetServer
                     {
                         _connections.Remove(connection);
                     }
+                    OnConnectionReleased?.Invoke();
                 };
 
                 OnConnectionAccepted?.Invoke(connection);

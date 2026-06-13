@@ -104,11 +104,12 @@ builder.Services.AddSingleton(_ => new ConnectionLimiter(config.Server.MaxConnec
 // TelnetServer needs port from config
 builder.Services.AddSingleton(sp =>
 {
+    var limiter = sp.GetRequiredService<ConnectionLimiter>();
     var sessions = sp.GetRequiredService<SessionManager>();
     var startTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
     var keepAlive = config.Networking.KeepAlive;
-    return new TelnetServer(
+    var server = new TelnetServer(
         config.Server.TelnetPort,
         config.Networking.NegotiationTimeoutMs,
         sp.GetRequiredService<ILogger<TelnetServer>>(),
@@ -123,6 +124,11 @@ builder.Services.AddSingleton(sp =>
             Players = sessions.Count,
             UptimeEpoch = startTime
         });
+
+    server.ConnectionGate = () => limiter.TryAcquire();
+    server.OnConnectionReleased = () => limiter.Release();
+
+    return server;
 });
 
 builder.Services.AddSingleton<GmcpModuleAdapter>();
@@ -499,197 +505,212 @@ app.MapFallback(async context =>
         return;
     }
 
-    var wsKeepAlive = config.Networking.KeepAlive;
-    using var ws = wsKeepAlive.Enabled
-        ? await context.WebSockets.AcceptWebSocketAsync(
-            WebSocketKeepAlive.BuildAcceptContext(wsKeepAlive.IntervalSeconds, wsKeepAlive.RetryCount))
-        : await context.WebSockets.AcceptWebSocketAsync();
-    var handler = context.RequestServices.GetRequiredService<ConnectionHandler>();
-    var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
-    var wsLogger = loggerFactory.CreateLogger<WebSocketConnection>();
-
-    // Tokenless anonymous watch mode (Slice B): a read-only spectator stream, not a player. It
-    // skips the login state machine entirely, never becomes a player, and speaks only the tiny
-    // watch control protocol. Off unless server.yaml enables it (watch.enabled) — a server that
-    // does not want watching leaves the transport off and the tee primitive stays dormant.
-    var watchMode = context.Request.Query["mode"].FirstOrDefault();
-    if (string.Equals(watchMode, "watch", StringComparison.OrdinalIgnoreCase))
+    var limiter = context.RequestServices.GetRequiredService<ConnectionLimiter>();
+    if (!limiter.TryAcquire())
     {
-        if (!config.Watch.Enabled)
-        {
-            wsLogger.LogInformation("Rejected watch connection: watch mode disabled");
-            return; // `using var ws` closes the socket
-        }
-
-        var watchLogger = loggerFactory.CreateLogger<WatchSinkConnection>();
-        var watchConn = new WatchSinkConnection(ws, watchLogger)
-        {
-            RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
-        };
-
-        var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
-        var watchRosterSource = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.IWatchRosterSource>();
-        var watchHub = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchSessionHub>();
-
-        var watchSession = new Tapestry.Engine.Watch.WatchSession(watchConn, watchRegistry, watchRosterSource);
-        watchHub.Register(watchSession);
-        watchConn.OnDisconnected += () => watchHub.Unregister(watchConn.Id);
-
-        wsLogger.LogInformation("New watch (spectator) connection: {Id} from {Remote}",
-            watchConn.Id, context.Connection.RemoteIpAddress);
-
-        watchSession.PushRoster();
-        watchConn.SendStatus("Connected. Pick a player to watch.");
-
-        await watchConn.RunAsync(context.RequestAborted);
+        context.Response.StatusCode = 503;
+        await context.Response.WriteAsync("Server full. Try again later.");
         return;
     }
 
-    var connection = new WebSocketConnection(ws, wsLogger)
+    try
     {
-        RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
-    };
-    wsLogger.LogInformation("New WebSocket connection: {Id} from {Remote}",
-        connection.Id, context.Connection.RemoteIpAddress);
+        var wsKeepAlive = config.Networking.KeepAlive;
+        using var ws = wsKeepAlive.Enabled
+            ? await context.WebSockets.AcceptWebSocketAsync(
+                WebSocketKeepAlive.BuildAcceptContext(wsKeepAlive.IntervalSeconds, wsKeepAlive.RetryCount))
+            : await context.WebSockets.AcceptWebSocketAsync();
+        var handler = context.RequestServices.GetRequiredService<ConnectionHandler>();
+        var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
+        var wsLogger = loggerFactory.CreateLogger<WebSocketConnection>();
 
-    // Check for pre-auth token
-    var tokenId = context.Request.Query["token"].FirstOrDefault();
-    if (!string.IsNullOrEmpty(tokenId) && config.PreAuth.Enabled)
-    {
-        var tokenSvc = context.RequestServices.GetRequiredService<PreAuthTokenService>();
-        var preAuthToken = tokenSvc.Consume(tokenId);
-
-        if (preAuthToken != null)
+        // Tokenless anonymous watch mode (Slice B): a read-only spectator stream, not a player. It
+        // skips the login state machine entirely, never becomes a player, and speaks only the tiny
+        // watch control protocol. Off unless server.yaml enables it (watch.enabled) — a server that
+        // does not want watching leaves the transport off and the tee primitive stays dormant.
+        var watchMode = context.Request.Query["mode"].FirstOrDefault();
+        if (string.Equals(watchMode, "watch", StringComparison.OrdinalIgnoreCase))
         {
-            var sessionMgr = context.RequestServices.GetRequiredService<SessionManager>();
-            var persistence = context.RequestServices.GetRequiredService<PlayerPersistenceService>();
-            var spawner = context.RequestServices.GetRequiredService<PlayerSpawner>();
-            var connectionManager = context.RequestServices.GetRequiredService<IGmcpConnectionManager>();
-            var flowEngine = context.RequestServices.GetService<FlowEngine>();
-
-            // Register GMCP handler
-            connectionManager.RegisterHandler(connection.Id, connection.GmcpHandler);
-            connection.OnDisconnected += () => connectionManager.UnregisterHandler(connection.Id);
-
-            // Color renders first (outermost); the word-wrapper runs on the rendered
-            // output (innermost) where ANSI escapes are zero-width.
-            var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
-            var outputWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWrapper>();
-            var outputWidthService = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWidthService>();
-            var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
-            var colorConn = OutputChainFactory.Build(
-                connection, colorRenderer, outputWrapper, outputWidthService, sessionMgr, watchRegistry);
-
-            // Create and register LoginContext
-            var loginContext = new LoginContext(connection.Id, colorConn);
-            sessionMgr.RegisterPreLogin(loginContext);
-
-            // Ensure the pre-login registration is cleaned up on every disconnect
-            // path. The session-aware Login branch resolves on a background task;
-            // its Declined / OverLimit / error / client-drop outcomes only
-            // disconnect (success paths remove it via the spawner), so without
-            // this hook those outcomes would leak the _preLogin entry (and inflate
-            // ConnectionCount). RemovePreLogin is idempotent, so this is a no-op on
-            // the success paths that already removed it.
-            connection.OnDisconnected += () => sessionMgr.RemovePreLogin(connection.Id);
-
-            var wizlock = context.RequestServices.GetRequiredService<WizlockState>();
-
-            if (preAuthToken.Intent == PreAuthIntent.Login)
+            if (!config.Watch.Enabled)
             {
-                var data = await persistence.LoadPlayer(preAuthToken.Name);
-                if (data != null && wizlock.Locked && !data.Entity.HasRole("admin"))
+                wsLogger.LogInformation("Rejected watch connection: watch mode disabled");
+                return; // `using var ws` closes the socket
+            }
+
+            var watchLogger = loggerFactory.CreateLogger<WatchSinkConnection>();
+            var watchConn = new WatchSinkConnection(ws, watchLogger)
+            {
+                RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
+            };
+
+            var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
+            var watchRosterSource = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.IWatchRosterSource>();
+            var watchHub = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchSessionHub>();
+
+            var watchSession = new Tapestry.Engine.Watch.WatchSession(watchConn, watchRegistry, watchRosterSource);
+            watchHub.Register(watchSession);
+            watchConn.OnDisconnected += () => watchHub.Unregister(watchConn.Id);
+
+            wsLogger.LogInformation("New watch (spectator) connection: {Id} from {Remote}",
+                watchConn.Id, context.Connection.RemoteIpAddress);
+
+            watchSession.PushRoster();
+            watchConn.SendStatus("Connected. Pick a player to watch.");
+
+            await watchConn.RunAsync(context.RequestAborted);
+            return;
+        }
+
+        var connection = new WebSocketConnection(ws, wsLogger)
+        {
+            RemoteAddress = context.Connection.RemoteIpAddress?.ToString()
+        };
+        wsLogger.LogInformation("New WebSocket connection: {Id} from {Remote}",
+            connection.Id, context.Connection.RemoteIpAddress);
+
+        // Check for pre-auth token
+        var tokenId = context.Request.Query["token"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(tokenId) && config.PreAuth.Enabled)
+        {
+            var tokenSvc = context.RequestServices.GetRequiredService<PreAuthTokenService>();
+            var preAuthToken = tokenSvc.Consume(tokenId);
+
+            if (preAuthToken != null)
+            {
+                var sessionMgr = context.RequestServices.GetRequiredService<SessionManager>();
+                var persistence = context.RequestServices.GetRequiredService<PlayerPersistenceService>();
+                var spawner = context.RequestServices.GetRequiredService<PlayerSpawner>();
+                var connectionManager = context.RequestServices.GetRequiredService<IGmcpConnectionManager>();
+                var flowEngine = context.RequestServices.GetService<FlowEngine>();
+
+                // Register GMCP handler
+                connectionManager.RegisterHandler(connection.Id, connection.GmcpHandler);
+                connection.OnDisconnected += () => connectionManager.UnregisterHandler(connection.Id);
+
+                // Color renders first (outermost); the word-wrapper runs on the rendered
+                // output (innermost) where ANSI escapes are zero-width.
+                var colorRenderer = context.RequestServices.GetRequiredService<ColorRenderer>();
+                var outputWrapper = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWrapper>();
+                var outputWidthService = context.RequestServices.GetRequiredService<Tapestry.Engine.Text.OutputWidthService>();
+                var watchRegistry = context.RequestServices.GetRequiredService<Tapestry.Engine.Watch.WatchRegistry>();
+                var colorConn = OutputChainFactory.Build(
+                    connection, colorRenderer, outputWrapper, outputWidthService, sessionMgr, watchRegistry);
+
+                // Create and register LoginContext
+                var loginContext = new LoginContext(connection.Id, colorConn);
+                sessionMgr.RegisterPreLogin(loginContext);
+
+                // Ensure the pre-login registration is cleaned up on every disconnect
+                // path. The session-aware Login branch resolves on a background task;
+                // its Declined / OverLimit / error / client-drop outcomes only
+                // disconnect (success paths remove it via the spawner), so without
+                // this hook those outcomes would leak the _preLogin entry (and inflate
+                // ConnectionCount). RemovePreLogin is idempotent, so this is a no-op on
+                // the success paths that already removed it.
+                connection.OnDisconnected += () => sessionMgr.RemovePreLogin(connection.Id);
+
+                var wizlock = context.RequestServices.GetRequiredService<WizlockState>();
+
+                if (preAuthToken.Intent == PreAuthIntent.Login)
                 {
-                    // Wizlock (ROM parity): refuse non-admin web logins at token
-                    // redemption -- the one choke point every web login crosses.
+                    var data = await persistence.LoadPlayer(preAuthToken.Name);
+                    if (data != null && wizlock.Locked && !data.Entity.HasRole("admin"))
+                    {
+                        // Wizlock (ROM parity): refuse non-admin web logins at token
+                        // redemption -- the one choke point every web login crosses.
+                        colorConn.SendLine(WizlockState.Message);
+                        colorConn.Disconnect("wizlock");
+                    }
+                    else if (data == null)
+                    {
+                        // Save no longer exists -> existing fallback (resolver not reached).
+                        handler.HandleNewConnection(connection, connection.GmcpHandler);
+                    }
+                    else
+                    {
+                        // Resolve game entry exactly as telnet does. The resolver may
+                        // await a takeover confirmation, which needs the WS input pump
+                        // (RunAsync, below) running concurrently -- so run it on a
+                        // background task, mirroring ConnectionHandler.HandleNewConnection.
+                        var loginHandlerGmcp = context.RequestServices
+                            .GetService<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
+                        var takeoverTimeout = config.Idle.PhaseTimeouts.SessionTakeover > 0
+                            ? config.Idle.PhaseTimeouts.SessionTakeover
+                            : config.Idle.PreLoginTimeoutSeconds;
+                        var adapter = new AsyncConnectionAdapter(colorConn);
+                        var confirmer = new InteractiveTakeoverConfirmer(
+                            adapter, loginContext, loginHandlerGmcp, takeoverTimeout);
+                        var resolver = new GameEntryResolver(sessionMgr, spawner, config);
+
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var result = await resolver.ResolveAsync(
+                                    preAuthToken.AccountId, preAuthToken.Name, data,
+                                    colorConn, loginContext, confirmer, context.RequestAborted);
+
+                                switch (result)
+                                {
+                                    case GameEntryResult.OverLimit:
+                                        colorConn.SendLine("You already have a character online. Disconnect first.");
+                                        colorConn.Disconnect("concurrent character limit");
+                                        break;
+                                    case GameEntryResult.Declined:
+                                        colorConn.Disconnect("takeover declined");
+                                        break;
+                                }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // Connection dropped mid-resolution; teardown is handled elsewhere.
+                            }
+                            catch (Exception ex)
+                            {
+                                wsLogger.LogError(ex, "Game entry error for {Id}", connection.Id);
+                                if (connection.IsConnected)
+                                {
+                                    connection.Disconnect("internal error");
+                                }
+                            }
+                            finally
+                            {
+                                adapter.Dispose();
+                            }
+                        });
+                    }
+                }
+                else if (wizlock.Locked)
+                {
+                    // Create-intent tokens pass the WizlockGate at issue time, but the
+                    // flag may have been toggled on between issue and redemption -- a
+                    // brand-new character can never be an admin, so refuse here too.
                     colorConn.SendLine(WizlockState.Message);
                     colorConn.Disconnect("wizlock");
                 }
-                else if (data == null)
-                {
-                    // Save no longer exists -> existing fallback (resolver not reached).
-                    handler.HandleNewConnection(connection, connection.GmcpHandler);
-                }
                 else
                 {
-                    // Resolve game entry exactly as telnet does. The resolver may
-                    // await a takeover confirmation, which needs the WS input pump
-                    // (RunAsync, below) running concurrently -- so run it on a
-                    // background task, mirroring ConnectionHandler.HandleNewConnection.
-                    var loginHandlerGmcp = context.RequestServices
-                        .GetService<Tapestry.Server.Gmcp.Handlers.LoginHandler>();
-                    var takeoverTimeout = config.Idle.PhaseTimeouts.SessionTakeover > 0
-                        ? config.Idle.PhaseTimeouts.SessionTakeover
-                        : config.Idle.PreLoginTimeoutSeconds;
-                    var adapter = new AsyncConnectionAdapter(colorConn);
-                    var confirmer = new InteractiveTakeoverConfirmer(
-                        adapter, loginContext, loginHandlerGmcp, takeoverTimeout);
-                    var resolver = new GameEntryResolver(sessionMgr, spawner, config);
-
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            var result = await resolver.ResolveAsync(
-                                preAuthToken.AccountId, preAuthToken.Name, data,
-                                colorConn, loginContext, confirmer, context.RequestAborted);
-
-                            switch (result)
-                            {
-                                case GameEntryResult.OverLimit:
-                                    colorConn.SendLine("You already have a character online. Disconnect first.");
-                                    colorConn.Disconnect("concurrent character limit");
-                                    break;
-                                case GameEntryResult.Declined:
-                                    colorConn.Disconnect("takeover declined");
-                                    break;
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Connection dropped mid-resolution; teardown is handled elsewhere.
-                        }
-                        catch (Exception ex)
-                        {
-                            wsLogger.LogError(ex, "Game entry error for {Id}", connection.Id);
-                            if (connection.IsConnected)
-                            {
-                                connection.Disconnect("internal error");
-                            }
-                        }
-                        finally
-                        {
-                            adapter.Dispose();
-                        }
-                    });
+                    spawner.CompleteNewCharacter(
+                        preAuthToken.Name,
+                        preAuthToken.AccountId,
+                        colorConn,
+                        loginContext,
+                        flowEngine);
                 }
-            }
-            else if (wizlock.Locked)
-            {
-                // Create-intent tokens pass the WizlockGate at issue time, but the
-                // flag may have been toggled on between issue and redemption -- a
-                // brand-new character can never be an admin, so refuse here too.
-                colorConn.SendLine(WizlockState.Message);
-                colorConn.Disconnect("wizlock");
-            }
-            else
-            {
-                spawner.CompleteNewCharacter(
-                    preAuthToken.Name,
-                    preAuthToken.AccountId,
-                    colorConn,
-                    loginContext,
-                    flowEngine);
-            }
 
-            await connection.RunAsync(context.RequestAborted);
-            return;
+                await connection.RunAsync(context.RequestAborted);
+                return;
+            }
         }
-    }
 
-    // No token or invalid token -- normal LoginFlow
-    handler.HandleNewConnection(connection, connection.GmcpHandler);
-    await connection.RunAsync(context.RequestAborted);
+        // No token or invalid token -- normal LoginFlow
+        handler.HandleNewConnection(connection, connection.GmcpHandler);
+        await connection.RunAsync(context.RequestAborted);
+    }
+    finally
+    {
+        limiter.Release();
+    }
 });
 
 // Bootstrap: load packs, wire events, register tick handlers
