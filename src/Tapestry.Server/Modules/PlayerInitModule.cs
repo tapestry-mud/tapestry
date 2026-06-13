@@ -59,10 +59,21 @@ public class PlayerInitModule : IGameModule
             return;
         }
 
+        var effectivePassword = Environment.GetEnvironmentVariable("TAPESTRY_ADMIN_PASSWORD");
+        if (string.IsNullOrWhiteSpace(effectivePassword))
+        {
+            if (!string.IsNullOrWhiteSpace(admin.Password))
+            {
+                _logger.LogWarning(
+                    "Admin seed: password is in plaintext config. Set TAPESTRY_ADMIN_PASSWORD env var instead.");
+            }
+            effectivePassword = admin.Password;
+        }
+
         Guid accountId;
         if (!string.IsNullOrWhiteSpace(admin.Email) && _accountService.ExistsByEmail(admin.Email))
         {
-            var account = _accountService.Authenticate(admin.Email, admin.Password).GetAwaiter().GetResult();
+            var account = _accountService.Authenticate(admin.Email, effectivePassword).GetAwaiter().GetResult();
             if (account == null)
             {
                 _logger.LogWarning("Admin seed: account exists for {Email} but password doesn't match", admin.Email);
@@ -73,7 +84,7 @@ public class PlayerInitModule : IGameModule
         else
         {
             var email = string.IsNullOrWhiteSpace(admin.Email) ? $"{admin.Handle.ToLower()}@localhost" : admin.Email;
-            var account = _accountService.CreateAccount(email, admin.Password).GetAwaiter().GetResult();
+            var account = _accountService.CreateAccount(email, effectivePassword).GetAwaiter().GetResult();
             accountId = account.Id;
         }
 
