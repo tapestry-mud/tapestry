@@ -258,7 +258,7 @@ app.MapGet("/auth/check", (string? name, PlayerPersistenceService persistence) =
 }).RequireRateLimiting("auth-light");
 
 app.MapPost("/auth/login", async (HttpContext httpContext, AccountService accountService,
-    PreAuthTokenService tokenService) =>
+    PreAuthTokenService tokenService, AccountSessionService accountSessionService) =>
 {
     var body = await httpContext.Request.ReadFromJsonAsync<PreAuthLoginRequest>();
     if (body == null || string.IsNullOrWhiteSpace(body.Email))
@@ -287,8 +287,11 @@ app.MapPost("/auth/login", async (HttpContext httpContext, AccountService accoun
         return Results.Json(new { error = "Invalid email or password" });
     }
 
+    var sessionToken = accountSessionService.Issue(account.Id);
+
     return Results.Json(new
     {
+        session_token = sessionToken,
         account_id = account.Id.ToString(),
         characters = account.Characters
     });
@@ -296,81 +299,53 @@ app.MapPost("/auth/login", async (HttpContext httpContext, AccountService accoun
 
 app.MapPost("/auth/select", async (HttpContext httpContext, AccountService accountService,
     PlayerPersistenceService persistence, SessionManager sessions, PreAuthTokenService tokenService,
-    LoginGateRegistry loginGates) =>
+    LoginGateRegistry loginGates, AccountSessionService accountSessionService) =>
 {
     var body = await httpContext.Request.ReadFromJsonAsync<PreAuthSelectRequest>();
-    if (body == null || string.IsNullOrWhiteSpace(body.AccountId))
+    if (body == null || string.IsNullOrWhiteSpace(body.SessionToken))
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = "account_id is required" });
+        return Results.Json(new { error = "session_token is required" });
     }
 
-    if (!Guid.TryParse(body.AccountId, out var accountId))
+    var accountSession = accountSessionService.Consume(body.SessionToken);
+    if (accountSession == null)
+    {
+        httpContext.Response.StatusCode = 401;
+        return Results.Json(new { error = "Invalid or expired session token" });
+    }
+
+    if (string.IsNullOrWhiteSpace(body.NewCharacter))
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = "Invalid account_id" });
+        return Results.Json(new { error = "new_character is required" });
     }
 
-    var account = await accountService.LoadAccount(accountId);
-    if (account == null)
-    {
-        httpContext.Response.StatusCode = 404;
-        return Results.Json(new { error = "Account not found" });
-    }
-
-    if (!string.IsNullOrWhiteSpace(body.Character))
-    {
-        var charName = body.Character.Trim();
-        if (!account.Characters.Contains(charName, StringComparer.OrdinalIgnoreCase))
-        {
-            httpContext.Response.StatusCode = 403;
-            return Results.Json(new { error = "Character not on this account" });
-        }
-
-        var targetEntityId = sessions.GetByPlayerName(charName)?.PlayerEntity.Id;
-        if (sessions.IsAccountAtCharacterLimit(
-                accountId, config.Accounts.MaxConcurrentCharacters, targetEntityId))
-        {
-            httpContext.Response.StatusCode = 409;
-            return Results.Json(new { error = "Concurrent character limit reached" });
-        }
-
-        var token = tokenService.Issue(charName, accountId, PreAuthIntent.Login);
-        return Results.Json(new { token });
-    }
-    else if (!string.IsNullOrWhiteSpace(body.NewCharacter))
-    {
-        var charName = body.NewCharacter.Trim();
-        var (nameValid, nameError) = NameValidator.Validate(charName);
-        if (!nameValid)
-        {
-            httpContext.Response.StatusCode = 400;
-            return Results.Json(new { error = nameError });
-        }
-
-        var canonical = NameValidator.Canonicalize(charName);
-        if (persistence.PlayerSaveExists(canonical))
-        {
-            httpContext.Response.StatusCode = 409;
-            return Results.Json(new { error = "Character name already exists" });
-        }
-
-        var gateResult = loginGates.RunAll(canonical, null!);
-        if (!gateResult.Allowed)
-        {
-            httpContext.Response.StatusCode = 403;
-            return Results.Json(new { error = gateResult.Message ?? "Name not allowed" });
-        }
-
-        await accountService.AddCharacterToAccount(accountId, canonical);
-        var token = tokenService.Issue(canonical, accountId, PreAuthIntent.Create);
-        return Results.Json(new { token });
-    }
-    else
+    var charName = body.NewCharacter.Trim();
+    var (nameValid, nameError) = NameValidator.Validate(charName);
+    if (!nameValid)
     {
         httpContext.Response.StatusCode = 400;
-        return Results.Json(new { error = "character or new_character is required" });
+        return Results.Json(new { error = nameError });
     }
+
+    var canonical = NameValidator.Canonicalize(charName);
+    if (persistence.PlayerSaveExists(canonical))
+    {
+        httpContext.Response.StatusCode = 409;
+        return Results.Json(new { error = "Character name already exists" });
+    }
+
+    var gateResult = loginGates.RunAll(canonical, null!);
+    if (!gateResult.Allowed)
+    {
+        httpContext.Response.StatusCode = 403;
+        return Results.Json(new { error = gateResult.Message ?? "Name not allowed" });
+    }
+
+    await accountService.AddCharacterToAccount(accountSession.AccountId, canonical);
+    var token = tokenService.Issue(canonical, accountSession.AccountId, PreAuthIntent.Create);
+    return Results.Json(new { token });
 }).RequireRateLimiting("auth-strict");
 
 app.MapGet("/auth/check-email", (string? email, AccountService accountService) =>

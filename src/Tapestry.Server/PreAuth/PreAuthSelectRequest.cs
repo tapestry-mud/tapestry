@@ -1,6 +1,5 @@
 namespace Tapestry.Server.PreAuth;
 
 public record PreAuthSelectRequest(
-    string? AccountId,
-    string? Character,
+    string? SessionToken,
     string? NewCharacter);
