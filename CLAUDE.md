@@ -39,6 +39,8 @@ node tests/tools/telnet-runner.js tests/scenarios/smoke/new-player.md
 
 **Central Package Management.** All NuGet versions are in `Directory.Packages.props`. Do not add a `Version` attribute to individual `.csproj` references -- it causes a duplicate-version build error.
 
+**Telnet output is a Linux-vs-Windows trap.** Newline bugs in telnet renderers reproduce on the Linux droplet but NOT on a Windows `dotnet run`: `AppendLine`/`Environment.NewLine` emits `\r\n` on Windows and a bare `\n` on Linux, and telnet needs `\r\n`, so a lone `\n` renders staggered. When touching a telnet output path, assert explicit `\r\n` (do not rely on `AppendLine`) or verify in the Linux container -- a clean Windows run masks it. Systemic fix tracked in issue #90 (CRLF normalizer at `TelnetConnection.SendText`); until it lands, this is on you.
+
 ## Layout
 
 ```
