@@ -15,6 +15,9 @@ data/saves/
 # Test run output
 tests/scenarios/results/
 
+# Node tooling
+node_modules/
+
 # AI assistant context
 .claude/
 
