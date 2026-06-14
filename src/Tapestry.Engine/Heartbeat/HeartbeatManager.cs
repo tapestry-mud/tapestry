@@ -3,6 +3,7 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
+using Tapestry.Shared;
 
 namespace Tapestry.Engine.Heartbeat;
 

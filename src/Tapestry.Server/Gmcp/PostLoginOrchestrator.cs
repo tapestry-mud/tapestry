@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Tapestry.Contracts;
 using Tapestry.Engine;
+using Tapestry.Shared;
 using Tapestry.Server.Gmcp.Handlers;
 
 namespace Tapestry.Server.Gmcp;

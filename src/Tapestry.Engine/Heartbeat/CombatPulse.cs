@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Tapestry.Engine.Combat;
+using Tapestry.Shared;
 
 namespace Tapestry.Engine.Heartbeat;
 

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Registration;
 using Tapestry.Scripting.Interop;
+using Tapestry.Shared;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Modules;
