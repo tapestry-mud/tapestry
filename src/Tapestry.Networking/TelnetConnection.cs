@@ -16,6 +16,8 @@ public class TelnetConnection : IConnection
     private readonly StringBuilder _inputBuffer = new();
     private bool _echoEnabled = true;
     private bool _disconnectFired;
+    // Telnet output is single-threaded per connection, so no locking is needed here.
+    private bool _lastChunkEndedWithCr;
 
     // Telnet parse state machine. State persists across ReadAsync calls so that
     // IAC sequences split across read-buffer boundaries are handled correctly.
@@ -98,7 +100,8 @@ public class TelnetConnection : IConnection
 
         try
         {
-            var bytes = Encoding.UTF8.GetBytes(text);
+            var normalized = NormalizeCrlf(text);
+            var bytes = Encoding.UTF8.GetBytes(normalized);
             _stream.Write(bytes, 0, bytes.Length);
         }
         catch (Exception ex)
@@ -106,6 +109,37 @@ public class TelnetConnection : IConnection
             _logger.LogDebug(ex, "Error sending to {ConnectionId}", Id);
             Disconnect("Write error");
         }
+    }
+
+    // Replaces lone \n with \r\n so multi-line telnet output renders correctly on Linux.
+    // Idempotent: existing \r\n is left alone. Split-chunk safe: a \r at the end of one
+    // call followed by \n at the start of the next call is correctly treated as an already-
+    // paired sequence, not expanded to \r\r\n.
+    private string NormalizeCrlf(string text)
+    {
+        if (text.Length == 0) { return text; }
+
+        if (!text.Contains('\n'))
+        {
+            _lastChunkEndedWithCr = text[text.Length - 1] == '\r';
+            return text;
+        }
+
+        var sb = new StringBuilder(text.Length + 8);
+        var prevWasCr = _lastChunkEndedWithCr;
+
+        foreach (var ch in text)
+        {
+            if (ch == '\n' && !prevWasCr)
+            {
+                sb.Append('\r');
+            }
+            sb.Append(ch);
+            prevWasCr = ch == '\r';
+        }
+
+        _lastChunkEndedWithCr = text[text.Length - 1] == '\r';
+        return sb.ToString();
     }
 
     public void SendLine(string text)
