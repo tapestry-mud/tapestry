@@ -1,6 +1,6 @@
 ---
 capability: persistence
-last-updated: 2026-06-12
+last-updated: 2026-06-13
 ---
 
 # Persistence
@@ -191,6 +191,12 @@ src/Tapestry.Server/Persistence/FilePlayerStore.cs:63-68)
 - The admin seed (from `server.yaml` `admin` section) is created in
   `PlayerInitModule.Configure`, which runs before the registration seal.
   (src/Tapestry.Server/Modules/PlayerInitModule.cs:49-105)
+- The seed password may be supplied out-of-band via the `TAPESTRY_ADMIN_PASSWORD`
+  environment variable, which overrides the `admin.Password` config value when
+  set and non-empty. When the seed falls back to a plaintext config password, a
+  one-time warning is logged nudging operators toward the env var. The seed only
+  runs when no save exists for the admin handle, so the password matters only on
+  a fresh data store. (src/Tapestry.Server/Modules/PlayerInitModule.cs:62-70)
 
 - Pack-declared seed players (from `players.yaml` in each pack directory) are created
   in `PlayerInitModule.LoadSeedPlayers`, called after `RegistrationPolicy.Resolve()`.
@@ -226,3 +232,5 @@ persistence mechanism and has no connection to the save/load system described ab
 ---
 
 ## Change Log
+
+- 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

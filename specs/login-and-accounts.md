@@ -1,6 +1,6 @@
 ---
 capability: login-and-accounts
-last-updated: 2026-06-12
+last-updated: 2026-06-13
 ---
 
 # Login and Accounts
@@ -202,16 +202,39 @@ flow (flows-and-wizards.md).
   marks it used, removes the entry, and returns the token.
   (src/Tapestry.Server/PreAuth/PreAuthTokenService.cs:22-38)
 
+### Account session tokens
+
+- `AccountSessionService` issues single-use account-session tokens stored in a
+  `ConcurrentDictionary`, bound to an account ID, with a ~120s TTL. It is a
+  **separate store** from `PreAuthTokenService`: an account-session token is
+  never valid at the WebSocket fallback, and a WS pre-auth token is never valid
+  at `/auth/select`. The two token types cannot be cross-redeemed.
+  (src/Tapestry.Server/PreAuth/AccountSessionService.cs;
+  src/Tapestry.Server/PreAuth/AccountSession.cs)
+
 ### Pre-auth web path
 
-- Issuance endpoints (`/auth/login`, `/auth/select`, `/auth/login-by-character`,
-  `/auth/register`) authenticate the caller and return a token. These endpoints
-  respond regardless of whether `PreAuth.Enabled` is set; the feature flag does
-  not gate issuance.
+- The four credential endpoints (`/auth/login`, `/auth/select`,
+  `/auth/login-by-character`, `/auth/register`) are mapped only when
+  `config.PreAuth.Enabled`. A telnet-only deployment (`pre_auth.enabled: false`)
+  exposes no web credential surface; the informational endpoints (`/config`,
+  `/auth/check`, `/auth/check-email`) stay mapped. With pre-auth disabled the
+  `MapFallback` returns a bare 404 for non-WebSocket requests.
   (src/Tapestry.Server/Program.cs:237-501)
-- `/auth/select` and `/auth/register` run `LoginGateRegistry.RunAll` before
-  issuing a Create-intent token, enforcing reserved-name and wizlock gates for
-  web registrations. (src/Tapestry.Server/Program.cs:356-361, 490-495)
+- `/auth/login` authenticates email + password, then issues an account-session
+  token and responds with `{ session_token, account_id, characters }`.
+  `account_id` is returned for display only and is not accepted as proof
+  anywhere. (src/Tapestry.Server/Program.cs:281-323)
+- `/auth/select` consumes a `session_token` to resolve the account, then runs
+  the new-character creation path (name validation, save-exists check,
+  `LoginGateRegistry.RunAll`, `AddCharacterToAccount`, mint a Create-intent
+  PreAuth token). A missing token is a 400; an invalid or expired token is a 401.
+  (src/Tapestry.Server/Program.cs:329-372)
+- `/auth/register` enforces the same password floor as the telnet path: both
+  call the shared `PasswordValidator.Validate` against
+  `config.Persistence.PasswordMinLength`, so the two surfaces cannot drift.
+  (src/Tapestry.Server/Login/PasswordValidator.cs;
+  src/Tapestry.Server/Program.cs:440-501)
 - Redemption occurs in the WebSocket fallback handler. The server only
   attempts token redemption when both a `token` query parameter is present
   and `config.PreAuth.Enabled` is true. An absent or expired token falls
@@ -232,3 +255,5 @@ flow (flows-and-wizards.md).
 ---
 
 ## Change Log
+
+- 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

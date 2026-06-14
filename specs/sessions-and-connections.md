@@ -1,6 +1,6 @@
 ---
 capability: sessions-and-connections
-last-updated: 2026-06-12
+last-updated: 2026-06-13
 ---
 
 # Sessions and Connections
@@ -142,6 +142,46 @@ bad-input tracking.
   dropped if the session's current connection ID no longer matches
   (src/Tapestry.Server/GameLoopService.cs:120-123).
 
+### Connection cap
+
+- A single `ConnectionLimiter` holds an atomic counter and the configured cap
+  `config.Server.MaxConnections` (default 200). It counts every pre-login
+  connection across both transports - the cap is about resource exhaustion, not
+  authenticated sessions (src/Tapestry.Server/ConnectionLimiter.cs;
+  src/Tapestry.Data/ServerConfig.cs:110).
+- `TryAcquire` uses a compare-and-swap loop so the live count never exceeds the
+  cap under concurrent accepts; `Release` decrements
+  (src/Tapestry.Server/ConnectionLimiter.cs).
+- Telnet acquires a slot in the accept loop before handing off the socket; over
+  cap it writes "Server full. Try again later." and closes the socket
+  (src/Tapestry.Networking/TelnetServer.cs:83-94;
+  src/Tapestry.Server/Program.cs:128). The WebSocket fallback acquires before the
+  upgrade; over cap it returns HTTP 503
+  (src/Tapestry.Server/Program.cs:511-515).
+- Acquire and release are symmetric on every exit path: telnet releases in the
+  early-setup catch and in `OnDisconnected`; the WebSocket handler releases in a
+  `finally` (src/Tapestry.Networking/TelnetServer.cs;
+  src/Tapestry.Server/Program.cs). Per-IP caps are out of scope.
+
+### New-character teardown
+
+- A character created through the chargen flow is promoted to `Playing` in place
+  by `FlowEngine`, which does not install the disconnect teardown that
+  `PlayerSpawner.CompleteLogin` installs for a normal login. Without it the new
+  player's first quit enqueues no `DisconnectEvent`, so the session leaks in
+  `SessionManager` until restart and a reconnect with the same name hits the
+  takeover path.
+- `NewCharacterTeardownBridge` subscribes to the `character.created` event that
+  `FlowEngine` publishes when creation completes, looks up the session by entity
+  id, and installs the standard teardown on its connection. One subscription
+  covers both the telnet and the web pre-auth creation paths
+  (src/Tapestry.Server/NewCharacterTeardownBridge.cs).
+- `ConnectionTeardown.Wire` is the single source of truth for that teardown - on
+  disconnect it enqueues a `DisconnectEvent`; both `CompleteLogin` and the bridge
+  route through it so the two cannot drift
+  (src/Tapestry.Server/ConnectionTeardown.cs;
+  src/Tapestry.Server/PlayerSpawner.cs).
+
 ### Flood protection
 
 - `FloodContext` is a value record that carries `FloodProtectionSection`,
@@ -189,3 +229,6 @@ bad-input tracking.
 ---
 
 ## Change Log
+
+- 2026-06-13 [new-character-teardown](changes/2026-06-13-new-character-teardown.md)
+- 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

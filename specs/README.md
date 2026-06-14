@@ -21,10 +21,10 @@ known constraints, and change history.
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-06-12 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-12 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-06-12 |
-| Persistence | [persistence.md](persistence.md) | 2026-06-12 |
+| Persistence | [persistence.md](persistence.md) | 2026-06-13 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-12 |
-| Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-12 |
-| Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-12 |
+| Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
+| Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
 | Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-12 |
 | Events | [events.md](events.md) | 2026-06-12 |
 | World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-06-12 |
@@ -60,7 +60,7 @@ Format rules (mechanically linted):
   where the line part may be a single line `:123` or a range `:123-145`, and may be omitted only
   for whole-file claims. Several anchors may share one set of parentheses, joined by `; `. A test
   name in the same parentheses also counts. Lint pattern (the gate IS this regex, keep them in
-  sync): `[\w./\\-]+\.(cs|js|ts|json|ya?ml)(:\d+(-\d+)?)?`. A file with no matches in its
+  sync): `\([@\w./\\-]+\.(cs|js|ts|json|ya?ml)(:\d+(-\d+)?)?[^)]*\)`. A file with no matches in its
   Behavior section fails validation outright.
 - An empty Rejected and Reverted section contains the single line `- None on record.` under
   the heading (the heading itself is always present).
