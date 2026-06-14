@@ -16,7 +16,12 @@ public class TelnetConnection : IConnection
     private readonly StringBuilder _inputBuffer = new();
     private bool _echoEnabled = true;
     private bool _disconnectFired;
-    // Telnet output is single-threaded per connection, so no locking is needed here.
+    // Output to one connection arrives from more than one thread (game-loop broadcasts and
+    // prompts, plus the read-loop echo path), so every write to _stream is serialized through
+    // this lock. It also guards _lastChunkEndedWithCr, the CR-tracking flag NormalizeCrlf
+    // carries across SendText calls. The lock is per connection, so it never contends across
+    // connections. A blocking write holds it only against other writes to the same connection.
+    private readonly object _writeLock = new();
     private bool _lastChunkEndedWithCr;
 
     // Telnet parse state machine. State persists across ReadAsync calls so that
@@ -100,9 +105,12 @@ public class TelnetConnection : IConnection
 
         try
         {
-            var normalized = NormalizeCrlf(text);
-            var bytes = Encoding.UTF8.GetBytes(normalized);
-            _stream.Write(bytes, 0, bytes.Length);
+            lock (_writeLock)
+            {
+                var normalized = NormalizeCrlf(text);
+                var bytes = Encoding.UTF8.GetBytes(normalized);
+                _stream.Write(bytes, 0, bytes.Length);
+            }
         }
         catch (Exception ex)
         {
@@ -159,7 +167,10 @@ public class TelnetConnection : IConnection
 
         try
         {
-            _stream.Write(new byte[] { TelnetProtocolConstants.IAC, TelnetProtocolConstants.NOP }, 0, 2);
+            lock (_writeLock)
+            {
+                _stream.Write(new byte[] { TelnetProtocolConstants.IAC, TelnetProtocolConstants.NOP }, 0, 2);
+            }
         }
         catch (Exception ex)
         {
@@ -203,7 +214,10 @@ public class TelnetConnection : IConnection
 
         try
         {
-            _stream.Write(bytes, 0, bytes.Length);
+            lock (_writeLock)
+            {
+                _stream.Write(bytes, 0, bytes.Length);
+            }
         }
         catch (Exception ex)
         {
