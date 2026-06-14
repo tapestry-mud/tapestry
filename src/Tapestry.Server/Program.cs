@@ -135,6 +135,7 @@ builder.Services.AddSingleton<GmcpModuleAdapter>();
 builder.Services.AddSingleton<IGmcpModuleAdapter>(sp => sp.GetRequiredService<GmcpModuleAdapter>());
 builder.Services.AddSingleton<ConnectionHandler>();
 builder.Services.AddSingleton<PlayerSpawner>();
+builder.Services.AddSingleton<NewCharacterTeardownBridge>();
 
 // GMCP infrastructure
 builder.Services.AddSingleton<Tapestry.Server.Gmcp.GmcpConnectionManager>();
@@ -723,6 +724,7 @@ app.Services.GetRequiredService<GameBootstrapper>().Configure();
 
 // Force-resolve event-subscriber singletons so their constructors wire up EventBus subscriptions
 app.Services.GetRequiredService<Tapestry.Engine.Classes.ClassPathProcessor>();
+app.Services.GetRequiredService<NewCharacterTeardownBridge>();
 
 // Configure GMCP handlers (event subscriptions, flush callbacks, etc.)
 foreach (var handler in app.Services.GetRequiredService<IEnumerable<IGmcpPackageHandler>>())

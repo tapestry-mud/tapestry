@@ -103,11 +103,7 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         session.Phase = LoginPhase.Playing;
         _accountService.TrackOnlineEntity(entity.Id, accountId);
 
-        connection.OnDisconnectedWithReason += (reason) =>
-        {
-            _eventQueue.Enqueue(new DisconnectEvent(
-                Guid.Parse(connection.Id), entity.Id, reason ?? "connection closed"));
-        };
+        ConnectionTeardown.Wire(connection, entity.Id, _eventQueue);
 
         _sessions.RemovePreLogin(preLogin.ConnectionId);
         _sessions.Add(session);
