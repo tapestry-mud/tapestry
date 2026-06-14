@@ -1,6 +1,6 @@
 ---
 capability: telnet-protocol
-last-updated: 2026-06-12
+last-updated: 2026-06-14
 ---
 
 # Telnet Protocol
@@ -175,6 +175,34 @@ All option codes and command bytes are defined in `TelnetProtocolConstants`
   `OnDisconnected`
   (src/Tapestry.Networking/TelnetConnection.cs:180-191).
 
+### Output write path (CRLF normalization and write serialization)
+
+- `SendText` normalizes lone `\n` to `\r\n` before writing, so multi-line
+  player-facing output renders correctly on a real telnet terminal. Normalization
+  is idempotent (an existing `\r\n` is left untouched) and split-chunk safe: a
+  per-connection `_lastChunkEndedWithCr` flag carries the trailing-`\r` state
+  across calls, so a `\r` ending one `SendText` and a `\n` opening the next is
+  treated as one pair, never doubled to `\r\r\n`
+  (src/Tapestry.Networking/TelnetConnection.cs:102-143).
+- Normalization is confined to the `SendText` path. Raw and protocol writes
+  (`SendRawBytes`, the `IAC NOP` heartbeat, IAC negotiation, the byte-level echo
+  path) bypass it and emit their bytes verbatim
+  (src/Tapestry.Networking/TelnetConnection.cs:211-228).
+- `WebSocketConnection` is a separate `IConnection` and does not normalize; web
+  clients interpret `\n` themselves, so an injected `\r` would corrupt their
+  rendering. The asymmetry is the reason CRLF handling lives in the telnet impl,
+  not a shared output decorator
+  (tests/Tapestry.Networking.Tests/TelnetCrlfNormalizationTests.cs:96-119).
+- Output reaches one connection from more than one thread (game-loop broadcasts
+  and prompts; the read-loop echo path), so every write to a connection --
+  `SendText`, `Heartbeat`, `SendRawBytes` -- and the CR-tracking flag are
+  serialized through a per-connection `_writeLock`. The lock is per connection,
+  so it never contends across connections, and a blocking write holds it only
+  against other writes to the same connection
+  (src/Tapestry.Networking/TelnetConnection.cs:24, 108, 170, 217). The
+  normalization rules are pinned by byte-level tests
+  (tests/Tapestry.Networking.Tests/TelnetCrlfNormalizationTests.cs).
+
 ### Telnet heartbeat (IAC NOP liveness probe)
 
 - `TelnetConnection.Heartbeat` writes `IAC NOP` (0xFF 0xF1) to the peer. It is
@@ -204,3 +232,5 @@ All option codes and command bytes are defined in `TelnetProtocolConstants`
 ---
 
 ## Change Log
+
+- 2026-06-14 [telnet-crlf-normalization](changes/2026-06-14-telnet-crlf-normalization.md)

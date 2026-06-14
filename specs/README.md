@@ -22,7 +22,7 @@ known constraints, and change history.
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-12 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-06-12 |
 | Persistence | [persistence.md](persistence.md) | 2026-06-13 |
-| Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-12 |
+| Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
 | Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
 | Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
 | Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-12 |
