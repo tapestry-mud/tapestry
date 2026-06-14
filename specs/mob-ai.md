@@ -200,13 +200,13 @@ combat-resolution.md).
 
 ## Rejected and Reverted
 
-**aggro behavior (reverted):** An `aggro` named behavior was shipped in commit a2dd1be
-(packs/tapestry-core/scripts/mobs/behaviors.js:126-142 in the original monorepo layout).
-It scanned the room for players, checked the `safe` tag, and published `mob.aggro`
-directly. It was retired when the packs directory was extracted to the tapestry-packs
-sibling repo (engine commit f617153) and was not carried forward; the current behaviors.js
-in packs/@tapestry/core replaces it with the comment "Aggro is NOT a behavior" and the
-DispositionEvaluator alignment-based system handles all aggro dispatch. Engine commit
-53b4b28 further hardened disposition by adding the admin exemption.
+- **aggro behavior (reverted):** An `aggro` named behavior was shipped in commit a2dd1be
+  (packs/tapestry-core/scripts/mobs/behaviors.js:126-142 in the original monorepo layout).
+  It scanned the room for players, checked the `safe` tag, and published `mob.aggro`
+  directly. It was retired when the packs directory was extracted to the tapestry-packs
+  sibling repo (engine commit f617153) and was not carried forward; the current behaviors.js
+  in packs/@tapestry/core replaces it with the comment "Aggro is NOT a behavior" and the
+  DispositionEvaluator alignment-based system handles all aggro dispatch. Engine commit
+  53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log

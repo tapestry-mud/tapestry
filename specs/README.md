@@ -72,3 +72,21 @@ Format rules (mechanically linted):
 `docs/` is gitignored -- internal design notes stay out of this repo. `specs/` is a
 deliberate public surface with different rules: it is the canonical source of truth for
 how each engine system behaves now.
+
+<!-- spec-lint:start -->
+Mode: lenient
+
+Required sections: Overview, Behavior, Rejected and Reverted, Change Log
+
+Anchor regex (Behavior): \([@\w./\\-]+\.(cs|js|ts|json|ya?ml)(:\d+(-\d+)?)?[^)]*\)
+
+Empty-reversal sentinel: - None on record.
+
+Change Log: list, newest-first by date, not a table. Empty is valid for unmodified capabilities.
+
+Index sync: every capability .md on disk appears in README index; every indexed file exists on disk; index date matches file last-updated.
+
+Currency: for each change record naming a capability, the top Change Log entry references that record and last-updated >= record date. A capability named by zero records may have an empty Change Log.
+
+Tombstone: a change record with status:reverted requires a tombstone entry in the capability Rejected and Reverted (not the empty sentinel).
+<!-- spec-lint:end -->

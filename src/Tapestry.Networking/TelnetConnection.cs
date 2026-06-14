@@ -109,8 +109,6 @@ public class TelnetConnection : IConnection
             {
                 var normalized = NormalizeCrlf(text);
                 var bytes = Encoding.UTF8.GetBytes(normalized);
-                using var writeSpan = TapestryTracing.Source.StartActivity("TelnetWrite");
-                writeSpan?.SetTag("telnet.write.bytes", bytes.Length);
                 _stream.Write(bytes, 0, bytes.Length);
             }
         }
@@ -218,9 +216,6 @@ public class TelnetConnection : IConnection
         {
             lock (_writeLock)
             {
-                using var writeSpan = TapestryTracing.Source.StartActivity("TelnetWrite");
-                writeSpan?.SetTag("telnet.write.bytes", bytes.Length);
-                writeSpan?.SetTag("telnet.write.raw", true);
                 _stream.Write(bytes, 0, bytes.Length);
             }
         }
