@@ -22,13 +22,13 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 ### server.yaml -- pack discovery and filtering
 
 - `DiscoverPackDirectories` enumerates the packs directory alphabetically. Non-scoped entries
-  (e.g. `legends-forgotten/`) are added directly; scoped scope directories (e.g. `@mallek/`)
+  (e.g. `world-pack/`) are added directly; scoped scope directories (e.g. `@acme/`)
   are descended into and their children added, also alphabetically.
   (src/Tapestry.Server/Modules/ContentLoadingModule.cs:184-206)
 - If `packs:` in `server.yaml` is non-empty, discovered directories are filtered to only
   those matching one of three forms (case-insensitive): the scoped name
-  (`@mallek/legends-forgotten`), the namespace form (`mallek-legends-forgotten`), or the bare
-  folder name (`legends-forgotten`). All three are checked against the relative path from the
+  (`@acme/world-pack`), the namespace form (`acme-world-pack`), or the bare
+  folder name (`world-pack`). All three are checked against the relative path from the
   packs directory. (src/Tapestry.Server/Modules/ContentLoadingModule.cs:138-149)
 - If `packs:` is empty or absent, all discovered directories are loaded.
 - The declarations phase (Phase 1) runs in the alphabetical discovery order produced by
