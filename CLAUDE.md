@@ -1,49 +1,87 @@
-# Tapestry - AI Contributor Guide
+# CLAUDE.md
 
-## Architecture
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Modular monolith. Engine (`src/`) has zero hardcoded game content. All game logic lives in content packs (`packs/`).
+## Build and run
+
+```bash
+dotnet build                              # compile
+dotnet run --project src/Tapestry.Server  # start the server
+telnet localhost 4000                     # connect
+```
+
+## Tests
+
+Three layers. Run them in order.
+
+**Unit/integration (xUnit):**
+```bash
+dotnet test                                         # all projects
+dotnet test tests/Tapestry.Engine.Tests             # one project
+dotnet test --filter "FullyQualifiedName~MyTest"    # one test
+```
+
+**Strict-boot harness** -- boots the engine against the stable published pack corpus. Run before promoting engine changes:
+```bash
+node tests/tools/strict-boot-gate.js
+```
+
+**Telnet scenario runner** -- drives a live server through Markdown scenario scripts in `tests/scenarios/`:
+```bash
+node tests/tools/telnet-runner.js tests/scenarios/smoke/new-player.md
+```
+
+## Build gotchas
+
+**SDK is dotnet 10** (`10.0.300`, pinned in `global.json`). A mismatched SDK produces cryptic errors; check `dotnet --version` first.
+
+**Warnings are errors** everywhere. `Directory.Build.props` sets `TreatWarningsAsErrors=true` for all projects. New warnings break the build.
+
+**Central Package Management.** All NuGet versions are in `Directory.Packages.props`. Do not add a `Version` attribute to individual `.csproj` references -- it causes a duplicate-version build error.
+
+## Layout
 
 ```
-Tapestry.Shared       Enums, interfaces, shared types
-Tapestry.Data         YAML loading, entity model
-Tapestry.Engine       Game logic, registries, systems
-Tapestry.Scripting    Jint JavaScript pack execution
-Tapestry.Networking   Telnet, WebSocket, GMCP/MSSP
-Tapestry.Server       Entry point, DI wiring
+src/
+  Tapestry.Shared        Enums, interfaces, shared types
+  Tapestry.Contracts     Public contracts between assemblies
+  Tapestry.Data          YAML loading, entity model
+  Tapestry.Engine        Game logic, registries, systems
+  Tapestry.Authoring     Pack authoring and validation tooling
+  Tapestry.Scripting     Jint JavaScript pack execution
+  Tapestry.Networking    Telnet, WebSocket, GMCP/MSSP
+  Tapestry.Server        Entry point, DI wiring
+tests/
+  Tapestry.Engine.Tests          Engine unit tests
+  Tapestry.Server.Tests          Integration tests (WebApplicationFactory)
+  Tapestry.Scripting.Tests       Scripting runtime tests
+  Tapestry.Networking.Tests      Networking tests
+  fixtures/                      Shared test packs and data
+  scenarios/                     Telnet scenario Markdown files
+  tools/                         strict-boot-gate.js, telnet-runner.js
+specs/                           Capability specs -- canonical source of truth for engine behavior
+packs/                           Game content (only what server.yaml lists is loaded)
 ```
 
 ## Pack system
 
-Packs are directories under `packs/`, nested by scope (e.g. `packs/@tapestry/core/`). Each has a `pack.yaml` manifest. Scripts are JavaScript (Jint). YAML files define areas, rooms, mobs, items.
+Packs live under `packs/`, namespaced (e.g. `packs/@tapestry/core/`). Each pack has a `pack.yaml` manifest. The server loads only packs listed in `server.yaml`.
 
-The engine discovers and loads packs listed in `server.yaml`.
+`pack.yaml` keys are **snake_case** (`display_name`, `load_order`, `area_definitions`, etc.).
 
-## Coding standards
+When writing engine-side Jint bindings, accept a single `JsValue` and unpack it manually. Do not bind a CLR array type directly -- Jint 4.x will not coerce a JS array to a CLR array.
 
-- Always surround blocks with `{ }` -- no single-line execution statements.
+## Conventions
+
+- Always wrap control flow in braces -- no single-line body statements.
 - Engine assemblies must not reference pack-specific content by name.
 - New engine behavior needs a unit test in `tests/Tapestry.Engine.Tests/`.
+- No unpinned dependencies (no `^` or `~` in any dependency spec).
 
-## Running locally
+## Behavior reference
 
-```bash
-dotnet run --project src/Tapestry.Server
-telnet localhost 4000
-```
-
-## Running tests
-
-```bash
-dotnet test tests/Tapestry.Engine.Tests
-```
-
-## Key files
-
-- `server.yaml` - server config, lists which packs to load
-- `packs/@tapestry/core/` - minimal engine-required content (recall room, admin commands)
-- `packs/@tapestry/example-pack/` - complete example with human race, warrior/mage classes, starter area
+`specs/` is the canonical source of truth for how every engine system behaves. `specs/README.md` lists all capability specs. Read specs before modifying engine behavior; update the relevant spec in the same commit.
 
 ## Security
 
-See [`SECURITY.md`](SECURITY.md) for the vulnerability reporting process and supply-chain practices. Do not introduce unpinned dependencies (no `^`/`~`); never report security issues in public issues or PRs.
+See [`SECURITY.md`](SECURITY.md). Do not report vulnerabilities in public issues or PRs.
