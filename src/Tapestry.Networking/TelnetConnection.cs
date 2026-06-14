@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,13 @@ public class TelnetConnection : IConnection
 {
     public const int MaxLineLength = 4096;
     public const int MaxBufferSize = 65536;
+
+    // DIAGNOSTIC (telnet#90 follow-up): isolates the synchronous socket write so a login
+    // trace shows whether a command's time is the write blocking on the client TCP buffer
+    // vs render/serialization. Same source name as Engine's TapestryTracing so the existing
+    // AddSource("Tapestry") listener captures it (Networking cannot reference Engine).
+    // Remove or gate behind a config flag once the login-stall hypothesis is settled.
+    private static readonly ActivitySource Tracing = new("Tapestry", "1.0.0");
 
     private readonly TcpClient _client;
     private readonly NetworkStream _stream;
@@ -109,6 +117,8 @@ public class TelnetConnection : IConnection
             {
                 var normalized = NormalizeCrlf(text);
                 var bytes = Encoding.UTF8.GetBytes(normalized);
+                using var writeSpan = Tracing.StartActivity("TelnetWrite");
+                writeSpan?.SetTag("telnet.write.bytes", bytes.Length);
                 _stream.Write(bytes, 0, bytes.Length);
             }
         }
@@ -216,6 +226,9 @@ public class TelnetConnection : IConnection
         {
             lock (_writeLock)
             {
+                using var writeSpan = Tracing.StartActivity("TelnetWrite");
+                writeSpan?.SetTag("telnet.write.bytes", bytes.Length);
+                writeSpan?.SetTag("telnet.write.raw", true);
                 _stream.Write(bytes, 0, bytes.Length);
             }
         }

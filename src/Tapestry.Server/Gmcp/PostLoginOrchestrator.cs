@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Tapestry.Contracts;
 using Tapestry.Engine;
 using Tapestry.Server.Gmcp.Handlers;
@@ -38,6 +39,11 @@ public class PostLoginOrchestrator
     {
         foreach (var handler in _orderedHandlers)
         {
+            // DIAGNOSTIC (telnet#90 follow-up): per-package span so a login trace breaks the
+            // ScheduledActions burst (~124ms observed) down by package -- serialization + send
+            // per handler. Pairs with the TelnetWrite span (raw=true) to split serialize vs
+            // socket write. Remove or gate once the login-stall cause is settled.
+            using var span = TapestryTracing.Source.StartActivity($"Gmcp.Burst.{handler.GetType().Name}");
             handler.SendBurst(connectionId, entity);
         }
     }
