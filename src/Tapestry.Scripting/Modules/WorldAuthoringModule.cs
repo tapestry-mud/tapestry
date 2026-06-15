@@ -618,7 +618,23 @@ public sealed class WorldAuthoringModule : IJintApiModule
         {
             var sourcePack = room.GetProperty<string>(CommonProperties.SourcePack);
             var sideCarExists = File.Exists(SideCarPath(room));
-            list.Add(new RoomSummary(room.Id, room.Name, ProvenanceClassifier.Classify(sourcePack, sideCarExists)));
+            var provenance = ProvenanceClassifier.Classify(sourcePack, sideCarExists);
+
+            // Orphan detection (spec B 5.4): check Dangling, not Loaded. A dangling record
+            // is one where ApplyConnection returned false (a room was missing at Load time).
+            // If the record were in Loaded, both rooms existed at boot and the room is
+            // reachable - no orphan. Dangling is exactly where the orphan evidence lives.
+            if (sourcePack == null && _connections != null)
+            {
+                var orphaned = _connections.Dangling.Any(rec =>
+                    rec.From.Room == room.Id || rec.To.Room == room.Id);
+                if (orphaned)
+                {
+                    provenance = provenance + " (orphaned)";
+                }
+            }
+
+            list.Add(new RoomSummary(room.Id, room.Name, provenance));
         }
         return list;
     }

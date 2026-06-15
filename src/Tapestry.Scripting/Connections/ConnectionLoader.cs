@@ -12,6 +12,7 @@ public class ConnectionLoader
     private readonly ILogger<ConnectionLoader> _logger;
     private readonly string _connectionsPath;
     private readonly List<ConnectionRecord> _loaded = new();
+    private readonly List<ConnectionRecord> _dangling = new();
 
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(UnderscoredNamingConvention.Instance)
@@ -24,6 +25,7 @@ public class ConnectionLoader
         .Build();
 
     public IReadOnlyList<ConnectionRecord> Loaded => _loaded;
+    public IReadOnlyList<ConnectionRecord> Dangling => _dangling;
 
     public void AddLoaded(ConnectionRecord record)
     {
@@ -119,6 +121,10 @@ public class ConnectionLoader
             if (success)
             {
                 _loaded.Add(record);
+            }
+            else
+            {
+                _dangling.Add(record);
             }
         }
 
