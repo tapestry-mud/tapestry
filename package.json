@@ -4,6 +4,6 @@
     "spec-lint": "spec-lint specs/"
   },
   "devDependencies": {
-    "@tapestry-mud/spec-lint": "0.1.1"
+    "@tapestry-mud/spec-lint": "0.2.1"
   }
 }

@@ -74,11 +74,11 @@ deliberate public surface with different rules: it is the canonical source of tr
 how each engine system behaves now.
 
 <!-- spec-lint:start -->
-Mode: lenient
+Mode: strict
 
 Required sections: Overview, Behavior, Rejected and Reverted, Change Log
 
-Anchor regex (Behavior): \([@\w./\\-]+\.(cs|js|ts|json|ya?ml)(:\d+(-\d+)?)?[^)]*\)
+Anchor regex (Behavior): \([@\w./\\-]+\.(cs|js|ts|json|ya?ml|md)(:\d+(-\d+)?)?[^)]*\)
 
 Empty-reversal sentinel: - None on record.
 
