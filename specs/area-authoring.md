@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-06-12
+last-updated: 2026-06-15
 ---
 
 # Area Authoring
@@ -139,11 +139,26 @@ files (written under the game data root at runtime).
 
 - `dig <dir> <target>` connects two existing authored rooms within the same area with a
   two-way exit; the reverse slot is wired unless already occupied, in which case a
-  one-way exit is created with a warning. (packs/@tapestry/builder/scripts/commands/dig.js:65-122)
+  one-way exit is created with a warning. (packs/@tapestry/builder/scripts/commands/dig.js)
 
-- `dig` refuses to start from a pack room (detected via the `source_pack` property);
-  similarly refuses to connect to a pack room as a target.
-  (packs/@tapestry/builder/scripts/commands/dig.js:54-58, 86-92)
+- `dig <dir>` from a pack-owned room (detected via `source_pack`) routes through a
+  carve-into-pack branch instead of refusing: a shadow guard confirms the chosen
+  direction is free on the pack room, the authored room is minted, and the boundary link
+  is wired as a connection record via `tapestry.connections.create` rather than a side-car
+  exit - so it never mutates pack data and survives restarts and pack updates. The builder
+  gets an ASCII boundary message noting the way back lives outside the pack. Digging onward
+  from the new authored room is the unchanged authored-to-authored path (inline side-car
+  exits). (packs/@tapestry/builder/scripts/commands/dig.js)
+
+- Shadow guard: before creating anything, the carve-into-pack branch checks
+  `getExitTarget(fromId, dir)`. If that direction is already a real pack exit, dig refuses
+  with "already taken" and changes nothing - a connection exit must never shadow the pack's
+  own topology. (packs/@tapestry/builder/scripts/commands/dig.js)
+
+- `dig <dir> <target>` (connect) still refuses when the from-room is pack-owned, and still
+  refuses to connect to a pack room as a target. Outward growth only; splicing a new room
+  into a different pack room is out of scope.
+  (packs/@tapestry/builder/scripts/commands/dig.js)
 
 ### create command (builder pack)
 
@@ -160,6 +175,16 @@ files (written under the game data root at runtime).
   from a pack, no side-car), `[authored]` (no source pack, side-car only), or
   `[pack +edits]` (pack-sourced with an overlaying side-car).
   (src/Tapestry.Engine/Authoring/ProvenanceClassifier.cs)
+
+- `getAreaRooms(areaId)` returns each room's `{id, name, provenance}`. An authored room
+  whose boundary connection could not be applied at boot - because the pack anchor room it
+  hung off was absent from the world - has `(orphaned)` appended to its provenance string
+  (e.g. `[authored] (orphaned)`). The check scans `ConnectionLoader.Dangling` (records that
+  failed to apply, not `Loaded`), is gated on `source_pack == null` so pack rooms are never
+  flagged, and surfaces in `rooms <area>` because that command renders the provenance
+  verbatim. Detection is presence-based (any dangling record naming the room), not a
+  reachability analysis. (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:GetAreaRooms;
+  src/Tapestry.Scripting/Connections/ConnectionLoader.cs:Dangling)
 
 ### Room slug disambiguation
 
@@ -188,3 +213,5 @@ files (written under the game data root at runtime).
   src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-48)
 
 ## Change Log
+
+- 2026-06-15 [extend-baked-in-areas](changes/2026-06-15-extend-baked-in-areas.md)
