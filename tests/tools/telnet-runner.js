@@ -455,7 +455,7 @@ class TelnetClient {
   // The assertion-safe view of everything this client has seen since the last
   // clearBuffer(): ANSI-stripped, CR-stripped, sentinel plumbing removed.
   view() {
-    return filterSentinels(normalize(this.buffer));
+    return filterSentinels(normalize(this.buffer)).replace(/\n/g, ' ');
   }
 
   waitFor(text, timeoutMs = 3000) {
@@ -692,7 +692,7 @@ async function runScenario(scenario, defaultLoginSteps, opts) {
       deadline.check(`step ${i + 1}`);
       const client = step.player ? clients[step.player] : null;
 
-      if (!client && step.type !== 'assert_gmcp_order') {
+      if (!client && step.type !== 'assert_gmcp_order' && step.type !== 'restart_server') {
         result.failures.push({
           step: i + 1,
           error: `Unknown player "${step.player}"`
@@ -1174,6 +1174,25 @@ class ManagedServer {
     }
   }
 
+  readLogFrom(offset) {
+    try {
+      if (!offset) {
+        return fs.readFileSync(this.logPath, 'utf-8');
+      }
+      const size = fs.statSync(this.logPath).size;
+      if (offset >= size) {
+        return '';
+      }
+      const fd = fs.openSync(this.logPath, 'r');
+      const buf = Buffer.alloc(size - offset);
+      fs.readSync(fd, buf, 0, buf.length, offset);
+      fs.closeSync(fd);
+      return buf.toString('utf-8');
+    } catch (_) {
+      return '';
+    }
+  }
+
   logTail(lines = 25) {
     const all = this.readLog().split('\n').filter(l => l.trim());
     return all.slice(-lines).join('\n');
@@ -1187,6 +1206,7 @@ class ManagedServer {
   async _waitForBoot() {
     const start = Date.now();
     const expected = Math.max(1, this.config.expectedPacks);
+    const logOffset = this._logStartOffset || 0;
 
     while (true) {
       if (this.exited) {
@@ -1200,7 +1220,7 @@ class ManagedServer {
         );
       }
 
-      const log = this.readLog();
+      const log = this.readLogFrom(logOffset);
       const loadedPacks = (log.match(/Loaded pack:/g) || []).length;
       const loopStarted = log.includes('Game loop starting');
       // The telnet listener binds AFTER the game loop starts — probing before
@@ -1267,6 +1287,7 @@ class ManagedServer {
     if (!dll) {
       throw new Error(`Tapestry.Server.dll not found for configuration "${this.configuration}" during restart.`);
     }
+    try { this._logStartOffset = fs.statSync(this.logPath).size; } catch (_) { this._logStartOffset = 0; }
     const logFd = fs.openSync(this.logPath, 'a');
     this.child = spawn('dotnet', [dll, '--config', this.config.configPath, '--packs', this.stagedPacksDir], {
       cwd: this.projectRoot,
