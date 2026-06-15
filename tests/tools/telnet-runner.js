@@ -143,6 +143,10 @@ function parseLoginStep(line) {
 }
 
 function parseStep(line) {
+  const serverRestartMatch = line.match(/^\d+\.\s*Server:\s*restart\s*$/i);
+  if (serverRestartMatch) {
+    return { type: 'restart_server' };
+  }
   const cmdMatch = line.match(/^\d+\.\s*(\w+):\s*`(.+)`/);
   if (cmdMatch) {
     return { type: 'command', player: cmdMatch[1], text: cmdMatch[2] };
@@ -880,6 +884,42 @@ async function runScenario(scenario, defaultLoginSteps, opts) {
             result.status = 'fail';
           }
         }
+      } else if (step.type === 'restart_server') {
+        result.transcript.push('[Server: restart]');
+        if (!opts.restartServer) {
+          result.failures.push({
+            step: i + 1,
+            error: 'Restart server step requires --managed mode.'
+          });
+          result.status = 'fail';
+          continue;
+        }
+        for (const [playerName, client] of Object.entries(clients)) {
+          client.disconnect();
+          result.transcript.push(`[${playerName} disconnected for restart]`);
+        }
+        await opts.restartServer();
+        for (const playerName of scenario.players) {
+          deadline.check(`reconnect ${playerName} after restart`);
+          const freshClient = new TelnetClient(playerName, port);
+          await freshClient.connect();
+          clients[playerName] = freshClient;
+          result.transcript.push(`[${playerName} reconnecting after restart]`);
+          const loginSteps = scenario.login[playerName]
+              || resolveDefaultLogin(defaultLoginSteps, playerName);
+          for (const loginStep of loginSteps) {
+            if (loginStep.type === 'wait') {
+              await freshClient.waitFor(loginStep.text, deadline.clamp(LOGIN_WAIT_MS));
+            } else if (loginStep.type === 'send') {
+              freshClient.send(loginStep.text);
+            }
+          }
+          await freshClient.waitFor('[HP]:', deadline.clamp(LOGIN_WAIT_MS));
+          freshClient.send('recall');
+          await freshClient.sync(deadline.clamp(SYNC_WAIT_MS));
+          freshClient.clearBuffer();
+        }
+        result.transcript.push('[Server restart complete, all players reconnected]');
       }
     }
   } catch (err) {
@@ -1216,6 +1256,32 @@ class ManagedServer {
         } catch (_) { /* already gone */ }
       }
     }
+  }
+
+  async restart() {
+    await this.stop();
+    this.exited = false;
+    this.exitCode = null;
+
+    const dll = findServerDll(this.projectRoot, this.configuration);
+    if (!dll) {
+      throw new Error(`Tapestry.Server.dll not found for configuration "${this.configuration}" during restart.`);
+    }
+    const logFd = fs.openSync(this.logPath, 'a');
+    this.child = spawn('dotnet', [dll, '--config', this.config.configPath, '--packs', this.stagedPacksDir], {
+      cwd: this.projectRoot,
+      stdio: ['ignore', logFd, logFd],
+      windowsHide: true
+    });
+    fs.closeSync(logFd);
+
+    this.child.on('exit', (code) => {
+      this.exited = true;
+      this.exitCode = code;
+    });
+
+    await this._waitForBoot();
+    console.log(`Managed server restarted on port ${this.port}`);
   }
 
   cleanup(keepLogs) {
@@ -1626,7 +1692,7 @@ async function main() {
 
   console.log(`Running ${files.length} scenario file(s) against localhost:${port}...\n`);
 
-  const opts = { port, delay, adminPlayer, scenarioTimeoutS };
+  const opts = { port, delay, adminPlayer, scenarioTimeoutS, restartServer: managed && server ? () => server.restart() : null };
   const suiteStart = Date.now();
 
   for (const file of files) {
