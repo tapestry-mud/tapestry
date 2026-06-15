@@ -466,7 +466,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         var area = room.Area ?? "";
         var idx = room.Id.IndexOf(':');
         var key = idx >= 0 ? room.Id[(idx + 1)..] : room.Id;
-        return Path.Combine(_root, area, "rooms", $"{key}.yaml");
+        return Path.Combine(_root, SafeSegment(area), "rooms", $"{key}.yaml");
     }
 
     // ---- Area authoring ----
