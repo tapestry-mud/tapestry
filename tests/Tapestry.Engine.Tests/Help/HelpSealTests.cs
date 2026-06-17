@@ -182,4 +182,24 @@ public class HelpSealTests
         seal.Invoking(s => s.Seal()).Should().NotThrow();
         log.Warnings.Should().HaveCountGreaterThanOrEqualTo(2); // both violations surfaced, not just the first
     }
+
+    [Fact]
+    public void Category_Undeclared_Strict_Throws_WithNearestMatch()
+    {
+        var commands = CommandsWith(("kill", "tapestry-core"));
+        // author a topic whose category 'battle' is NOT declared; 'combat' is.
+        var help = HelpWith();
+        help.RegisterCategory("combat", "Combat", false, "tapestry-core", 0);
+        help.AddTopic(new HelpTopic
+        {
+            Id = "kill", Title = "kill", Category = "battle",
+            PackName = "tapestry-core"
+        });
+        var seal = new HelpSeal(help, commands, new FakeEdges(),
+            Winners(("kill", "tapestry-core", false)),
+            new HelpSealOptions { Strict = true }, null);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => seal.Seal());
+        ex.Message.Should().Contain("battle").And.Contain("did you mean 'combat'");
+    }
 }

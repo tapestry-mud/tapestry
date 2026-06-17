@@ -106,7 +106,28 @@ public sealed class HelpSeal
             }
         }
 
-        // (T5 and T6 append category + see-also violations here, before the report block.)
+        // Gate 2: category - every authored topic's category must be declared.
+        // Only enforced when at least one category has been registered; an empty vocabulary
+        // means the category system has not been seeded yet (migration path).
+        var declared = _help.DeclaredCategoryIds;
+        if (declared.Count > 0)
+        {
+            var declaredSet = new HashSet<string>(declared, StringComparer.OrdinalIgnoreCase);
+            foreach (var w in _authoredWinners)
+            {
+                var topic = _help.GetTopicById(w.Id);
+                if (topic == null) { continue; }
+                if (string.IsNullOrWhiteSpace(topic.Category) || !declaredSet.Contains(topic.Category))
+                {
+                    var suggestion = NearestCategory(topic.Category, declared);
+                    var hint = suggestion == null ? "" : $" - did you mean '{suggestion}'?";
+                    var loc = string.IsNullOrEmpty(w.SourceFile) ? w.Owner : $"{w.Owner} ({w.SourceFile})";
+                    violations.Add($"{loc}: topic '{w.Id}' has unknown category '{topic.Category}'{hint}; declared: [{string.Join(", ", declared)}]");
+                }
+            }
+        }
+
+        // (T6 appends see-also violations here, before the report block.)
 
         ReportViolations(violations);
     }
@@ -123,5 +144,36 @@ public sealed class HelpSeal
         {
             _logger?.LogWarning("help seal (lenient): {Violation}", v);
         }
+    }
+
+    private static string? NearestCategory(string? value, IReadOnlyList<string> declared)
+    {
+        if (string.IsNullOrWhiteSpace(value) || declared.Count == 0) { return null; }
+        string? best = null;
+        var bestDist = int.MaxValue;
+        foreach (var cand in declared)
+        {
+            var d = Levenshtein(value.ToLowerInvariant(), cand.ToLowerInvariant());
+            if (d < bestDist) { bestDist = d; best = cand; }
+        }
+        // Always surface the nearest category when one exists; in a small finite vocabulary,
+        // showing the closest option is always more useful than silently omitting the hint.
+        return best;
+    }
+
+    private static int Levenshtein(string a, string b)
+    {
+        var dp = new int[a.Length + 1, b.Length + 1];
+        for (var i = 0; i <= a.Length; i++) { dp[i, 0] = i; }
+        for (var j = 0; j <= b.Length; j++) { dp[0, j] = j; }
+        for (var i = 1; i <= a.Length; i++)
+        {
+            for (var j = 1; j <= b.Length; j++)
+            {
+                var cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                dp[i, j] = Math.Min(Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1), dp[i - 1, j - 1] + cost);
+            }
+        }
+        return dp[a.Length, b.Length];
     }
 }
