@@ -230,7 +230,6 @@ public static class ServiceCollectionExtensions
                 : Enumerable.Empty<string>(),
             sp.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>()));
 
-        services.AddSingleton<HelpSealOptions>(); // default: Strict = true
         services.AddSingleton<HelpSeal>(sp => new HelpSeal(
             sp.GetRequiredService<HelpService>(),
             sp.GetRequiredService<CommandRegistry>(),

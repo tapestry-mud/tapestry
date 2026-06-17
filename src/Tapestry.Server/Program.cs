@@ -81,6 +81,13 @@ builder.Services.AddSingleton(config);
 
 // Register engine, scripting services
 builder.Services.AddTapestryEngine();
+
+// Wire TAPESTRY_HELP_GATES env var -> HelpSealOptions.
+// Unset or "strict" -> Strict = true (default). "lenient" -> Strict = false.
+var gateMode = Environment.GetEnvironmentVariable("TAPESTRY_HELP_GATES");
+var helpGatesStrict = !string.Equals(gateMode, "lenient", StringComparison.OrdinalIgnoreCase);
+builder.Services.AddSingleton(new Tapestry.Engine.Help.HelpSealOptions { Strict = helpGatesStrict });
+
 builder.Services.AddTapestryScripting();
 
 // Persistence
