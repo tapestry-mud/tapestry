@@ -70,6 +70,11 @@ public class CommandsModule : IJintApiModule
                 return ListForPlayer(entityIdStr);
             }),
 
+            categories = new Func<object[]>(() =>
+                _helpService.VisibleDeclaredCategories
+                    .Select(c => (object)new { id = c.Id, label = c.Label })
+                    .ToArray()),
+
             unregister = new Action<string>((commandName) =>
             {
                 _commandRegistry.Unregister(commandName);
@@ -304,7 +309,8 @@ public class CommandsModule : IJintApiModule
             {
                 keyword = reg.Keyword,
                 category = category,
-                description = description
+                description = description,
+                aliases = reg.Aliases
             });
         }
 

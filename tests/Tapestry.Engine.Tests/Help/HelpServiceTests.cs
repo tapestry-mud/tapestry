@@ -328,4 +328,21 @@ public class HelpServiceTests
         svc.IsListed("utf8").Should().BeFalse();  // topic hidden
         svc.IsListed("nope").Should().BeFalse();  // no topic
     }
+
+    [Fact]
+    public void VisibleDeclaredCategories_DeclarationOrder_ExcludesHidden_KeepsLabels()
+    {
+        var svc = new HelpService();
+        svc.RegisterCategory("movement", "Movement", false, "tapestry-core", 0);
+        svc.RegisterCategory("shop", "Trade", false, "tapestry-core", 0);
+        svc.RegisterCategory("social", "Socials", true, "tapestry-core", 0);
+        svc.RegisterCategory("admin", "Immortal", false, "tapestry-core", 0);
+
+        var cats = svc.VisibleDeclaredCategories;
+
+        cats.Select(c => c.Id).Should().ContainInOrder("movement", "shop", "admin");
+        cats.Should().NotContain(c => c.Id == "social");          // hidden excluded
+        cats.Single(c => c.Id == "shop").Label.Should().Be("Trade"); // label, not capitalized id
+        cats.Single(c => c.Id == "admin").Label.Should().Be("Immortal");
+    }
 }

@@ -54,6 +54,14 @@ public class HelpService
     public IReadOnlyList<string> DeclaredCategoryIds =>
         _categories.OrderBy(c => c.LoadOrder).Select(c => c.Id).ToList();
 
+    /// <summary>Declared categories with labels, visible only (hidden excluded), ordered by declaration order.</summary>
+    public IReadOnlyList<(string Id, string Label)> VisibleDeclaredCategories =>
+        _categories
+            .Where(c => !c.Hidden)
+            .OrderBy(c => c.LoadOrder)
+            .Select(c => (c.Id, c.Label))
+            .ToList();
+
     public void RegisterCategory(string id, string label, bool hidden, string packName, int loadOrder)
     {
         if (string.IsNullOrWhiteSpace(id)) { return; }
