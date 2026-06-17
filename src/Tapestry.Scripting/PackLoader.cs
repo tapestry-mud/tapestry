@@ -237,6 +237,8 @@ public class PackLoader : IPackManifestProvider
             _helpService.LoadPack(packNamespace, packDirectory, manifest.Content.Help, manifest.LoadOrder);
         }
 
+        _helpService.LoadCategories(packNamespace, packDirectory, manifest.LoadOrder);
+
         if (!string.IsNullOrEmpty(manifest.Content.Quests))
         {
             LoadQuests(packDirectory, manifest.Content.Quests);

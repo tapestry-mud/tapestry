@@ -47,6 +47,26 @@ public class HelpService
     /// <summary>Hand-authored topics that won policy resolution this boot (populated as winners Commit).</summary>
     public IReadOnlyList<AuthoredHelpRecord> AuthoredWinners => _authoredWinners;
 
+    // Category declaration registry - ordered by (loadOrder, then call order via stable sort).
+    private readonly List<(int LoadOrder, string Id, string Label, bool Hidden, string Owner)> _categories = new();
+
+    /// <summary>Declared category ids, ordered: declaration order within a file, then pack load order.</summary>
+    public IReadOnlyList<string> DeclaredCategoryIds =>
+        _categories.OrderBy(c => c.LoadOrder).Select(c => c.Id).ToList();
+
+    public void RegisterCategory(string id, string label, bool hidden, string packName, int loadOrder)
+    {
+        if (string.IsNullOrWhiteSpace(id)) { return; }
+        _categories.Add((loadOrder, id, label, hidden, packName));
+    }
+
+    public bool IsCategoryHidden(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) { return false; }
+        return _categories.Any(c =>
+            string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase) && c.Hidden);
+    }
+
     public HelpService(
         ILogger<HelpService>? logger = null,
         Func<string, IEnumerable<string>>? rolesResolver = null,
@@ -89,6 +109,49 @@ public class HelpService
             {
                 _logger?.LogWarning(ex, "Failed to load help topic from {File}", file);
             }
+        }
+    }
+
+    public void LoadCategories(string packName, string packRoot, int loadOrder)
+    {
+        var file = Path.Combine(packRoot, "help", "categories.yaml");
+        if (!File.Exists(file)) { return; }
+
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        CategoriesFile parsed;
+        try
+        {
+            parsed = deserializer.Deserialize<CategoriesFile>(File.ReadAllText(file)) ?? new CategoriesFile();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to load categories from {File}", file);
+            return;
+        }
+
+        foreach (var cat in parsed.Categories)
+        {
+            if (string.IsNullOrWhiteSpace(cat.Id)) { continue; }
+            var capturedLabel = cat.Label;
+            var capturedId = cat.Id;
+            var capturedHidden = cat.Hidden;
+            if (_policy == null)
+            {
+                RegisterCategory(capturedId, capturedLabel, capturedHidden, packName, loadOrder);
+                continue;
+            }
+            _policy.Record(new Registration.RegistrationCandidate(
+                Kind: "help-category",
+                Name: capturedId,
+                Owner: packName,
+                IsOverride: false,
+                Commit: () => RegisterCategory(capturedId, capturedLabel, capturedHidden, packName, loadOrder),
+                SourceFile: "help/categories.yaml",
+                Line: 0));
         }
     }
 
