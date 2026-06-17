@@ -33,7 +33,7 @@ public class CharCommandsHandlerTests
         var help = new HelpService();
         help.AddTopic(new HelpTopic { Id = "look", Title = "look", Brief = "Look around.", Category = "movement" });
         var handler = BuildHandler(out var cm, out var registry, help);
-        registry.Register("look", _ => { }, packName: "core", description: "Look around.");
+        registry.Register("look", _ => { }, packName: "core");
 
         var entity = new Entity("player", "Test");
         var conn = new FakeConnection();
@@ -48,7 +48,7 @@ public class CharCommandsHandlerTests
         var help = new HelpService();
         help.AddTopic(new HelpTopic { Id = "look", Title = "look", Brief = "Look around.", Category = "movement" });
         var handler = BuildHandler(out var cm, out var registry, help);
-        registry.Register("look", _ => { }, packName: "core", description: "Look around.", category: "movement");
+        registry.Register("look", _ => { }, packName: "core");
 
         var entity = new Entity("player", "Test");
         handler.SendBurst("conn1", entity);
@@ -64,7 +64,7 @@ public class CharCommandsHandlerTests
         var help = new HelpService();
         help.AddTopic(new HelpTopic { Id = "kill", Title = "kill", Brief = "Attack.", Category = "combat" });
         var handler = BuildHandler(out var cm, out var registry, help);
-        registry.Register("kill", _ => { }, packName: "core", description: "Attack.", category: "commands");
+        registry.Register("kill", _ => { }, packName: "core");
 
         var entity = new Entity("player", "Test");
         handler.SendBurst("conn1", entity);
@@ -83,7 +83,7 @@ public class CharCommandsHandlerTests
         var help = new HelpService();
         help.AddTopic(new HelpTopic { Id = "secret", Title = "secret", Brief = "Hidden.", Category = "admin", Hidden = true });
         var handler = BuildHandler(out var cm, out var registry, help);
-        registry.Register("secret", _ => { }, packName: "core", description: "Hidden.");
+        registry.Register("secret", _ => { }, packName: "core");
 
         var entity = new Entity("player", "Test");
         handler.SendBurst("conn1", entity);
@@ -98,7 +98,7 @@ public class CharCommandsHandlerTests
     {
         var help = new HelpService();
         var handler = BuildHandler(out var cm, out var registry, help);
-        registry.Register("notopiccommand", _ => { }, packName: "core", description: "No topic.");
+        registry.Register("notopiccommand", _ => { }, packName: "core");
 
         var entity = new Entity("player", "Test");
         handler.SendBurst("conn1", entity);

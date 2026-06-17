@@ -58,9 +58,7 @@ public class PersistenceModule : IGameModule
                 _ = _persistence.SavePlayer(session);
                 _sessions.SendToPlayer(ctx.EntityId, "Character saved.\r\n");
             }
-        }, priority: 100, packName: "core",
-           description: "Save your character to disk.",
-           category: "system");
+        }, priority: 100, packName: "core");
 
         _commandRegistry.Register("resetpassword", (ctx) =>
         {
@@ -196,8 +194,6 @@ public class PersistenceModule : IGameModule
                 _sessions.SendToPlayer(ctx.EntityId,
                     $"Password reset for {targetName}.\r\n");
             }
-        }, priority: 100, packName: "core",
-           description: "Change your password. Admins can reset another player's password.",
-           category: "system");
+        }, priority: 100, packName: "core");
     }
 }

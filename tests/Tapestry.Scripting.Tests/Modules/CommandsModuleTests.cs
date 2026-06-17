@@ -22,38 +22,6 @@ public class CommandsModuleTests
     }
 
     [Fact]
-    public void Register_CapturesDescriptionField()
-    {
-        var (rt, registry, _, policy) = BuildRuntime();
-        rt.Execute(@"
-            tapestry.commands.register({
-                name: 'look',
-                description: 'Look at your surroundings.',
-                handler: function(player, args) {}
-            });
-        ");
-        policy.Resolve();
-        var reg = registry.Resolve("look");
-        Assert.Equal("Look at your surroundings.", reg!.Description);
-    }
-
-    [Fact]
-    public void Register_CapturesCategoryField()
-    {
-        var (rt, registry, _, policy) = BuildRuntime();
-        rt.Execute(@"
-            tapestry.commands.register({
-                name: 'north',
-                category: 'movement',
-                handler: function(player, args) {}
-            });
-        ");
-        policy.Resolve();
-        var reg = registry.Resolve("north");
-        Assert.Equal("movement", reg!.Category);
-    }
-
-    [Fact]
     public void Register_SourceFileFlowsFromCurrentSource()
     {
         var (rt, registry, _, policy) = BuildRuntime();

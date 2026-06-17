@@ -46,30 +46,6 @@ public class AbilityCommandBridgeTests
     }
 
     [Fact]
-    public void WireAll_GeneratedCommand_Category_IsSkillsForSkill()
-    {
-        var (bridge, commands, abilities, _, _) = Build();
-        abilities.Register(new AbilityDefinition { Id = "kick", Name = "Kick", Type = AbilityType.Active, Category = AbilityCategory.Skill });
-
-        bridge.WireAll();
-
-        var reg = commands.Resolve("kick");
-        Assert.Equal("skills", reg!.Category);
-    }
-
-    [Fact]
-    public void WireAll_GeneratedCommand_Category_IsSpellsForSpell()
-    {
-        var (bridge, commands, abilities, _, _) = Build();
-        abilities.Register(new AbilityDefinition { Id = "fireball", Name = "Fireball", Type = AbilityType.Active, Category = AbilityCategory.Spell });
-
-        bridge.WireAll();
-
-        var reg = commands.Resolve("fireball");
-        Assert.Equal("spells", reg!.Category);
-    }
-
-    [Fact]
     public void WireAll_GeneratedCommand_VisibleTo_ReturnsTrueWhenProficiencyAboveZero()
     {
         var (bridge, commands, abilities, proficiency, world) = Build();
@@ -104,37 +80,6 @@ public class AbilityCommandBridgeTests
 
         proficiency.Forget(player.Id, "kick");
         Assert.False(reg.VisibleTo!(player));
-    }
-
-    [Fact]
-    public void WireAll_GeneratedCommand_Description_UsesShortNameWhenPresent()
-    {
-        var (bridge, commands, abilities, _, _) = Build();
-        abilities.Register(new AbilityDefinition
-        {
-            Id = "heron_wading_in_the_rushes",
-            Name = "Heron Wading in the Rushes",
-            ShortName = "Heron",
-            Type = AbilityType.Active,
-            Category = AbilityCategory.Skill
-        });
-
-        bridge.WireAll();
-
-        var reg = commands.Resolve("heron_wading_in_the_rushes");
-        Assert.Equal("Heron", reg!.Description);
-    }
-
-    [Fact]
-    public void WireAll_GeneratedCommand_Description_FallsBackToNameWhenNoShortName()
-    {
-        var (bridge, commands, abilities, _, _) = Build();
-        abilities.Register(new AbilityDefinition { Id = "bash", Name = "Bash", Type = AbilityType.Active, Category = AbilityCategory.Skill });
-
-        bridge.WireAll();
-
-        var reg = commands.Resolve("bash");
-        Assert.Equal("Bash", reg!.Description);
     }
 
     [Fact]

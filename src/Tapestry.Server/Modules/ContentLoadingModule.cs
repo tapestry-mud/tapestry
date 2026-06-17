@@ -23,7 +23,6 @@ public class ContentLoadingModule : IGameModule
     private readonly ConnectionLoader _connectionLoader;
     private readonly AuthoredRoomLoader _authoredRoomLoader;
     private readonly AuthoredAreaLoader _authoredAreaLoader;
-    private readonly Tapestry.Scripting.Modules.CommandsModule _commandsModule;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
@@ -40,7 +39,6 @@ public class ContentLoadingModule : IGameModule
         ConnectionLoader connectionLoader,
         AuthoredRoomLoader authoredRoomLoader,
         AuthoredAreaLoader authoredAreaLoader,
-        Tapestry.Scripting.Modules.CommandsModule commandsModule,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
         PackDependencyGraph dependencyGraph,
@@ -54,7 +52,6 @@ public class ContentLoadingModule : IGameModule
         _connectionLoader = connectionLoader;
         _authoredRoomLoader = authoredRoomLoader;
         _authoredAreaLoader = authoredAreaLoader;
-        _commandsModule = commandsModule;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
@@ -94,7 +91,6 @@ public class ContentLoadingModule : IGameModule
         // Auto-gen command help is gap-filled in HelpSeal AFTER the seal (GameLoopService.StartAsync),
         // because commands are only resolved at the seal; running it here would see an empty registry.
 
-        _commandsModule.LogLoadTimeWarnings();
         // ThemeRegistry.Compile() moved to GameLoopService.StartAsync, AFTER
         // RegistrationPolicy.Resolve(): theme tags (theme.register / theme.yaml, plus the
         // rarity/essence item.*/essence.* side-effects) only commit at the seal barrier --

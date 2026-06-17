@@ -27,7 +27,6 @@ public class CommandsModule : IJintApiModule
     private readonly RegistrationPolicy _registrationPolicy;
     private readonly HelpService _helpService;
 
-    private readonly List<string> _undescribedCommands = new();
 
     public CommandsModule(
         CommandRegistry commandRegistry,
@@ -78,14 +77,6 @@ public class CommandsModule : IJintApiModule
         };
     }
 
-    public void LogLoadTimeWarnings()
-    {
-        if (_undescribedCommands.Count == 0) { return; }
-        _logger.LogWarning(
-            "Commands registered without descriptions: {Commands}",
-            string.Join(", ", _undescribedCommands));
-        _undescribedCommands.Clear();
-    }
 
     private static ArgDefinition? ParseArgDefinition(JsValue? value)
     {
@@ -151,21 +142,6 @@ public class CommandsModule : IJintApiModule
         var sourceFileVal = engine.GetValue("__currentSource");
         var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
             ? sourceFileVal.ToString()
-            : "";
-
-        var descriptionVal = obj.Get("description");
-        var description = (descriptionVal.Type != Types.Undefined && descriptionVal.Type != Types.Null)
-            ? descriptionVal.ToString()
-            : "";
-
-        if (string.IsNullOrEmpty(description))
-        {
-            _undescribedCommands.Add(name);
-        }
-
-        var categoryVal = obj.Get("category");
-        var category = (categoryVal.Type != Types.Undefined && categoryVal.Type != Types.Null)
-            ? categoryVal.ToString()
             : "";
 
         // Parse roles: ["player", "mob"] -- defaults to ["player"] if absent
@@ -282,8 +258,6 @@ public class CommandsModule : IJintApiModule
                 aliases,
                 priority,
                 packName,
-                description,
-                category,
                 sourceFile,
                 visibleTo,
                 roles: roles,

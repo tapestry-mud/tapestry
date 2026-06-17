@@ -66,7 +66,6 @@ public class AbilityCommandBridge
     {
         var abilityId = ability.Id;
         var displayName = ability.ShortName ?? ability.Name;
-        var category = ability.Category == AbilityCategory.Skill ? "skills" : "spells";
 
         // command_name is the explicit, intentional keyword set by the pack author.
         // Falls back to the short ID (after last ':') if not set.
@@ -87,8 +86,6 @@ public class AbilityCommandBridge
             aliases: aliases,
             priority: 0,
             packName: ability.PackName,
-            description: displayName,
-            category: category,
             sourceFile: ability.SourceFile,
             visibleTo: visibleTo,
             roles: ["player", "mob"]

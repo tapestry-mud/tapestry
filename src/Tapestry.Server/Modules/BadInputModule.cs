@@ -33,8 +33,6 @@ public class BadInputModule : IGameModule
             "badinput",
             ctx => HandleBadInput(ctx),
             packName: "engine",
-            description: "View or clear unrecognized command log.",
-            category: "admin",
             roles: ["admin"]);
     }
 

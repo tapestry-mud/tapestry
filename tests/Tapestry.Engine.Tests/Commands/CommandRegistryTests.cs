@@ -5,24 +5,6 @@ namespace Tapestry.Engine.Tests.Commands;
 public class CommandRegistryTests
 {
     [Fact]
-    public void Register_CapturesDescription()
-    {
-        var registry = new CommandRegistry();
-        registry.Register("look", _ => { }, description: "Look at your surroundings.");
-        var reg = registry.Resolve("look");
-        Assert.Equal("Look at your surroundings.", reg!.Description);
-    }
-
-    [Fact]
-    public void Register_CapturesCategory()
-    {
-        var registry = new CommandRegistry();
-        registry.Register("look", _ => { }, category: "movement");
-        var reg = registry.Resolve("look");
-        Assert.Equal("movement", reg!.Category);
-    }
-
-    [Fact]
     public void Register_CapturesSourceFile()
     {
         var registry = new CommandRegistry();

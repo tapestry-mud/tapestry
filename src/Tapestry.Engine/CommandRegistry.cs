@@ -12,9 +12,7 @@ public class CommandRegistration
     public string PackName { get; init; } = "";
     public int RegistrationOrder { get; init; }
 
-    // Command UI metadata — visibility predicate, categorization, and source tracking
-    public string Description { get; init; } = "";
-    public string Category { get; init; } = "";
+    // Command UI metadata — visibility predicate and source tracking
     /// <summary>Relative path from pack directory. Set automatically by PackLoader; do not supply manually.</summary>
     public string SourceFile { get; init; } = "";
     public Func<Entity, bool>? VisibleTo { get; init; }
@@ -42,8 +40,6 @@ public class CommandRegistry
         string[]? aliases = null,
         int priority = 0,
         string packName = "",
-        string description = "",
-        string category = "",
         string sourceFile = "",
         Func<Entity, bool>? visibleTo = null,
         string[]? roles = null,
@@ -60,8 +56,6 @@ public class CommandRegistry
                 Priority = priority,
                 PackName = packName,
                 RegistrationOrder = _nextOrder++,
-                Description = description,
-                Category = category,
                 SourceFile = sourceFile,
                 VisibleTo = visibleTo,
                 Roles = roles ?? ["player"],
