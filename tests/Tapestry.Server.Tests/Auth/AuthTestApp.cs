@@ -32,11 +32,18 @@ public sealed class AuthTestApp : WebApplicationFactory<Program>, IDisposable
             """);
 
         Environment.SetEnvironmentVariable("TAPESTRY_CONFIG", configPath);
+
+        // The auth host boots with no content packs (packs: []), so the engine's built-in
+        // commands (badinput, resetpassword, save) have no help topics. The help-coverage
+        // gate is strict by default and would fault host startup; these tests do not exercise
+        // help, so run the gates lenient (warn, never throw). Prod sets no env and stays strict.
+        Environment.SetEnvironmentVariable("TAPESTRY_HELP_GATES", "lenient");
     }
 
     protected override void Dispose(bool disposing)
     {
         Environment.SetEnvironmentVariable("TAPESTRY_CONFIG", null);
+        Environment.SetEnvironmentVariable("TAPESTRY_HELP_GATES", null);
         try { Directory.Delete(_tempDir, recursive: true); } catch { }
         base.Dispose(disposing);
     }
