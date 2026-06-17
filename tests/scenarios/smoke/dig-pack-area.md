@@ -35,3 +35,5 @@ runner does not support.
 17. Gamemaster: `south`
 18. Gamemaster: `dig north`
 19. Assert Gamemaster sees: `already taken`
+20. Gamemaster: `dig west`
+21. Assert Gamemaster sees: `already taken`
