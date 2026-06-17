@@ -202,4 +202,46 @@ public class HelpSealTests
         var ex = Assert.Throws<InvalidOperationException>(() => seal.Seal());
         ex.Message.Should().Contain("battle").And.Contain("did you mean 'combat'");
     }
+
+    [Fact]
+    public void SeeAlso_Dangling_Strict_Throws_NamesTheRef()
+    {
+        var commands = CommandsWith(("kill", "tapestry-core"));
+        var help = HelpWith();
+        help.RegisterCategory("combat", "Combat", false, "tapestry-core", 0);
+        help.AddTopic(new Tapestry.Shared.Help.HelpTopic
+        {
+            Id = "kill", Title = "kill", Category = "combat", PackName = "tapestry-core",
+            SeeAlso = new List<string> { "ghost-topic" }
+        });
+        var seal = new HelpSeal(help, commands, new FakeEdges(),
+            Winners(("kill", "tapestry-core", false)),
+            new HelpSealOptions { Strict = true }, null);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => seal.Seal());
+        ex.Message.Should().Contain("ghost-topic");
+    }
+
+    [Fact]
+    public void SeeAlso_CrossPackReference_Resolves()
+    {
+        var commands = CommandsWith(("kill", "tapestry-core"));
+        var help = HelpWith();
+        help.RegisterCategory("combat", "Combat", false, "tapestry-core", 0);
+        // concept topic from another pack
+        help.AddTopic(new Tapestry.Shared.Help.HelpTopic
+        {
+            Id = "combat-basics", Title = "combat basics", Category = "combat", PackName = "example-pack"
+        });
+        help.AddTopic(new Tapestry.Shared.Help.HelpTopic
+        {
+            Id = "kill", Title = "kill", Category = "combat", PackName = "tapestry-core",
+            SeeAlso = new List<string> { "combat-basics" }
+        });
+        var seal = new HelpSeal(help, commands, new FakeEdges(),
+            Winners(("kill", "tapestry-core", false), ("combat-basics", "example-pack", false)),
+            new HelpSealOptions { Strict = true }, null);
+
+        seal.Invoking(s => s.Seal()).Should().NotThrow();
+    }
 }

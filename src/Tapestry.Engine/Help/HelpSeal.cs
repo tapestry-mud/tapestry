@@ -127,7 +127,22 @@ public sealed class HelpSeal
             }
         }
 
-        // (T6 appends see-also violations here, before the report block.)
+        // Gate 3: see-also - every reference must resolve in the merged topic set (loose).
+        var allTopicIds = _help.AllTopicIds; // HashSet, case-insensitive
+        foreach (var w in _authoredWinners)
+        {
+            var topic = _help.GetTopicById(w.Id);
+            if (topic == null) { continue; }
+            foreach (var refId in topic.SeeAlso)
+            {
+                if (string.IsNullOrWhiteSpace(refId)) { continue; }
+                if (!allTopicIds.Contains(refId))
+                {
+                    var loc = string.IsNullOrEmpty(w.SourceFile) ? w.Owner : $"{w.Owner} ({w.SourceFile})";
+                    violations.Add($"{loc}: topic '{w.Id}' see_also references '{refId}' which is not a registered topic");
+                }
+            }
+        }
 
         ReportViolations(violations);
     }
