@@ -241,13 +241,22 @@ public class HelpService
         return new() { Status = "no_match", Term = term };
     }
 
+    public bool IsListed(string topicId)
+    {
+        var topic = GetTopicById(topicId);
+        if (topic == null) { return false; }
+        if (topic.Hidden) { return false; }
+        return !IsCategoryHidden(topic.Category);
+    }
+
     public List<HelpTopicSummary> List(string? entityId, string category)
     {
         var tier = PlayerTier(entityId);
+        if (IsCategoryHidden(category)) { return new(); }
         if (!_byCategory.TryGetValue(category, out var topics)) { return new(); }
 
         return topics
-            .Where(t => IsVisible(t, tier))
+            .Where(t => !t.Hidden && IsVisible(t, tier))
             .Select(t => new HelpTopicSummary { Id = t.Id, Title = t.Title, Brief = t.Brief })
             .ToList();
     }
@@ -256,7 +265,7 @@ public class HelpService
     {
         var tier = PlayerTier(entityId);
         return _byCategory
-            .Where(kv => kv.Value.Any(t => IsVisible(t, tier)))
+            .Where(kv => !IsCategoryHidden(kv.Key) && kv.Value.Any(t => !t.Hidden && IsVisible(t, tier)))
             .Select(kv => kv.Key)
             .OrderBy(c => c)
             .ToList();

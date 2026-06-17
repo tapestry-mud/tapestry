@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Tapestry.Engine.Help;
 using Tapestry.Shared.Help;
 using Xunit;
@@ -273,5 +274,58 @@ public class HelpServiceTests
     {
         var svc = new HelpService();
         Assert.Null(svc.GetTopicById("nope"));
+    }
+
+    [Fact]
+    public void List_ExcludesHiddenCategoryMembers_ButQueryStillResolves()
+    {
+        var svc = new HelpService();
+        svc.RegisterCategory("social", "Socials", true, "core", 0);
+        svc.AddTopic(MakeTopic("wave", category: "social"));
+
+        svc.List(null, "social").Should().BeEmpty();        // browse hides it
+        Assert.NotNull(svc.GetTopicById("wave"));           // direct lookup resolves
+        Assert.Equal("ok", svc.Query(null, "wave").Status); // direct help works
+    }
+
+    [Fact]
+    public void List_ExcludesIndividuallyHiddenTopic_ButQueryStillResolves()
+    {
+        var svc = new HelpService();
+        svc.RegisterCategory("character", "Character", false, "core", 0);
+        svc.AddTopic(MakeTopic("utf8", category: "character"));
+        svc.GetTopicById("utf8")!.Hidden = true; // visible category, topic itself hidden
+
+        svc.List(null, "character").Should().NotContain(s => s.Id == "utf8");
+        Assert.Equal("ok", svc.Query(null, "utf8").Status);
+    }
+
+    [Fact]
+    public void Categories_ExcludesHiddenCategory()
+    {
+        var svc = new HelpService();
+        svc.RegisterCategory("communication", "Communication", false, "core", 0);
+        svc.RegisterCategory("social", "Socials", true, "core", 0);
+        svc.AddTopic(MakeTopic("say", category: "communication"));
+        svc.AddTopic(MakeTopic("wave", category: "social"));
+
+        svc.Categories(null).Should().Contain("communication").And.NotContain("social");
+    }
+
+    [Fact]
+    public void IsListed_TrueOnlyWhenNeitherHidden()
+    {
+        var svc = new HelpService();
+        svc.RegisterCategory("communication", "Communication", false, "core", 0);
+        svc.RegisterCategory("social", "Socials", true, "core", 0);
+        svc.AddTopic(MakeTopic("say", category: "communication"));
+        svc.AddTopic(MakeTopic("wave", category: "social"));
+        svc.AddTopic(MakeTopic("utf8", category: "communication"));
+        svc.GetTopicById("utf8")!.Hidden = true;
+
+        svc.IsListed("say").Should().BeTrue();
+        svc.IsListed("wave").Should().BeFalse();  // category hidden
+        svc.IsListed("utf8").Should().BeFalse();  // topic hidden
+        svc.IsListed("nope").Should().BeFalse();  // no topic
     }
 }
