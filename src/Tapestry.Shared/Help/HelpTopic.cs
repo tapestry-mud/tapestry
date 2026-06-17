@@ -17,11 +17,11 @@ public class HelpTopic
 
     public string? Role { get; set; }
 
-    // Author-declared { override: true } — routes this topic through RegistrationPolicy as an
+    // Author-declared { override: true } - routes this topic through RegistrationPolicy as an
     // override candidate (must declare a dependency edge on the owner of the topic it overrides).
     public bool Override { get; set; }
 
-    // Author-declared { hidden: true } — suppresses the topic from listing surfaces (List/Categories).
+    // Author-declared { hidden: true } - suppresses the topic from listing surfaces (List/Categories).
     // GetTopicById still returns it; consumed by the listing filter in T6b.
     public bool Hidden { get; set; }
 
