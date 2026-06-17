@@ -1,6 +1,6 @@
 ---
 capability: command-dispatch
-last-updated: 2026-06-12
+last-updated: 2026-06-17
 ---
 
 # Command Dispatch
@@ -25,12 +25,16 @@ the verb to a handler and invokes it.
   with `roles: ["player", "mob"]` is available to any entity type without a privilege check.
   (src/Tapestry.Engine/CommandRouter.cs:45-61)
 
-- **Registration:** Commands are registered declaratively at seal-load time via
-  `tapestry.commands.register({ name, handler, roles, args, description, ... })`.
-  The `admin: true` shorthand is equivalent to `roles: ["admin"]` plus an admin privilege
-  gate; specifying both `admin: true` and explicit `visibleTo` logs a warning and `admin: true`
-  wins.
-  (src/Tapestry.Scripting/Modules/CommandsModule.cs:122-290)
+- **Registration carries behavior only:** Commands are registered declaratively at
+  seal-load time via `tapestry.commands.register({ name, handler, roles, args, ... })`.
+  A `CommandRegistration` holds keyword, handler, aliases, priority, roles, arg
+  definitions, gmcp config, and visibility predicate. It no longer holds human-facing
+  text: `description` and `category` were removed from the registration and dropped from
+  the `Register()` signature. That text now lives in the command's help topic (see
+  help-system.md). The `admin: true` shorthand is equivalent to `roles: ["admin"]` plus an
+  admin privilege gate; specifying both `admin: true` and explicit `visibleTo` logs a
+  warning and `admin: true` wins.
+  (src/Tapestry.Engine/CommandRegistry.cs:6-24; src/Tapestry.Engine/CommandRegistry.cs:37-47; src/Tapestry.Scripting/Modules/CommandsModule.cs:122-290)
 
 - **Override system:** A same-name command from two packs is a strict boot error unless one
   pack declares `{ override: true }` and has a declared dependency edge on the owning pack.
@@ -77,3 +81,5 @@ the verb to a handler and invokes it.
 - None on record.
 
 ## Change Log
+
+- 2026-06-17 [command-help-registry](changes/2026-06-17-command-help-registry.md)

@@ -7,7 +7,7 @@ known constraints, and change history.
 
 | Capability | File | Last Updated |
 |------------|------|--------------|
-| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-12 |
+| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-17 |
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-12 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-12 |
@@ -39,8 +39,9 @@ known constraints, and change history.
 | Economy and Shops | [economy-and-shops.md](economy-and-shops.md) | 2026-06-12 |
 | World Simulation | [world-simulation.md](world-simulation.md) | 2026-06-12 |
 | Admin Commands | [admin-commands.md](admin-commands.md) | 2026-06-12 |
-| Help System | [help-system.md](help-system.md) | 2026-06-12 |
+| Help System | [help-system.md](help-system.md) | 2026-06-17 |
 | Telemetry | [telemetry.md](telemetry.md) | 2026-06-12 |
+| Help Categories | [help-categories.md](help-categories.md) | 2026-06-17 |
 
 ## Contract summary
 
