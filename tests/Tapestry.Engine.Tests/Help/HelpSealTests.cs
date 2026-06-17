@@ -10,6 +10,22 @@ namespace Tapestry.Engine.Tests.Help;
 
 public class HelpSealTests
 {
+    private sealed class CapturingLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        public readonly List<string> Warnings = new();
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null!;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? ex,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == Microsoft.Extensions.Logging.LogLevel.Warning)
+            {
+                Warnings.Add(formatter(state, ex));
+            }
+        }
+    }
+
     private sealed class FakeEdges : IPackEdgeOracle
     {
         private readonly HashSet<(string, string)> _edges = new();
@@ -117,9 +133,11 @@ public class HelpSealTests
     public void ShadowCheck_PrefixOnly_DoesNotFalseTrigger()
     {
         // help topic 'ki' must NOT be treated as shadowing command 'kill' (exact-id match only).
+        // Include a 'kill' winner so the coverage gate is satisfied; this test is about the shadow check.
         var commands = CommandsWith(("kill", "tapestry-core"));
-        var help = HelpWith(("ki", "other-pack", false));
-        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(("ki", "other-pack", false)));
+        var help = HelpWith(("ki", "other-pack", false), ("kill", "tapestry-core", false));
+        var seal = new HelpSeal(help, commands, new FakeEdges(),
+            Winners(("ki", "other-pack", false), ("kill", "tapestry-core", false)));
 
         seal.Invoking(s => s.Seal()).Should().NotThrow();
     }
@@ -138,5 +156,30 @@ public class HelpSealTests
         var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(("emote", "tapestry-core", false)));
 
         seal.Invoking(s => s.Seal()).Should().NotThrow();
+    }
+
+    [Fact]
+    public void Coverage_MissingTopic_Strict_Throws()
+    {
+        var commands = CommandsWith(("flee", "tapestry-core"));
+        var help = HelpWith(); // no topics authored
+        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(),
+            new HelpSealOptions { Strict = true }, null);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => seal.Seal());
+        ex.Message.Should().Contain("flee");
+    }
+
+    [Fact]
+    public void Coverage_MissingTopic_Lenient_WarnsAndContinues()
+    {
+        var commands = CommandsWith(("flee", "tapestry-core"), ("kill", "tapestry-core"));
+        var help = HelpWith(); // both missing
+        var log = new CapturingLogger<HelpSeal>();
+        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(),
+            new HelpSealOptions { Strict = false }, log);
+
+        seal.Invoking(s => s.Seal()).Should().NotThrow();
+        log.Warnings.Should().HaveCountGreaterThanOrEqualTo(2); // both violations surfaced, not just the first
     }
 }

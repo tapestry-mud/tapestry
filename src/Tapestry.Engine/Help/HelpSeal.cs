@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Registration;
 
 namespace Tapestry.Engine.Help;
@@ -18,19 +19,33 @@ public sealed class HelpSeal
     private readonly CommandRegistry _commands;
     private readonly IPackEdgeOracle _edges;
     private readonly IReadOnlyList<AuthoredHelpRecord> _authoredWinners;
+    private readonly HelpSealOptions _options;
+    private readonly ILogger<HelpSeal>? _logger;
 
+    // Primary constructor.
+    public HelpSeal(
+        HelpService help,
+        CommandRegistry commands,
+        IPackEdgeOracle edges,
+        IReadOnlyList<AuthoredHelpRecord> authoredWinners,
+        HelpSealOptions options,
+        ILogger<HelpSeal>? logger)
+    {
+        _help = help;
+        _commands = commands;
+        _edges = edges;
+        _authoredWinners = authoredWinners;
+        _options = options;
+        _logger = logger;
+    }
+
+    // Back-compat for existing tests and production DI path (defaults to strict, no logger).
     public HelpSeal(
         HelpService help,
         CommandRegistry commands,
         IPackEdgeOracle edges,
         IReadOnlyList<AuthoredHelpRecord>? authoredWinners = null)
-    {
-        _help = help;
-        _commands = commands;
-        _edges = edges;
-        // Default to the help service's own captured winners (production path); tests may inject.
-        _authoredWinners = authoredWinners ?? help.AuthoredWinners;
-    }
+        : this(help, commands, edges, authoredWinners ?? help.AuthoredWinners, new HelpSealOptions(), null) { }
 
     public void Seal()
     {
@@ -78,5 +93,35 @@ public sealed class HelpSeal
 
         // Pass 2 (was auto-gen gap-fill): stamp args-derived syntax onto authored command topics.
         CommandHelpGenerator.StampSyntax(registrations, _help);
+
+        var violations = new List<string>();
+        var authoredIds = new HashSet<string>(_authoredWinners.Select(w => w.Id), StringComparer.OrdinalIgnoreCase);
+
+        // Gate 1: coverage - every registered command needs an authored topic.
+        foreach (var reg in registrations)
+        {
+            if (!authoredIds.Contains(reg.Keyword))
+            {
+                violations.Add($"command '{reg.Keyword}' (owner '{reg.PackName}') has no help topic; author help/{reg.Keyword}.yaml");
+            }
+        }
+
+        // (T5 and T6 append category + see-also violations here, before the report block.)
+
+        ReportViolations(violations);
+    }
+
+    private void ReportViolations(List<string> violations)
+    {
+        if (violations.Count == 0) { return; }
+        if (_options.Strict)
+        {
+            throw new InvalidOperationException(
+                "help registry seal failed:\r\n  - " + string.Join("\r\n  - ", violations));
+        }
+        foreach (var v in violations)
+        {
+            _logger?.LogWarning("help seal (lenient): {Violation}", v);
+        }
     }
 }
