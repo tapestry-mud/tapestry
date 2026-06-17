@@ -22,6 +22,7 @@ using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 using Tapestry.Engine.Ui;
 using Tapestry.Engine.Quests;
+using Tapestry.Engine.Help;
 using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Interop;
@@ -387,7 +388,7 @@ public class PackLoaderTests
 
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy, new HelpService()),
             new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),
@@ -644,7 +645,7 @@ public class PackLoaderTests
 
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy, new HelpService()),
             new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, classRegistry, raceRegistry, mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),

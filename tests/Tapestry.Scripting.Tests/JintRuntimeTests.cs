@@ -13,6 +13,7 @@ using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
+using Tapestry.Engine.Help;
 using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Engine.Tags;
@@ -280,7 +281,7 @@ public class JintRuntimeTests
         // Create modules
         var modules = new IJintApiModule[]
         {
-            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy),
+            new CommandsModule(commandRegistry, messaging, worldOps, stats, world, NullLogger<CommandsModule>.Instance, new CommandResponseContext(), eventBus, new ArgResolver(world, new VisibilityFilter(), doorService, NullLogger<ArgResolver>.Instance), registrationPolicy, new HelpService()),
             new EmotesModule(emoteRegistry, registrationPolicy),
             new EventsModule(eventBus),
             new WorldModule(messaging, worldOps, world, gameLoop, new ClassRegistry(), new RaceRegistry(), mobAIManager, new NullGmcpModuleAdapter(), new TagRegistry(), new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Mapping.AreaMapProjector(world, new Tapestry.Engine.Tags.TagRegistry()), new Tapestry.Engine.Mapping.AsciiMapRenderer()),

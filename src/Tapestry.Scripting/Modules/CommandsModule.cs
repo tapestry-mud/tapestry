@@ -4,6 +4,7 @@ using Jint.Native.Object;
 using Jint.Runtime;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
+using Tapestry.Engine.Help;
 using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Scripting.Services;
@@ -24,6 +25,7 @@ public class CommandsModule : IJintApiModule
     private readonly EventBus _eventBus;
     private readonly ArgResolver _argResolver;
     private readonly RegistrationPolicy _registrationPolicy;
+    private readonly HelpService _helpService;
 
     private readonly List<string> _undescribedCommands = new();
 
@@ -37,7 +39,8 @@ public class CommandsModule : IJintApiModule
         CommandResponseContext responseContext,
         EventBus eventBus,
         ArgResolver argResolver,
-        RegistrationPolicy registrationPolicy)
+        RegistrationPolicy registrationPolicy,
+        HelpService helpService)
     {
         _commandRegistry = commandRegistry;
         _messaging = messaging;
@@ -49,6 +52,7 @@ public class CommandsModule : IJintApiModule
         _eventBus = eventBus;
         _argResolver = argResolver;
         _registrationPolicy = registrationPolicy;
+        _helpService = helpService;
     }
 
     public string Namespace => "commands";
@@ -315,35 +319,22 @@ public class CommandsModule : IJintApiModule
                 if (!visible) { continue; }
             }
 
-            var category = !string.IsNullOrEmpty(reg.Category)
-                ? reg.Category
-                : DeriveCategory(reg.SourceFile);
+            // Hidden category or hidden topic - decluttered from the catalog (still dispatchable, still help-able).
+            if (!_helpService.IsListed(reg.Keyword)) { continue; }
+
+            var topic = _helpService.GetTopicById(reg.Keyword);
+            var category = topic?.Category ?? "";
+            var description = topic?.Brief ?? "";
 
             result.Add(new
             {
                 keyword = reg.Keyword,
                 category = category,
-                description = reg.Description
+                description = description
             });
         }
 
         return result.ToArray();
-    }
-
-    private static string DeriveCategory(string sourceFile)
-    {
-        if (string.IsNullOrEmpty(sourceFile)) { return "misc"; }
-        var normalized = sourceFile.Replace('\\', '/');
-        if (normalized.StartsWith("scripts/", StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized["scripts/".Length..];
-        }
-        var lastSlash = normalized.LastIndexOf('/');
-        if (lastSlash <= 0) { return "misc"; }
-        var fileName = normalized[(lastSlash + 1)..];
-        var dotIndex = fileName.LastIndexOf('.');
-        var stem = dotIndex >= 0 ? fileName[..dotIndex] : fileName;
-        return string.IsNullOrEmpty(stem) ? "misc" : stem.ToLower();
     }
 
     private void InvokeActorHandler(
