@@ -66,12 +66,13 @@ public sealed class HelpSeal
         {
             if (!commandOwners.TryGetValue(authored.Id, out var commandOwner)) { continue; }
             // Engine/kernel-registered commands (C# modules - e.g. emote, socials, say) carry a
-            // non-pack owner (empty, or "kernel"/"engine"). No pack owns them exclusively, so any
-            // pack - typically @tapestry/core - may document them. The shadow gate only governs one
-            // pack documenting ANOTHER PACK's command, so exempt non-pack owners here.
+            // non-pack owner (empty, or "kernel"/"engine"/"core"). No pack owns them exclusively, so
+            // any pack - typically @tapestry/core - may document them. The shadow gate only governs
+            // one pack documenting ANOTHER PACK's command, so exempt non-pack owners here.
             if (string.IsNullOrWhiteSpace(commandOwner)
                 || string.Equals(commandOwner, "kernel", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(commandOwner, "engine", StringComparison.OrdinalIgnoreCase))
+                || string.Equals(commandOwner, "engine", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(commandOwner, "core", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
