@@ -161,6 +161,7 @@ builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler>(
     sp => sp.GetRequiredService<Tapestry.Server.Gmcp.Handlers.CharVitalsHandler>());
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharExperienceHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharCommandsHandler>();
+builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CommandCategoriesHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharEffectsHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.CharItemsHandler>();
 builder.Services.AddSingleton<Tapestry.Contracts.IGmcpPackageHandler, Tapestry.Server.Gmcp.Handlers.RoomHandler>();

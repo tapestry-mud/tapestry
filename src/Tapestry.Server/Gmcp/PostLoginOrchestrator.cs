@@ -15,6 +15,7 @@ public class PostLoginOrchestrator
         typeof(CharVitalsHandler),
         typeof(CharExperienceHandler),
         typeof(CharCommandsHandler),
+        typeof(CommandCategoriesHandler),
         typeof(CharEffectsHandler),
         typeof(CharItemsHandler),
         typeof(RoomHandler),
