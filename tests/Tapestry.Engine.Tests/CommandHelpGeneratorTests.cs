@@ -6,77 +6,53 @@ namespace Tapestry.Engine.Tests;
 public class CommandHelpGeneratorTests
 {
     [Fact]
-    public void GenerateFor_NoArgDefs_ReturnsNull()
+    public void BuildSyntax_NoArgDefs_ReturnsJustKeyword()
     {
-        var reg = MakeRegistration("north", "Go north.", argDefs: null);
-        Assert.Null(CommandHelpGenerator.GenerateFor(reg));
+        var reg = MakeRegistration("north", argDefs: null);
+        Assert.Equal("north", CommandHelpGenerator.BuildSyntax(reg));
     }
 
     [Fact]
-    public void GenerateFor_SimpleArgs_BuildsSyntaxLine()
+    public void BuildSyntax_SimpleArgs_BuildsSyntaxLine()
     {
-        var reg = MakeRegistration("give", "Give an item.", argDefs: new()
+        var reg = MakeRegistration("give", argDefs: new()
         {
             ["item"] = new ArgDefinition { Type = "inventory", Required = true },
             ["target"] = new ArgDefinition { Type = "entity", Required = true, Prepositions = ["to"] }
         });
 
-        var topic = CommandHelpGenerator.GenerateFor(reg);
-
-        Assert.NotNull(topic);
-        Assert.Contains("give [item] to [target]", topic!.Syntax);
+        Assert.Equal("give [item] to [target]", CommandHelpGenerator.BuildSyntax(reg));
     }
 
     [Fact]
-    public void GenerateFor_OptionalArg_WrapsInParens()
+    public void BuildSyntax_OptionalArg_WrapsInParens()
     {
-        var reg = MakeRegistration("look", "Look around.", argDefs: new()
+        var reg = MakeRegistration("look", argDefs: new()
         {
             ["target"] = new ArgDefinition { Type = "entity", Required = false }
         });
 
-        var topic = CommandHelpGenerator.GenerateFor(reg);
-
-        Assert.NotNull(topic);
-        Assert.Contains("look ([target])", topic!.Syntax);
+        Assert.Equal("look ([target])", CommandHelpGenerator.BuildSyntax(reg));
     }
 
     [Fact]
-    public void GenerateFor_BulkArg_ShowsBulkPattern()
+    public void BuildSyntax_BulkArg_ShowsBulkPattern()
     {
-        var reg = MakeRegistration("drop", "Drop items.", argDefs: new()
+        var reg = MakeRegistration("drop", argDefs: new()
         {
             ["item"] = new ArgDefinition { Type = "inventory", Required = true, Bulk = true }
         });
 
-        var topic = CommandHelpGenerator.GenerateFor(reg);
-
-        Assert.NotNull(topic);
-        Assert.Contains("drop [item | all | all.item]", topic!.Syntax);
-    }
-
-    [Fact]
-    public void GenerateFor_SetsIdFromCommandKeyword()
-    {
-        var reg = MakeRegistration("give", "Give an item.", argDefs: new()
-        {
-            ["item"] = new ArgDefinition { Type = "inventory", Required = true }
-        });
-
-        var topic = CommandHelpGenerator.GenerateFor(reg);
-
-        Assert.Equal("give", topic!.Id);
+        Assert.Equal("drop [item | all | all.item]", CommandHelpGenerator.BuildSyntax(reg));
     }
 
     private static CommandRegistration MakeRegistration(
-        string keyword, string description, Dictionary<string, ArgDefinition>? argDefs)
+        string keyword, Dictionary<string, ArgDefinition>? argDefs)
     {
         return new CommandRegistration
         {
             Keyword = keyword,
             ActorHandler = _ => { },
-            Description = description,
-            Category = "general",
             Roles = ["player"],
             ArgDefinitions = argDefs
         };

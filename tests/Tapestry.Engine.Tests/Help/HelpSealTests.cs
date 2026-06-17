@@ -44,6 +44,17 @@ public class HelpSealTests
         return reg;
     }
 
+    // Variant for registering commands with no arg definitions (no-arg commands).
+    private static CommandRegistry CommandsWithNoArgs(params (string keyword, string owner)[] cmds)
+    {
+        var reg = new CommandRegistry();
+        foreach (var (keyword, owner) in cmds)
+        {
+            reg.Register(keyword, _ => { }, packName: owner);
+        }
+        return reg;
+    }
+
     private static List<AuthoredHelpRecord> Winners(params (string id, string owner, bool over)[] xs) =>
         xs.Select(x => new AuthoredHelpRecord(x.id, x.owner, x.over, x.id + ".yaml")).ToList();
 
@@ -90,32 +101,16 @@ public class HelpSealTests
     }
 
     [Fact]
-    public void AutoGen_FillsOnlyGaps_OwnedByCommandOwner()
+    public void Seal_StampsDerivedSyntax_OntoAuthoredCommandTopic()
     {
-        // 'kill' has an authored topic; 'flee' does not -> only 'flee' is auto-generated.
-        var commands = CommandsWith(("kill", "tapestry-core"), ("flee", "tapestry-core"));
-        var help = HelpWith(("kill", "tapestry-core", false));
-        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(("kill", "tapestry-core", false)));
+        // 'look' has no args -> syntax is just the keyword.
+        var commands = CommandsWithNoArgs(("look", "tapestry-core"));
+        var help = HelpWith(("look", "tapestry-core", false));
+        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners(("look", "tapestry-core", false)));
 
         seal.Seal();
 
-        // 'kill' keeps the authored topic (its body is "b", not the generated body).
-        help.Query(null, "kill").Topic!.Body.Should().Be("b");
-        // 'flee' is now present, generated, owned by the command owner.
-        var flee = help.Query(null, "flee").Topic!;
-        flee.Id.Should().Be("flee");
-    }
-
-    [Fact]
-    public void AutoGen_GeneratedTopic_OwnedByCommandOwner()
-    {
-        var commands = CommandsWith(("flee", "tapestry-core"));
-        var help = HelpWith();
-        var seal = new HelpSeal(help, commands, new FakeEdges(), Winners());
-
-        seal.Seal();
-
-        help.Query(null, "flee").Topic!.PackName.Should().Be("tapestry-core");
+        help.GetTopicById("look")!.Syntax.Should().ContainSingle().Which.Should().Be("look");
     }
 
     [Fact]
