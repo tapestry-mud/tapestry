@@ -255,4 +255,23 @@ public class HelpServiceTests
 
         Assert.True(topic.Override);
     }
+
+    [Fact]
+    public void GetTopicById_ExactMatch_IgnoresRoleGate()
+    {
+        var svc = new HelpService();
+        svc.AddTopic(MakeTopic("smite", role: "admin"));
+
+        var topic = svc.GetTopicById("smite");
+
+        Assert.NotNull(topic);
+        Assert.Equal("smite", topic!.Id);
+    }
+
+    [Fact]
+    public void GetTopicById_NoMatch_ReturnsNull()
+    {
+        var svc = new HelpService();
+        Assert.Null(svc.GetTopicById("nope"));
+    }
 }

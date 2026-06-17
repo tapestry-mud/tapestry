@@ -21,6 +21,10 @@ public class HelpTopic
     // override candidate (must declare a dependency edge on the owner of the topic it overrides).
     public bool Override { get; set; }
 
+    // Author-declared { hidden: true } — suppresses the topic from listing surfaces (List/Categories).
+    // GetTopicById still returns it; consumed by the listing filter in T6b.
+    public bool Hidden { get; set; }
+
     [YamlIgnore]
     public string PackName { get; set; } = "";
 

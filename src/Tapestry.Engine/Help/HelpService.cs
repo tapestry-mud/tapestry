@@ -183,6 +183,17 @@ public class HelpService
             Line: 0));
     }
 
+    public HelpTopic? GetTopicById(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) { return null; }
+        return _byId.TryGetValue(id, out var entry) ? entry.Topic : null;
+    }
+
+    public IReadOnlyCollection<string> AllTopicIds =>
+        _byId.Keys
+            .Where(k => !k.Contains(':'))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     public void AddTopic(HelpTopic topic, int loadOrder = 0)
     {
         Upsert(_byId, topic.Id, topic, loadOrder);
