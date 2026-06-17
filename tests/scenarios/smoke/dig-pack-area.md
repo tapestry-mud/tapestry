@@ -4,6 +4,10 @@ Verifies spec B: a builder can dig off a pack-owned room, the boundary link is
 wired as a connection record, the link survives a server restart, and the shadow
 guard refuses to dig in an already-occupied direction.
 
+Also verifies the existing-exit guard on the authored carve path: digging a
+direction that is already occupied from an authored room must refuse rather than
+repoint the forward exit and orphan the old reverse exit as a one-way link.
+
 Orphan detection (spec B 5.4) is covered by C# unit tests only - simulating a
 pack anchor removal requires modifying pack YAML between restarts, which the
 runner does not support.
@@ -26,3 +30,8 @@ runner does not support.
 12. Assert Gamemaster sees: `The Void`
 13. Gamemaster: `east`
 14. Assert Gamemaster sees: `New Room`
+15. Gamemaster: `dig north`
+16. Assert Gamemaster sees: `into a new room`
+17. Gamemaster: `south`
+18. Gamemaster: `dig north`
+19. Assert Gamemaster sees: `already taken`
