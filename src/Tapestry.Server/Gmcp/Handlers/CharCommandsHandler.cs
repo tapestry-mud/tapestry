@@ -1,6 +1,7 @@
 using Tapestry.Contracts;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Help;
 using Tapestry.Server.Gmcp;
 
 namespace Tapestry.Server.Gmcp.Handlers;
@@ -12,32 +13,25 @@ public class CharCommandsHandler : IGmcpPackageHandler
     private readonly World _world;
     private readonly EventBus _eventBus;
     private readonly CommandRegistry _commandRegistry;
+    private readonly HelpService _helpService;
 
     public string Name => "CharCommands";
     public IReadOnlyList<string> PackageNames { get; } = new[] { "Char.Commands" };
-
-    private static readonly Dictionary<string, string> KeywordCategoryOverrides =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["commands"] = "utility",
-            ["consider"] = "combat",
-            ["flee"]     = "combat",
-            ["kill"]     = "combat",
-            ["wimpy"]    = "combat",
-        };
 
     public CharCommandsHandler(
         IGmcpConnectionManager connectionManager,
         SessionManager sessions,
         World world,
         EventBus eventBus,
-        CommandRegistry commandRegistry)
+        CommandRegistry commandRegistry,
+        HelpService helpService)
     {
         _connectionManager = connectionManager;
         _sessions = sessions;
         _world = world;
         _eventBus = eventBus;
         _commandRegistry = commandRegistry;
+        _helpService = helpService;
     }
 
     public void Configure() { }
@@ -60,16 +54,15 @@ public class CharCommandsHandler : IGmcpPackageHandler
                 try { return r.VisibleTo(entity); }
                 catch { return false; }
             })
+            .Where(r => _helpService.IsListed(r.Keyword))
             .Select(r =>
             {
-                var raw = !string.IsNullOrEmpty(r.Category) ? r.Category : DeriveCategory(r.SourceFile);
-                var normalized = NormalizeCategory(raw);
-                var category = KeywordCategoryOverrides.TryGetValue(r.Keyword, out var kw) ? kw : normalized;
+                var topic = _helpService.GetTopicById(r.Keyword);
                 return new
                 {
                     keyword = r.Keyword,
-                    category,
-                    description = r.Description,
+                    category = topic?.Category ?? "",
+                    description = topic?.Brief ?? "",
                     aliases = r.Aliases,
                 };
             })
@@ -78,31 +71,5 @@ public class CharCommandsHandler : IGmcpPackageHandler
             .ToList();
 
         return new { commands };
-    }
-
-    private static string NormalizeCategory(string raw) => raw.ToLower() switch
-    {
-        "close" or "open" or "lock" or "unlock" => "objects",
-        "drink" or "eat" or "fill" or "quaff" or "recite" or "donate" => "items",
-        "enter" or "leave" => "movement",
-        "time" or "weather" or "information" => "utility",
-        "train" or "tree" or "practice" or "list" => "progression",
-        _ => raw,
-    };
-
-    private static string DeriveCategory(string sourceFile)
-    {
-        if (string.IsNullOrEmpty(sourceFile)) { return "misc"; }
-        var normalized = sourceFile.Replace('\\', '/');
-        if (normalized.StartsWith("scripts/", StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized["scripts/".Length..];
-        }
-        var lastSlash = normalized.LastIndexOf('/');
-        if (lastSlash <= 0) { return "misc"; }
-        var fileName = normalized[(lastSlash + 1)..];
-        var dotIndex = fileName.LastIndexOf('.');
-        var stem = dotIndex >= 0 ? fileName[..dotIndex] : fileName;
-        return string.IsNullOrEmpty(stem) ? "misc" : stem.ToLower();
     }
 }
