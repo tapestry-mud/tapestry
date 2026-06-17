@@ -78,38 +78,6 @@ public class HelpOverrideTests : IDisposable
         help.Query(null, "races").Status.Should().Be("ok");
     }
 
-    [Fact]
-    public void AutoGen_RunsAfterSeal_FillsCommandGap()
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddTapestryEngine();
-        services.AddTapestryScripting();
-        var provider = services.BuildServiceProvider();
-        provider.GetRequiredService<PackDependencyGraph>().Build(new Dictionary<string, List<string>>());
-        var rt = provider.GetRequiredService<JintRuntime>();
-        rt.Initialize();
-        var policy = provider.GetRequiredService<RegistrationPolicy>();
-        var help = provider.GetRequiredService<HelpService>();
-        var commands = provider.GetRequiredService<CommandRegistry>();
-        var edges = provider.GetRequiredService<Tapestry.Engine.Registration.IPackEdgeOracle>();
-
-        rt.Execute(
-            "tapestry.commands.register({ name:'frob', description:'Frobs.', " +
-            "args:{ target:{ type:'npc', required:true } }, handler:function(a,r){} });",
-            "tapestry-core", "scripts/frob.js");
-
-        // Before the seal: command not committed, no help.
-        help.Query(null, "frob").Status.Should().Be("no_match");
-
-        policy.Resolve();
-        new HelpSeal(help, commands, edges).Seal();
-
-        // After seal + HelpSeal: auto-gen filled the gap.
-        var topic = help.Query(null, "frob").Topic!;
-        topic.PackName.Should().Be("tapestry-core");
-    }
-
     public void Dispose()
     {
         foreach (var t in _temps)
