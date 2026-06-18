@@ -474,6 +474,34 @@ public class PanelRendererTests
     }
 
     [Fact]
+    public void CellRow_FixedCellsUnderfill_FramePadsToWidth()
+    {
+        // Width=20, content area=18. indent Fixed(2) + Fixed(6) = 8 drawn, NO fill cell.
+        // The frame owns the right border: it must pad the remaining 10 so the border lands
+        // at the panel edge, exactly like every other row type. (Regression: the chip-grid
+        // commands panel under-fills its rows and must not float the right border.)
+        var panel = new Panel
+        {
+            Width = 20,
+            Sections = new[] { new Section { Rows = new Row[] {
+                new CellRow
+                {
+                    Cells = new[]
+                    {
+                        new Cell { Content = "", Width = CellWidth.Fixed(2) },
+                        new Cell { Content = "scan", Width = CellWidth.Fixed(6) }
+                    }
+                }
+            }}}
+        };
+        var lines = Lines(Renderer().Render(panel));
+        var cellLine = lines.First(l => l.Contains("scan"));
+        TagStripper.VisibleLength(cellLine).Should().Be(20);
+        TagStripper.StripTags(cellLine).Should().StartWith("|  scan");
+        TagStripper.StripTags(cellLine).Should().EndWith(" |");
+    }
+
+    [Fact]
     public void CellRow_FillCell_AbsorbsRemainder()
     {
         // Width=12, content area=10, Fixed(4) + Fill — Fill gets 6

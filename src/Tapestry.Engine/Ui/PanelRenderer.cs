@@ -168,6 +168,12 @@ public class PanelRenderer
                 sb.Append(RenderInWidth(row.Cells[i].Content, cellWidths[i], row.Cells[i].Align));
             }
         }
+        // Pad any unclaimed width before the closing border. Fill cells consume the whole
+        // content width (remainder 0); rows of fixed cells that under-fill (e.g. the commands
+        // chip grid) get padded here so the right border always lands at the panel edge,
+        // consistent with every other row type. The frame owns the border, not the content.
+        var drawn = dividerCount + cellWidths.Sum();
+        if (drawn < contentWidth) { sb.Append(new string(' ', contentWidth - drawn)); }
         sb.Append(B);
 
         yield return sb.ToString();
