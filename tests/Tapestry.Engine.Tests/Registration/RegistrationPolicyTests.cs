@@ -163,4 +163,49 @@ public class RegistrationPolicyTests
         overrideFired.Should().Be(1);
         baseFired.Should().Be(0);
     }
+
+    [Fact]
+    public void GetRegistrations_IncludesWinner_And_ShadowedLoser()
+    {
+        var edges = new FakeEdges().Edge("lf", "core");
+        var policy = NewPolicy(edges);
+        policy.Record(new RegistrationCandidate("command", "recall", "core", false, () => { }, "core/recall.js", 3));
+        policy.Record(new RegistrationCandidate("command", "recall", "lf", true, () => { }, "lf/recall.js", 8));
+        policy.Resolve();
+
+        var views = policy.GetRegistrations("command", "recall");
+
+        views.Should().HaveCount(2);
+        var winner = views.Single(v => v.IsWinner);
+        var loser  = views.Single(v => !v.IsWinner);
+
+        winner.Owner.Should().Be("lf");
+        winner.IsOverride.Should().BeTrue();
+        winner.Shadows.Should().Be("core");
+        winner.SourceFile.Should().Be("lf/recall.js");
+        winner.Line.Should().Be(8);
+
+        loser.Owner.Should().Be("core");
+        loser.ShadowedBy.Should().Be("lf");
+        loser.IsOverride.Should().BeFalse();
+        loser.SourceFile.Should().Be("core/recall.js");
+    }
+
+    [Fact]
+    public void GetRegistrySummary_CountsConflicts()
+    {
+        var edges = new FakeEdges().Edge("lf", "core");
+        var policy = NewPolicy(edges);
+        policy.Record(new RegistrationCandidate("command", "recall", "core", false, () => { }, "core/recall.js", 3));
+        policy.Record(new RegistrationCandidate("command", "recall", "lf", true, () => { }, "lf/recall.js", 8));
+        policy.Record(new RegistrationCandidate("command", "look", "core", false, () => { }, "core/look.js", 1));
+        policy.Resolve();
+
+        var summary = policy.GetRegistrySummary();
+
+        var row = summary.Single(r => r.Kind == "command");
+        row.Count.Should().Be(2);           // look + recall (distinct names)
+        row.ConflictCount.Should().Be(1);   // only recall is shadowed
+        row.Model.Should().Be("policy");
+    }
 }

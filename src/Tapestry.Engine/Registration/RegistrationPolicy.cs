@@ -14,6 +14,25 @@ public sealed record RegistrationCandidate(
     string SourceFile,  // for located diagnostics; "" when N/A (e.g. C# kernel registrations)
     int Line);
 
+public sealed record RegistrySummaryRow(
+    string Kind,
+    int Count,
+    int ConflictCount,
+    string Model
+);
+
+public sealed record RegistryEntryView(
+    string Kind,
+    string Name,
+    string Owner,
+    string SourceFile,
+    int Line,
+    bool IsWinner,
+    bool IsOverride,
+    string? Shadows,
+    string? ShadowedBy
+);
+
 /// <summary>
 /// Declarative registration ledger. All boot-phase register/override calls Record() a candidate;
 /// Resolve() (run once at the seal barrier) picks an order-independent winner per (kind, name)
@@ -80,6 +99,75 @@ public sealed class RegistrationPolicy
     public void Remove(string kind, string name)
         => _candidates.RemoveAll(c => c.Kind == kind &&
             string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Returns one summary row per registered kind: name count, shadow-conflict count, and
+    /// model ("policy"). Property and tag outliers are NOT included - the interop layer adds them.
+    /// Safe to call post-seal only.
+    /// </summary>
+    public IReadOnlyList<RegistrySummaryRow> GetRegistrySummary()
+    {
+        return _candidates
+            .GroupBy(c => c.Kind)
+            .Select(g =>
+            {
+                var nameGroups = g.GroupBy(c => c.Name.ToLowerInvariant()).ToList();
+                return new RegistrySummaryRow(
+                    g.Key,
+                    nameGroups.Count,
+                    nameGroups.Count(ng => ng.Count() > 1),
+                    "policy");
+            })
+            .OrderBy(r => r.Kind, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Returns all registrations for <paramref name="kind"/>, optionally filtered to a single
+    /// <paramref name="name"/>. Each entry is marked IsWinner/IsOverride; override winners carry
+    /// Shadows (the base's owner) and shadowed losers carry ShadowedBy (the winner's owner).
+    /// Safe to call post-seal only.
+    /// </summary>
+    public IReadOnlyList<RegistryEntryView> GetRegistrations(string kind, string? name = null)
+    {
+        var kindNorm = kind.ToLowerInvariant();
+        var pool = _candidates.Where(c => c.Kind.ToLowerInvariant() == kindNorm);
+        if (name != null)
+        {
+            var nameNorm = name.ToLowerInvariant();
+            pool = pool.Where(c => c.Name.ToLowerInvariant() == nameNorm);
+        }
+        var views = new List<RegistryEntryView>();
+        foreach (var group in pool.GroupBy(c => c.Name.ToLowerInvariant()))
+        {
+            var cands = group.ToList();
+            if (cands.Count == 1)
+            {
+                var c = cands[0];
+                views.Add(new RegistryEntryView(c.Kind, c.Name, c.Owner, c.SourceFile, c.Line,
+                    true, c.IsOverride, null, null));
+            }
+            else
+            {
+                // Post-seal multi-cand group is always exactly: 1 base + 1 override (boot guarantees it).
+                var winner = ResolveGroup(cands);
+                var baseCand = cands.FirstOrDefault(c => !c.IsOverride);
+                foreach (var c in cands)
+                {
+                    var isWinner = ReferenceEquals(c, winner);
+                    views.Add(new RegistryEntryView(
+                        c.Kind, c.Name, c.Owner, c.SourceFile, c.Line,
+                        isWinner, c.IsOverride,
+                        isWinner && c.IsOverride ? baseCand?.Owner : null,
+                        !isWinner ? winner.Owner : null));
+                }
+            }
+        }
+        return views
+            .OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(v => v.IsWinner)
+            .ToList();
+    }
 
     public void Resolve()
     {
