@@ -1,6 +1,6 @@
 ---
 capability: gmcp
-last-updated: 2026-06-12
+last-updated: 2026-06-18
 ---
 
 # GMCP
@@ -58,6 +58,7 @@ printed to the screen is available as structured data (README.md:162).
   - `Char.Vitals` (CharVitalsHandler.cs)
   - `Char.Experience` (CharExperienceHandler.cs)
   - `Char.Commands` (CharCommandsHandler.cs)
+  - `Commands.Categories` (CommandCategoriesHandler.cs)
   - `Char.Effects` (CharEffectsHandler.cs)
   - `Char.Items`, `Char.Equipment` (CharItemsHandler.cs)
   - `Char.Combat.Target`, `Char.Combat.Targets` (CharCombatHandler.cs)
@@ -70,8 +71,12 @@ printed to the screen is available as structured data (README.md:162).
   - `Char.Login.Phase`, `Login.Prompt`, `Flow.Step`, `Flow.Help` (LoginHandler.cs)
 
 - **Post-login burst:** On entering play, the orchestrator sends one snapshot per handler in a
-  fixed order: Display, CharStatus, CharVitals, CharExperience, CharCommands, CharEffects,
-  CharItems, Room, World (src/Tapestry.Server/Gmcp/PostLoginOrchestrator.cs:9-20). It is
+  fixed order: Display, CharStatus, CharVitals, CharExperience, CharCommands, CommandCategories,
+  CharEffects, CharItems, Room, World (src/Tapestry.Server/Gmcp/PostLoginOrchestrator.cs:11-23).
+  `CommandCategories` carries the declared category vocabulary as `Commands.Categories`
+  (`{ categories: [{ id, label }] }`, declared order) right after the command list, so a
+  structured client can render command sections in order with real labels
+  (src/Tapestry.Server/Gmcp/Handlers/CommandCategoriesHandler.cs:6-28). It is
   triggered by `LoginHandler.TriggerPostLoginBurst` from the player spawner
   (src/Tapestry.Server/PlayerSpawner.cs:139,194) and on the `character.created` event
   (Handlers/LoginHandler.cs:35-44). The burst is scheduled onto the game loop, after the
@@ -134,3 +139,5 @@ printed to the screen is available as structured data (README.md:162).
   client's job.
 
 ## Change Log
+
+- 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)

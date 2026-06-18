@@ -1,6 +1,6 @@
 ---
 capability: help-system
-last-updated: 2026-06-17
+last-updated: 2026-06-18
 ---
 
 # Help System
@@ -113,6 +113,13 @@ that the category gate checks against is its own capability; see
   `topic.Brief`. The old `DeriveCategory` helpers, the hardcoded
   `KeywordCategoryOverrides`, and `NormalizeCategory` are deleted.
   (src/Tapestry.Scripting/Modules/CommandsModule.cs:297-301; src/Tapestry.Server/Gmcp/Handlers/CharCommandsHandler.cs:57-65)
+- `HelpService.VisibleDeclaredCategories` projects the declared category vocabulary as an
+  ordered `(Id, Label)` list with hidden categories excluded, preserving declaration order
+  within a file then pack load order across packs (the vocabulary itself is owned by
+  [help-categories.md](help-categories.md)). The command catalog reads it so both the telnet
+  grid and the `Commands.Categories` GMCP burst render category sections in declared order
+  with real labels instead of re-deriving order or labels per surface.
+  (src/Tapestry.Engine/Help/HelpService.cs:58-62)
 
 ### Pack JS surface (HelpModule)
 
@@ -134,6 +141,7 @@ that the category gate checks against is its own capability; see
 
 ## Change Log
 
+- 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)
 - 2026-06-17 [command-help-registry](changes/2026-06-17-command-help-registry.md)
 
 ---

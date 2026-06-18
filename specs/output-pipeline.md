@@ -1,6 +1,6 @@
 ---
 capability: output-pipeline
-last-updated: 2026-06-12
+last-updated: 2026-06-18
 ---
 
 # Output Pipeline
@@ -194,8 +194,17 @@ banners) that are drained once per game tick.
   going below the panel's minimum renderable width
   (src/Tapestry.Scripting/Modules/UiModule.cs:27-29,98-109).
 
+- **Cell-row border fill:** Every row type pads its content to the full panel inner width
+  before the closing frame border. A cell row whose fixed cells do not fill the width (no
+  fill cell) has the unclaimed width padded by the renderer, so a grid of fixed-width cells
+  (e.g. a keyword chip grid) keeps its right border aligned at the panel edge. A row that
+  includes a fill cell already consumes the full width, so the padding is a no-op for it.
+  (src/Tapestry.Engine/Ui/PanelRenderer.cs:126-176; tests/Tapestry.Engine.Tests/Ui/PanelRendererTests.cs:476-499)
+
 ## Rejected and Reverted
 
 - None on record.
 
 ## Change Log
+
+- 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)

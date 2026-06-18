@@ -1,6 +1,6 @@
 ---
 capability: command-dispatch
-last-updated: 2026-06-17
+last-updated: 2026-06-18
 ---
 
 # Command Dispatch
@@ -35,6 +35,14 @@ the verb to a handler and invokes it.
   admin privilege gate; specifying both `admin: true` and explicit `visibleTo` logs a
   warning and `admin: true` wins.
   (src/Tapestry.Engine/CommandRegistry.cs:6-24; src/Tapestry.Engine/CommandRegistry.cs:37-47; src/Tapestry.Scripting/Modules/CommandsModule.cs:122-290)
+
+- **Command catalog accessors:** `tapestry.commands.listForPlayer(entityId)` returns the
+  commands visible to a player as `{ keyword, category, description, aliases }` rows, with
+  `aliases` surfaced from the registration so a catalog filter can match on them.
+  `tapestry.commands.categories()` returns the visible declared category vocabulary as
+  `[{ id, label }]` in declared order (hidden categories excluded). Both are read-only
+  projections over already-registered data, consumed by the pack-side command catalog render.
+  (src/Tapestry.Scripting/Modules/CommandsModule.cs:68-77; src/Tapestry.Scripting/Modules/CommandsModule.cs:275-313)
 
 - **Override system:** A same-name command from two packs is a strict boot error unless one
   pack declares `{ override: true }` and has a declared dependency edge on the owning pack.
@@ -82,4 +90,5 @@ the verb to a handler and invokes it.
 
 ## Change Log
 
+- 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)
 - 2026-06-17 [command-help-registry](changes/2026-06-17-command-help-registry.md)

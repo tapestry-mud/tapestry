@@ -7,19 +7,19 @@ known constraints, and change history.
 
 | Capability | File | Last Updated |
 |------------|------|--------------|
-| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-17 |
+| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-18 |
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-12 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-12 |
 | Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-12 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-15 |
-| GMCP | [gmcp.md](gmcp.md) | 2026-06-12 |
+| GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-12 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-06-12 |
 | Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-06-12 |
 | Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-06-12 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-06-12 |
-| Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-12 |
+| Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-06-12 |
 | Persistence | [persistence.md](persistence.md) | 2026-06-13 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
@@ -39,7 +39,7 @@ known constraints, and change history.
 | Economy and Shops | [economy-and-shops.md](economy-and-shops.md) | 2026-06-12 |
 | World Simulation | [world-simulation.md](world-simulation.md) | 2026-06-12 |
 | Admin Commands | [admin-commands.md](admin-commands.md) | 2026-06-12 |
-| Help System | [help-system.md](help-system.md) | 2026-06-17 |
+| Help System | [help-system.md](help-system.md) | 2026-06-18 |
 | Telemetry | [telemetry.md](telemetry.md) | 2026-06-12 |
 | Help Categories | [help-categories.md](help-categories.md) | 2026-06-17 |
 
