@@ -10,7 +10,7 @@ known constraints, and change history.
 | Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-18 |
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
-| Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-12 |
+| Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-19 |
 | Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-19 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-15 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
@@ -25,8 +25,8 @@ known constraints, and change history.
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
 | Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
 | Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
-| Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-12 |
-| Events | [events.md](events.md) | 2026-06-12 |
+| Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-19 |
+| Events | [events.md](events.md) | 2026-06-19 |
 | World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-06-12 |
 | World Geography | [world-geography.md](world-geography.md) | 2026-06-12 |
 | Items and Containers | [items-and-containers.md](items-and-containers.md) | 2026-06-12 |

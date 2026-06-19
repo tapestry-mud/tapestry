@@ -7,10 +7,11 @@ last-updated: 2026-06-19
 
 ## Overview
 
-The scripting runtime hosts all pack JavaScript inside a single shared Jint engine instance.
-Packs expose game logic through a curated `tapestry.*` API surface. The runtime provides pack
-attribution, a deduplicated file execution ledger, an export/require system for inter-pack
-value sharing, and a file-system module scoped to the connections directory.
+The scripting runtime hosts all pack JavaScript inside a single Jint engine instance.
+Pack scripts load as native ES modules; the engine API is an import, not a global.
+Attribution is lexical: the active module's identity is read at call time via
+`JintActiveModule.ActiveLocation`, so every handler knows which pack owns it without
+any explicit pack-name threading.
 
 Sandbox security constraints (timeouts, memory limits, strict mode, CLR bridge restrictions,
 the RegistrationGate wall) are covered in pack-security.md and are NOT duplicated here. This
@@ -25,16 +26,23 @@ covered in pack-loading.md.
 
 - `IJintApiModule` exposes two members: `string Namespace { get; }` and
   `object Build(JintEngine engine)`. (src/Tapestry.Scripting/IJintApiModule.cs:1-9)
-- `JintRuntime.SetupApi` builds one `ExpandoObject` as the `tapestry` global. For each
-  registered module it writes `tapestry[module.Namespace] = module.Build(engine)`.
-  (src/Tapestry.Scripting/JintRuntime.cs:113-121)
+- `JintRuntime.SetupApi` builds one object per module. For each registered module it
+  captures `module.Build(engine)` under `module.Namespace`. All built objects are then
+  exported as named exports on a single shared `@tapestry/engine` builder module registered
+  via `engine.Modules.Add`. (src/Tapestry.Scripting/JintRuntime.cs:114-141)
 - All modules are registered as `IJintApiModule` singletons in DI; JintRuntime receives
-  them via `IEnumerable<IJintApiModule>` constructor injection. (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:36-90;
-  src/Tapestry.Scripting/JintRuntime.cs:22-24)
+  them via `IEnumerable<IJintApiModule>` constructor injection. (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:36-100;
+  src/Tapestry.Scripting/JintRuntime.cs:24-25)
 
-### tapestry.* API surface (namespaces)
+### tapestry.* API surface (namespaces via import)
 
-The following namespaces are available to pack scripts as `tapestry.<namespace>`:
+Pack scripts import the engine API as a named-export module:
+
+```js
+import * as tapestry from "@tapestry/engine";
+```
+
+The following namespaces are available as named exports on `@tapestry/engine`:
 
   `commands`, `emotes`, `events`, `world`, `stats`, `inventory`, `equipment`, `items`,
   `combat`, `progression`, `mobs`, `theme`, `dice`, `abilities`, `effects`, `classes`,
@@ -50,56 +58,69 @@ Notes on two commonly misspelled names:
 - `quests` (not `quest`) -- QuestModule.Namespace (src/Tapestry.Scripting/Modules/QuestModule.cs:20)
 - `returnaddress` (not `returnAddress`) -- ReturnAddressModule.Namespace (src/Tapestry.Scripting/Modules/ReturnAddressModule.cs:11)
 
-### PackContext -- current-pack attribution
+### ESM loading -- pack scripts as native ES modules
 
-- `PackContext` holds `CurrentPackDir` and `CurrentPackNamespace` as mutable strings.
-  PackLoader updates these before each content-loading step. (src/Tapestry.Scripting/PackContext.cs:1-7;
-  src/Tapestry.Scripting/PackLoader.cs:111,186)
-- `PackScope.InvokeAsPack` saves the current `__currentPack` global, sets it to the
-  handler-owner's pack name, runs the invocation, then restores the previous value. All
-  registered handlers (commands, events, schedules, abilities, flows) are dispatched through
-  this scope so attribution is correct at call time, not load time. (src/Tapestry.Scripting/PackScope.cs:14-44)
+- Each pack script file is imported via `engine.Modules.Import(moduleKey)` using the
+  canonical key `pack:<ns>::<relFile>`. This replaces the old shared-global `Execute` path.
+  (src/Tapestry.Scripting/JintRuntime.cs:97; src/Tapestry.Scripting/PackLoader.cs:544)
+- `JintRuntime` enables the module loader by passing a `TapestryModuleLoader` to
+  `options.EnableModules(loader)` at construction. (src/Tapestry.Scripting/JintRuntime.cs:40-43)
+- The manifest flag `content.scripts_format` selects the loader; `"esm"` is the default.
+  The C# property is `PackContentPaths.ScriptsFormat`; the YAML key is `scripts_format`.
+  (src/Tapestry.Shared/PackManifest.cs:39-40)
+- `content.scripts` globs the compiled output (typically `dist/scripts/**/*.js`).
+  (src/Tapestry.Shared/PackManifest.cs:36)
 
-### Export/require system
+### TapestryModuleLoader -- resolver and cross-pack gate
 
-- A pack exports a value via `tapestry.packs.export(name, handler, metadata)`. The export
-  name must match the JS identifier pattern `^[a-zA-Z_$][a-zA-Z0-9_$]*$`. Exporting a
-  non-function, non-object value throws `InteropException`. (src/Tapestry.Scripting/Modules/PacksModule.cs:96-147;
-  src/Tapestry.Scripting/Modules/PacksModule.cs:17)
-- Function exports are invoked via `tapestry.packs.call(pack, name, ...args)`, which
-  enforces a declared dependency edge and runs the handler attributed to the exporting pack.
-  Namespace/data exports are accessed via `tapestry.packs.require(pack)` which returns a
-  `RequireProxy`. (src/Tapestry.Scripting/Modules/PacksModule.cs:149-224)
-- `tapestry.packs.has(pack)` returns true if the pack is loaded; `tapestry.packs.has(pack,
-  name)` also checks that the export exists. Both enforce the dependency edge.
-  (src/Tapestry.Scripting/Modules/PacksModule.cs:227-238)
-- `tapestry.packs.require(pack)` returns a `RequireProxy` whose member access resolves
-  against `PackExportRegistry` at USE time (not at require-call time). This allows a pack to
-  obtain a proxy before its dependency has exported. Function members are wrapped to run
-  attributed to the exporting pack. Namespace/data members are returned as-is.
-  (src/Tapestry.Scripting/Interop/RequireProxy.cs:15-20; src/Tapestry.Scripting/Interop/RequireProxy.cs:44-78)
-- The proxy is read-only; assignment or property definition throws `InteropException`.
-  Enumeration yields no keys; use `tapestry.packs.getExportRegistry()` for introspection.
-  (src/Tapestry.Scripting/Interop/RequireProxy.cs:85-95; src/Tapestry.Scripting/Interop/RequireProxy.cs:19-20)
-- `PackExportRegistry` keys entries by `(pack.ToLowerInvariant(), name)` -- the pack
-  namespace half is lowercased for case-insensitive pack lookup, but the export name is
-  case-sensitive. Collision and override legality is decided by `RegistrationPolicy` at the
-  seal; the registry itself upserts. (src/Tapestry.Scripting/Interop/PackExportRegistry.cs:27-28,34)
-- Exports registered before the seal are eagerly visible to load-time interop calls (safe
-  because dependency-ordered loading ensures the exporter runs first). (src/Tapestry.Scripting/Modules/PacksModule.cs:138-146)
+- `TapestryModuleLoader` is the Jint `ModuleLoader` for all pack imports. It handles three
+  specifier kinds:
+  - `@tapestry/engine` - resolves to the shared builder module.
+  - Relative (`./` or `../`) - resolves within the importing pack's directory.
+  - Bare scoped (`@scope/pack`) - resolves to the target pack's entry (`dist/scripts/index.js`),
+    gating on a declared dependency edge. (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:81-137)
+- A declared-optional-but-absent target resolves to an empty module (`export {};`) so a
+  `import * as ns from "@scope/pack"` + capability-guard pattern sees no exports rather than
+  throwing. (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:127-131)
+- Cross-pack imports without a declared dependency edge throw `InvalidOperationException`
+  at resolve time (boot error). This is the sole cross-pack gate; the legacy
+  `packs.export`/`require`/`call`/`has` and `RequireProxy`/`PackExportRegistry` surface is
+  deleted. (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:116-135)
+- `TapestryModuleLoader.PackOf(location)` extracts the pack namespace from a canonical
+  module key string (`pack:<ns>::<relFile>`). (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:60-69)
+- `TapestryModuleLoader.SourceOf(location)` extracts the relative file path from the same
+  key. (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:71-79)
+- `TapestryModuleLoader` is built at boot via `Build()` / `BuildFromManifests()` with the
+  pack-directory map and optional-edge set, then registered in DI.
+  (src/Tapestry.Scripting/Interop/TapestryModuleLoader.cs:31-56;
+  src/Tapestry.Scripting/ServiceCollectionExtensions.cs:98-99)
 
-### InteropCallSite static scanning
+### GetActivePack -- lexical pack attribution
 
-- During script loading, `InteropCallSiteScanner.Extract` parses the source with Acornima
-  and walks the AST to record every `tapestry.packs.call`, `tapestry.packs.has`, and
-  `tapestry.packs.require` site whose pack and export arguments are string literals. Dynamic-
-  dispatch sites are not recorded. (src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs:16-101)
-- Recorded sites accumulate in `InteropCallSiteRegistry` for the duration of the boot.
-  `PackValidator.ValidateInteropCallSites` reads the registry at seal time to perform static
-  interop resolution: edge present, target loaded, export exists (for `call`).
-  (src/Tapestry.Scripting/Interop/InteropCallSiteRegistry.cs:1-17; src/Tapestry.Scripting/PackValidator.cs:382-409)
-- A parse failure in `InteropCallSiteScanner` yields zero sites; Jint's subsequent
-  `Execute` will surface the canonical syntax error. (src/Tapestry.Scripting/Interop/InteropCallSiteScanner.cs:22-29)
+- `JintRuntime.GetActivePack()` reads the currently executing ES module's location via
+  `JintActiveModule.ActiveLocation(_engine)`, then calls
+  `TapestryModuleLoader.PackOf(location)` to extract the pack namespace. Attribution is
+  lexical: it reflects the module that is currently on the call stack, not any stored global.
+  (src/Tapestry.Scripting/JintRuntime.cs:101-102)
+- `JintActiveModule.ActiveLocation` uses a compiled IL delegate to call Jint's internal
+  `Engine.GetActiveScriptOrModule()` (bypassing the sealed `internal` visibility in the
+  pinned 4.9.3 build), then reads the `Location` property off the returned object via a
+  cached `PropertyInfo`. (src/Tapestry.Scripting/Modules/JintActiveModule.cs:25-63)
+- `ScriptOwner.CurrentPackOwner(engine)` and `ScriptOwner.CurrentSourceFile(engine)` are
+  extension helpers that compose `JintActiveModule.ActiveLocation` +
+  `TapestryModuleLoader.PackOf/SourceOf` for registration-capture sites.
+  (src/Tapestry.Scripting/ScriptOwner.cs:12-17)
+- Deferred handlers (event subscribers, schedules, flows, mob hooks, abilities) self-
+  attribute at invocation time via the same `GetActivePack()` path -- the active module is
+  the pack's ES module when the handler runs. No `__currentPack` global, `InvokeAsPack`,
+  or `PackScope` exists. (src/Tapestry.Scripting/ScriptOwner.cs:7-9)
+
+### packs surface -- introspection only
+
+- `tapestry.packs` exposes two methods: `list()` and `getAll()`, both returning the array
+  of loaded pack metadata in `load_order` order. The legacy export/require/call/has
+  surface is deleted; cross-pack sharing uses native ES module import/export gated by the
+  `TapestryModuleLoader` resolver. (src/Tapestry.Scripting/Modules/PacksModule.cs:26-31)
 
 ### FsModule -- file API
 
@@ -140,8 +161,18 @@ Notes on two commonly misspelled names:
 
 ## Rejected and Reverted
 
-- None on record.
+- **Shared-global Execute realm (TOMBSTONE):** Before Phase J, pack scripts ran through
+  `JintRuntime.Execute`, which set `__currentPack` and `__currentSource` JS globals before
+  Jint executed each file body. Deferred handlers were dispatched through `PackScope.InvokeAsPack`,
+  which saved/set/restored `__currentPack` around each call. The shared realm meant all packs
+  shared one JS global scope, which caused name collision bugs (e.g., the `padRight` global
+  collision between admin and groups scripts). Phase J replaced this with native ES modules:
+  each pack module has its own scope; attribution is lexical via `GetActivePack()`; cross-pack
+  sharing is native import/export gated by the resolver. `PackScope`, `__currentPack`,
+  `__currentSource`, `InvokeAsPack`, `PackExportRegistry`, `RequireProxy`, and
+  `InteropCallSiteScanner` are all deleted.
 
 ## Change Log
 
+- 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Native ESM loader, `@tapestry/engine` import, lexical GetActivePack attribution; legacy shared-global realm, PackScope, InvokeAsPack, packs.export/require/call/has, RequireProxy, PackExportRegistry, InteropCallSiteScanner deleted
 - 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - `RegistryModule` (`tapestry.registry.*`), the JS interop surface over the policy readers, adapting the property/tag outliers in at this layer

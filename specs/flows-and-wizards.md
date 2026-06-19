@@ -1,6 +1,6 @@
 ---
 capability: flows-and-wizards
-last-updated: 2026-06-12
+last-updated: 2026-06-19
 ---
 
 # Flows and Wizards
@@ -47,9 +47,10 @@ Registers a flow definition at pack load time. Fields:
   that duplicate `id` without `override: true` is a boot error, raised at pack
   resolution (the seal barrier) rather than silently clobbering the earlier
   registration. (src/Tapestry.Scripting/Modules/FlowsModule.cs:119-127)
-- The pack name and source file are captured from Jint globals
-  `__currentPack` and `__currentSource` at registration time.
-  (src/Tapestry.Scripting/Modules/FlowsModule.cs:44-50)
+- The pack name and source file are captured via `ScriptOwner.CurrentPackOwner()`
+  and `ScriptOwner.CurrentSourceFile()` at registration time; these read the
+  lexically active ES module via `JintActiveModule.ActiveLocation`.
+  (src/Tapestry.Scripting/Modules/FlowsModule.cs:44-45; src/Tapestry.Scripting/ScriptOwner.cs:12-17)
 - `on_complete` receives an entity proxy (`id`, `entityId`, `name`, `roomId`,
   `getProperty`, `setProperty`, `send`). If the callback returns
   `{success: false}`, the flow engine calls `Restart` during the Creating
@@ -229,3 +230,5 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:259-278)
 ---
 
 ## Change Log
+
+- 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Flow registration attribution uses ScriptOwner.CurrentPackOwner/CurrentSourceFile (lexical active module) instead of __currentPack/__currentSource globals

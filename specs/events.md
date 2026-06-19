@@ -1,6 +1,6 @@
 ---
 capability: events
-last-updated: 2026-06-12
+last-updated: 2026-06-19
 ---
 
 # Events
@@ -126,12 +126,13 @@ once per game-loop tick, not on the publishing thread.
 
 ### Pack JS API (EventsModule)
 
-- Packs subscribe to events via `events.on(eventType, callback)`. The
-  subscribing pack name is captured from `__currentPack` at load time (not at
-  invocation time) so callbacks execute in the correct pack context.
-  (src/Tapestry.Scripting/Modules/EventsModule.cs:24-31)
+- Packs subscribe to events via `events.on(eventType, callback)`. The callback
+  is dispatched via `engine.Invoke`, which runs the function inside the calling
+  module's scope; attribution is lexical via `JintRuntime.GetActivePack()` at
+  invocation time. No `__currentPack` global is captured at registration.
+  (src/Tapestry.Scripting/Modules/EventsModule.cs:24-28)
 - No priority argument is exposed to JS; JS subscribers always use the default
-  priority of 0. (src/Tapestry.Scripting/Modules/EventsModule.cs:24-31)
+  priority of 0. (src/Tapestry.Scripting/Modules/EventsModule.cs:24-28)
 - The JS event object passed to the callback exposes: `type`, `sourceEntityId`,
   `targetEntityId`, `roomId`, `cancelled`, `data`, and a `cancel()` function.
   (src/Tapestry.Scripting/Modules/EventsModule.cs:76-83)
@@ -168,6 +169,8 @@ once per game-loop tick, not on the publishing thread.
 - None on record.
 
 ## Change Log
+
+- 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - events.on callback attribution is now lexical via GetActivePack (no __currentPack capture at registration)
 
 ---
 

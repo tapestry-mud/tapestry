@@ -1,6 +1,6 @@
 ---
 capability: pack-loading
-last-updated: 2026-06-12
+last-updated: 2026-06-19
 ---
 
 # Pack Loading
@@ -106,14 +106,15 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 ### Script loading and init.js priority
 
 - The `content.scripts` glob is resolved via `Microsoft.Extensions.FileSystemGlobbing.Matcher`
-  and files are sorted alphabetically before execution. (src/Tapestry.Scripting/PackLoader.cs:646-652)
-- If `init.js` is present anywhere in the glob results, it is executed first regardless of
-  alphabetical position; all other matched files follow. (src/Tapestry.Scripting/PackLoader.cs:543-553)
-- Each script is executed with `JintRuntime.Execute(text, packName, relativeFile)`, which
-  sets the `__currentPack` and `__currentSource` globals before Jint executes the body.
-  (src/Tapestry.Scripting/JintRuntime.cs:49-54; src/Tapestry.Scripting/PackLoader.cs:558-562)
+  and files are sorted alphabetically before execution. (src/Tapestry.Scripting/PackLoader.cs:631-636)
+- If `init.js` is present anywhere in the glob results, it is imported first regardless of
+  alphabetical position; all other matched files follow. (src/Tapestry.Scripting/PackLoader.cs:548-553)
+- Each script is imported as a native ES module via `JintRuntime.ImportModule(moduleKey)`,
+  where the key is `pack:<packName>::<relFile>`. Attribution is lexical through the active
+  module -- no `__currentPack` or `__currentSource` globals are set.
+  (src/Tapestry.Scripting/JintRuntime.cs:97; src/Tapestry.Scripting/PackLoader.cs:540-546)
 - `ScheduleModule.ResetPack` is called before the first script of each pack, clearing any
-  scheduled callbacks registered by a previous hot-reload of the same pack. (src/Tapestry.Scripting/PackLoader.cs:541)
+  scheduled callbacks registered by a previous hot-reload of the same pack. (src/Tapestry.Scripting/PackLoader.cs:538)
 
 ### Executed-file deduplication ledger
 
@@ -131,9 +132,9 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 ### PackValidator -- content validation summary
 
 - `PackValidator.Validate` checks in order: mob configs, item configs, room configs, tags,
-  properties, dependency presence, interop call sites. (src/Tapestry.Scripting/PackValidator.cs:59-71)
+  properties, dependency presence. (src/Tapestry.Scripting/PackValidator.cs:56-63)
 - Missing required dependencies are always fatal (no lenient downgrade).
-  (src/Tapestry.Scripting/PackValidator.cs:349-366)
+  (src/Tapestry.Scripting/PackValidator.cs:345-359)
 - Unknown tags/properties on entities owned by a lenient pack are logged as warnings; on
   strict packs they throw. (src/Tapestry.Scripting/PackValidator.cs:271-302; src/Tapestry.Scripting/PackValidator.cs:320-345)
 
@@ -148,3 +149,5 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
   (src/Tapestry.Scripting/JintRuntime.cs:15-20; commit f0d8f14)
 
 ## Change Log
+
+- 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Script loading now imports each file as a native ES module via ImportModule; attribution is lexical (no __currentPack globals); PackValidator no longer validates interop call sites (deleted)
