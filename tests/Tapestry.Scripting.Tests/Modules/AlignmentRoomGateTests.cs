@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Alignment;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Tests;
 using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests.Modules;
@@ -43,7 +44,7 @@ public class AlignmentRoomGateTests
         from.AddEntity(player);
         alignmentMgr.Set(player.Id, 0, "init");  // neutral — fails gate
 
-        var result = rt.Evaluate($"tapestry.world.moveEntity('{player.Id}', 'north')");
+        var result = EsmTest.Eval(rt, $"tapestry.world.moveEntity('{player.Id}', 'north')");
         Assert.False((bool)result!);
         Assert.Equal("test:from", player.LocationRoomId);
         Assert.Single(published);
@@ -72,7 +73,7 @@ public class AlignmentRoomGateTests
         from.AddEntity(admin);
         alignmentMgr.Set(admin.Id, 0, "init");
 
-        var result = rt.Evaluate($"tapestry.world.moveEntity('{admin.Id}', 'north')");
+        var result = EsmTest.Eval(rt, $"tapestry.world.moveEntity('{admin.Id}', 'north')");
         Assert.True((bool)result!);
         Assert.Equal("test2:pit", admin.LocationRoomId);
     }

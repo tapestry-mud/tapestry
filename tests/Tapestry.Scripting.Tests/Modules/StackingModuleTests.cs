@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Tests;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -34,9 +35,11 @@ public class StackingModuleTests
         var player = MakePlayerWithItems(world,
             ("a potion", "core:potion", null),
             ("a potion", "core:potion", null));
-        var result = rt.Evaluate($@"
-            var stacks = tapestry.stacking.getStacks('{player.Id}');
-            stacks.length;
+        var result = EsmTest.Eval(rt, $@"
+            (function() {{
+                var stacks = tapestry.stacking.getStacks('{player.Id}');
+                return stacks.length;
+            }})()
         ");
         Assert.Equal(1, Convert.ToInt32(result));
     }
@@ -55,9 +58,11 @@ public class StackingModuleTests
         var player = MakePlayerWithItems(world,
             ("a potion", "core:potion", null),
             ("a potion", "core:potion", null));
-        var result = rt.Evaluate($@"
-            var stacks = tapestry.stacking.getStacks('{player.Id}');
-            stacks[0].quantity + ':' + stacks[0].name;
+        var result = EsmTest.Eval(rt, $@"
+            (function() {{
+                var stacks = tapestry.stacking.getStacks('{player.Id}');
+                return stacks[0].quantity + ':' + stacks[0].name;
+            }})()
         ");
         Assert.Equal("2:a potion", result!.ToString());
     }
@@ -83,11 +88,8 @@ public class StackingModuleTests
         world.TrackEntity(player);
         player.AddToContents(item1);
         player.AddToContents(item2);
-        var result = rt.Evaluate($@"
-            tapestry.stacking.addKey('quality');
-            var stacks = tapestry.stacking.getStacks('{player.Id}');
-            stacks.length;
-        ");
+        EsmTest.Eval(rt, "tapestry.stacking.addKey('quality')");
+        var result = EsmTest.Eval(rt, $"tapestry.stacking.getStacks('{player.Id}').length");
         Assert.Equal(2, Convert.ToInt32(result));
     }
 }

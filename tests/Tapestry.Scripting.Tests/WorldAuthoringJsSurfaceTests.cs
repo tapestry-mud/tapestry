@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Registration;
 using Tapestry.Engine.Tags;
+using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 
 namespace Tapestry.Scripting.Tests;
@@ -32,7 +34,8 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
 
         _runtime = new JintRuntime(
             new IJintApiModule[] { _mod },
-            NullLogger<JintRuntime>.Instance);
+            NullLogger<JintRuntime>.Instance,
+            loader: new TapestryModuleLoader(new PackDependencyGraph()));
     }
 
     public void Dispose()
@@ -48,11 +51,11 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
     {
         _mod.CreateRoom("lf-test", "legends-forgotten:lf-test-1", "New Room", "d");
 
-        var renamed = _runtime.Evaluate(
+        var renamed = EsmTest.Eval(_runtime,
             "tapestry.authoring.setRoomName('legends-forgotten:lf-test-1', 'The Gatehouse').renamed");
-        var id = _runtime.Evaluate(
+        var id = EsmTest.Eval(_runtime,
             "tapestry.authoring.setRoomName('legends-forgotten:gatehouse', 'The Gatehouse').id");
-        var warningsLength = _runtime.Evaluate(
+        var warningsLength = EsmTest.Eval(_runtime,
             "tapestry.authoring.setRoomName('legends-forgotten:gatehouse', 'The Gatehouse').warnings.length");
 
         Convert.ToBoolean(renamed).Should().BeTrue("the first rename re-keys");
@@ -64,7 +67,7 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
     [Fact]
     public void SetRoomName_FromJs_MissingRoom_ReportsNotOk()
     {
-        var ok = _runtime.Evaluate(
+        var ok = EsmTest.Eval(_runtime,
             "tapestry.authoring.setRoomName('legends-forgotten:nope', 'X').ok");
 
         Convert.ToBoolean(ok).Should().BeFalse();
@@ -80,11 +83,11 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         // same module (mirrors SetRoomName_FromJs which uses _mod.CreateRoom).
         _mod.CreateArea("road-to-tar-valon", "The Road to Tar Valon");
 
-        var exists = _runtime.Evaluate(
+        var exists = EsmTest.Eval(_runtime,
             "tapestry.authoring.getArea('road-to-tar-valon').exists");
-        var name = _runtime.Evaluate(
+        var name = EsmTest.Eval(_runtime,
             "tapestry.authoring.getArea('road-to-tar-valon').name");
-        var sourcePack = _runtime.Evaluate(
+        var sourcePack = EsmTest.Eval(_runtime,
             "tapestry.authoring.getArea('road-to-tar-valon').sourcePack");
 
         Convert.ToBoolean(exists).Should().BeTrue("camelCase 'exists' key must resolve (not undefined)");
@@ -103,11 +106,11 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
     {
         _mod.CreateArea("tar-valon", "Tar Valon");
 
-        var name = _runtime.Evaluate(
+        var name = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreas()[0].name");
-        var provenance = _runtime.Evaluate(
+        var provenance = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreas()[0].provenance");
-        var levelRange = _runtime.Evaluate(
+        var levelRange = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreas()[0].levelRange");
 
         name?.ToString().Should().Be("Tar Valon",
@@ -128,11 +131,11 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         // CreateRoom requires a namespaced roomId; "legends-forgotten" is in loadedPackNamespaces.
         _mod.CreateRoom("road-to-tar-valon", "legends-forgotten:road-track-1", "The Track", "A dusty track.");
 
-        var id = _runtime.Evaluate(
+        var id = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].id");
-        var name = _runtime.Evaluate(
+        var name = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].name");
-        var provenance = _runtime.Evaluate(
+        var provenance = EsmTest.Eval(_runtime,
             "tapestry.authoring.getAreaRooms('road-to-tar-valon')[0].provenance");
 
         id?.ToString().Should().Be("legends-forgotten:road-track-1",

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Dynamic;
 using Jint;
 using Jint.Native;
 using Microsoft.Extensions.Logging;
@@ -45,31 +44,6 @@ public class JintRuntime
         });
 
         SetupApi();
-    }
-
-    public void Execute(string script, string packName)
-    {
-        _engine.SetValue("__currentPack", packName);
-        _engine.SetValue("__currentSource", "");
-        _engine.Execute(script);
-    }
-
-    public void Execute(string script, string packName, string sourceFile)
-    {
-        _engine.SetValue("__currentPack", packName);
-        _engine.SetValue("__currentSource", sourceFile);
-        _engine.Execute(script, source: sourceFile);
-    }
-
-    /// <summary>
-    /// Execute a script without setting pack/source attribution. TESTS ONLY -- do NOT use for
-    /// pack execution: it leaves __currentPack/__currentSource at their prior values, so any
-    /// registration (e.g. registerScript) records a stale/blank owner. Pack content must run
-    /// through the attributed Execute(script, packName, sourceFile) overload (the scripts: glob).
-    /// </summary>
-    public void Execute(string script)
-    {
-        _engine.Execute(script);
     }
 
     /// <summary>
@@ -147,14 +121,6 @@ public class JintRuntime
         {
             built[module.Namespace] = module.Build(_engine);
         }
-
-        // Legacy surface: the global `tapestry` object (used by legacy Execute packs).
-        var tapestry = new ExpandoObject() as IDictionary<string, object?>;
-        foreach (var entry in built)
-        {
-            tapestry[entry.Key] = entry.Value;
-        }
-        _engine.SetValue("tapestry", tapestry);
 
         // ESM surface: one shared `@tapestry/engine` builder module (no JS top-level code, so it is
         // never the "active module" during a pack API call - which is what makes GetActivePack() see

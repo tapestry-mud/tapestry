@@ -87,7 +87,7 @@ public class WorldMapJsSurfaceTests
 
         // scope: 'area' → WholeArea projection; label: 'id' → legend with short ids;
         // showCurrent: true → * brackets around the current room's label index.
-        var result = rt.Evaluate("""
+        var result = EsmTest.Eval(rt, """
             tapestry.world.renderAreaMap('castle:castle-0', {
                 scope: 'area',
                 label: 'id',
@@ -113,7 +113,7 @@ public class WorldMapJsSurfaceTests
     {
         var (rt, _) = BuildRuntime();
 
-        var result = rt.Evaluate("""
+        var result = EsmTest.Eval(rt, """
             tapestry.world.renderAreaMap('nope:missing', { scope: 'area' });
             """);
 
@@ -133,15 +133,15 @@ public class WorldMapJsSurfaceTests
         // Store JS results in individual Evaluate calls so we can assert in C#.
         // The projector deterministically roots at the lexicographically lowest id,
         // which for "castle:castle-0..3" is "castle:castle-0".
-        var cellCount = rt.Evaluate("""
+        var cellCount = EsmTest.Eval(rt, """
             tapestry.world.projectArea('castle:castle-0', { scope: 'area' }).cells.length;
             """);
 
-        var firstId = rt.Evaluate("""
+        var firstId = EsmTest.Eval(rt, """
             tapestry.world.projectArea('castle:castle-0', { scope: 'area' }).cells[0].id;
             """);
 
-        var firstXType = rt.Evaluate("""
+        var firstXType = EsmTest.Eval(rt, """
             typeof tapestry.world.projectArea('castle:castle-0', { scope: 'area' }).cells[0].x;
             """);
 
@@ -167,7 +167,7 @@ public class WorldMapJsSurfaceTests
         var (rt, world) = BuildRuntime();
         AddCastleBox(world);
 
-        var result = rt.Evaluate("""
+        var result = EsmTest.Eval(rt, """
             tapestry.world.renderAreaMap('castle:castle-0', {
                 scope: 'radius',
                 radius: NaN,
@@ -194,7 +194,7 @@ public class WorldMapJsSurfaceTests
 
         // The whole-area projection roots at the lexicographically lowest id
         // (castle:castle-0, plane 0); the viewer stands on the tower (plane 1).
-        var result = rt.Evaluate("""
+        var result = EsmTest.Eval(rt, """
             tapestry.world.renderAreaMap('castle:tower-top', {
                 scope: 'area',
                 label: 'name',
@@ -215,7 +215,7 @@ public class WorldMapJsSurfaceTests
         AddCastleBox(world);
         AddTowerAbove(world);
 
-        var result = rt.Evaluate("""
+        var result = EsmTest.Eval(rt, """
             tapestry.world.renderAreaMap('castle:castle-0', {
                 scope: 'area',
                 label: 'name',

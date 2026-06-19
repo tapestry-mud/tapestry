@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Items;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Tests;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -43,7 +44,7 @@ public class ItemsModuleTests
         room.AddEntity(chest);
         world.TrackEntity(chest);
 
-        rt.Evaluate($"tapestry.items.spawnToContainer('core:coin', '{chest.Id}')");
+        EsmTest.Eval(rt, $"tapestry.items.spawnToContainer('core:coin', '{chest.Id}')");
 
         chest.Contents.Should().ContainSingle(e => e.Name == "a coin");
         var coin = chest.Contents.Single();
@@ -61,7 +62,7 @@ public class ItemsModuleTests
         room.AddEntity(sack);
         world.TrackEntity(sack);
 
-        var result = rt.Evaluate(
+        var result = EsmTest.Eval(rt,
             $"tapestry.items.spawnToContainer('core:coin', '{sack.Id}') === null");
 
         ((bool)result!).Should().BeTrue();

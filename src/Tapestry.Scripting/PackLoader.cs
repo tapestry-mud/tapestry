@@ -229,7 +229,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Scripts))
         {
-            LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace, manifest.Content.ScriptsFormat);
+            LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Help))
@@ -536,26 +536,16 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadScripts(string packDir, string glob, string packName, string format)
+    private void LoadScripts(string packDir, string glob, string packName)
     {
         var files = MatchFiles(packDir, glob).ToList();
         _scheduleModule.ResetPack(packName);
-        var isEsm = string.Equals(format, "esm", StringComparison.OrdinalIgnoreCase);
 
         void LoadOne(string file)
         {
             var relative = Path.GetRelativePath(packDir, file).Replace('\\', '/');
             _logger.LogDebug("  Script: {File}", relative);
-            if (isEsm)
-            {
-                _runtime.ImportModule(_runtime.ModuleKey(packName, relative));
-            }
-            else
-            {
-                var text = File.ReadAllText(file);
-                RecordCallSites(text, packName, relative);
-                _runtime.Execute(text, packName, relative);
-            }
+            _runtime.ImportModule(_runtime.ModuleKey(packName, relative));
             _runtime.MarkFileExecuted(file);
         }
 
@@ -568,15 +558,6 @@ public class PackLoader : IPackManifestProvider
         foreach (var file in files)
         {
             LoadOne(file);
-        }
-    }
-
-    private void RecordCallSites(string scriptText, string packName, string relativeFile)
-    {
-        foreach (var site in InteropCallSiteScanner.Extract(
-                     scriptText, packName, relativeFile))
-        {
-            _callSites.Record(site);
         }
     }
 

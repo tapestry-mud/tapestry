@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Tests;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -41,10 +42,10 @@ public class InventoryModuleTests
         world.TrackEntity(statue);
 
         var playerId = player.Id.ToString();
-        var result = rt.Evaluate($"tapestry.inventory.getAll('{playerId}', 'all')");
+        var result = EsmTest.Eval(rt, $"tapestry.inventory.getAll('{playerId}', 'all')");
 
         // The returned array should contain only the sword, not the statue
-        var resultLength = rt.Evaluate($"tapestry.inventory.getAll('{playerId}', 'all').length");
+        var resultLength = EsmTest.Eval(rt, $"tapestry.inventory.getAll('{playerId}', 'all').length");
         // sword is already picked up by the first call; reload by checking room state
         player.Contents.Should().Contain(sword);
         room.Entities.Should().Contain(statue);
@@ -69,7 +70,7 @@ public class InventoryModuleTests
         world.TrackEntity(fixture);
 
         var playerId = player.Id.ToString();
-        rt.Evaluate($"tapestry.inventory.getAll('{playerId}', 'all')");
+        EsmTest.Eval(rt, $"tapestry.inventory.getAll('{playerId}', 'all')");
 
         player.Contents.Should().BeEmpty();
         room.Entities.Should().Contain(fixture);

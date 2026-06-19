@@ -36,9 +36,8 @@ public class PackContentPaths
     public string Scripts { get; set; } = "";
 
     // Maps to the snake_case manifest key `scripts_format` via the loader's
-    // UnderscoredNamingConvention. "legacy" (default) loads each script via the shared-realm
-    // Execute path; "esm" imports each compiled script as a native ES module.
-    public string ScriptsFormat { get; set; } = "legacy";
+    // UnderscoredNamingConvention. "esm" (default) imports each compiled script as a native ES module.
+    public string ScriptsFormat { get; set; } = "esm";
 
     public string Strings { get; set; } = "";
     public string Mobs { get; set; } = "";

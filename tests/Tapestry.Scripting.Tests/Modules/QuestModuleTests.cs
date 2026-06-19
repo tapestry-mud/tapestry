@@ -4,6 +4,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using Tapestry.Scripting;
 using Tapestry.Shared;
+using Tapestry.Scripting.Tests;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -64,7 +65,7 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        var result = rt.Evaluate($"tapestry.quests.isActive('{playerId}', 'some-quest')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.isActive('{playerId}', 'some-quest')");
 
         result.Should().Be(false);
     }
@@ -81,9 +82,9 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'test-quest-active')");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'test-quest-active')");
 
-        var result = rt.Evaluate($"tapestry.quests.isActive('{playerId}', 'test-quest-active')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.isActive('{playerId}', 'test-quest-active')");
 
         result.Should().Be(true);
     }
@@ -100,9 +101,9 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'test-quest-offer')");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'test-quest-offer')");
 
-        var result = rt.Evaluate($"tapestry.quests.isActive('{playerId}', 'test-quest-offer')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.isActive('{playerId}', 'test-quest-offer')");
         result.Should().Be(true);
     }
 
@@ -118,9 +119,9 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'test-quest-gethint')");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'test-quest-gethint')");
 
-        var result = rt.Evaluate($"tapestry.quests.getHint('{playerId}', 'test-quest-gethint')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.getHint('{playerId}', 'test-quest-gethint')");
 
         result.Should().Be("check the old ruins");
     }
@@ -134,7 +135,7 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        var result = rt.Evaluate($"tapestry.quests.getHint('{playerId}', 'nonexistent-quest')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.getHint('{playerId}', 'nonexistent-quest')");
 
         result.Should().BeNull();
     }
@@ -153,10 +154,10 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'hint-quest-1')");
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'hint-quest-2')");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'hint-quest-1')");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'hint-quest-2')");
 
-        var result = rt.Evaluate($"tapestry.quests.getActiveHints('{playerId}').length");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.getActiveHints('{playerId}').length");
 
         result.Should().Be(2);
     }
@@ -177,7 +178,7 @@ public class QuestModuleTests
         GameEvent? capturedEvent = null;
         eventBus.Subscribe("quest.started", evt => { capturedEvent = evt; });
 
-        rt.Evaluate($"tapestry.quests.offer('{playerId}', 'silent-quest', {{ silent: true }})");
+        EsmTest.Eval(rt, $"tapestry.quests.offer('{playerId}', 'silent-quest', {{ silent: true }})");
 
         capturedEvent.Should().NotBeNull();
         capturedEvent!.Data.ContainsKey("bannerText").Should().BeFalse();
@@ -192,7 +193,7 @@ public class QuestModuleTests
         world.TrackEntity(player);
         var playerId = player.Id.ToString();
 
-        var result = rt.Evaluate($"tapestry.quests.hasQuestMarker('{playerId}', 'some-template')");
+        var result = EsmTest.Eval(rt, $"tapestry.quests.hasQuestMarker('{playerId}', 'some-template')");
 
         result.Should().Be(false);
     }
