@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Connections;
+using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 using Tapestry.Shared;
 
@@ -27,9 +28,11 @@ public class ConnectionsModuleTests : IDisposable
         var roomsModule = new RoomsModule(_world);
         var fsModule = new FsModule(_tempRoot);
 
+        var esmLoader = new TapestryModuleLoader(new TestRegistrationPolicy.NoEdgeOracle());
         _runtime = new JintRuntime(
             new IJintApiModule[] { connectionsModule, roomsModule, fsModule },
-            NullLogger<JintRuntime>.Instance
+            NullLogger<JintRuntime>.Instance,
+            loader: esmLoader
         );
     }
 
@@ -57,7 +60,7 @@ public class ConnectionsModuleTests : IDisposable
     [Fact]
     public void GetAll_WhenNoConnectionsLoaded_ReturnsEmptyArray()
     {
-        var count = _runtime.Evaluate("tapestry.connections.getAll().length");
+        var count = EsmTest.Eval(_runtime, "tapestry.connections.getAll().length");
         Convert.ToInt32(count).Should().Be(0);
     }
 
@@ -71,14 +74,14 @@ public class ConnectionsModuleTests : IDisposable
         AddRoom("pack:room-a");
         AddRoom("pack:room-b");
 
-        _runtime.Execute("""
+        EsmTest.Load(_runtime, "test-pack", """
             tapestry.connections.create(
                 "pack:room-a", "direction", { direction: "north" },
                 "pack:room-b", "direction", { direction: "south" }
             );
         """);
 
-        var count = _runtime.Evaluate("tapestry.connections.getAll().length");
+        var count = EsmTest.Eval(_runtime, "tapestry.connections.getAll().length");
         Convert.ToInt32(count).Should().Be(1);
 
         var roomA = _world.GetRoom("pack:room-a")!;
@@ -102,20 +105,22 @@ public class ConnectionsModuleTests : IDisposable
         AddRoom("pack:room-b");
         AddRoom("pack:room-c");
 
-        _runtime.Execute("""
+        EsmTest.Load(_runtime, "test-pack", """
             tapestry.connections.create(
                 "pack:room-a", "direction", { direction: "north" },
                 "pack:room-b", "direction", { direction: "south" }
             );
+        """);
+        EsmTest.Load(_runtime, "test-pack", """
             tapestry.connections.create(
                 "pack:room-b", "direction", { direction: "east" },
                 "pack:room-c", "direction", { direction: "west" }
             );
         """);
 
-        var countA = _runtime.Evaluate("tapestry.connections.getForRoom('pack:room-a').length");
-        var countB = _runtime.Evaluate("tapestry.connections.getForRoom('pack:room-b').length");
-        var countC = _runtime.Evaluate("tapestry.connections.getForRoom('pack:room-c').length");
+        var countA = EsmTest.Eval(_runtime, "tapestry.connections.getForRoom('pack:room-a').length");
+        var countB = EsmTest.Eval(_runtime, "tapestry.connections.getForRoom('pack:room-b').length");
+        var countC = EsmTest.Eval(_runtime, "tapestry.connections.getForRoom('pack:room-c').length");
 
         Convert.ToInt32(countA).Should().Be(1);
         Convert.ToInt32(countB).Should().Be(2);
@@ -132,7 +137,7 @@ public class ConnectionsModuleTests : IDisposable
         AddRoom("pack:room-a");
         AddRoom("pack:room-b");
 
-        _runtime.Execute("""
+        EsmTest.Load(_runtime, "test-pack", """
             var id = tapestry.connections.create(
                 "pack:room-a", "direction", { direction: "north" },
                 "pack:room-b", "direction", { direction: "south" }
@@ -140,7 +145,7 @@ public class ConnectionsModuleTests : IDisposable
             tapestry.connections.remove(id);
         """);
 
-        var count = _runtime.Evaluate("tapestry.connections.getAll().length");
+        var count = EsmTest.Eval(_runtime, "tapestry.connections.getAll().length");
         Convert.ToInt32(count).Should().Be(0);
 
         _loader.Loaded.Should().BeEmpty();
@@ -168,16 +173,16 @@ public class ConnectionsModuleTests : IDisposable
         var otherPack = AddRoom("otherpack:room");
         otherPack.AddTag("entry_point");
 
-        var count = _runtime.Evaluate("tapestry.rooms.getEntryPoints('mypack').length");
+        var count = EsmTest.Eval(_runtime, "tapestry.rooms.getEntryPoints('mypack').length");
         Convert.ToInt32(count).Should().Be(1);
 
-        var id = _runtime.Evaluate("tapestry.rooms.getEntryPoints('mypack')[0].id");
+        var id = EsmTest.Eval(_runtime, "tapestry.rooms.getEntryPoints('mypack')[0].id");
         id?.ToString().Should().Be("mypack:entry-room");
 
-        var desc = _runtime.Evaluate("tapestry.rooms.getEntryPoints('mypack')[0].entry_point_description");
+        var desc = EsmTest.Eval(_runtime, "tapestry.rooms.getEntryPoints('mypack')[0].entry_point_description");
         desc?.ToString().Should().Be("The main gate.");
 
-        var dir = _runtime.Evaluate("tapestry.rooms.getEntryPoints('mypack')[0].entry_point_direction");
+        var dir = EsmTest.Eval(_runtime, "tapestry.rooms.getEntryPoints('mypack')[0].entry_point_direction");
         dir?.ToString().Should().Be("east");
     }
 
@@ -193,25 +198,22 @@ public class ConnectionsModuleTests : IDisposable
         room.SetExit(Direction.North, new Exit("pack:room-target"));
         room.SetKeywordExit("ladder", new Exit("pack:room-target") { DisplayName = "a wooden ladder" });
 
-        var allExits = _runtime.Evaluate("tapestry.rooms.getExits('pack:room-exits').length");
+        var allExits = EsmTest.Eval(_runtime, "tapestry.rooms.getExits('pack:room-exits').length");
         Convert.ToInt32(allExits).Should().BeGreaterThan(0);
 
-        var northOccupied = _runtime.Evaluate("""
-            tapestry.rooms.getExits('pack:room-exits')
-                .filter(function(e) { return e.type === 'direction' && e.direction === 'North'; })[0].occupied
-        """);
+        var northOccupied = EsmTest.Eval(_runtime,
+            "tapestry.rooms.getExits('pack:room-exits')" +
+            ".filter(function(e) { return e.type === 'direction' && e.direction === 'North'; })[0].occupied");
         northOccupied?.ToString()?.ToLower().Should().Be("true");
 
-        var southOccupied = _runtime.Evaluate("""
-            tapestry.rooms.getExits('pack:room-exits')
-                .filter(function(e) { return e.type === 'direction' && e.direction === 'South'; })[0].occupied
-        """);
+        var southOccupied = EsmTest.Eval(_runtime,
+            "tapestry.rooms.getExits('pack:room-exits')" +
+            ".filter(function(e) { return e.type === 'direction' && e.direction === 'South'; })[0].occupied");
         southOccupied?.ToString()?.ToLower().Should().Be("false");
 
-        var keywordCount = _runtime.Evaluate("""
-            tapestry.rooms.getExits('pack:room-exits')
-                .filter(function(e) { return e.type === 'keyword' && e.occupied === true; }).length
-        """);
+        var keywordCount = EsmTest.Eval(_runtime,
+            "tapestry.rooms.getExits('pack:room-exits')" +
+            ".filter(function(e) { return e.type === 'keyword' && e.occupied === true; }).length");
         Convert.ToInt32(keywordCount).Should().Be(1);
     }
 
@@ -224,7 +226,7 @@ public class ConnectionsModuleTests : IDisposable
     {
         var act = () =>
         {
-            _runtime.Execute("""
+            EsmTest.Load(_runtime, "test-pack", """
                 tapestry.fs.writeYaml("../secret.yaml", { key: "value" });
             """);
         };
@@ -239,7 +241,7 @@ public class ConnectionsModuleTests : IDisposable
     [Fact]
     public void WriteYaml_ValidRelativePath_CreatesFile()
     {
-        _runtime.Execute("""
+        EsmTest.Load(_runtime, "test-pack", """
             tapestry.fs.writeYaml("test.yaml", { name: "hello", count: 42 });
         """);
 

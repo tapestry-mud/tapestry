@@ -35,7 +35,7 @@ public class WorldModuleAreaQueryTests
         world.AddRoom(a2);
         world.AddRoom(other);
 
-        var result = rt.Evaluate("tapestry.world.getRoomsInArea('lf-test').sort().join(',');");
+        var result = EsmTest.Eval(rt, "tapestry.world.getRoomsInArea('lf-test').sort().join(',')");
 
         Assert.Equal("lf:1,lf:2", result);
     }
@@ -46,7 +46,7 @@ public class WorldModuleAreaQueryTests
         var (rt, world) = BuildRuntime();
         world.AddRoom(new Room("lf:1", "Room A1", "first") { Area = "lf-test" });
 
-        var result = rt.Evaluate("tapestry.world.getRoomsInArea('nope').length;");
+        var result = EsmTest.Eval(rt, "tapestry.world.getRoomsInArea('nope').length");
 
         Assert.Equal(0d, result);
     }
@@ -57,7 +57,7 @@ public class WorldModuleAreaQueryTests
         var (rt, world) = BuildRuntime();
         world.AddRoom(new Room("lf:1", "Room A1", "first") { Area = "lf-test" });
 
-        var result = rt.Evaluate("tapestry.world.getRoomArea('lf:1');");
+        var result = EsmTest.Eval(rt, "tapestry.world.getRoomArea('lf:1')");
 
         Assert.Equal("lf-test", result);
     }
@@ -67,7 +67,7 @@ public class WorldModuleAreaQueryTests
     {
         var (rt, _) = BuildRuntime();
 
-        var result = rt.Evaluate("tapestry.world.getRoomArea('ghost');");
+        var result = EsmTest.Eval(rt, "tapestry.world.getRoomArea('ghost')");
 
         Assert.Null(result);
     }
@@ -84,7 +84,7 @@ public class WorldModuleAreaQueryTests
         world.TrackEntity(entity);
         roomA.AddEntity(entity);
 
-        var result = rt.Evaluate($"tapestry.world.teleportEntity('{entity.Id}', 'B');");
+        var result = EsmTest.Eval(rt, $"tapestry.world.teleportEntity('{entity.Id}', 'B')");
 
         Assert.Equal(true, result);
         Assert.Equal("B", entity.LocationRoomId);

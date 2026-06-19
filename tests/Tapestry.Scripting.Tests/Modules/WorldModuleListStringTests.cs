@@ -41,7 +41,7 @@ public class WorldModuleListStringTests
         var id = player.Id;
 
         // Simulate the learn command: get (null -> []), push, setProperty
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known = Array.isArray(raw) ? raw.slice() : [];
             known.push('tapestry-tinkers:level-1-bench');
@@ -49,17 +49,15 @@ public class WorldModuleListStringTests
         ");
 
         // Verify JS can read it back with Array.isArray
-        var isArray = rt.Evaluate($"Array.isArray(tapestry.world.getProperty('{id}', 'known_recipes') || [])");
+        var isArray = EsmTest.Eval(rt, $"Array.isArray(tapestry.world.getProperty('{id}', 'known_recipes') || [])");
         Assert.Equal(true, isArray);
 
         // Verify indexOf works (the check in craft.js and recipe.js)
-        var hasRecipe = rt.Evaluate($@"
-            (function() {{
+        var hasRecipe = EsmTest.Eval(rt, $@"(function() {{
                 var k = tapestry.world.getProperty('{id}', 'known_recipes') || [];
                 var list = Array.isArray(k) ? k : [];
                 return list.indexOf('tapestry-tinkers:level-1-bench') >= 0;
-            }})()
-        ");
+            }})()");
         Assert.Equal(true, hasRecipe);
     }
 
@@ -72,7 +70,7 @@ public class WorldModuleListStringTests
         var id = player.Id;
 
         // Add first recipe
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known = Array.isArray(raw) ? raw.slice() : [];
             known.push('tapestry-tinkers:level-1-bench');
@@ -80,20 +78,18 @@ public class WorldModuleListStringTests
         ");
 
         // Add second recipe (simulate second learn call)
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw2 = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known2 = Array.isArray(raw2) ? raw2.slice() : [];
             known2.push('tapestry-tinkers:iron-pickaxe');
             tapestry.world.setProperty('{id}', 'known_recipes', known2);
         ");
 
-        var count = rt.Evaluate($@"
-            (function() {{
+        var count = EsmTest.Eval(rt, $@"(function() {{
                 var k = tapestry.world.getProperty('{id}', 'known_recipes') || [];
                 var list = Array.isArray(k) ? k : [];
                 return list.length;
-            }})()
-        ");
+            }})()");
         Assert.Equal(2, Convert.ToInt32(count));
     }
 
@@ -106,7 +102,7 @@ public class WorldModuleListStringTests
         var id = player.Id;
 
         // learn same recipe twice -- the learn command checks indexOf first
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known = Array.isArray(raw) ? raw.slice() : [];
             if (known.indexOf('tapestry-tinkers:level-1-bench') < 0) {{
@@ -114,7 +110,7 @@ public class WorldModuleListStringTests
                 tapestry.world.setProperty('{id}', 'known_recipes', known);
             }}
         ");
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known = Array.isArray(raw) ? raw.slice() : [];
             if (known.indexOf('tapestry-tinkers:level-1-bench') < 0) {{
@@ -123,12 +119,10 @@ public class WorldModuleListStringTests
             }}
         ");
 
-        var count = rt.Evaluate($@"
-            (function() {{
+        var count = EsmTest.Eval(rt, $@"(function() {{
                 var k = tapestry.world.getProperty('{id}', 'known_recipes') || [];
                 return Array.isArray(k) ? k.length : -1;
-            }})()
-        ");
+            }})()");
         Assert.Equal(1, Convert.ToInt32(count));
     }
 }

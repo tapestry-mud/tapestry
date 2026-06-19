@@ -23,7 +23,7 @@ public class UiModuleTests
     public void Panel_ValidTitleSpec_ReturnsStringContainingTitle()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'title', left: 'Hello World' }]
@@ -38,7 +38,7 @@ public class UiModuleTests
     public void Panel_ValidSpec_OutputContainsFrameBorders()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'empty' }]
@@ -54,7 +54,7 @@ public class UiModuleTests
     public void Panel_TwoSections_OutputContainsMinorRule()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [
                     { rows: [{ type: 'title', left: 'Header' }] },
@@ -69,7 +69,7 @@ public class UiModuleTests
     public void Panel_CellRowWithFillWidth_ReturnsRenderedContent()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{
@@ -91,7 +91,7 @@ public class UiModuleTests
     public void Panel_ProgressCell_ReturnsRenderedBar()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{
@@ -114,7 +114,7 @@ public class UiModuleTests
     public void Panel_UnknownRowType_Throws()
     {
         var rt = BuildRuntime();
-        var ex = Assert.ThrowsAny<Exception>(() => rt.Execute(@"
+        var ex = Assert.ThrowsAny<Exception>(() => EsmTest.Load(rt, "test-pack", @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'banana' }]
@@ -128,7 +128,7 @@ public class UiModuleTests
     public void Panel_TitleRowMissingLeft_Throws()
     {
         var rt = BuildRuntime();
-        Assert.ThrowsAny<Exception>(() => rt.Execute(@"
+        Assert.ThrowsAny<Exception>(() => EsmTest.Load(rt, "test-pack", @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'title' }]
@@ -141,7 +141,7 @@ public class UiModuleTests
     public void Panel_ProgressCellMissingValue_Throws()
     {
         var rt = BuildRuntime();
-        Assert.ThrowsAny<Exception>(() => rt.Execute(@"
+        Assert.ThrowsAny<Exception>(() => EsmTest.Load(rt, "test-pack", @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{
@@ -157,7 +157,7 @@ public class UiModuleTests
     public void Panel_NonObjectArgument_Throws()
     {
         var rt = BuildRuntime();
-        Assert.ThrowsAny<Exception>(() => rt.Execute(@"
+        Assert.ThrowsAny<Exception>(() => EsmTest.Load(rt, "test-pack", @"
             tapestry.ui.panel('not an object');
         "));
     }
@@ -166,7 +166,7 @@ public class UiModuleTests
     public void Panel_FooterRow_ReturnsRenderedContent()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'footer', content: 'Type help for commands.' }]
@@ -180,7 +180,7 @@ public class UiModuleTests
     public void Panel_CustomWidth_ProducesWiderOutput()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 width: 60,
                 sections: [{
@@ -196,7 +196,7 @@ public class UiModuleTests
     public void Panel_TextRow_ReturnsRenderedContent()
     {
         var rt = BuildRuntime();
-        var result = rt.Evaluate(@"
+        var result = EsmTest.Eval(rt, @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'text', content: '  Gandalf' }]
@@ -210,7 +210,7 @@ public class UiModuleTests
     public void Panel_TextRowMissingContent_Throws()
     {
         var rt = BuildRuntime();
-        Assert.ThrowsAny<Exception>(() => rt.Execute(@"
+        Assert.ThrowsAny<Exception>(() => EsmTest.Load(rt, "test-pack", @"
             tapestry.ui.panel({
                 sections: [{
                     rows: [{ type: 'text' }]

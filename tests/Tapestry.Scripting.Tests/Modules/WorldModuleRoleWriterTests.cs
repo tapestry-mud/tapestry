@@ -30,7 +30,7 @@ public class WorldModuleRoleWriterTests
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
 
-        rt.Execute($"tapestry.world.addRole('{player.Id}', 'builder');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.world.addRole('{player.Id}', 'builder');");
 
         Assert.True(player.HasRole("builder"));
     }
@@ -43,7 +43,7 @@ public class WorldModuleRoleWriterTests
         player.AddRole("builder");
         world.TrackEntity(player);
 
-        rt.Execute($"tapestry.world.removeRole('{player.Id}', 'builder');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.world.removeRole('{player.Id}', 'builder');");
 
         Assert.False(player.HasRole("builder"));
     }
