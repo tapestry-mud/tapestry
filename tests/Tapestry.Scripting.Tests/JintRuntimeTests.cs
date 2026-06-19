@@ -41,7 +41,7 @@ public class JintRuntimeTests
             });
             """;
 
-        runtime.Execute(script, "test-pack");
+        EsmTest.Load(runtime, "test-pack", script);
         ctx.RegistrationPolicy.Resolve();
 
         ctx.CommandRegistry.Resolve("ping").Should().NotBeNull();
@@ -60,7 +60,7 @@ public class JintRuntimeTests
             });
             """;
 
-        runtime.Execute(script, "test-pack");
+        EsmTest.Load(runtime, "test-pack", script);
         ctx.RegistrationPolicy.Resolve(); // emotes commit at the seal barrier
 
         ctx.EmoteRegistry.Get("smile").Should().NotBeNull();
@@ -86,7 +86,7 @@ public class JintRuntimeTests
             });
             """;
 
-        runtime.Execute(script, "test-pack");
+        EsmTest.Load(runtime, "test-pack", script);
 
         ctx.EventBus.Publish(new GameEvent
         {
@@ -124,7 +124,7 @@ public class JintRuntimeTests
             });
             """;
 
-        runtime.Execute(script, "test-pack");
+        EsmTest.Load(runtime, "test-pack", script);
         ctx.RegistrationPolicy.Resolve();
 
         var registration = ctx.CommandRegistry.Resolve("ping");
@@ -149,7 +149,7 @@ public class JintRuntimeTests
         var (runtime, _) = CreateRuntime();
         var script = "while(true) {}";
 
-        var act = () => runtime.Execute(script, "test-pack");
+        var act = () => EsmTest.Load(runtime, "test-pack", script);
 
         act.Should().Throw<Exception>();
     }
@@ -160,7 +160,7 @@ public class JintRuntimeTests
         var (runtime, _) = CreateRuntime();
         // Allocate a large array in a loop to exhaust memory
         var script = "var arr = []; while(true) { arr.push(new Array(10000).fill(1)); }";
-        var act = () => runtime.Execute(script, "test-pack");
+        var act = () => EsmTest.Load(runtime, "test-pack", script);
         act.Should().Throw<Exception>();
     }
 
@@ -182,14 +182,14 @@ public class JintRuntimeTests
         room.AddEntity(entity);
         ctx.World.AddRoom(room);
 
-        runtime.Execute(@"
+        EsmTest.Load(runtime, "test", """
             tapestry.commands.register({
                 name: 'teststats',
                 handler: function(player, args) {
                     player.send('STR:' + player.stats.strength + ' HP:' + player.stats.hp + '/' + player.stats.maxHp);
                 }
             });
-        ", "test");
+            """);
         ctx.RegistrationPolicy.Resolve();
 
         var cmdCtx = new ActorContext
@@ -202,19 +202,6 @@ public class JintRuntimeTests
 
         ctx.CommandRegistry.Resolve("teststats")!.ActorHandler(cmdCtx);
         string.Join("", connection.SentText).Should().Contain("STR:20 HP:100/100");
-    }
-
-    [Fact]
-    public void Execute_WithSourceFile_SetsCurrentSourceGlobal()
-    {
-        var (runtime, _) = CreateRuntime();
-
-        runtime.Execute("var captured = __currentSource;", "test-pack", "scripts/commands/test.js");
-        var result = runtime.Evaluate("captured");
-
-        Assert.Equal("scripts/commands/test.js", result);
-        var pack = runtime.Evaluate("__currentPack");
-        Assert.Equal("test-pack", pack);
     }
 
     [Fact]
@@ -322,14 +309,14 @@ public class JintRuntimeTests
         var (runtime, ctx) = CreateRuntime();
 
         // Register a mob command via JS
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test-pack", """
             tapestry.mobs.registerCommand("say", {
                 gmcp: { channel: "say" },
                 handler: function(mob, text) {
                     tapestry.world.sendToRoom(mob.roomId, "handled:" + text);
                 }
             });
-            """, "test-pack");
+            """);
         ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         // Spawn a mob and place it in a room
@@ -348,7 +335,7 @@ public class JintRuntimeTests
         ctx.World.TrackEntity(player);
 
         // Queue a mob command (delay 0 = immediate)
-        runtime.Execute($"tapestry.mobs.command('{mob.Id}', 'say Hello!', 0);", "test-pack");
+        EsmTest.Load(runtime, "test-pack", $"tapestry.mobs.command('{mob.Id}', 'say Hello!', 0);");
 
         // ProcessTick to dispatch queued commands
         ctx.MobCommandQueue.ProcessTick();
@@ -361,14 +348,14 @@ public class JintRuntimeTests
     {
         var (runtime, ctx) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test-pack", """
             tapestry.mobs.registerCommand("say", {
                 gmcp: { channel: "say" },
                 handler: function(mob, text) {
                     tapestry.world.sendToRoom(mob.roomId, "handled:" + text);
                 }
             });
-            """, "test-pack");
+            """);
         ctx.RegistrationPolicy.Resolve(); // mob commands commit at the seal barrier
 
         var room = new Room("test:room", "Town", "A room.");
@@ -385,7 +372,7 @@ public class JintRuntimeTests
         ctx.World.TrackEntity(player);
 
         // Call with only 2 args — no delay argument — must not throw
-        runtime.Execute($"tapestry.mobs.command('{mob.Id}', 'say Hello!');", "test-pack");
+        EsmTest.Load(runtime, "test-pack", $"tapestry.mobs.command('{mob.Id}', 'say Hello!');");
 
         ctx.MobCommandQueue.ProcessTick();
 

@@ -8,8 +8,8 @@ public class EsmSealCompatTests
     public void EsmOverride_OfLegacyBase_WithDeclaredEdge_Wins()
     {
         var (runtime, ctx) = JintRuntimeTests.CreateRuntime();
-        // legacy core registers `tell` (base)
-        runtime.Execute("tapestry.commands.register({ name: 'tell', priority: 0, handler: function(p,a){} });", "tapestry-core");
+        // esm core registers `tell` (base)
+        EsmTest.Load(runtime, "tapestry-core", "tapestry.commands.register({ name: 'tell', priority: 0, handler: function(p,a){} });");
         // esm viewer overrides `tell` with a declared edge viewer->core
         ctx.DeclareEdge("tapestry-viewer", "tapestry-core");
         var dir = ctx.RegisterTempPack("tapestry-viewer");
@@ -26,7 +26,7 @@ public class EsmSealCompatTests
     public void EsmOverride_WithoutEdge_ThrowsAtSeal()
     {
         var (runtime, ctx) = JintRuntimeTests.CreateRuntime();
-        runtime.Execute("tapestry.commands.register({ name: 'tell', priority: 0, handler: function(p,a){} });", "tapestry-core");
+        EsmTest.Load(runtime, "tapestry-core", "tapestry.commands.register({ name: 'tell', priority: 0, handler: function(p,a){} });");
         var dir = ctx.RegisterTempPack("tapestry-viewer"); // no edge declared
         System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "dist", "scripts", "tell.js"),
             "import { commands } from \"@tapestry/engine\";\n" +
