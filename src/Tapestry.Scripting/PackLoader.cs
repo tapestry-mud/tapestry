@@ -229,7 +229,7 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Scripts))
         {
-            LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace);
+            LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace, manifest.Content.ScriptsFormat);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Help))
@@ -536,32 +536,38 @@ public class PackLoader : IPackManifestProvider
         }
     }
 
-    private void LoadScripts(string packDir, string glob, string packName)
+    private void LoadScripts(string packDir, string glob, string packName, string format)
     {
         var files = MatchFiles(packDir, glob).ToList();
-
         _scheduleModule.ResetPack(packName);
+        var isEsm = string.Equals(format, "esm", StringComparison.OrdinalIgnoreCase);
+
+        void LoadOne(string file)
+        {
+            var relative = Path.GetRelativePath(packDir, file).Replace('\\', '/');
+            _logger.LogDebug("  Script: {File}", relative);
+            if (isEsm)
+            {
+                _runtime.ImportModule(_runtime.ModuleKey(packName, relative));
+            }
+            else
+            {
+                var text = File.ReadAllText(file);
+                RecordCallSites(text, packName, relative);
+                _runtime.Execute(text, packName, relative);
+            }
+            _runtime.MarkFileExecuted(file);
+        }
 
         var initFile = files.FirstOrDefault(f => Path.GetFileName(f) == "init.js");
         if (initFile != null)
         {
-            var relative = Path.GetRelativePath(packDir, initFile).Replace('\\', '/');
-            _logger.LogDebug("  Script (init): {File}", relative);
-            var text = File.ReadAllText(initFile);
-            RecordCallSites(text, packName, relative);
-            _runtime.Execute(text, packName, relative);
-            _runtime.MarkFileExecuted(initFile);
+            LoadOne(initFile);
             files = files.Where(f => f != initFile).ToList();
         }
-
         foreach (var file in files)
         {
-            var relative = Path.GetRelativePath(packDir, file).Replace('\\', '/');
-            _logger.LogDebug("  Script: {File}", relative);
-            var text = File.ReadAllText(file);
-            RecordCallSites(text, packName, relative);
-            _runtime.Execute(text, packName, relative);
-            _runtime.MarkFileExecuted(file);
+            LoadOne(file);
         }
     }
 
