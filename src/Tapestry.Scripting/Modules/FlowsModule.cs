@@ -52,7 +52,7 @@ public class FlowsModule : IJintApiModule
                 bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
                 var stepsVal = obj.Get("steps");
-                var steps = ParseSteps(jint, stepsVal, packName);
+                var steps = ParseSteps(jint, stepsVal);
 
                 var recommendContextKindVal = obj.Get("recommend_context");
                 var recommendContextKind = (recommendContextKindVal.Type != Types.Undefined && recommendContextKindVal.Type != Types.Null)
@@ -82,7 +82,7 @@ public class FlowsModule : IJintApiModule
                         return new FlowCompletionResult(true);
                     }
                     var entityProxy = BuildEntityProxy(jint, entity);
-                    var result = jint.InvokeAsPack(packName, onCompleteJs, null, new object[] { entityProxy });
+                    var result = jint.Invoke(onCompleteJs, null, new object[] { entityProxy });
 
                     if (result is ObjectInstance resultObj)
                     {
@@ -132,7 +132,7 @@ public class FlowsModule : IJintApiModule
         };
     }
 
-    private IReadOnlyList<FlowStepDefinition> ParseSteps(JintEngine jint, JsValue stepsVal, string packName)
+    private IReadOnlyList<FlowStepDefinition> ParseSteps(JintEngine jint, JsValue stepsVal)
     {
         var result = new List<FlowStepDefinition>();
         if (stepsVal is not JsArray arr) { return result; }
@@ -151,17 +151,17 @@ public class FlowsModule : IJintApiModule
                 skipIf = entity =>
                 {
                     var entityProxy = BuildEntityProxy(jint, entity);
-                    var res = jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
+                    var res = jint.Invoke(captured, null, new object[] { entityProxy });
                     return res.Type == Types.Boolean && (bool)res.ToObject()!;
                 };
             }
 
             FlowStepDefinition step = stepType switch
             {
-                "info" => ParseInfoStep(jint, stepId, stepObj, skipIf, packName),
-                "choice" => ParseChoiceStep(jint, stepId, stepObj, skipIf, packName),
-                "text" => ParseTextStep(jint, stepId, stepObj, skipIf, packName),
-                "confirm" => ParseConfirmStep(jint, stepId, stepObj, skipIf, packName),
+                "info" => ParseInfoStep(jint, stepId, stepObj, skipIf),
+                "choice" => ParseChoiceStep(jint, stepId, stepObj, skipIf),
+                "text" => ParseTextStep(jint, stepId, stepObj, skipIf),
+                "confirm" => ParseConfirmStep(jint, stepId, stepObj, skipIf),
                 _ => throw new InvalidOperationException($"Unknown flow step type: {stepType}")
             };
 
@@ -171,7 +171,7 @@ public class FlowsModule : IJintApiModule
         return result;
     }
 
-    private InfoStep ParseInfoStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf, string packName)
+    private InfoStep ParseInfoStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
     {
         var textVal = obj.Get("text");
         Func<Entity, string> text;
@@ -182,7 +182,7 @@ public class FlowsModule : IJintApiModule
             text = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                return jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy }).ToString();
+                return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
@@ -194,7 +194,7 @@ public class FlowsModule : IJintApiModule
         return new InfoStep { Id = id, SkipIf = skipIf, Text = text };
     }
 
-    private ChoiceStep ParseChoiceStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf, string packName)
+    private ChoiceStep ParseChoiceStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
         Func<Entity, string> prompt;
@@ -205,7 +205,7 @@ public class FlowsModule : IJintApiModule
             prompt = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                return jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy }).ToString();
+                return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
@@ -223,13 +223,13 @@ public class FlowsModule : IJintApiModule
             options = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                var res = jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
-                return ParseOptionsArray(jint, res, packName);
+                var res = jint.Invoke(captured, null, new object[] { entityProxy });
+                return ParseOptionsArray(jint, res);
             };
         }
         else
         {
-            var staticOptions = ParseOptionsArray(jint, optionsVal, packName);
+            var staticOptions = ParseOptionsArray(jint, optionsVal);
             options = _ => staticOptions;
         }
 
@@ -238,7 +238,7 @@ public class FlowsModule : IJintApiModule
         {
             var entityProxy = BuildEntityProxy(jint, entity);
             var optionProxy = new { label = option.Label, value = option.Value };
-            jint.InvokeAsPack(packName, onSelectJs, null, new object[] { entityProxy, optionProxy });
+            jint.Invoke(onSelectJs, null, new object[] { entityProxy, optionProxy });
         };
 
         var helpHintVal = obj.Get("help_hint");
@@ -247,7 +247,7 @@ public class FlowsModule : IJintApiModule
         return new ChoiceStep { Id = id, SkipIf = skipIf, Prompt = prompt, Options = options, OnSelect = onSelect, HelpHint = helpHint };
     }
 
-    private TextStep ParseTextStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf, string packName)
+    private TextStep ParseTextStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
         Func<Entity, string> prompt;
@@ -258,7 +258,7 @@ public class FlowsModule : IJintApiModule
             prompt = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                return jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy }).ToString();
+                return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
@@ -274,7 +274,7 @@ public class FlowsModule : IJintApiModule
             var captured = validateVal;
             validate = input =>
             {
-                var res = jint.InvokeAsPack(packName, captured, null, new object[] { input });
+                var res = jint.Invoke(captured, null, new object[] { input });
                 return res.Type == Types.Boolean && (bool)res.ToObject()!;
             };
         }
@@ -302,7 +302,7 @@ public class FlowsModule : IJintApiModule
             recommendField = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                var res = jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
+                var res = jint.Invoke(captured, null, new object[] { entityProxy });
                 return res.Type == Types.String ? res.ToString() : null;
             };
         }
@@ -311,7 +311,7 @@ public class FlowsModule : IJintApiModule
         Action<Entity, string> onInput = (entity, value) =>
         {
             var entityProxy = BuildEntityProxy(jint, entity);
-            jint.InvokeAsPack(packName, onInputJs, null, new object[] { entityProxy, value });
+            jint.Invoke(onInputJs, null, new object[] { entityProxy, value });
         };
 
         return new TextStep
@@ -327,7 +327,7 @@ public class FlowsModule : IJintApiModule
         };
     }
 
-    private ConfirmStep ParseConfirmStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf, string packName)
+    private ConfirmStep ParseConfirmStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
         Func<Entity, string> prompt;
@@ -338,7 +338,7 @@ public class FlowsModule : IJintApiModule
             prompt = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                return jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy }).ToString();
+                return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
@@ -355,7 +355,7 @@ public class FlowsModule : IJintApiModule
             onYes = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
+                jint.Invoke(captured, null, new object[] { entityProxy });
             };
         }
 
@@ -367,14 +367,14 @@ public class FlowsModule : IJintApiModule
             onNo = entity =>
             {
                 var entityProxy = BuildEntityProxy(jint, entity);
-                jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy });
+                jint.Invoke(captured, null, new object[] { entityProxy });
             };
         }
 
         return new ConfirmStep { Id = id, SkipIf = skipIf, Prompt = prompt, OnYes = onYes, OnNo = onNo };
     }
 
-    private IReadOnlyList<ChoiceOption> ParseOptionsArray(JintEngine jint, JsValue val, string packName)
+    private IReadOnlyList<ChoiceOption> ParseOptionsArray(JintEngine jint, JsValue val)
     {
         var list = new List<ChoiceOption>();
         if (val is not JsArray arr) { return list; }
@@ -400,7 +400,7 @@ public class FlowsModule : IJintApiModule
                     description = entity =>
                     {
                         var entityProxy = BuildEntityProxy(jint, entity);
-                        return jint.InvokeAsPack(packName, captured, null, new object[] { entityProxy }).ToString();
+                        return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
                     };
                 }
             }

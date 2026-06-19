@@ -90,7 +90,7 @@ public class QuestScriptLoader : IQuestScriptLoader
 
         try
         {
-            var result = JintEngine.InvokeAsPack(hooks.Pack, hooks.OnGranted, JsValue.FromObject(JintEngine, playerObj));
+            var result = JintEngine.Invoke(hooks.OnGranted, JsValue.FromObject(JintEngine, playerObj));
             return result.Type == Types.Boolean && (bool)result.ToObject()!;
         }
         catch (Exception ex)
@@ -116,7 +116,7 @@ public class QuestScriptLoader : IQuestScriptLoader
         var argsObj = new { objectiveId, current, required };
         try
         {
-            JintEngine.InvokeAsPack(hooks.Pack, hooks.OnObjectiveAdvanced, JsValue.FromObject(JintEngine, playerObj), JsValue.FromObject(JintEngine, argsObj));
+            JintEngine.Invoke(hooks.OnObjectiveAdvanced, JsValue.FromObject(JintEngine, playerObj), JsValue.FromObject(JintEngine, argsObj));
         }
         catch (Exception ex)
         {
@@ -139,7 +139,7 @@ public class QuestScriptLoader : IQuestScriptLoader
 
         try
         {
-            JintEngine.InvokeAsPack(hooks.Pack, hooks.OnCompleted, JsValue.FromObject(JintEngine, playerObj));
+            JintEngine.Invoke(hooks.OnCompleted, JsValue.FromObject(JintEngine, playerObj));
         }
         catch (Exception ex)
         {
@@ -163,7 +163,7 @@ public class QuestScriptLoader : IQuestScriptLoader
         var argsObj = new { stageIndex };
         try
         {
-            JintEngine.InvokeAsPack(hooks.Pack, hooks.OnStageAdvanced, JsValue.FromObject(JintEngine, playerObj), JsValue.FromObject(JintEngine, argsObj));
+            JintEngine.Invoke(hooks.OnStageAdvanced, JsValue.FromObject(JintEngine, playerObj), JsValue.FromObject(JintEngine, argsObj));
         }
         catch (Exception ex)
         {

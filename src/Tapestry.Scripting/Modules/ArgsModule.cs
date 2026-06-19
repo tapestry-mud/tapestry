@@ -62,7 +62,7 @@ public class ArgsModule : IJintApiModule
                         {
                             var actorObj = new { entityId = actor.EntityId.ToString(), roomId = actor.RoomId ?? "" };
                             var resolverDefObj = new { type = argDef.Type, required = argDef.Required };
-                            var result = engine.InvokeAsPack(owner, jsResolver, null, new object[] { actorObj, token, resolverDefObj });
+                            var result = engine.Invoke(jsResolver, null, new object[] { actorObj, token, resolverDefObj });
 
                             if (result is not ObjectInstance obj)
                             {

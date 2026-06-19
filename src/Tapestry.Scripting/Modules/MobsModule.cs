@@ -84,7 +84,7 @@ public class MobsModule : IJintApiModule
                         // even when the constraint interrupts mid-script.
                         using (_invocationBudget.Arm(_config.MobAi.InvocationCapMs))
                         {
-                            engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, contextObj));
+                            engine.Invoke(handler, JsValue.FromObject(engine, contextObj));
                         }
                     }, owner: packName),
                     SourceFile: sourceFile,
@@ -140,7 +140,7 @@ public class MobsModule : IJintApiModule
                                     name = mob.Name,
                                     roomId = mob.RoomId
                                 };
-                                engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
+                                engine.Invoke(handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
                             },
                             GmcpChannel = gmcpChannel,
                             PrependSender = prependSender
@@ -160,7 +160,7 @@ public class MobsModule : IJintApiModule
                                 var text = string.Join(" ", actorCtx.RawArgs);
                                 try
                                 {
-                                    engine.InvokeAsPack(packName, handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
+                                    engine.Invoke(handler, JsValue.FromObject(engine, mobObj), JsValue.FromObject(engine, text));
                                 }
                                 catch (Exception ex)
                                 {
@@ -224,7 +224,7 @@ public class MobsModule : IJintApiModule
                     // wedging the loop. Disarms via using even when the constraint trips.
                     using (_invocationBudget.Arm(_config.MobAi.InvocationCapMs))
                     {
-                        engine.InvokeAsPack(script.Pack, fn, mobObj, playerObj, extraArg);
+                        engine.Invoke(fn, mobObj, playerObj, extraArg);
                     }
                 }
                 catch (MobBudgetExceededException ex)

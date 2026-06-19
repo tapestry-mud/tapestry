@@ -345,7 +345,7 @@ public class AdminModule : IJintApiModule
         var rest = args.Length > 3 ? args[3..] : Array.Empty<string>();
         var adminObj = BuildAdminObj(adminId);
         var targetObj = new { id = targetRes.Id.ToString(), name = targetRes.Name, entity_kind = kind };
-        engine.InvokeAsPack(reg.Pack, reg.Handler, null, new object[] { adminObj, targetObj, rest });
+        engine.Invoke(reg.Handler, null, new object[] { adminObj, targetObj, rest });
     }
 
     private void SendKindsPanel(Guid adminId, string verb)

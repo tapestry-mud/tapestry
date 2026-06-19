@@ -221,8 +221,8 @@ public class CommandsModule : IJintApiModule
                             hasTag = new Func<string, bool>(tag => entity.HasTag(tag))
                         };
                         // JintEngine is not thread-safe; visibleTo predicates share the singleton engine.
-                        // visibleTo is a deferred pack predicate — attribute it to the registering pack.
-                        var result = engine.InvokeAsPack(packName, fn, null, new object[] { playerObj });
+                        // visibleTo is a deferred pack predicate; attribution is lexical via the active module.
+                        var result = engine.Invoke(fn, null, new object[] { playerObj });
                         return result.Type == Types.Boolean && (bool)result.ToObject()!;
                     }
                     catch (Exception ex)
@@ -243,7 +243,7 @@ public class CommandsModule : IJintApiModule
         var capturedGmcp = gmcpConfig;
 
         Action<ActorContext> actorHandler =
-            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp, packName); };
+            actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp); };
 
         // Declarative: accumulate a candidate. The real Register replays — with the identical
         // argument list — at Resolve() (the seal barrier), so a same-name command from two packs
@@ -315,7 +315,7 @@ public class CommandsModule : IJintApiModule
 
     private void InvokeActorHandler(
         JintEngine engine, JsValue handler, ActorContext actorCtx,
-        Dictionary<string, ArgDefinition>? argDefs, GmcpConfig? gmcpConfig, string packName)
+        Dictionary<string, ArgDefinition>? argDefs, GmcpConfig? gmcpConfig)
     {
         var isMob = actorCtx.Source == "mob";
         var name = isMob
@@ -386,7 +386,7 @@ public class CommandsModule : IJintApiModule
 
         try
         {
-            engine.InvokeAsPack(packName, handler, null, new object[] { actorObj, argsToPass });
+            engine.Invoke(handler, null, new object[] { actorObj, argsToPass });
         }
         finally
         {

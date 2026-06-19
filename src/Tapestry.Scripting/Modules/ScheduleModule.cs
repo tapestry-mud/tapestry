@@ -56,7 +56,7 @@ public class ScheduleModule : IJintApiModule
                 var name = NextHandlerName(packName);
                 _gameLoop.RegisterTickHandler(name, ticks, () =>
                 {
-                    engine.InvokeAsPack(packName, fn);
+                    engine.Invoke(fn);
                 }, packName);
                 return name;
             }),
@@ -84,7 +84,7 @@ public class ScheduleModule : IJintApiModule
                     foreach (var entity in entities.ToList())
                     {
                         var proxy = new { id = entity.Id.ToString(), name = entity.Name, type = entity.Type };
-                        engine.InvokeAsPack(packName, fn, JsValue.FromObject(engine, proxy));
+                        engine.Invoke(fn, JsValue.FromObject(engine, proxy));
                     }
                 }, packName);
                 return name;

@@ -35,8 +35,7 @@ public class ProgressionModule : IJintApiModule
                 var name = obj.Get("name").ToString();
                 var maxLevel = (int)(double)obj.Get("max_level").ToObject()!;
 
-                // Captured at load time (when __currentPack is valid) for the deferred
-                // xp_formula / on_level_up callbacks below — see PackScope.InvokeAsPack.
+                // Captured at load time for the registration policy owner record.
                 var packName = engine.CurrentPackOwner();
                 var sourceFile = engine.CurrentSourceFile();
 
@@ -61,7 +60,7 @@ public class ProgressionModule : IJintApiModule
                 {
                     xpFormula = (level) =>
                     {
-                        var result = engine.InvokeAsPack(packName, xpFormulaVal, null, new object[] { level });
+                        var result = engine.Invoke(xpFormulaVal, null, new object[] { level });
                         return (int)(double)result.ToObject()!;
                     };
                 }
@@ -72,7 +71,7 @@ public class ProgressionModule : IJintApiModule
                 {
                     onLevelUp = (entityId, trackName, newLevel) =>
                     {
-                        engine.InvokeAsPack(packName, onLevelUpVal, null, new object[] { entityId.ToString(), trackName, newLevel });
+                        engine.Invoke(onLevelUpVal, null, new object[] { entityId.ToString(), trackName, newLevel });
                     };
                 }
 

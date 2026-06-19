@@ -14,7 +14,7 @@ namespace Tapestry.Scripting.Interop;
 /// <c>__currentPack</c> — so a proxy captured at load keeps gating correctly inside
 /// deferred handlers, and an importer file that sorts before its exporter still works.
 /// Function exports are wrapped so they run attributed to the exporter's pack
-/// (InvokeAsPack); namespace/data exports are returned as-is (single shared realm) and
+/// (plain engine.Invoke; attribution is lexical via the active ESM module); namespace/data exports are returned as-is (single shared realm) and
 /// should be treated as read-only by convention. Game-loop thread only, like all interop.
 /// Enumeration (Object.keys, for...in, JSON.stringify) yields no keys — the proxy is a
 /// read-accessor, not a data container; use tapestry.packs.getExportRegistry() for introspection.
@@ -68,7 +68,7 @@ public sealed class RequireProxy : ObjectInstance
             var fn = new ClrFunction(
                 _jsEngine,
                 member,
-                (thisObj, args) => _jsEngine.InvokeAsPack(entry.Pack, entry.Handler, null, args));
+                (thisObj, args) => _jsEngine.Invoke(entry.Handler, null, args));
 
             return new PropertyDescriptor(fn, writable: false, enumerable: true, configurable: false);
         }

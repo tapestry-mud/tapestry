@@ -23,10 +23,7 @@ public class EventsModule : IJintApiModule
         {
             on = new Action<string, JsValue>((eventType, callback) =>
             {
-                // Capture the registering pack at load time; the callback is invoked
-                // later (on publish) when the global __currentPack would be stale.
-                var packName = engine.CurrentPackOwner();
-                var dispatcher = new EventDispatcher(engine, callback, packName);
+                var dispatcher = new EventDispatcher(engine, callback);
                 _eventBus.Subscribe(eventType, dispatcher.Dispatch);
             }),
 
@@ -54,15 +51,13 @@ public class EventsModule : IJintApiModule
     {
         private readonly JintEngine _engine;
         private readonly JsValue _callback;
-        private readonly string _packName;
         private readonly JsValue _cancelFn;
         private GameEvent? _current;
 
-        public EventDispatcher(JintEngine engine, JsValue callback, string packName)
+        public EventDispatcher(JintEngine engine, JsValue callback)
         {
             _engine = engine;
             _callback = callback;
-            _packName = packName;
             _cancelFn = JsValue.FromObject(engine, new Action(() =>
             {
                 if (_current != null) { _current.Cancelled = true; }
@@ -80,7 +75,7 @@ public class EventsModule : IJintApiModule
             jsEvent.FastSetDataProperty("cancelled", gameEvent.Cancelled);
             jsEvent.FastSetDataProperty("data", JsValue.FromObject(_engine, gameEvent.Data));
             jsEvent.FastSetDataProperty("cancel", _cancelFn);
-            _engine.InvokeAsPack(_packName, _callback, jsEvent);
+            _engine.Invoke(_callback, jsEvent);
         }
     }
 }
