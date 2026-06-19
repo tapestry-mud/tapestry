@@ -27,9 +27,10 @@ public class AbilitiesModuleTests
     public void Register_CapturesSourceFileFromCurrentSource()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(
-            "tapestry.abilities.register({ id: 'kick', name: 'Kick', type: 'active', category: 'skill', handler: function(){} });",
+        EsmTest.Load(
+            rt,
             "test-pack",
+            "tapestry.abilities.register({ id: 'kick', name: 'Kick', type: 'active', category: 'skill', handler: function(){} });",
             "scripts/abilities/skills.js"
         );
         policy.Resolve();
@@ -41,7 +42,7 @@ public class AbilitiesModuleTests
     public void Register_CapturesShortName()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({
                 id: 'heron_wading_in_the_rushes',
                 name: 'Heron Wading in the Rushes',
@@ -60,7 +61,7 @@ public class AbilitiesModuleTests
     public void Register_ShortNameDefaultsToNullWhenOmitted()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({
                 id: 'bash',
                 name: 'Bash',
@@ -78,7 +79,7 @@ public class AbilitiesModuleTests
     public void Register_FailureGainMultiplier_RoundTrips()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({
                 id: 'dodge',
                 name: 'Dodge',
@@ -95,7 +96,7 @@ public class AbilitiesModuleTests
     public void Register_FailureGainMultiplier_DefaultsWhenOmitted()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({ id: 'parry', name: 'Parry' });
         ");
         policy.Resolve();
@@ -108,14 +109,14 @@ public class AbilitiesModuleTests
     public void Search_ByNameFragment_ReturnsMatchingRows()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({ id: 'fireball', name: 'Fireball', type: 'active', category: 'spell' });
             tapestry.abilities.register({ id: 'fire_shield', name: 'Fire Shield', type: 'passive', category: 'spell' });
             tapestry.abilities.register({ id: 'bash', name: 'Bash', type: 'active', category: 'skill' });
         ");
         policy.Resolve();
 
-        var json = rt.Evaluate("JSON.stringify(tapestry.abilities.search('fire'))")?.ToString() ?? "";
+        var json = EsmTest.Eval(rt, "JSON.stringify(tapestry.abilities.search('fire'))")?.ToString() ?? "";
         Assert.Contains("fireball", json);
         Assert.Contains("fire_shield", json);
         Assert.DoesNotContain("bash", json);
@@ -125,13 +126,13 @@ public class AbilitiesModuleTests
     public void Search_AllKeyword_ReturnsEverything()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({ id: 'kick', name: 'Kick', type: 'active', category: 'skill' });
             tapestry.abilities.register({ id: 'mend', name: 'Mend', type: 'active', category: 'spell' });
         ");
         policy.Resolve();
 
-        var json = rt.Evaluate("JSON.stringify(tapestry.abilities.search('all'))")?.ToString() ?? "";
+        var json = EsmTest.Eval(rt, "JSON.stringify(tapestry.abilities.search('all'))")?.ToString() ?? "";
         Assert.Contains("kick", json);
         Assert.Contains("mend", json);
     }
@@ -140,15 +141,15 @@ public class AbilitiesModuleTests
     public void Search_WhitespaceOrNoMatch_ReturnsEmpty()
     {
         var (rt, reg, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({ id: 'dodge', name: 'Dodge', type: 'passive', category: 'skill' });
         ");
         policy.Resolve();
 
-        var whitespaceJson = rt.Evaluate("JSON.stringify(tapestry.abilities.search('   '))")?.ToString() ?? "";
+        var whitespaceJson = EsmTest.Eval(rt, "JSON.stringify(tapestry.abilities.search('   '))")?.ToString() ?? "";
         Assert.Equal("[]", whitespaceJson);
 
-        var noMatchJson = rt.Evaluate("JSON.stringify(tapestry.abilities.search('zzznomatch'))")?.ToString() ?? "";
+        var noMatchJson = EsmTest.Eval(rt, "JSON.stringify(tapestry.abilities.search('zzznomatch'))")?.ToString() ?? "";
         Assert.Equal("[]", noMatchJson);
     }
 }

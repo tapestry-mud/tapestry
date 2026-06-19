@@ -38,7 +38,7 @@ public class CombatModuleTests
         Assert.True(combat.IsInCombat(entityA.Id));
         Assert.True(combat.IsInCombat(entityB.Id));
 
-        rt.Execute($"tapestry.combat.removeFromAllCombat('{entityA.Id}')");
+        EsmTest.Load(rt, "test-pack", $"tapestry.combat.removeFromAllCombat('{entityA.Id}')");
 
         Assert.False(combat.IsInCombat(entityA.Id));
         Assert.False(combat.IsInCombat(entityB.Id));
@@ -49,7 +49,7 @@ public class CombatModuleTests
     {
         // A is engaged with BOTH B and C (two symmetric pairs: A-B, A-C).
         // B and C each have only A as their opponent.
-        // Removing A from all combat must clear A, B, and C — the foreach
+        // Removing A from all combat must clear A, B, and C -- the foreach
         // over A's opponent list is the path under test.
         var (rt, world, combat) = BuildRuntime();
         var entityA = new Entity("npc", "goblin");
@@ -65,7 +65,7 @@ public class CombatModuleTests
         Assert.True(combat.IsInCombat(entityB.Id));
         Assert.True(combat.IsInCombat(entityC.Id));
 
-        rt.Execute($"tapestry.combat.removeFromAllCombat('{entityA.Id}')");
+        EsmTest.Load(rt, "test-pack", $"tapestry.combat.removeFromAllCombat('{entityA.Id}')");
 
         Assert.False(combat.IsInCombat(entityA.Id));
         Assert.False(combat.IsInCombat(entityB.Id));
@@ -77,7 +77,7 @@ public class CombatModuleTests
     {
         var (rt, _, _) = BuildRuntime();
         var unknownId = Guid.NewGuid().ToString();
-        var ex = Record.Exception(() => rt.Execute($"tapestry.combat.removeFromAllCombat('{unknownId}')"));
+        var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", $"tapestry.combat.removeFromAllCombat('{unknownId}')"));
         Assert.Null(ex);
     }
 
@@ -85,7 +85,7 @@ public class CombatModuleTests
     public void RemoveFromAllCombat_GarbageId_DoesNotThrow()
     {
         var (rt, _, _) = BuildRuntime();
-        var ex = Record.Exception(() => rt.Execute("tapestry.combat.removeFromAllCombat('not-a-guid')"));
+        var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", "tapestry.combat.removeFromAllCombat('not-a-guid')"));
         Assert.Null(ex);
     }
 }

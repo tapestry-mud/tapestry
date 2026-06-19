@@ -29,7 +29,7 @@ public class RacesModuleTests
     public void Register_StoresRaceInRegistry()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.races.register({
                 id: 'elf',
                 name: 'Elf',
@@ -58,7 +58,7 @@ public class RacesModuleTests
         });
         var entity = new Entity("npc", "Ugly");
         world.TrackEntity(entity);
-        rt.Execute($"tapestry.world.setRace('{entity.Id}', 'elf');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.world.setRace('{entity.Id}', 'elf');");
         Assert.Equal("elf", entity.GetProperty<string>("race"));
         Assert.True(entity.HasTag("resist_poison"));
         Assert.True(entity.HasTag("regen"));
@@ -68,7 +68,7 @@ public class RacesModuleTests
     public void Get_ReturnsNullForUnknown()
     {
         var (rt, _, _, _) = BuildRuntime();
-        var result = rt.Evaluate("tapestry.races.get('missing')");
+        var result = EsmTest.Eval(rt, "tapestry.races.get('missing')");
         Assert.True(result == null || result.ToString() == "null");
     }
 
@@ -76,7 +76,7 @@ public class RacesModuleTests
     public void Register_PersistsNewFields()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.races.register({
                 id: 'elf',
                 name: 'Elf',
@@ -109,8 +109,8 @@ public class RacesModuleTests
             Tagline = "Iron endurance",
             Description = "Fierce warriors."
         });
-        var result = rt.Evaluate("tapestry.races.getAll()");
+        var result = EsmTest.Eval(rt, "tapestry.races.getAll()");
         Assert.NotNull(result);
-        // Returns array — tagline/description available
+        // Returns array -- tagline/description available
     }
 }

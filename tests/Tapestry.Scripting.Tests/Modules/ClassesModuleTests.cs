@@ -29,7 +29,7 @@ public class ClassesModuleTests
     public void Register_PersistsNewFields()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.classes.register({
                 id: 'warrior',
                 name: 'Warrior',
@@ -82,7 +82,7 @@ public class ClassesModuleTests
             AllowedGenders = new List<string> { "male", "female", "other" },
             Path = new List<ClassPathEntry> { new ClassPathEntry(1, "dodge", null) }
         });
-        var result = rt.Evaluate("tapestry.classes.get('warrior')");
+        var result = EsmTest.Eval(rt, "tapestry.classes.get('warrior')");
         Assert.NotNull(result);
         // Verify the object round-trips through JS; detailed field checks in C# layer tests
     }
@@ -91,7 +91,7 @@ public class ClassesModuleTests
     public void GetEligibleClasses_FiltersCorrectly()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.races.register({
                 id: 'human',
                 name: 'Human',
@@ -114,7 +114,7 @@ public class ClassesModuleTests
             });
         ");
         policy.Resolve();
-        var result = rt.Evaluate(
+        var result = EsmTest.Eval(rt,
             "tapestry.classes.getEligibleClasses({ race: 'human', gender: 'male' })");
         Assert.NotNull(result);
         // Should return exactly one class
@@ -127,12 +127,12 @@ public class ClassesModuleTests
     public void GetEligibleClasses_UsesRaceIdAsCategoryFallback()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.races.register({
                 id: 'human',
                 name: 'Human',
                 stat_caps: {}
-                // no race_category — falls back to 'human'
+                // no race_category -- falls back to 'human'
             });
             tapestry.classes.register({
                 id: 'test-mob',
@@ -142,7 +142,7 @@ public class ClassesModuleTests
             });
         ");
         policy.Resolve();
-        var result = rt.Evaluate(
+        var result = EsmTest.Eval(rt,
             "tapestry.classes.getEligibleClasses({ race: 'human', gender: 'male' })");
         var arr = result as object[];
         Assert.NotNull(arr);
@@ -153,7 +153,7 @@ public class ClassesModuleTests
     public void Register_StoresClassInRegistry()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.classes.register({
                 id: 'warrior',
                 name: 'Warrior',
@@ -172,7 +172,7 @@ public class ClassesModuleTests
     {
         var (rt, reg, _, policy) = BuildRuntime();
         reg.Register(new ClassDefinition { Id = "human", Name = "Human" });
-        var result = rt.Evaluate("tapestry.classes.get('human')");
+        var result = EsmTest.Eval(rt, "tapestry.classes.get('human')");
         Assert.NotNull(result);
     }
 
@@ -180,7 +180,7 @@ public class ClassesModuleTests
     public void Register_TrainsPerLevel_RoundTrips()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.classes.register({
                 id: 'warrior', name: 'Warrior',
                 trains_per_level: 7
@@ -196,7 +196,7 @@ public class ClassesModuleTests
     public void Register_GrowthBonuses_RoundTrips()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.classes.register({
                 id: 'warrior', name: 'Warrior',
                 growth_bonuses: { max_hp: 'constitution', max_movement: 'dexterity' }
@@ -213,7 +213,7 @@ public class ClassesModuleTests
     public void Register_TrainsPerLevel_DefaultsWhenOmitted()
     {
         var (rt, reg, _, policy) = BuildRuntime();
-        rt.Execute(@"tapestry.classes.register({ id: 'empty', name: 'Empty' });");
+        EsmTest.Load(rt, "test-pack", @"tapestry.classes.register({ id: 'empty', name: 'Empty' });");
         policy.Resolve();
         Assert.Equal(5, reg.Get("empty")!.TrainsPerLevel);
     }
@@ -225,7 +225,7 @@ public class ClassesModuleTests
         reg.Register(new ClassDefinition { Id = "warrior", Name = "Warrior" });
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
-        rt.Execute($"tapestry.world.setClass('{entity.Id}', 'warrior');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.world.setClass('{entity.Id}', 'warrior');");
         Assert.Equal("warrior", entity.GetProperty<string>("class"));
     }
 }

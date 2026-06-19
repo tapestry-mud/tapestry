@@ -29,9 +29,9 @@ public class EssenceModuleTests
     public void Register_AndGetEssence_ReturnsEssenceObject()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute("tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.essence.getEssence('fire').glyph;");
+        var result = EsmTest.Eval(rt, "tapestry.essence.getEssence('fire').glyph;");
         Assert.Equal("^", result!.ToString());
     }
 
@@ -39,9 +39,9 @@ public class EssenceModuleTests
     public void Format_KnownKey_ReturnsColoredGlyphInParens()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute("tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.essence.format('fire');");
+        var result = EsmTest.Eval(rt, "tapestry.essence.format('fire');");
         Assert.NotNull(result);
         Assert.Contains("(^)", result!.ToString());
     }
@@ -50,9 +50,9 @@ public class EssenceModuleTests
     public void Format_NullKey_ReturnsEmptyString()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute("tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key: 'fire', glyph: '^', color: 'red' });", "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.essence.format(null);");
+        var result = EsmTest.Eval(rt, "tapestry.essence.format(null);");
         Assert.Equal(string.Empty, result!.ToString());
     }
 
@@ -61,7 +61,7 @@ public class EssenceModuleTests
     {
         var (rt, policy, _) = BuildRuntime();
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.essence.format('void');");
+        var result = EsmTest.Eval(rt, "tapestry.essence.format('void');");
         Assert.Equal(string.Empty, result!.ToString());
     }
 
@@ -69,8 +69,8 @@ public class EssenceModuleTests
     public void TwoPacks_SameEssence_NoOverride_BootError()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'#', color:'orange' });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.essence.register({ key:'fire', glyph:'#', color:'orange' });", "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("fire").And.Contain("override");
     }
@@ -79,10 +79,10 @@ public class EssenceModuleTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'#', color:'orange', override:true });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.essence.register({ key:'fire', glyph:'#', color:'orange', override:true });", "scripts/b.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.essence.getEssence('fire').glyph;");
+        var result = EsmTest.Eval(rt, "tapestry.essence.getEssence('fire').glyph;");
         Assert.Equal("#", result!.ToString());
     }
 
@@ -90,8 +90,8 @@ public class EssenceModuleTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _) = BuildRuntime(); // no edges
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.essence.register({ key:'fire', glyph:'#', color:'orange', override:true });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.essence.register({ key:'fire', glyph:'^', color:'red' });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.essence.register({ key:'fire', glyph:'#', color:'orange', override:true });", "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

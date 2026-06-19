@@ -47,9 +47,10 @@ public class CommandsModuleTests : IDisposable
     public void Register_SourceFileFlowsFromCurrentSource()
     {
         var (rt, registry, _, policy, _) = BuildRuntime();
-        rt.Execute(
-            "tapestry.commands.register({ name: 'go', handler: function(p,a){} });",
+        EsmTest.Load(
+            rt,
             "test-pack",
+            "tapestry.commands.register({ name: 'go', handler: function(p,a){} });",
             "scripts/commands/movement.js"
         );
         policy.Resolve();
@@ -61,7 +62,7 @@ public class CommandsModuleTests : IDisposable
     public void Register_AdminShorthand_SetsVisibleToAdminPredicate()
     {
         var (rt, registry, _, policy, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'spawn',
                 admin: true,
@@ -84,7 +85,7 @@ public class CommandsModuleTests : IDisposable
     public void Register_AdminTrue_WinsOverVisibleTo()
     {
         var (rt, registry, _, policy, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'secret',
                 admin: true,
@@ -106,7 +107,7 @@ public class CommandsModuleTests : IDisposable
         entity.AddRole("admin");
         world.TrackEntity(entity);
 
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             tapestry.commands.register({{
                 name: 'tagtest',
                 visibleTo: function(player) {{
@@ -128,7 +129,7 @@ public class CommandsModuleTests : IDisposable
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({ name: 'visible', handler: function(){} });
             tapestry.commands.register({ name: 'hidden', admin: true, handler: function(){} });
         ");
@@ -136,7 +137,7 @@ public class CommandsModuleTests : IDisposable
         help.LoadPack("test-pack", MakeTopicDir("visible", "world"), "help/**/*.yaml", 1);
         policy.Resolve();
 
-        var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
+        var result = EsmTest.Eval(rt, $"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
         var json = result?.ToString() ?? "[]";
 
         Assert.Contains("visible", json);
@@ -150,15 +151,16 @@ public class CommandsModuleTests : IDisposable
         var player = new Entity("player", "Tester");
         world.TrackEntity(player);
 
-        rt.Execute(
-            "tapestry.commands.register({ name: 'north', handler: function(){} });",
+        EsmTest.Load(
+            rt,
             "test-pack",
+            "tapestry.commands.register({ name: 'north', handler: function(){} });",
             "scripts/commands/movement.js"
         );
         help.LoadPack("test-pack", MakeTopicDir("north", "movement"), "help/**/*.yaml", 1);
         policy.Resolve();
 
-        var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
+        var result = EsmTest.Eval(rt, $"JSON.stringify(tapestry.commands.listForPlayer('{player.Id}'))");
         var json = result?.ToString() ?? "[]";
 
         Assert.Contains("\"category\":\"movement\"", json);
@@ -172,13 +174,13 @@ public class CommandsModuleTests : IDisposable
         adminPlayer.AddRole("admin");
         world.TrackEntity(adminPlayer);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({ name: 'spawn', admin: true, handler: function(){} });
         ");
         help.LoadPack("test-pack", MakeTopicDir("spawn", "admin"), "help/**/*.yaml", 1);
         policy.Resolve();
 
-        var result = rt.Evaluate($"JSON.stringify(tapestry.commands.listForPlayer('{adminPlayer.Id}'))");
+        var result = EsmTest.Eval(rt, $"JSON.stringify(tapestry.commands.listForPlayer('{adminPlayer.Id}'))");
         var json = result?.ToString() ?? "[]";
 
         Assert.Contains("spawn", json);
