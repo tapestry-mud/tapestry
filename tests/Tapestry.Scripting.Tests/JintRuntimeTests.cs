@@ -257,7 +257,8 @@ public class JintRuntimeTests
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
-        var registrationPolicy = TestRegistrationPolicy.Create();
+        var edges = new FakeEdges();
+        var registrationPolicy = new Tapestry.Engine.Registration.RegistrationPolicy(edges);
         var gameLoop = new GameLoop(
             commandRouter,
             sessions, eventBus, new SystemEventQueue(),
@@ -295,7 +296,6 @@ public class JintRuntimeTests
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry(), registrationPolicy),
         };
 
-        var edges = new FakeEdges();
         var loader = new Tapestry.Scripting.Interop.TapestryModuleLoader(edges);
 
         var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance, loader: loader);
