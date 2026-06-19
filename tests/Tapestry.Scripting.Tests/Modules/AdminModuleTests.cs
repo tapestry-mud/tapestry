@@ -56,7 +56,7 @@ public class AdminModuleTests
         var registry = provider.GetRequiredService<CommandRegistry>();
         var sessions = provider.GetRequiredService<SessionManager>();
         var script = File.ReadAllText(InspectScriptPath);
-        rt.Execute(script, "tapestry-core", "scripts/commands/admin-inspect.js");
+        EsmTest.Load(rt, "tapestry-core", script, "scripts/commands/admin-inspect.js");
         // Command registration is now ledgered; seal so the registry is populated before dispatch.
         provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>().Resolve();
         return (rt, world, registry, sessions);
@@ -95,7 +95,7 @@ public class AdminModuleTests
     public void AdminNamespace_IsAccessibleAfterInitialize()
     {
         var (rt, _) = BuildRuntime();
-        var result = rt.Evaluate("typeof tapestry.admin");
+        var result = EsmTest.Eval(rt, "typeof tapestry.admin");
         Assert.Equal("object", result?.ToString());
     }
 
@@ -103,7 +103,7 @@ public class AdminModuleTests
     public void GrantRegister_StoresRegistration()
     {
         var (rt, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.admin.grant.register({
                 kind: 'player',
                 type: 'testgrant',
@@ -112,7 +112,7 @@ public class AdminModuleTests
                 handler: function(admin, target, args) {}
             });
         ");
-        var result = rt.Evaluate("tapestry.admin.grant.listKinds().length");
+        var result = EsmTest.Eval(rt, "tapestry.admin.grant.listKinds().length");
         Assert.Equal(1, Convert.ToInt32(result));
     }
 
@@ -121,7 +121,7 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var ok = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').ok");
+        var ok = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').ok");
         Assert.Equal("true", ok?.ToString()?.ToLower());
     }
 
@@ -130,8 +130,8 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var ok = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'ghostname', 'player').ok");
-        var err = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'ghostname', 'player').error");
+        var ok = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'ghostname', 'player').ok");
+        var err = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'ghostname', 'player').error");
         Assert.Equal("false", ok?.ToString()?.ToLower());
         Assert.Equal("not_found", err?.ToString());
     }
@@ -141,7 +141,7 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var err = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'elf', 'npc').error");
+        var err = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'elf', 'npc').error");
         Assert.Equal("no_room", err?.ToString());
     }
 
@@ -160,7 +160,7 @@ public class AdminModuleTests
         world.TrackEntity(mob);
         room.AddEntity(mob);
 
-        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'goblin', 'npc').name");
+        var name = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'goblin', 'npc').name");
         Assert.Equal("goblin guard", name?.ToString());
     }
 
@@ -169,7 +169,7 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var err = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'dagger', 'item').error");
+        var err = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'dagger', 'item').error");
         Assert.Equal("not_held", err?.ToString());
     }
 
@@ -183,7 +183,7 @@ public class AdminModuleTests
         world.TrackEntity(item);
         admin.AddToContents(item);
 
-        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'rusty', 'item').name");
+        var name = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'rusty', 'item').name");
         Assert.Equal("rusty dagger", name?.ToString());
     }
 
@@ -207,7 +207,7 @@ public class AdminModuleTests
         world.TrackEntity(mob2);
         room.AddEntity(mob2);
 
-        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', '2.goblin', 'npc').name");
+        var name = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', '2.goblin', 'npc').name");
         Assert.Equal("goblin warrior", name?.ToString());
     }
 
@@ -226,7 +226,7 @@ public class AdminModuleTests
         world.TrackEntity(mob);
         room.AddEntity(mob);
 
-        var ok = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', '3.goblin', 'npc').ok");
+        var ok = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', '3.goblin', 'npc').ok");
         Assert.Equal("false", ok?.ToString()?.ToLower());
     }
 
@@ -234,7 +234,7 @@ public class AdminModuleTests
     public void GrantRegister_ReturnsFullShapeFromListKinds()
     {
         var (rt, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.admin.grant.register({
                 kind: 'player',
                 type: 'xp',
@@ -243,8 +243,8 @@ public class AdminModuleTests
                 handler: function(admin, target, args) {}
             });
         ");
-        var kind = rt.Evaluate("tapestry.admin.grant.listKinds()[0].kind");
-        var type = rt.Evaluate("tapestry.admin.grant.listKinds()[0].type");
+        var kind = EsmTest.Eval(rt, "tapestry.admin.grant.listKinds()[0].kind");
+        var type = EsmTest.Eval(rt, "tapestry.admin.grant.listKinds()[0].type");
         Assert.Equal("player", kind?.ToString());
         Assert.Equal("xp", type?.ToString());
     }
@@ -254,8 +254,8 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var ok = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').ok");
-        var name = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').name");
+        var ok = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').ok");
+        var name = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'self', 'player').name");
         Assert.Equal("true", ok?.ToString()?.ToLower());
         Assert.Equal("AdminTester", name?.ToString());
     }
@@ -265,9 +265,9 @@ public class AdminModuleTests
     {
         var (rt, world) = BuildRuntime();
         var admin = CreateAdmin(world);
-        var ok = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').ok");
-        var error = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').error");
-        var message = rt.Evaluate($"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').message");
+        var ok = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').ok");
+        var error = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').error");
+        var message = EsmTest.Eval(rt, $"tapestry.admin.resolveTarget('{admin.Id}', 'nobody', 'player').message");
         Assert.Equal("false", ok?.ToString()?.ToLower());
         Assert.Equal("not_found", error?.ToString());
         Assert.Contains("nobody", message?.ToString() ?? "");
@@ -284,7 +284,7 @@ public class AdminModuleTests
         mob.Stats.Invalidate();
         mob.Stats.Hp = 50;
 
-        rt.Execute($"tapestry.admin.setEntityHp('{mob.Id}', 8000)");
+        EsmTest.Load(rt, "test-pack", $"tapestry.admin.setEntityHp('{mob.Id}', 8000)");
 
         Assert.Equal(8000, mob.Stats.BaseMaxHp);
         Assert.Equal(8000, mob.Stats.MaxHp);
@@ -295,7 +295,7 @@ public class AdminModuleTests
     public void SetEntityHp_InvalidId_DoesNotThrow()
     {
         var (rt, _) = BuildRuntime();
-        var ex = Record.Exception(() => rt.Execute("tapestry.admin.setEntityHp('not-a-guid', 100)"));
+        var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", "tapestry.admin.setEntityHp('not-a-guid', 100)"));
         Assert.Null(ex);
     }
 
@@ -406,7 +406,7 @@ public class AdminModuleTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'link',
                 aliases: [],
@@ -447,7 +447,7 @@ public class AdminModuleTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'unlink',
                 aliases: [],
@@ -497,7 +497,7 @@ public class AdminModuleTests
         var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
         var (target, _) = CreatePlayingSession(world, sessions);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             globalThis.waveActor = null;
             tapestry.commands.register({
                 name: 'wave',
@@ -508,7 +508,7 @@ public class AdminModuleTests
         ");
         policy.Resolve();
 
-        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'wave')");
+        var result = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', 'wave')");
 
         Assert.Equal("true", result?.ToString()?.ToLower());
         Assert.Equal(target.Id.ToString(), rt.Evaluate("globalThis.waveActor")?.ToString());
@@ -520,7 +520,7 @@ public class AdminModuleTests
         var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
         var (target, _) = CreatePlayingSession(world, sessions);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             globalThis.sayArgs = null;
             tapestry.commands.register({
                 name: 'say',
@@ -531,7 +531,7 @@ public class AdminModuleTests
         ");
         policy.Resolve();
 
-        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'say hello world')");
+        var result = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', 'say hello world')");
 
         Assert.Equal("true", result?.ToString()?.ToLower());
         Assert.Equal(2, Convert.ToInt32(rt.Evaluate("globalThis.sayArgs.length")));
@@ -545,7 +545,7 @@ public class AdminModuleTests
         var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
         CreatePlayingSession(world, sessions);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             globalThis.waveActor = null;
             tapestry.commands.register({
                 name: 'wave',
@@ -556,7 +556,7 @@ public class AdminModuleTests
         ");
         policy.Resolve();
 
-        var result = rt.Evaluate($"tapestry.admin.executeAs('{Guid.NewGuid()}', 'wave')");
+        var result = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{Guid.NewGuid()}', 'wave')");
 
         Assert.Equal("false", result?.ToString()?.ToLower());
         Assert.Equal("null", rt.Evaluate("globalThis.waveActor === null ? 'null' : 'set'")?.ToString());
@@ -566,7 +566,7 @@ public class AdminModuleTests
     public void ExecuteAs_GarbageGuid_ReturnsFalse()
     {
         var (rt, _, _, _, _) = BuildRuntimeWithSessions();
-        var result = rt.Evaluate("tapestry.admin.executeAs('not-a-guid', 'wave')");
+        var result = EsmTest.Eval(rt, "tapestry.admin.executeAs('not-a-guid', 'wave')");
         Assert.Equal("false", result?.ToString()?.ToLower());
     }
 
@@ -576,8 +576,8 @@ public class AdminModuleTests
         var (rt, world, _, sessions, _) = BuildRuntimeWithSessions();
         var (target, _) = CreatePlayingSession(world, sessions);
 
-        var blank = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', '')");
-        var whitespace = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', '   ')");
+        var blank = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', '')");
+        var whitespace = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', '   ')");
 
         Assert.Equal("false", blank?.ToString()?.ToLower());
         Assert.Equal("false", whitespace?.ToString()?.ToLower());
@@ -589,7 +589,7 @@ public class AdminModuleTests
         var (rt, world, _, sessions, policy) = BuildRuntimeWithSessions();
         var (target, conn) = CreatePlayingSession(world, sessions);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             globalThis.secretRan = false;
             tapestry.commands.register({
                 name: 'secret',
@@ -602,7 +602,7 @@ public class AdminModuleTests
         policy.Resolve();
 
         // Target has NO admin role: the router must re-gate as the TARGET and deny.
-        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'secret')");
+        var result = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', 'secret')");
 
         Assert.Equal("true", result?.ToString()?.ToLower()); // dispatched into the router...
         Assert.Equal("false", rt.Evaluate("globalThis.secretRan")?.ToString()?.ToLower()); // ...but denied
@@ -616,7 +616,7 @@ public class AdminModuleTests
         var (target, targetConn) = CreatePlayingSession(world, sessions, "Target");
         var (_, forcerConn) = CreatePlayingSession(world, sessions, "Forcer");
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'greet',
                 description: 'Greet.',
@@ -626,7 +626,7 @@ public class AdminModuleTests
         ");
         policy.Resolve();
 
-        var result = rt.Evaluate($"tapestry.admin.executeAs('{target.Id}', 'greet')");
+        var result = EsmTest.Eval(rt, $"tapestry.admin.executeAs('{target.Id}', 'greet')");
 
         Assert.Equal("true", result?.ToString()?.ToLower());
         Assert.Contains("forced hello", string.Join("", targetConn.SentText));
@@ -643,7 +643,7 @@ public class AdminModuleTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.commands.register({
                 name: 'connections',
                 aliases: [],
@@ -684,12 +684,12 @@ public class AdminModuleTests
     {
         var (rt, _) = BuildRuntime();
 
-        Assert.False(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+        Assert.False(Convert.ToBoolean(EsmTest.Eval(rt, "tapestry.admin.isWizlocked()")));
 
-        rt.Execute("tapestry.admin.setWizlock(true);");
-        Assert.True(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+        EsmTest.Load(rt, "test-pack", "tapestry.admin.setWizlock(true);");
+        Assert.True(Convert.ToBoolean(EsmTest.Eval(rt, "tapestry.admin.isWizlocked()")));
 
-        rt.Execute("tapestry.admin.setWizlock(false);");
-        Assert.False(Convert.ToBoolean(rt.Evaluate("tapestry.admin.isWizlocked()")));
+        EsmTest.Load(rt, "test-pack", "tapestry.admin.setWizlock(false);");
+        Assert.False(Convert.ToBoolean(EsmTest.Eval(rt, "tapestry.admin.isWizlocked()")));
     }
 }

@@ -30,7 +30,7 @@ public class QuestScriptLoaderTests
     {
         var (rt, _, loader, policy) = BuildRuntime();
 
-        rt.Execute("tapestry.quests.registerScript('test:my-quest', { onGranted: function(player) { return true; } })");
+        EsmTest.Load(rt, "test-pack", "tapestry.quests.registerScript('test:my-quest', { onGranted: function(player) { return true; } })");
         policy.Resolve(); // quest hooks commit at the seal barrier
 
         loader.HasScript("test:my-quest").Should().BeTrue();
@@ -54,7 +54,7 @@ public class QuestScriptLoaderTests
         var player = new Entity("player", "Rand");
         world.TrackEntity(player);
 
-        rt.Execute("tapestry.quests.registerScript('test:grant-true', { onGranted: function(player) { return true; } })");
+        EsmTest.Load(rt, "test-pack", "tapestry.quests.registerScript('test:grant-true', { onGranted: function(player) { return true; } })");
         policy.Resolve(); // quest hooks commit at the seal barrier
 
         var result = loader.CallOnGranted("test:grant-true", player.Id);
@@ -70,7 +70,7 @@ public class QuestScriptLoaderTests
         var player = new Entity("player", "Mat");
         world.TrackEntity(player);
 
-        rt.Execute("tapestry.quests.registerScript('test:grant-false', { onGranted: function(player) { return false; } })");
+        EsmTest.Load(rt, "test-pack", "tapestry.quests.registerScript('test:grant-false', { onGranted: function(player) { return false; } })");
         policy.Resolve(); // quest hooks commit at the seal barrier
 
         var result = loader.CallOnGranted("test:grant-false", player.Id);
@@ -86,7 +86,7 @@ public class QuestScriptLoaderTests
         var player = new Entity("player", "Perrin");
         world.TrackEntity(player);
 
-        rt.Execute("tapestry.quests.registerScript('test:no-granted', { onCompleted: function(player) {} })");
+        EsmTest.Load(rt, "test-pack", "tapestry.quests.registerScript('test:no-granted', { onCompleted: function(player) {} })");
         policy.Resolve(); // quest hooks commit at the seal barrier
 
         var result = loader.CallOnGranted("test:no-granted", player.Id);

@@ -52,7 +52,7 @@ public class InventoryModuleGiveTests
         var giverId = giver.Id.ToString();
         var receiverId = receiver.Id.ToString();
 
-        var result = rt.Evaluate($"tapestry.inventory.give('{giverId}', '{receiverId}', 'sword')");
+        var result = EsmTest.Eval(rt, $"tapestry.inventory.give('{giverId}', '{receiverId}', 'sword')");
 
         result.Should().Be(true);
         giver.Contents.Should().NotContain(sword);
@@ -78,7 +78,7 @@ public class InventoryModuleGiveTests
         var giverId = giver.Id.ToString();
         var receiverId = receiver.Id.ToString();
 
-        var result = rt.Evaluate($"tapestry.inventory.give('{giverId}', '{receiverId}', 'sword')");
+        var result = EsmTest.Eval(rt, $"tapestry.inventory.give('{giverId}', '{receiverId}', 'sword')");
 
         result.Should().Be(false);
         receiver.Contents.Should().BeEmpty();
@@ -119,7 +119,7 @@ public class InventoryModuleGiveTests
         giverEntity.AddToContents(sword);
         world.TrackEntity(sword);
 
-        rt.Execute("""
+        EsmTest.Load(rt, "test-pack", """
             tapestry.commands.register({
                 name: 'give',
                 description: 'Give an item to another player.',
@@ -150,7 +150,7 @@ public class InventoryModuleGiveTests
                     }
                 }
             });
-            """, "test-pack");
+            """);
         policy.Resolve();
 
         var registration = commands.Resolve("give");

@@ -62,7 +62,7 @@ public class PackPropertyPersistenceRoundTripTests
         world.TrackEntity(player);
         var id = player.Id;
 
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var raw = tapestry.world.getProperty('{id}', 'known_recipes') || [];
             var known = Array.isArray(raw) ? raw.slice() : [];
             known.push('tapestry-tinkers:level-1-bench');
@@ -106,10 +106,10 @@ public class PackPropertyPersistenceRoundTripTests
 
         // --- Step 5: read from JS and assert Array.isArray + contents ---
         // The key in the entity is the bare "known_recipes" (same as what JS setProperty used).
-        var isArray = rt.Evaluate($"Array.isArray(tapestry.world.getProperty('{reloadedId}', 'known_recipes') || [])");
+        var isArray = EsmTest.Eval(rt, $"Array.isArray(tapestry.world.getProperty('{reloadedId}', 'known_recipes') || [])");
         Assert.Equal(true, isArray);
 
-        var length = rt.Evaluate($@"
+        var length = EsmTest.Eval(rt, $@"
             (function() {{
                 var k = tapestry.world.getProperty('{reloadedId}', 'known_recipes') || [];
                 return Array.isArray(k) ? k.length : -1;
@@ -117,7 +117,7 @@ public class PackPropertyPersistenceRoundTripTests
         ");
         Assert.Equal(2, Convert.ToInt32(length));
 
-        var hasBench = rt.Evaluate($@"
+        var hasBench = EsmTest.Eval(rt, $@"
             (function() {{
                 var k = tapestry.world.getProperty('{reloadedId}', 'known_recipes') || [];
                 var list = Array.isArray(k) ? k : [];
@@ -136,7 +136,7 @@ public class PackPropertyPersistenceRoundTripTests
         world.TrackEntity(player);
         var id = player.Id;
 
-        rt.Execute($@"
+        EsmTest.Load(rt, "test-pack", $@"
             var known = ['tapestry-tinkers:level-1-bench', 'tapestry-tinkers:iron-pickaxe'];
             tapestry.world.setProperty('{id}', 'known_recipes', known);
         ");
@@ -150,7 +150,7 @@ public class PackPropertyPersistenceRoundTripTests
 
         // Must NOT be a {type, value} tagged dict.
         Assert.False(value is Dictionary<string, object?>,
-            "known_recipes was serialized as a tagged dict — this is the pre-fix bug.");
+            "known_recipes was serialized as a tagged dict -- this is the pre-fix bug.");
 
         // Must be a list type.
         Assert.True(value is List<string> || value is List<object>,

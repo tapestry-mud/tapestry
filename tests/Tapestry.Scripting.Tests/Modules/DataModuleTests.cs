@@ -39,7 +39,7 @@ public class DataModuleTests
         {
             packContext.CurrentPackDir = tempDir;
 
-            var count = rt.Evaluate("tapestry.data.loadYaml('socials/test.yaml').length");
+            var count = EsmTest.Eval(rt, "tapestry.data.loadYaml('socials/test.yaml').length");
 
             count.Should().Be(2);
         }
@@ -55,7 +55,7 @@ public class DataModuleTests
         var (rt, packContext) = BuildRuntime();
         packContext.CurrentPackDir = Path.GetTempPath();
 
-        var result = rt.Evaluate("tapestry.data.loadYaml('nonexistent/file.yaml')");
+        var result = EsmTest.Eval(rt, "tapestry.data.loadYaml('nonexistent/file.yaml')");
 
         result.Should().BeNull();
     }
@@ -66,7 +66,7 @@ public class DataModuleTests
         var (rt, packContext) = BuildRuntime();
         packContext.CurrentPackDir = Path.GetTempPath();
 
-        var result = rt.Evaluate("tapestry.data.loadYaml('../../../etc/passwd')");
+        var result = EsmTest.Eval(rt, "tapestry.data.loadYaml('../../../etc/passwd')");
 
         result.Should().BeNull();
     }

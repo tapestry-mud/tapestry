@@ -35,7 +35,7 @@ public class FindPlayerByNameTests
         var (rt, world, sessions) = BuildRuntime();
         AddOnlinePlayer(sessions, world, "Mallek");
 
-        var result = rt.Evaluate("tapestry.world.findPlayerByName('mallek')");
+        var result = EsmTest.Eval(rt, "tapestry.world.findPlayerByName('mallek')");
 
         result.Should().NotBeNull();
     }
@@ -46,7 +46,7 @@ public class FindPlayerByNameTests
         var (rt, world, sessions) = BuildRuntime();
         AddOnlinePlayer(sessions, world, "Mallek");
 
-        var result = rt.Evaluate("tapestry.world.findPlayerByName('mall')");
+        var result = EsmTest.Eval(rt, "tapestry.world.findPlayerByName('mall')");
 
         result.Should().NotBeNull();
     }
@@ -57,7 +57,7 @@ public class FindPlayerByNameTests
         var (rt, world, sessions) = BuildRuntime();
         AddOnlinePlayer(sessions, world, "Mallek");
 
-        var result = rt.Evaluate("tapestry.world.findPlayerByName('nobody')");
+        var result = EsmTest.Eval(rt, "tapestry.world.findPlayerByName('nobody')");
 
         result.Should().BeNull();
     }
@@ -68,8 +68,8 @@ public class FindPlayerByNameTests
         var (rt, world, sessions) = BuildRuntime();
         AddOnlinePlayer(sessions, world, "Mallek");
 
-        var id = rt.Evaluate("tapestry.world.findPlayerByName('mallek').id");
-        var name = rt.Evaluate("tapestry.world.findPlayerByName('mallek').name");
+        var id = EsmTest.Eval(rt, "tapestry.world.findPlayerByName('mallek').id");
+        var name = EsmTest.Eval(rt, "tapestry.world.findPlayerByName('mallek').name");
 
         id.Should().NotBeNull();
         name.Should().Be("Mallek");
