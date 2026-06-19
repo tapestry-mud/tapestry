@@ -179,8 +179,7 @@ public class AdminModule : IJintApiModule
         var help = helpVal.Type != Types.Undefined ? helpVal.ToString() : "";
         var handler = obj.Get("handler");
 
-        var packNameVal = engine.GetValue("__currentPack");
-        var pack = packNameVal.Type != Types.Undefined ? packNameVal.ToString() : "";
+        var pack = engine.CurrentPackOwner();
 
         var key = (kind, type);
         if (_grantKinds.ContainsKey(key))

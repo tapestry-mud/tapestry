@@ -41,13 +41,8 @@ public class FlowsModule : IJintApiModule
                 var displayName = (displayNameVal.Type != Types.Undefined && displayNameVal.Type != Types.Null)
                     ? displayNameVal.ToString() : null;
 
-                var packNameVal = jint.GetValue("__currentPack");
-                var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
-                    ? packNameVal.ToString() : "";
-
-                var sourceFileVal = jint.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString() : "";
+                var packName = jint.CurrentPackOwner();
+                var sourceFile = jint.CurrentSourceFile();
 
                 var cancellableVal = obj.Get("cancellable");
                 var cancellable = cancellableVal.Type == Types.Boolean && (bool)cancellableVal.ToObject()!;

@@ -52,7 +52,7 @@ public class ScheduleModule : IJintApiModule
         {
             every = new Func<int, JsValue, string>((ticks, fn) =>
             {
-                var packName = engine.GetValue("__currentPack").ToString();
+                var packName = engine.CurrentPackOwner();
                 var name = NextHandlerName(packName);
                 _gameLoop.RegisterTickHandler(name, ticks, () =>
                 {
@@ -63,7 +63,7 @@ public class ScheduleModule : IJintApiModule
 
             everyForEach = new Func<int, JsValue, JsValue, string>((ticks, selectorVal, fn) =>
             {
-                var packName = engine.GetValue("__currentPack").ToString();
+                var packName = engine.CurrentPackOwner();
                 var name = NextHandlerName(packName);
 
                 var selectorObj = (ObjectInstance)selectorVal;

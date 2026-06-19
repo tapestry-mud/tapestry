@@ -142,12 +142,8 @@ public class CommandsModule : IJintApiModule
             }
         }
 
-        var packName = engine.GetValue("__currentPack").ToString();
-
-        var sourceFileVal = engine.GetValue("__currentSource");
-        var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-            ? sourceFileVal.ToString()
-            : "";
+        var packName = engine.CurrentPackOwner();
+        var sourceFile = engine.CurrentSourceFile();
 
         // Parse roles: ["player", "mob"] -- defaults to ["player"] if absent
         var rolesVal = obj.Get("roles");

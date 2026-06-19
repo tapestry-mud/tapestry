@@ -37,11 +37,8 @@ public class ProgressionModule : IJintApiModule
 
                 // Captured at load time (when __currentPack is valid) for the deferred
                 // xp_formula / on_level_up callbacks below — see PackScope.InvokeAsPack.
-                var packName = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString() : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
                 var overrideVal = obj.Get("override");

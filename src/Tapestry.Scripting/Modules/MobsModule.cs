@@ -51,12 +51,8 @@ public class MobsModule : IJintApiModule
         {
             registerBehavior = new Action<string, JsValue, JsValue>((name, handler, optionsJs) =>
             {
-                var packName = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString()
-                    : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 // Optional third arg: { override: true }. A missing JS arg marshals to CLR null
                 // (Jint 4.7.1); a missing field reads Undefined -- only Type==Boolean counts.
@@ -97,12 +93,8 @@ public class MobsModule : IJintApiModule
 
             registerCommand = new Action<string, JsValue>((verb, options) =>
             {
-                var packName = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString()
-                    : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 var optObj = (ObjectInstance)options;
                 var handler = optObj.Get("handler");
@@ -207,7 +199,7 @@ public class MobsModule : IJintApiModule
 
             registerScript = new Action<string, JsValue>((templateId, hooks) =>
             {
-                var packName = engine.GetValue("__currentPack").ToString();
+                var packName = engine.CurrentPackOwner();
                 _mobScriptRegistry[templateId] = (packName, hooks);
             }),
 

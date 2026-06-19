@@ -52,12 +52,8 @@ public class ArgsModule : IJintApiModule
 
                 // Owner is the pack namespace (e.g. "tapestry-tinkers") -- the same key the
                 // dependency-edge gate uses, so an edge-gated override actually matches.
-                var owner = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString()
-                    : "";
+                var owner = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 Func<ActorContext, ArgDefinition, string, (bool, object?, string?)> csharpResolver =
                     (actor, argDef, token) =>

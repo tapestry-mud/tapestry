@@ -45,12 +45,8 @@ public class EssenceModule : IJintApiModule
                 var overrideVal = obj.Get("override");
                 bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
-                var packName = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString()
-                    : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 // Declarative: accumulate a candidate. The real Register (and the theme-tag
                 // side-effect, which piggybacks the winner) replays at Resolve() (the seal),

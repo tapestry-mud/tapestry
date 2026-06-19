@@ -25,7 +25,7 @@ public class EventsModule : IJintApiModule
             {
                 // Capture the registering pack at load time; the callback is invoked
                 // later (on publish) when the global __currentPack would be stale.
-                var packName = engine.GetValue("__currentPack").ToString();
+                var packName = engine.CurrentPackOwner();
                 var dispatcher = new EventDispatcher(engine, callback, packName);
                 _eventBus.Subscribe(eventType, dispatcher.Dispatch);
             }),

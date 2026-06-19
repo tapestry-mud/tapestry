@@ -208,11 +208,8 @@ public class QuestModule : IJintApiModule
                     _scriptLoader.JintEngine = engine;
                 }
 
-                var packName = engine.GetValue("__currentPack").ToString();
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString() : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 // The hooks object holds functions; a non-function `override: true` key is fine.
                 // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.

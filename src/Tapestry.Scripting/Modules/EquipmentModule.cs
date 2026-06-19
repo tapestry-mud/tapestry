@@ -248,13 +248,8 @@ public class EquipmentModule : IJintApiModule
                 var overrideVal = obj.Get("override");
                 var isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
-                var packNameVal = engine.GetValue("__currentPack");
-                var packName = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
-                    ? packNameVal.ToString() : "";
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString() : "";
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
 
                 // Pack-owned, like PackLoader's equipment_slots yaml path -- NOT engine-owned
                 // (engine/kernel are the non-overridable owners reserved for C# boot code).

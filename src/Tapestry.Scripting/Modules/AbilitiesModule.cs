@@ -156,15 +156,8 @@ public class AbilitiesModule : IJintApiModule
                     priority = (int)(double)priorityVal.ToObject()!;
                 }
 
-                var packNameVal = engine.GetValue("__currentPack");
-                var packNameStr = (packNameVal.Type != Types.Undefined && packNameVal.Type != Types.Null)
-                    ? packNameVal.ToString()
-                    : "";
-
-                var sourceFileVal = engine.GetValue("__currentSource");
-                var sourceFileStr = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-                    ? sourceFileVal.ToString()
-                    : "";
+                var packNameStr = engine.CurrentPackOwner();
+                var sourceFileStr = engine.CurrentSourceFile();
 
                 // Jint 4.7.1 has no IsBoolean; a missing JS field reads Undefined. Only Type==Boolean counts.
                 var overrideVal = obj.Get("override");

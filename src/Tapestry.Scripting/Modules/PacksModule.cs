@@ -109,7 +109,7 @@ public class PacksModule : IJintApiModule
         // (including arrays) is stored as a read-by-require namespace/data export.
         var isFunction = handler is Jint.Native.Function.Function;
 
-        var pack = PackLoader.PackNamespace(engine.GetValue("__currentPack").ToString());
+        var pack = engine.CurrentPackOwner();
 
         var meta = metadata as ObjectInstance;
         var kind = GetString(meta, "kind", isFunction ? "query" : "namespace");
@@ -118,10 +118,7 @@ public class PacksModule : IJintApiModule
         var paramsList = GetParams(meta);
         var appliesTo = GetStringArray(meta, "appliesTo", new[] { "all" });
 
-        var sourceFileVal = engine.GetValue("__currentSource");
-        var sourceFile = (sourceFileVal.Type != Types.Undefined && sourceFileVal.Type != Types.Null)
-            ? sourceFileVal.ToString()
-            : "";
+        var sourceFile = engine.CurrentSourceFile();
         // Jint 4.7.1 has no IsBoolean; a missing JS field marshals to CLR null (and meta itself is null when no metadata arg was passed). Read via Type==Boolean.
         var ov = meta?.Get("override");
         var isOverride = ov is not null && ov.Type == Types.Boolean && (bool)ov.ToObject()!;

@@ -15,7 +15,7 @@ namespace Tapestry.Scripting;
 internal static class JintActiveModule
 {
     private static readonly Func<JintEngine, object?> Accessor = BuildAccessor();
-    private static PropertyInfo? _locationProp;
+    private static readonly Dictionary<Type, PropertyInfo?> _locationPropByType = new();
 
     private static Func<JintEngine, object?> BuildAccessor()
     {
@@ -48,10 +48,15 @@ internal static class JintActiveModule
         {
             return null;
         }
-        // IScriptOrModule is internal; read its public Location getter reflectively (cached).
-        _locationProp ??= active.GetType().GetProperty(
-            "Location",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        return _locationProp?.GetValue(active) as string;
+        // IScriptOrModule is internal; read its public Location getter reflectively (cached per type).
+        var type = active.GetType();
+        if (!_locationPropByType.TryGetValue(type, out var prop))
+        {
+            prop = type.GetProperty(
+                "Location",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            _locationPropByType[type] = prop;
+        }
+        return prop?.GetValue(active) as string;
     }
 }
