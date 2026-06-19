@@ -21,6 +21,7 @@ declare module "@tapestry/engine" {
     args?: Record<string, any>;
     visibleTo?: (player: any) => boolean;
     handler: (actor: any, resolved: any) => void;
+    [key: string]: any;
   }
 
   export interface BehaviorDef {
@@ -28,6 +29,7 @@ declare module "@tapestry/engine" {
     priority?: number;
     override?: boolean;
     handler: (...args: any[]) => any;
+    [key: string]: any;
   }
 
   // ---------------------------------------------------------------------------
@@ -51,15 +53,7 @@ declare module "@tapestry/engine" {
   // ---------------------------------------------------------------------------
   // admin
   // ---------------------------------------------------------------------------
-  export const admin: {
-    executeAs(...args: any[]): any;
-    grant(...args: any[]): any;
-    isWizlocked(...args: any[]): any;
-    set(...args: any[]): any;
-    setEntityHp(...args: any[]): any;
-    setWizlock(...args: any[]): any;
-    [key: string]: any;
-  };
+  export const admin: { [key: string]: any };
 
   // ---------------------------------------------------------------------------
   // alignment
