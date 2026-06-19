@@ -8,10 +8,10 @@ known constraints, and change history.
 | Capability | File | Last Updated |
 |------------|------|--------------|
 | Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-18 |
-| Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-12 |
+| Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-12 |
-| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-12 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-19 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-15 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-12 |

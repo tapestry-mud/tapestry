@@ -1,6 +1,6 @@
 ---
 capability: registries-and-seal
-last-updated: 2026-06-12
+last-updated: 2026-06-19
 ---
 
 # Registries and Seal
@@ -48,8 +48,20 @@ declared override.
   (src/Tapestry.Scripting/Modules/PacksModule.cs:149-166;
   tests/Tapestry.Scripting.Tests/Modules/PacksInteropModuleTests.cs:234-259)
 
+- **Post-seal introspection (read-only):** `RegistrationPolicy` exposes two reader
+  methods, safe to call after the seal: `GetRegistrySummary()` returns one
+  `RegistrySummaryRow` per kind (name count + shadow-conflict count), and
+  `GetRegistrations(kind, name?)` returns `RegistryEntryView` records for a kind -
+  each marked winner/override, an override winner naming the base it shadows and a
+  shadowed loser naming the winner. Both records are flat and primitive-only by
+  design. The methods only read the accumulated ledger; they do not register,
+  resolve, or mutate.
+  (src/Tapestry.Engine/Registration/RegistrationPolicy.cs:103-170)
+
 ## Rejected and Reverted
 
 - None on record.
 
 ## Change Log
+
+- 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - post-seal introspection readers (`GetRegistrySummary`/`GetRegistrations` + the two flat view records)

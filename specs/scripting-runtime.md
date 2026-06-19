@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-12
+last-updated: 2026-06-19
 ---
 
 # Scripting Runtime
@@ -41,7 +41,8 @@ The following namespaces are available to pack scripts as `tapestry.<namespace>`
   `races`, `alignment`, `ui`, `help`, `training`, `admin`, `currency`, `shop`,
   `consumables`, `rest`, `doors`, `portals`, `area`, `time`, `weather`, `returnaddress`,
   `data`, `rarity`, `essence`, `stacking`, `packs`, `quests`, `watch`, `args`, `flows`,
-  `schedule`, `gmcp`, `respond`, `notifications`, `connections`, `rooms`, `authoring`, `fs`
+  `schedule`, `gmcp`, `respond`, `notifications`, `connections`, `rooms`, `authoring`, `fs`,
+  `registry`
 
 (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:37-199; each module's `Namespace` property)
 
@@ -123,8 +124,24 @@ Notes on two commonly misspelled names:
   late population (packs finishing load after the module was constructed) is visible without
   a snapshot. (src/Tapestry.Scripting/LoadedPackNamespaces.cs:1-26; src/Tapestry.Scripting/ServiceCollectionExtensions.cs:152-153)
 
+### RegistryModule -- registry introspection surface
+
+- `RegistryModule` exposes the registration policy's post-seal readers to pack JS as
+  `tapestry.registry.summary()` (per-kind counts + conflict counts),
+  `tapestry.registry.list(kind, name?)` (the ledger for a kind, optionally one name),
+  and `tapestry.registry.conflicts()` (only names with more than one claimant, across
+  all kinds). (src/Tapestry.Scripting/Modules/RegistryModule.cs:22-37)
+- The two namespaced registries (property, tag) bypass the policy by design, so the
+  module adapts them in HERE rather than inside `RegistrationPolicy`: it reads their
+  `GetAll()` and normalizes each into the same row shape the policy kinds return,
+  tagging the model `policy` or `namespaced` so a renderer does not branch. Namespaced
+  rows carry ambiguity (a bare name declared by two or more packs) where policy rows
+  carry shadow/override. (src/Tapestry.Scripting/Modules/RegistryModule.cs:40-169)
+
 ## Rejected and Reverted
 
 - None on record.
 
 ## Change Log
+
+- 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - `RegistryModule` (`tapestry.registry.*`), the JS interop surface over the policy readers, adapting the property/tag outliers in at this layer
