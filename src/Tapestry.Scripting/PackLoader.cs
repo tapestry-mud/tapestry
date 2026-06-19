@@ -14,7 +14,6 @@ using Tapestry.Engine.Stats;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
-using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Properties;
 using Tapestry.Scripting.Tags;
@@ -41,7 +40,6 @@ public class PackLoader : IPackManifestProvider
     private readonly PropertyRegistry _propertyRegistry;
     private readonly QuestRegistry _questRegistry;
     private readonly ScheduleModule _scheduleModule;
-    private readonly InteropCallSiteRegistry _callSites;
     private readonly LoadedPackNamespaces _loadedNamespaces;
     private readonly RegistrationPolicy _registrationPolicy;
     private readonly RegistrationGate? _registrationGate;
@@ -64,7 +62,6 @@ public class PackLoader : IPackManifestProvider
                      HelpService helpService, TagRegistry tagRegistry,
                      PropertyRegistry propertyRegistry, QuestRegistry questRegistry,
                      ScheduleModule scheduleModule,
-                     InteropCallSiteRegistry callSites,
                      LoadedPackNamespaces loadedNamespaces,
                      RegistrationPolicy registrationPolicy,
                      RegistrationGate? registrationGate = null)
@@ -85,7 +82,6 @@ public class PackLoader : IPackManifestProvider
         _propertyRegistry = propertyRegistry;
         _questRegistry = questRegistry;
         _scheduleModule = scheduleModule;
-        _callSites = callSites;
         _loadedNamespaces = loadedNamespaces;
         _registrationPolicy = registrationPolicy;
     }

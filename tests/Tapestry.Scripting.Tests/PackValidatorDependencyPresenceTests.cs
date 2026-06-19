@@ -20,9 +20,7 @@ public class PackValidatorDependencyPresenceTests
     // and interop-resolution passes do meaningful work.
     private static PackValidator BuildValidator(
         PackDependencyGraph graph,
-        IPackManifestProvider manifests,
-        PackExportRegistry exports,
-        InteropCallSiteRegistry callSites)
+        IPackManifestProvider manifests)
     {
         var world = new World();
         var items = new ItemRegistry();
@@ -33,7 +31,7 @@ public class PackValidatorDependencyPresenceTests
         return new PackValidator(
             spawner, items, world, NullLogger<PackValidator>.Instance,
             new AbilityRegistry(), new CommandRegistry(), tags, manifests, props,
-            graph, exports, callSites);
+            graph);
     }
 
     private static IPackManifestProvider Manifests(params PackManifest[] m) =>
@@ -58,8 +56,7 @@ public class PackValidatorDependencyPresenceTests
             Dependencies = new() { ["@tapestry/survival"] = "^1.0.0" }
         });
         var validator = BuildValidator(
-            GraphLoading("tapestry-cooking"), manifests,
-            new PackExportRegistry(), new InteropCallSiteRegistry());
+            GraphLoading("tapestry-cooking"), manifests);
 
         var ex = Assert.Throws<InvalidOperationException>(() => validator.Validate());
         Assert.Contains("tapestry-survival", ex.Message);
@@ -75,8 +72,7 @@ public class PackValidatorDependencyPresenceTests
             Dependencies = new() { ["@tapestry/survival"] = "^1.0.0" }
         });
         var validator = BuildValidator(
-            GraphLoading("tapestry-cooking", "tapestry-survival"), manifests,
-            new PackExportRegistry(), new InteropCallSiteRegistry());
+            GraphLoading("tapestry-cooking", "tapestry-survival"), manifests);
 
         validator.Validate(); // does not throw
     }
@@ -90,8 +86,7 @@ public class PackValidatorDependencyPresenceTests
             OptionalDependencies = new() { ["@tapestry/survival"] = "^1.0.0" }
         });
         var validator = BuildValidator(
-            GraphLoading("tapestry-cooking"), manifests,
-            new PackExportRegistry(), new InteropCallSiteRegistry());
+            GraphLoading("tapestry-cooking"), manifests);
 
         validator.Validate(); // optional + absent => fine
     }

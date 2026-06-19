@@ -24,8 +24,6 @@ public class PackValidator
     private readonly IPackManifestProvider _manifestProvider;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
-    private readonly PackExportRegistry _exports;
-    private readonly InteropCallSiteRegistry _callSites;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -37,9 +35,7 @@ public class PackValidator
         TagRegistry tagRegistry,
         IPackManifestProvider manifestProvider,
         PropertyRegistry propertyRegistry,
-        PackDependencyGraph dependencyGraph,
-        PackExportRegistry exports,
-        InteropCallSiteRegistry callSites)
+        PackDependencyGraph dependencyGraph)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -51,8 +47,6 @@ public class PackValidator
         _manifestProvider = manifestProvider;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
-        _exports = exports;
-        _callSites = callSites;
     }
 
     public void Validate()
@@ -65,7 +59,6 @@ public class PackValidator
         issueCount += ValidateTags();
         issueCount += ValidateProperties();
         ValidateDependenciesPresent();
-        ValidateInteropCallSites();
 
         _logger.LogInformation("Pack validation complete: {Count} issue(s) found", issueCount);
     }
@@ -362,49 +355,6 @@ public class PackValidator
                     throw new InvalidOperationException(
                         $"{from}: declares a dependency on {dep}, which is not loaded");
                 }
-            }
-        }
-    }
-
-    // Check 2: resolve each recorded literal-arg tapestry.packs.call/has site at load time,
-    // mirroring PacksModule's call-time enforcement exactly, moved earlier so a cold branch cannot
-    // hide a broken call. Always fatal.
-    //
-    //   - Edge is enforced for BOTH call and has (PacksModule.Has runs EnforceEdge too): you cannot
-    //     even probe a pack you never declared a dependency on.
-    //   - If the target pack isn't loaded, skip the export check: a required missing dep was already
-    //     caught by Check 1, and an absent OPTIONAL dep (edge present, pack not loaded) is the
-    //     legitimate has-guarded pattern — the call never runs, so it must not fail boot.
-    //   - The export-exists check applies ONLY to `call`. `has` is a non-throwing existence probe
-    //     (PacksModule.Has, line 182) — throwing on its missing export would defeat its purpose.
-    //   - Require sites are edge-checked only: member resolution is late-bound by design.
-    //   - Self-calls are exempt, matching call-time.
-    private void ValidateInteropCallSites()
-    {
-        foreach (var site in _callSites.All)
-        {
-            if (string.Equals(site.CallerPack, site.TargetPack, StringComparison.OrdinalIgnoreCase))
-            {
-                continue; // self-call: exempt
-            }
-
-            if (!_dependencyGraph.DeclaresEdge(site.CallerPack, site.TargetPack))
-            {
-                throw new InvalidOperationException(
-                    $"{site.CallerPack} ({site.SourceFile}:{site.Line}): calls {site.TargetPack} " +
-                    "but declares no dependency on it — add it to dependencies or optional_dependencies");
-            }
-
-            if (!_dependencyGraph.IsLoaded(site.TargetPack))
-            {
-                continue; // optional dep absent — runtime-guarded; required-missing caught by Check 1
-            }
-
-            if (site.Kind == InteropCallKind.Call && !_exports.Has(site.TargetPack, site.ExportName))
-            {
-                throw new InvalidOperationException(
-                    $"{site.CallerPack} ({site.SourceFile}:{site.Line}): calls {site.TargetPack} " +
-                    $"export '{site.ExportName}' which does not exist");
             }
         }
     }

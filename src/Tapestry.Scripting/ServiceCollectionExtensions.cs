@@ -92,10 +92,8 @@ public static class ServiceCollectionExtensions
 
         // Runtime and loader
         services.AddSingleton<TagRegistry>();
-        services.AddSingleton<Tapestry.Scripting.Interop.PackExportRegistry>();
         services.AddSingleton<Tapestry.Scripting.Interop.PackDependencyGraph>();
         services.AddSingleton<Tapestry.Engine.Registration.IPackEdgeOracle>(sp => sp.GetRequiredService<Tapestry.Scripting.Interop.PackDependencyGraph>());
-        services.AddSingleton<Tapestry.Scripting.Interop.InteropCallSiteRegistry>();
         services.AddSingleton<MobInvocationBudget>();
         services.AddSingleton<Tapestry.Scripting.Interop.TapestryModuleLoader>(sp =>
             new Tapestry.Scripting.Interop.TapestryModuleLoader(sp.GetRequiredService<Tapestry.Engine.Registration.IPackEdgeOracle>()));

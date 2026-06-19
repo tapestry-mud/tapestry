@@ -83,9 +83,7 @@ public class AuthoredAreaStrictBootTests
             tags,
             new EmptyManifestProvider(),
             props,
-            new PackDependencyGraph(),
-            new PackExportRegistry(),
-            new InteropCallSiteRegistry());
+            new PackDependencyGraph());
     }
 
     // ---------- the test ----------

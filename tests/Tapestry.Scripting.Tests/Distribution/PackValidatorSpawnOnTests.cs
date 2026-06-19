@@ -38,9 +38,7 @@ public class PackValidatorSpawnOnTests
             tags,
             manifests,
             propReg,
-            depGraph,
-            new PackExportRegistry(),
-            new InteropCallSiteRegistry());
+            depGraph);
     }
 
     private static IPackManifestProvider ManifestWith(PackManifest manifest) =>

@@ -25,7 +25,6 @@ using Tapestry.Engine.Quests;
 using Tapestry.Engine.Help;
 using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
-using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
 
@@ -435,7 +434,7 @@ public class PackLoaderTests
         var scheduleModule = new ScheduleModule(gameLoop, world);
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
-            propertyRegistry, questRegistry, scheduleModule, new InteropCallSiteRegistry(),
+            propertyRegistry, questRegistry, scheduleModule,
             new LoadedPackNamespaces(), registrationPolicy);
 
         return (world, itemRegistry, spawnManager, loader, areaRegistry);
