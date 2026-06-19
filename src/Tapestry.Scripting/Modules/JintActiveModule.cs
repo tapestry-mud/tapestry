@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -15,7 +16,11 @@ namespace Tapestry.Scripting;
 internal static class JintActiveModule
 {
     private static readonly Func<JintEngine, object?> Accessor = BuildAccessor();
-    private static readonly Dictionary<Type, PropertyInfo?> _locationPropByType = new();
+    // ConcurrentDictionary: tests exercise this from xUnit's parallel test runners, so the
+    // per-type PropertyInfo cache must be thread-safe (a plain Dictionary raced under parallel
+    // ActiveLocation calls and intermittently corrupted attribution). The engine itself is
+    // single-threaded; this is purely to keep the cache safe under concurrent callers.
+    private static readonly ConcurrentDictionary<Type, PropertyInfo?> _locationPropByType = new();
 
     private static Func<JintEngine, object?> BuildAccessor()
     {
@@ -49,14 +54,11 @@ internal static class JintActiveModule
             return null;
         }
         // IScriptOrModule is internal; read its public Location getter reflectively (cached per type).
-        var type = active.GetType();
-        if (!_locationPropByType.TryGetValue(type, out var prop))
-        {
-            prop = type.GetProperty(
+        var prop = _locationPropByType.GetOrAdd(
+            active.GetType(),
+            t => t.GetProperty(
                 "Location",
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            _locationPropByType[type] = prop;
-        }
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic));
         return prop?.GetValue(active) as string;
     }
 }
