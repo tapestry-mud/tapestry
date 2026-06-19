@@ -325,9 +325,9 @@ declare module "@tapestry/engine" {
   // mobs
   // ---------------------------------------------------------------------------
   export const mobs: {
-    registerBehavior(def: BehaviorDef): void;
-    registerCommand(def: any): void;
-    registerScript(def: any): void;
+    registerBehavior(...args: any[]): void;
+    registerCommand(...args: any[]): void;
+    registerScript(...args: any[]): void;
     command(...args: any[]): any;
     getProperties(...args: any[]): any;
     getTicksSinceLastAction(...args: any[]): any;
