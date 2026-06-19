@@ -65,9 +65,10 @@ Notes on two commonly misspelled names:
   (src/Tapestry.Scripting/JintRuntime.cs:97; src/Tapestry.Scripting/PackLoader.cs:544)
 - `JintRuntime` enables the module loader by passing a `TapestryModuleLoader` to
   `options.EnableModules(loader)` at construction. (src/Tapestry.Scripting/JintRuntime.cs:40-43)
-- The manifest flag `content.scripts_format` selects the loader; `"esm"` is the default.
-  The C# property is `PackContentPaths.ScriptsFormat`; the YAML key is `scripts_format`.
-  (src/Tapestry.Shared/PackManifest.cs:39-40)
+- ESM is the only supported loader. `content.scripts_format` (C# property
+  `PackContentPaths.ScriptsFormat`, default `"esm"`) must be `"esm"`; any other value
+  is a located boot error (guard in `PackLoader.LoadContent` before `LoadScripts`).
+  (src/Tapestry.Shared/PackManifest.cs:39-40; src/Tapestry.Scripting/PackLoader.cs)
 - `content.scripts` globs the compiled output (typically `dist/scripts/**/*.js`).
   (src/Tapestry.Shared/PackManifest.cs:36)
 

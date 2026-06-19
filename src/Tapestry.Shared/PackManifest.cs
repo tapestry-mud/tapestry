@@ -35,8 +35,8 @@ public class PackContentPaths
     public string Resources { get; set; } = "";
     public string Scripts { get; set; } = "";
 
-    // Maps to the snake_case manifest key `scripts_format` via the loader's
-    // UnderscoredNamingConvention. "esm" (default) imports each compiled script as a native ES module.
+    /// <summary>Must be 'esm' (the only supported script format; a non-esm value is a located boot error). Default 'esm'.</summary>
+    // Maps to the snake_case manifest key `scripts_format` via the loader's UnderscoredNamingConvention.
     public string ScriptsFormat { get; set; } = "esm";
 
     public string Strings { get; set; } = "";

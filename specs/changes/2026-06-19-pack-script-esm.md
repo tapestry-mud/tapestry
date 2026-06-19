@@ -46,9 +46,10 @@ is executing right now, so no globals or wrappers are needed.
   `Engine.GetActiveScriptOrModule`), then calls `TapestryModuleLoader.PackOf`. This
   replaces all `__currentPack` reads. `ScriptOwner.CurrentPackOwner/CurrentSourceFile`
   are the helpers used at registration-capture sites.
-- The manifest flag `content.scripts_format: esm` (default, C# property
-  `PackContentPaths.ScriptsFormat`) enables the ESM path; `content.scripts` globs
-  the compiled output (`dist/scripts/**/*.js`).
+- The manifest flag `content.scripts_format` (C# property `PackContentPaths.ScriptsFormat`)
+  must be `esm` (the only supported value; default). A non-esm value is a located boot
+  error thrown by the guard in `PackLoader.LoadContent` before `LoadScripts` is called.
+  `content.scripts` globs the compiled output (`dist/scripts/**/*.js`).
 - Deleted: `PackScope`, `InvokeAsPack`, `__currentPack`, `__currentSource`, the
   `packs.export`/`require`/`call`/`has` JS surface, `RequireProxy`,
   `PackExportRegistry`, and `InteropCallSiteScanner`. `PackValidator` no longer runs

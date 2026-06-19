@@ -225,6 +225,11 @@ public class PackLoader : IPackManifestProvider
 
         if (!string.IsNullOrEmpty(manifest.Content.Scripts))
         {
+            if (!string.Equals(manifest.Content.ScriptsFormat, "esm", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"{packNamespace}: content.scripts_format '{manifest.Content.ScriptsFormat}' is not supported; the only valid value is 'esm'.");
+            }
             LoadScripts(packDirectory, manifest.Content.Scripts, packNamespace);
         }
 

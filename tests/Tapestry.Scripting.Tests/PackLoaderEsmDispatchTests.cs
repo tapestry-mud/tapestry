@@ -39,4 +39,34 @@ public class PackLoaderEsmDispatchTests
         provider.GetRequiredService<Tapestry.Engine.Registration.RegistrationPolicy>().Resolve();
         provider.GetRequiredService<CommandRegistry>().Resolve("esmping").Should().NotBeNull();
     }
+
+    [Fact]
+    public void LoadContent_NonEsmScriptsFormat_ThrowsInvalidOperationException()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+
+        // Temp pack with scripts declared but scripts_format set to a non-esm value.
+        var dir = Directory.CreateTempSubdirectory("tap-legacy-pack-").FullName;
+        Directory.CreateDirectory(Path.Combine(dir, "dist", "scripts"));
+        File.WriteAllText(Path.Combine(dir, "dist", "scripts", "init.js"), "// stub\n");
+        File.WriteAllText(Path.Combine(dir, "pack.yaml"),
+            "name: \"@tapestry/legacy-pack\"\nversion: \"0.0.1\"\ntype: module\n" +
+            "content:\n  scripts: \"dist/scripts/**/*.js\"\n  scripts_format: legacy\n");
+
+        var packLoader = provider.GetRequiredService<PackLoader>();
+        provider.GetRequiredService<TapestryModuleLoader>()
+            .Build(new Dictionary<string, string> { ["tapestry-legacy-pack"] = dir },
+                   new HashSet<(string, string)>());
+        var manifest = packLoader.LoadDeclarations(dir);
+
+        var act = () => packLoader.LoadContent(dir, manifest);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*scripts_format*")
+            .WithMessage("*esm*");
+    }
 }
