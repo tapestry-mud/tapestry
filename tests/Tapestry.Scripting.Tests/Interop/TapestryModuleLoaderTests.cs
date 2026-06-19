@@ -3,6 +3,7 @@ using FluentAssertions;
 using Jint;
 using Tapestry.Engine.Registration;
 using Tapestry.Scripting.Interop;
+using Tapestry.Shared;
 using JintEngine = Jint.Engine;
 
 namespace Tapestry.Scripting.Tests.Interop;
@@ -119,5 +120,37 @@ public class TapestryModuleLoaderTests
 
         var ns = engine.Modules.Import(loader.ModuleKey("tapestry-survival", "dist/scripts/init.js"));
         ns.Get("ok").AsBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildFromManifests_OptionalAbsentDep_ResolvesToEmptyModule()
+    {
+        var root = Directory.CreateTempSubdirectory("tap-esm-").FullName;
+        var cook = Path.Combine(root, "cooking");
+        Directory.CreateDirectory(Path.Combine(cook, "dist", "scripts"));
+        File.WriteAllText(Path.Combine(cook, "dist", "scripts", "c.js"),
+            "import * as survival from \"@tapestry/survival\";\n" +
+            "export const has = (typeof survival.applyWellFedBuff === \"function\");\n");
+
+        var edges = new FakeEdges();
+        // The hard edge gate (IPackEdgeOracle) is the dependency graph in prod; here the declared
+        // edge must exist so the cross-pack import is permitted - A6's NEW job is deriving the
+        // OPTIONAL set so the absent target resolves soft.
+        edges.Edges.Add(("tapestry-cooking", "tapestry-survival"));
+        var loader = new TapestryModuleLoader(edges);
+
+        // cooking declares an OPTIONAL dependency on survival; survival is NOT among the manifests (absent).
+        var cooking = new PackManifest
+        {
+            Name = "@tapestry/cooking",
+            PackDirectory = cook,
+            OptionalDependencies = { ["@tapestry/survival"] = "^0.1.0" },
+        };
+        loader.BuildFromManifests(new[] { cooking });
+
+        var engine = new JintEngine(o => o.EnableModules(loader));
+        engine.Modules.Add("@tapestry/engine", b => b.ExportFunction("noop", _ => Jint.Native.JsValue.Undefined));
+        var ns = engine.Modules.Import(loader.ModuleKey("tapestry-cooking", "dist/scripts/c.js"));
+        ns.Get("has").AsBoolean().Should().BeFalse();
     }
 }

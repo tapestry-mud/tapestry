@@ -34,6 +34,27 @@ public sealed class TapestryModuleLoader : ModuleLoader
         _optionalEdges = optionalEdges;
     }
 
+    /// <summary>
+    /// Boot convenience: derive the pack-dir map (namespace -> PackDirectory) and the optional-edge
+    /// set (namespace -> optional-dependency namespace) from the loaded manifests, then Build().
+    /// Mirrors the dependency-graph derivation in ContentLoadingModule.WireDependencyResolvers.
+    /// </summary>
+    public void BuildFromManifests(IEnumerable<Tapestry.Shared.PackManifest> manifests)
+    {
+        var packDirs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var optionalEdges = new HashSet<(string from, string to)>();
+        foreach (var manifest in manifests)
+        {
+            var ns = PackLoader.PackNamespace(manifest.Name);
+            packDirs[ns] = manifest.PackDirectory;
+            foreach (var dep in manifest.OptionalDependencies.Keys)
+            {
+                optionalEdges.Add((ns, PackLoader.PackNamespace(dep)));
+            }
+        }
+        Build(packDirs, optionalEdges);
+    }
+
     public string ModuleKey(string ns, string relFile) => $"pack:{ns}::{relFile}";
 
     public static string? PackOf(string? location)

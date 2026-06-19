@@ -26,6 +26,7 @@ public class ContentLoadingModule : IGameModule
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
+    private readonly TapestryModuleLoader _moduleLoader;
     private readonly ItemRegistry _itemRegistry;
     private readonly DistributionService _distributionService;
     private readonly ILogger<ContentLoadingModule> _logger;
@@ -42,6 +43,7 @@ public class ContentLoadingModule : IGameModule
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
         PackDependencyGraph dependencyGraph,
+        TapestryModuleLoader moduleLoader,
         ItemRegistry itemRegistry,
         DistributionService distributionService,
         ILogger<ContentLoadingModule> logger)
@@ -55,6 +57,7 @@ public class ContentLoadingModule : IGameModule
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
+        _moduleLoader = moduleLoader;
         _itemRegistry = itemRegistry;
         _distributionService = distributionService;
         _logger = logger;
@@ -118,6 +121,7 @@ public class ContentLoadingModule : IGameModule
         _tagRegistry.SetDependencyResolver(Resolve);
         _propertyRegistry.SetDependencyResolver(Resolve);
         _dependencyGraph.Build(depMap); // feed the interop edge gate
+        _moduleLoader.BuildFromManifests(_packLoader.LoadedPacks);
     }
 
     private void LoadPacks()
