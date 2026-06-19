@@ -236,7 +236,7 @@ public class JintRuntimeTests
         runtime.MarkFileExecuted(equivalent).Should().BeFalse();
     }
 
-    private static (JintRuntime, TestContext) CreateRuntime()
+    internal static (JintRuntime, TestContext) CreateRuntime()
     {
         var commandRegistry = new CommandRegistry();
         var emoteRegistry = new EmoteRegistry();
@@ -295,7 +295,10 @@ public class JintRuntimeTests
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry(), registrationPolicy),
         };
 
-        var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance);
+        var edges = new FakeEdges();
+        var loader = new Tapestry.Scripting.Interop.TapestryModuleLoader(edges);
+
+        var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance, loader: loader);
 
         return (runtime, new TestContext
         {
@@ -306,7 +309,10 @@ public class JintRuntimeTests
             Sessions = sessions,
             Messaging = messaging,
             MobCommandQueue = mobCommandQueue,
-            RegistrationPolicy = registrationPolicy
+            RegistrationPolicy = registrationPolicy,
+            Runtime = runtime,
+            Loader = loader,
+            Edges = edges
         });
     }
 
@@ -386,7 +392,7 @@ public class JintRuntimeTests
         string.Join("", connection.SentText).Should().Contain("handled:Hello!");
     }
 
-    private class TestContext
+    internal class TestContext
     {
         public required CommandRegistry CommandRegistry { get; init; }
         public required EmoteRegistry EmoteRegistry { get; init; }
@@ -396,5 +402,24 @@ public class JintRuntimeTests
         public required ApiMessaging Messaging { get; init; }
         public required MobCommandQueue MobCommandQueue { get; init; }
         public required RegistrationPolicy RegistrationPolicy { get; init; }
+        public JintRuntime Runtime { get; init; } = null!;
+        public Tapestry.Scripting.Interop.TapestryModuleLoader Loader { get; init; } = null!;
+        public FakeEdges Edges { get; init; } = null!;
+        private readonly Dictionary<string, string> _packDirs = new();
+        private readonly HashSet<(string from, string to)> _optionalEdges = new();
+
+        // Creates a temp pack dir with dist/scripts, accumulates it into the loader's pack-dir map, rebuilds.
+        public string RegisterTempPack(string ns)
+        {
+            var dir = System.IO.Directory.CreateTempSubdirectory("tap-esm-").FullName;
+            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(dir, "dist", "scripts"));
+            _packDirs[ns] = dir;
+            Loader.Build(_packDirs, _optionalEdges);
+            return dir;
+        }
+
+        public void DeclareEdge(string from, string to) => Edges.Edges.Add((from, to));
+
+        public Jint.Native.JsValue Evaluate(string js) => Runtime.EvaluateRaw(js);
     }
 }

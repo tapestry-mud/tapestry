@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Dynamic;
 using Jint;
+using Jint.Native;
 using Microsoft.Extensions.Logging;
 
 using JintEngine = Jint.Engine;
@@ -11,6 +13,7 @@ public class JintRuntime
     private readonly IEnumerable<IJintApiModule> _modules;
     private readonly JintEngine _engine;
     private readonly ILogger<JintRuntime> _logger;
+    private readonly Interop.TapestryModuleLoader? _loader;
 
     // Boot-time guard against running the same physical script file twice. The pack `scripts:`
     // glob and the quest `script:` field (QuestStartupModule) are independent boot subsystems
@@ -20,10 +23,11 @@ public class JintRuntime
     private readonly HashSet<string> _executedFiles = new(StringComparer.OrdinalIgnoreCase);
 
     public JintRuntime(IEnumerable<IJintApiModule> modules, ILogger<JintRuntime> logger,
-        MobInvocationBudget? mobBudget = null)
+        MobInvocationBudget? mobBudget = null, Interop.TapestryModuleLoader? loader = null)
     {
         _modules = modules;
         _logger = logger;
+        _loader = loader;
         _engine = new JintEngine(options =>
         {
             options.TimeoutInterval(TimeSpan.FromSeconds(5));
@@ -33,6 +37,10 @@ public class JintRuntime
             if (mobBudget != null)
             {
                 options.Constraints.Constraints.Add(mobBudget);
+            }
+            if (loader != null)
+            {
+                options.EnableModules(loader);
             }
         });
 
@@ -110,13 +118,52 @@ public class JintRuntime
     {
     }
 
+    public string ModuleKey(string ns, string relFile) => _loader!.ModuleKey(ns, relFile);
+
+    public void ImportModule(string moduleKey) => _engine.Modules.Import(moduleKey);
+
+    /// <summary>The pack namespace of the lexically active module (model A attribution), or null
+    /// when no pack module is active (engine builder module, or a legacy Execute script).</summary>
+    public string? GetActivePack() =>
+        Interop.TapestryModuleLoader.PackOf(JintActiveModule.ActiveLocation(_engine));
+
+    /// <summary>TEST-ONLY raw-JsValue evaluate for the fixture (the public object? Evaluate stays).</summary>
+    internal JsValue EvaluateRaw(string expression) => _engine.Evaluate(expression);
+
     private void SetupApi()
     {
-        var tapestry = new ExpandoObject() as IDictionary<string, object?>;
+        // Build each module EXACTLY once; both surfaces share the built objects (AbilitiesModule.Build
+        // subscribes to an event, so a second build double-subscribes; PacksModule/RespondModule re-run
+        // their engine.Evaluate dance).
+        var built = new Dictionary<string, object?>();
         foreach (var module in _modules)
         {
-            tapestry[module.Namespace] = module.Build(_engine);
+            built[module.Namespace] = module.Build(_engine);
+        }
+
+        // Legacy surface: the global `tapestry` object (used by legacy Execute packs).
+        var tapestry = new ExpandoObject() as IDictionary<string, object?>;
+        foreach (var entry in built)
+        {
+            tapestry[entry.Key] = entry.Value;
         }
         _engine.SetValue("tapestry", tapestry);
+
+        // ESM surface: one shared `@tapestry/engine` builder module (no JS top-level code, so it is
+        // never the "active module" during a pack API call - which is what makes GetActivePack() see
+        // the calling pack). Each namespace is a named export. Only when modules are enabled.
+        if (_loader != null)
+        {
+            _engine.Modules.Add("@tapestry/engine", builder =>
+            {
+                foreach (var entry in built)
+                {
+                    var value = entry.Value is JsValue jsv
+                        ? jsv
+                        : JsValue.FromObject(_engine, entry.Value);
+                    builder.ExportValue(entry.Key, value);
+                }
+            });
+        }
     }
 }
