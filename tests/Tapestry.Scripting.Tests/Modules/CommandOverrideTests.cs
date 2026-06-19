@@ -29,8 +29,8 @@ public class CommandOverrideTests
     public void TwoPacks_SameCommand_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute("tapestry.commands.register({ name:'look', handler:function(a,r){} });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.commands.register({ name:'look', handler:function(a,r){} });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.commands.register({ name:'look', handler:function(a,r){} });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.commands.register({ name:'look', handler:function(a,r){} });", "scripts/b.js");
 
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("look").And.Contain("override");
@@ -40,8 +40,8 @@ public class CommandOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, reg, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute("tapestry.commands.register({ name:'look', handler:function(a,r){} });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.commands.register({ name:'look', override:true, handler:function(a,r){} });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.commands.register({ name:'look', handler:function(a,r){} });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.commands.register({ name:'look', override:true, handler:function(a,r){} });", "scripts/b.js");
 
         policy.Resolve();
         reg.Resolve("look")!.PackName.Should().Be("pack-b");
@@ -51,8 +51,8 @@ public class CommandOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime(); // no edges
-        rt.Execute("tapestry.commands.register({ name:'look', handler:function(a,r){} });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.commands.register({ name:'look', override:true, handler:function(a,r){} });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.commands.register({ name:'look', handler:function(a,r){} });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.commands.register({ name:'look', override:true, handler:function(a,r){} });", "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 
@@ -60,7 +60,7 @@ public class CommandOverrideTests
     public void SingleCommand_Registers_Normally()
     {
         var (rt, policy, reg, _) = BuildRuntime();
-        rt.Execute("tapestry.commands.register({ name:'wave', handler:function(a,r){} });", "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.commands.register({ name:'wave', handler:function(a,r){} });", "scripts/a.js");
         policy.Resolve();
         reg.Resolve("wave").Should().NotBeNull();
     }

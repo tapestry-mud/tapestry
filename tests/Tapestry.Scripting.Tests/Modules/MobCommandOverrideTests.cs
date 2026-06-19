@@ -32,7 +32,7 @@ public class MobCommandOverrideTests
     public void MobCommand_IsDeferred_UntilSeal()
     {
         var (rt, policy, reg, _) = BuildRuntime();
-        rt.Execute(MobSay, "tapestry-core", "scripts/mobs/commands.js");
+        EsmTest.Load(rt, "tapestry-core", MobSay, "scripts/mobs/commands.js");
         reg.Resolve("say", "mob").Should().BeNull();   // not committed yet
         policy.Resolve();
         reg.Resolve("say", "mob").Should().NotBeNull();
@@ -44,10 +44,10 @@ public class MobCommandOverrideTests
         var (rt, policy, reg, _) = BuildRuntime();
         // Same pack registers the player verb (Kind "command") and the mob verb
         // (Kind "mob-command") -- the exact @tapestry/core shape that killed say in prod.
-        rt.Execute(
+        EsmTest.Load(rt, "tapestry-core",
             "tapestry.commands.register({ name:'say', aliases:[\"'\"], roles:['player','mob'], handler:function(a,r){} });",
-            "tapestry-core", "scripts/commands/say.js");
-        rt.Execute(MobSay, "tapestry-core", "scripts/mobs/commands.js");
+            "scripts/commands/say.js");
+        EsmTest.Load(rt, "tapestry-core", MobSay, "scripts/mobs/commands.js");
 
         policy.Resolve();
 
@@ -64,8 +64,8 @@ public class MobCommandOverrideTests
     public void TwoPacks_SameMobVerb_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(MobSay, "pack-a", "scripts/a.js");
-        rt.Execute(MobSay, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", MobSay, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", MobSay, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("say").And.Contain("override");
     }
@@ -74,9 +74,9 @@ public class MobCommandOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, reg, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(MobSay, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.mobs.registerCommand('say', { override: true, handler: function(mob, text) {} });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", MobSay, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.mobs.registerCommand('say', { override: true, handler: function(mob, text) {} });",
+            "scripts/b.js");
         policy.Resolve();
         var winner = reg.Resolve("say", "mob");
         winner.Should().NotBeNull();
@@ -87,9 +87,9 @@ public class MobCommandOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(MobSay, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.mobs.registerCommand('say', { override: true, handler: function(mob, text) {} });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", MobSay, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.mobs.registerCommand('say', { override: true, handler: function(mob, text) {} });",
+            "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

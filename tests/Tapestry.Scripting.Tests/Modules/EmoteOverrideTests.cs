@@ -36,7 +36,7 @@ public class EmoteOverrideTests
     public void Register_IsDeferred_UntilSeal()
     {
         var (rt, policy, emotes, _) = BuildRuntime();
-        rt.Execute(Wave, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", Wave, "scripts/a.js");
         emotes.Get("wave").Should().BeNull("emotes must commit at the seal, not eagerly");
         policy.Resolve();
         emotes.Get("wave").Should().NotBeNull();
@@ -46,8 +46,8 @@ public class EmoteOverrideTests
     public void TwoPacks_SameEmote_NoOverride_BootError_NamingBothPacks()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Wave, "pack-a", "scripts/a.js");
-        rt.Execute(WaveB, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Wave, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", WaveB, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("wave").And.Contain("override")
             .And.Contain("pack-a").And.Contain("pack-b");
@@ -57,8 +57,8 @@ public class EmoteOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, emotes, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(Wave, "pack-a", "scripts/a.js");
-        rt.Execute(WaveBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Wave, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", WaveBOverride, "scripts/b.js");
         policy.Resolve();
         emotes.Get("wave")!.SelfMessage.Should().Be("You flail.", "the override's definition must win");
     }
@@ -67,8 +67,8 @@ public class EmoteOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Wave, "pack-a", "scripts/a.js");
-        rt.Execute(WaveBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Wave, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", WaveBOverride, "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

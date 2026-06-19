@@ -34,21 +34,21 @@ public class ClassOverrideTests
     public void Register_IsDeferred_UntilSeal()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(DefA, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", DefA, "scripts/a.js");
 
-        rt.Evaluate("tapestry.classes.get('warrior')").Should().BeNull();
+        EsmTest.Eval(rt, "tapestry.classes.get('warrior')").Should().BeNull();
 
         policy.Resolve();
 
-        rt.Evaluate("tapestry.classes.get('warrior').name").Should().Be("Warrior");
+        EsmTest.Eval(rt, "tapestry.classes.get('warrior').name").Should().Be("Warrior");
     }
 
     [Fact]
     public void TwoPacks_SameId_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(DefA, "pack-a", "scripts/a.js");
-        rt.Execute(DefB, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", DefA, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", DefB, "scripts/b.js");
 
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("warrior").And.Contain("override")
@@ -59,8 +59,8 @@ public class ClassOverrideTests
     public void Priority_NoLongerArbitrates_CollisionStillBootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute("tapestry.classes.register({ id:'warrior', name:'Warrior', priority:100 });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.classes.register({ id:'warrior', name:'Berserker', priority:1 });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.classes.register({ id:'warrior', name:'Warrior', priority:100 });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.classes.register({ id:'warrior', name:'Berserker', priority:1 });", "scripts/b.js");
 
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
@@ -69,8 +69,8 @@ public class ClassOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, reg, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(DefA, "pack-a", "scripts/a.js");
-        rt.Execute(DefBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", DefA, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", DefBOverride, "scripts/b.js");
 
         policy.Resolve();
 
@@ -81,8 +81,8 @@ public class ClassOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime(); // no edges
-        rt.Execute(DefA, "pack-a", "scripts/a.js");
-        rt.Execute(DefBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", DefA, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", DefBOverride, "scripts/b.js");
 
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }

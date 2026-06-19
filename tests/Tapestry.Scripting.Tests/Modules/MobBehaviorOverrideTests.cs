@@ -33,7 +33,7 @@ public class MobBehaviorOverrideTests
     public void Behavior_IsDeferred_UntilSeal()
     {
         var (rt, policy, mobAi, _) = BuildRuntime();
-        rt.Execute(GuardBehavior, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", GuardBehavior, "scripts/a.js");
         mobAi.HasBehavior("guard").Should().BeFalse("behaviors must commit at the seal, not eagerly");
         policy.Resolve();
         mobAi.HasBehavior("guard").Should().BeTrue();
@@ -43,8 +43,8 @@ public class MobBehaviorOverrideTests
     public void TwoPacks_SameBehavior_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(GuardBehavior, "pack-a", "scripts/a.js");
-        rt.Execute(GuardBehavior, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", GuardBehavior, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", GuardBehavior, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("guard").And.Contain("override");
     }
@@ -53,9 +53,9 @@ public class MobBehaviorOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, mobAi, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(GuardBehavior, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.mobs.registerBehavior('guard', function(ctx){}, { override: true });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", GuardBehavior, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.mobs.registerBehavior('guard', function(ctx){}, { override: true });",
+            "scripts/b.js");
         policy.Resolve();
         mobAi.HasBehavior("guard").Should().BeTrue();
     }
@@ -64,9 +64,9 @@ public class MobBehaviorOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(GuardBehavior, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.mobs.registerBehavior('guard', function(ctx){}, { override: true });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", GuardBehavior, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.mobs.registerBehavior('guard', function(ctx){}, { override: true });",
+            "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

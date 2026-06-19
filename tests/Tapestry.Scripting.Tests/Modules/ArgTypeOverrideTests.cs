@@ -29,9 +29,9 @@ public class ArgTypeOverrideTests
     public void SingleArgType_DefObject_RegistersAndResolves_AfterSeal()
     {
         var (rt, policy, resolver, _) = BuildRuntime();
-        rt.Execute(
+        EsmTest.Load(rt, "tapestry-tinkers",
             "tapestry.args.registerType({ name:'recipe', resolve:function(actor, token, def){ return { success:true, value:'recipe:'+token }; } });",
-            "tapestry-tinkers", "scripts/00-recipes.js");
+            "scripts/00-recipes.js");
 
         // Deferral: the candidate is only committed at the seal. Before Resolve(), _packTypes is empty.
         policy.Resolve();
@@ -47,8 +47,8 @@ public class ArgTypeOverrideTests
     public void TwoPacks_SameArgType_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute("tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "scripts/b.js");
 
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("recipe").And.Contain("override");
@@ -58,8 +58,8 @@ public class ArgTypeOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, resolver, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute("tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:'A' }; } });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.args.registerType({ name:'recipe', override:true, resolve:function(a,t,d){ return { success:true, value:'B' }; } });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:'A' }; } });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.args.registerType({ name:'recipe', override:true, resolve:function(a,t,d){ return { success:true, value:'B' }; } });", "scripts/b.js");
 
         policy.Resolve();
 
@@ -74,8 +74,8 @@ public class ArgTypeOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime(); // no edges
-        rt.Execute("tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.args.registerType({ name:'recipe', override:true, resolve:function(a,t,d){ return { success:true, value:t }; } });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.args.registerType({ name:'recipe', resolve:function(a,t,d){ return { success:true, value:t }; } });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.args.registerType({ name:'recipe', override:true, resolve:function(a,t,d){ return { success:true, value:t }; } });", "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

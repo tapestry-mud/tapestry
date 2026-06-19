@@ -37,7 +37,7 @@ public class FlowOverrideTests
     public void Register_IsDeferred_UntilSeal()
     {
         var (rt, policy, flows, _) = BuildRuntime();
-        rt.Execute(Creation, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", Creation, "scripts/a.js");
         flows.Get("character_creation").Should().BeNull("flows must commit at the seal, not eagerly");
         policy.Resolve();
         flows.Get("character_creation").Should().NotBeNull();
@@ -47,8 +47,8 @@ public class FlowOverrideTests
     public void TwoPacks_SameFlow_NoOverride_BootError_NamingBothPacks()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Creation, "pack-a", "scripts/a.js");
-        rt.Execute(CreationB, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Creation, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CreationB, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("character_creation").And.Contain("override")
             .And.Contain("pack-a").And.Contain("pack-b");
@@ -58,8 +58,8 @@ public class FlowOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, flows, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(Creation, "pack-a", "scripts/a.js");
-        rt.Execute(CreationBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Creation, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CreationBOverride, "scripts/b.js");
         policy.Resolve();
         flows.Get("character_creation")!.DisplayName.Should().Be("Creation B",
             "the override's definition must win");
@@ -69,8 +69,8 @@ public class FlowOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Creation, "pack-a", "scripts/a.js");
-        rt.Execute(CreationBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Creation, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CreationBOverride, "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }
