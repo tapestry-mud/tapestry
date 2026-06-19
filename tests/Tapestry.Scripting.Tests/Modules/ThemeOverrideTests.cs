@@ -33,7 +33,7 @@ public class ThemeOverrideTests
     public void Theme_IsDeferred_UntilSeal()
     {
         var (rt, policy, themes, _) = BuildRuntime();
-        rt.Execute(WarningTheme, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", WarningTheme, "scripts/a.js");
         themes.IsKnown("ui.warning").Should().BeFalse("theme tags must commit at the seal, not eagerly");
         policy.Resolve();
         themes.IsKnown("ui.warning").Should().BeTrue();
@@ -43,8 +43,8 @@ public class ThemeOverrideTests
     public void TwoPacks_SameTag_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(WarningTheme, "pack-a", "scripts/a.js");
-        rt.Execute(WarningTheme, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", WarningTheme, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", WarningTheme, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("ui.warning")
             .And.Contain("pack-a")
@@ -55,9 +55,9 @@ public class ThemeOverrideTests
     public void Override_WithDeclaredEdge_WinnerColorLands()
     {
         var (rt, policy, themes, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(WarningTheme, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.theme.register('ui.warning', { fg: 'yellow', override: true });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", WarningTheme, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.theme.register('ui.warning', { fg: 'yellow', override: true });",
+            "scripts/b.js");
         policy.Resolve();
         themes.Compile();
         var pair = themes.Resolve("ui.warning");
@@ -69,9 +69,9 @@ public class ThemeOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(WarningTheme, "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.theme.register('ui.warning', { fg: 'yellow', override: true });",
-            "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", WarningTheme, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.theme.register('ui.warning', { fg: 'yellow', override: true });",
+            "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

@@ -26,7 +26,7 @@ public class AlignmentModuleTests
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
         mgr.Set(entity.Id, 250, "test");
-        var result = rt.Evaluate($"tapestry.alignment.get('{entity.Id}')");
+        var result = EsmTest.Eval(rt, $"tapestry.alignment.get('{entity.Id}')");
         Assert.Equal(250, Convert.ToInt32(result));
     }
 
@@ -37,7 +37,7 @@ public class AlignmentModuleTests
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
         mgr.Set(entity.Id, -400, "test");
-        var result = rt.Evaluate($"tapestry.alignment.bucket('{entity.Id}')");
+        var result = EsmTest.Eval(rt, $"tapestry.alignment.bucket('{entity.Id}')");
         Assert.Equal("evil", result?.ToString());
     }
 
@@ -47,7 +47,7 @@ public class AlignmentModuleTests
         var (rt, _, world) = BuildRuntime();
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
-        rt.Execute($"tapestry.alignment.set('{entity.Id}', 500, 'test');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.alignment.set('{entity.Id}', 500, 'test');");
         Assert.Equal(500, entity.GetProperty<int?>("alignment"));
     }
 
@@ -58,7 +58,7 @@ public class AlignmentModuleTests
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
         mgr.Set(entity.Id, 100, "init");
-        rt.Execute($"tapestry.alignment.shift('{entity.Id}', 50, 'test');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.alignment.shift('{entity.Id}', 50, 'test');");
         Assert.Equal(150, mgr.Get(entity.Id));
     }
 
@@ -66,7 +66,7 @@ public class AlignmentModuleTests
     public void Configure_OverridesThresholds()
     {
         var (rt, mgr, world) = BuildRuntime();
-        rt.Execute("tapestry.alignment.configure({ thresholds: { evil: -500, good: 500 } });");
+        EsmTest.Load(rt, "test-pack", "tapestry.alignment.configure({ thresholds: { evil: -500, good: 500 } });");
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
         mgr.Set(entity.Id, -400, "test");
@@ -80,7 +80,7 @@ public class AlignmentModuleTests
         var (rt, _, world) = BuildRuntime();
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
-        rt.Execute($"tapestry.alignment.setGender('{entity.Id}', 'male');");
+        EsmTest.Load(rt, "test-pack", $"tapestry.alignment.setGender('{entity.Id}', 'male');");
         Assert.Equal("male", entity.GetProperty<string>("gender"));
     }
 
@@ -91,7 +91,7 @@ public class AlignmentModuleTests
         var entity = new Entity("player", "Tester");
         world.TrackEntity(entity);
         entity.SetProperty("gender", "female");
-        var result = rt.Evaluate($"tapestry.alignment.getGender('{entity.Id}')");
+        var result = EsmTest.Eval(rt, $"tapestry.alignment.getGender('{entity.Id}')");
         Assert.Equal("female", result?.ToString());
     }
 }

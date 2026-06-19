@@ -20,7 +20,7 @@ public class AbilitiesModuleAlignmentTests
         rt.Initialize();
         var registry = sp.GetRequiredService<AbilityRegistry>();
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({
                 id: 'invoke_darkness',
                 name: 'Invoke',
@@ -47,7 +47,7 @@ public class AbilitiesModuleAlignmentTests
         rt.Initialize();
         var registry = sp.GetRequiredService<AbilityRegistry>();
 
-        rt.Execute(@"
+        EsmTest.Load(rt, "test-pack", @"
             tapestry.abilities.register({
                 id: 'evil_only',
                 name: 'Evil Only',

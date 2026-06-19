@@ -37,7 +37,7 @@ public class ProgressionTrackOverrideTests
     public void RegisterTrack_IsDeferred_UntilSeal()
     {
         var (rt, policy, progression, _) = BuildRuntime();
-        rt.Execute(Combat, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", Combat, "scripts/a.js");
         progression.GetTrackDefinition("combat").Should().BeNull("tracks must commit at the seal, not eagerly");
         policy.Resolve();
         progression.GetTrackDefinition("combat").Should().NotBeNull();
@@ -47,8 +47,8 @@ public class ProgressionTrackOverrideTests
     public void TwoPacks_SameTrack_NoOverride_BootError_NamingBothPacks()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Combat, "pack-a", "scripts/a.js");
-        rt.Execute(CombatB, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Combat, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CombatB, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("combat").And.Contain("override")
             .And.Contain("pack-a").And.Contain("pack-b");
@@ -58,8 +58,8 @@ public class ProgressionTrackOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, progression, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(Combat, "pack-a", "scripts/a.js");
-        rt.Execute(CombatBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Combat, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CombatBOverride, "scripts/b.js");
         policy.Resolve();
         progression.GetTrackDefinition("combat")!.MaxLevel.Should().Be(60,
             "the override's definition must win");
@@ -69,8 +69,8 @@ public class ProgressionTrackOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Combat, "pack-a", "scripts/a.js");
-        rt.Execute(CombatBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Combat, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CombatBOverride, "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

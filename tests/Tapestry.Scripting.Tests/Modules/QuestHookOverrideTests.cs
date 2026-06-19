@@ -38,7 +38,7 @@ public class QuestHookOverrideTests
     public void RegisterScript_IsDeferred_UntilSeal()
     {
         var (rt, policy, loader, _) = BuildRuntime();
-        rt.Execute(Intro, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", Intro, "scripts/a.js");
         loader.HasScript("quest:intro").Should().BeFalse("quest hooks must commit at the seal, not eagerly");
         policy.Resolve();
         loader.HasScript("quest:intro").Should().BeTrue();
@@ -48,8 +48,8 @@ public class QuestHookOverrideTests
     public void TwoPacks_SameQuest_NoOverride_BootError_NamingBothPacks()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Intro, "pack-a", "scripts/a.js");
-        rt.Execute(IntroB, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Intro, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", IntroB, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("quest:intro").And.Contain("override")
             .And.Contain("pack-a").And.Contain("pack-b");
@@ -59,8 +59,8 @@ public class QuestHookOverrideTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, loader, world) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(Intro, "pack-a", "scripts/a.js");
-        rt.Execute(IntroBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Intro, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", IntroBOverride, "scripts/b.js");
         policy.Resolve();
 
         loader.HasScript("quest:intro").Should().BeTrue();
@@ -76,8 +76,8 @@ public class QuestHookOverrideTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(Intro, "pack-a", "scripts/a.js");
-        rt.Execute(IntroBOverride, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", Intro, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", IntroBOverride, "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 
@@ -85,7 +85,7 @@ public class QuestHookOverrideTests
     public void RegisterScript_ViaGlobPath_RecordsRealOwner()
     {
         var (rt, policy, loader, _) = BuildRuntime();
-        rt.Execute(Intro, "pack-a", "scripts/quests/intro.js");
+        EsmTest.Load(rt, "pack-a", Intro, "scripts/quests/intro.js");
         policy.Resolve();
 
         loader.OwnerOf("quest:intro").Should().Be("pack-a",
