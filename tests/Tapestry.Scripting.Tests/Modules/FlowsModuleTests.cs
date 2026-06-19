@@ -8,6 +8,7 @@ using Tapestry.Engine.Registration;
 using Tapestry.Engine.Races;
 using Tapestry.Engine.Ui;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Interop;
 using Tapestry.Scripting.Modules;
 
 namespace Tapestry.Scripting.Tests.Modules;
@@ -34,8 +35,9 @@ public class FlowsModuleTests
             new ClassRegistry(), new RaceRegistry(), new AlignmentManager(world, eventBus, new AlignmentConfig()),
             playerCreator, eventBus);
         var policy = TestRegistrationPolicy.Create();
+        var loader = new TapestryModuleLoader(new TestRegistrationPolicy.NoEdgeOracle());
         var module = new FlowsModule(registry, engine, sessions, policy);
-        var runtime = new JintRuntime(new IJintApiModule[] { module }, NullLogger<JintRuntime>.Instance);
+        var runtime = new JintRuntime(new IJintApiModule[] { module }, NullLogger<JintRuntime>.Instance, loader: loader);
         return (runtime, registry, policy);
     }
 
@@ -44,7 +46,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "test_flow",
                 trigger: "new_player_connect",
@@ -53,7 +55,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         registry.Get("test_flow").Should().NotBeNull();
@@ -65,7 +67,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "choice_flow",
                 trigger: "t",
@@ -80,7 +82,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("choice_flow")!;
@@ -93,14 +95,14 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "reject_flow",
                 trigger: "t",
                 steps: [],
                 on_complete: (entity) => ({ success: false, message: "Not allowed." })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("reject_flow")!;
@@ -116,7 +118,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "skip_flow",
                 trigger: "t",
@@ -132,7 +134,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("skip_flow")!;
@@ -145,7 +147,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "dyn_flow",
                 trigger: "t",
@@ -160,7 +162,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("dyn_flow")!;
@@ -177,7 +179,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "text_flow",
                 trigger: "t",
@@ -191,7 +193,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("text_flow")!;
@@ -203,7 +205,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "confirm_flow",
                 trigger: "t",
@@ -218,7 +220,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("confirm_flow")!;
@@ -230,7 +232,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "desc_flow",
                 trigger: "t",
@@ -243,7 +245,7 @@ public class FlowsModuleTests
                 }],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("desc_flow")!;
@@ -257,7 +259,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "tagline_flow",
                 trigger: "t",
@@ -270,7 +272,7 @@ public class FlowsModuleTests
                 }],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("tagline_flow")!;
@@ -284,7 +286,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "fn_desc_flow",
                 trigger: "t",
@@ -301,7 +303,7 @@ public class FlowsModuleTests
                 }],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("fn_desc_flow")!;
@@ -315,7 +317,7 @@ public class FlowsModuleTests
     {
         var (runtime, registry, policy) = CreateRuntime();
 
-        runtime.Execute("""
+        EsmTest.Load(runtime, "test", """
             tapestry.flows.register({
                 id: "wizard_flow",
                 trigger: "t",
@@ -334,7 +336,7 @@ public class FlowsModuleTests
                 ],
                 on_complete: (entity) => ({ success: true })
             });
-            """, "test");
+            """);
         policy.Resolve();
 
         var def = registry.Get("wizard_flow")!;

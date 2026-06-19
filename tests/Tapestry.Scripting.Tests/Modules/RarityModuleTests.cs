@@ -29,11 +29,11 @@ public class RarityModuleTests
     public void Register_AndGetTier_ReturnsTierObject()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute(@"tapestry.rarity.register({ key: 'rare', order: 2, displayText: 'Rare',
+        EsmTest.Load(rt, "pack-a", @"tapestry.rarity.register({ key: 'rare', order: 2, displayText: 'Rare',
             decorators: { left: '-= ', right: ' =-' }, color: 'green', visible: true });",
-            "pack-a", "scripts/a.js");
+            "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.getTier('rare').key;");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.getTier('rare').key");
         Assert.Equal("rare", result!.ToString());
     }
 
@@ -41,11 +41,11 @@ public class RarityModuleTests
     public void Format_VisibleTier_ReturnsNonEmptyString()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute(@"tapestry.rarity.register({ key: 'rare', order: 2, displayText: 'Rare',
+        EsmTest.Load(rt, "pack-a", @"tapestry.rarity.register({ key: 'rare', order: 2, displayText: 'Rare',
             decorators: { left: '-= ', right: ' =-' }, color: 'green', visible: true });",
-            "pack-a", "scripts/a.js");
+            "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.format('rare');");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.format('rare')");
         Assert.NotNull(result);
         Assert.Contains("Rare", result!.ToString());
     }
@@ -54,14 +54,14 @@ public class RarityModuleTests
     public void Format_InvisibleTier_ReturnsWhitespace()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "pack-a", @"
             tapestry.rarity.register({ key: 'common', order: 0, displayText: null,
                 decorators: null, color: 'white', visible: false });
             tapestry.rarity.register({ key: 'uncommon', order: 1, displayText: 'Uncommon',
                 decorators: { left: '-= ', right: ' =-' }, color: 'white', visible: true });",
-            "pack-a", "scripts/a.js");
+            "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.format('common');");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.format('common')");
         Assert.NotNull(result);
         Assert.Equal(new string(' ', 14), result!.ToString());
     }
@@ -71,7 +71,7 @@ public class RarityModuleTests
     {
         var (rt, policy, _) = BuildRuntime();
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.tagWidth();");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.tagWidth()");
         Assert.Equal(0, Convert.ToInt32(result));
     }
 
@@ -79,14 +79,14 @@ public class RarityModuleTests
     public void TagWidth_ReturnsMaxRenderedWidth()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute(@"
+        EsmTest.Load(rt, "pack-a", @"
             tapestry.rarity.register({ key: 'uncommon', order: 1, displayText: 'Uncommon',
                 decorators: { left: '-= ', right: ' =-' }, color: 'white', visible: true });
             tapestry.rarity.register({ key: 'rare', order: 2, displayText: 'Rare',
                 decorators: { left: '-= ', right: ' =-' }, color: 'green', visible: true });",
-            "pack-a", "scripts/a.js");
+            "scripts/a.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.tagWidth();");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.tagWidth()");
         Assert.Equal(14, Convert.ToInt32(result));
     }
 
@@ -94,8 +94,8 @@ public class RarityModuleTests
     public void TwoPacks_SameRarity_NoOverride_BootError()
     {
         var (rt, policy, _) = BuildRuntime();
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true });", "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("rare").And.Contain("override");
     }
@@ -104,10 +104,10 @@ public class RarityModuleTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true, override:true });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true, override:true });", "scripts/b.js");
         policy.Resolve();
-        var result = rt.Evaluate("tapestry.rarity.getTier('rare').color;");
+        var result = EsmTest.Eval(rt, "tapestry.rarity.getTier('rare').color");
         Assert.Equal("cyan", result!.ToString());
     }
 
@@ -115,8 +115,8 @@ public class RarityModuleTests
     public void Override_WithoutEdge_BootError()
     {
         var (rt, policy, _) = BuildRuntime(); // no edges
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "pack-a", "scripts/a.js");
-        rt.Execute("tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true, override:true });", "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", "tapestry.rarity.register({ key:'rare', order:2, color:'green', visible:true });", "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", "tapestry.rarity.register({ key:'rare', order:2, color:'cyan', visible:true, override:true });", "scripts/b.js");
         Assert.Throws<InvalidOperationException>(() => policy.Resolve());
     }
 }

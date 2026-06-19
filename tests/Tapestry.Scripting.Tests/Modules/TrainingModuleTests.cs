@@ -38,7 +38,7 @@ public class TrainingModuleTests
         var player = CreatePlayer(world);
         training.GrantTrains(player.Id, 7);
 
-        var result = rt.Evaluate($"tapestry.training.getTrainsAvailable('{player.Id}')");
+        var result = EsmTest.Eval(rt, $"tapestry.training.getTrainsAvailable('{player.Id}')");
         Assert.Equal(7, Convert.ToInt32(result));
     }
 
@@ -48,7 +48,7 @@ public class TrainingModuleTests
         var (rt, training, _, world) = BuildRuntime();
         var player = CreatePlayer(world);
 
-        rt.Execute($"tapestry.training.grantTrains('{player.Id}', 3)");
+        EsmTest.Load(rt, "test-pack", $"tapestry.training.grantTrains('{player.Id}', 3)");
         Assert.Equal(3, training.GetTrainsAvailable(player.Id));
     }
 
@@ -60,7 +60,7 @@ public class TrainingModuleTests
         proficiency.Learn(player.Id, "dodge");
         proficiency.SetCap(player.Id, "dodge", 50);
 
-        var result = rt.Evaluate($"tapestry.training.getCap('{player.Id}', 'dodge')");
+        var result = EsmTest.Eval(rt, $"tapestry.training.getCap('{player.Id}', 'dodge')");
         Assert.Equal("apprentice", result?.ToString());
     }
 
@@ -71,7 +71,7 @@ public class TrainingModuleTests
         var player = CreatePlayer(world);
         proficiency.Learn(player.Id, "dodge");
 
-        rt.Execute($"tapestry.training.setCap('{player.Id}', 'dodge', 'journeyman')");
+        EsmTest.Load(rt, "test-pack", $"tapestry.training.setCap('{player.Id}', 'dodge', 'journeyman')");
         Assert.Equal(75, proficiency.GetCap(player.Id, "dodge"));
     }
 }

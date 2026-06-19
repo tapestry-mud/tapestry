@@ -33,7 +33,7 @@ public class StatsModuleTests
         mob.Stats.Resource = 5;
         mob.Stats.Movement = 20;
 
-        rt.Execute($"tapestry.stats.restoreVitals('{mob.Id}')");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.restoreVitals('{mob.Id}')");
 
         Assert.Equal(mob.Stats.MaxHp, mob.Stats.Hp);
         Assert.Equal(mob.Stats.MaxResource, mob.Stats.Resource);
@@ -51,7 +51,7 @@ public class StatsModuleTests
         mob.Stats.Invalidate();
         mob.Stats.Hp = 40;
 
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_hp', 150)");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_hp', 150)");
 
         Assert.Equal(150, mob.Stats.MaxHp);
         Assert.Equal(40, mob.Stats.Hp);
@@ -68,7 +68,7 @@ public class StatsModuleTests
         mob.Stats.Invalidate();
         mob.Stats.Resource = 30;
 
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_resource', 200)");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_resource', 200)");
 
         Assert.Equal(200, mob.Stats.MaxResource);
         Assert.Equal(30, mob.Stats.Resource);
@@ -85,7 +85,7 @@ public class StatsModuleTests
         mob.Stats.Invalidate();
         mob.Stats.Movement = 50;
 
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_movement', 300)");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_movement', 300)");
 
         Assert.Equal(300, mob.Stats.MaxMovement);
         Assert.Equal(50, mob.Stats.Movement);
@@ -107,9 +107,9 @@ public class StatsModuleTests
         mob.Stats.Invalidate();
         mob.Stats.Hp = 40;
 
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_hp', {badValue})");
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_resource', {badValue})");
-        rt.Execute($"tapestry.stats.setBase('{mob.Id}', 'max_movement', {badValue})");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_hp', {badValue})");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_resource', {badValue})");
+        EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_movement', {badValue})");
 
         Assert.Equal(100, mob.Stats.MaxHp);
         var ex = Record.Exception(() => { mob.Stats.Hp = 60; mob.Stats.Resource = 1; mob.Stats.Movement = 1; });
@@ -121,7 +121,7 @@ public class StatsModuleTests
     public void RestoreVitals_InvalidId_DoesNotThrow()
     {
         var (rt, _) = BuildRuntime();
-        var ex = Record.Exception(() => rt.Execute("tapestry.stats.restoreVitals('not-a-guid')"));
+        var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", "tapestry.stats.restoreVitals('not-a-guid')"));
         Assert.Null(ex);
     }
 
@@ -130,7 +130,7 @@ public class StatsModuleTests
     {
         var (rt, _) = BuildRuntime();
         var unknownId = Guid.NewGuid().ToString();
-        var ex = Record.Exception(() => rt.Execute($"tapestry.stats.restoreVitals('{unknownId}')"));
+        var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", $"tapestry.stats.restoreVitals('{unknownId}')"));
         Assert.Null(ex);
     }
 }

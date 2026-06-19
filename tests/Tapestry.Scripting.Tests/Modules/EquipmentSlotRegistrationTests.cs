@@ -33,7 +33,7 @@ public class EquipmentSlotRegistrationTests
     public void Slot_IsDeferred_UntilSeal()
     {
         var (rt, policy, slots, _) = BuildRuntime();
-        rt.Execute(CloakSlot, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", CloakSlot, "scripts/a.js");
         slots.GetSlot("cloak").Should().BeNull("slots must commit at the seal, not eagerly");
         policy.Resolve();
         slots.GetSlot("cloak").Should().NotBeNull();
@@ -43,7 +43,7 @@ public class EquipmentSlotRegistrationTests
     public void Slot_IsPackOwned_NotEngineOwned()
     {
         var (rt, policy, slots, _) = BuildRuntime();
-        rt.Execute(CloakSlot, "pack-a", "scripts/a.js");
+        EsmTest.Load(rt, "pack-a", CloakSlot, "scripts/a.js");
         policy.Resolve();
         slots.GetSlot("cloak")!.Scope.Should().Be("pack-a",
             "JS-registered slots are pack-owned; 'engine' is reserved for C# boot code");
@@ -53,8 +53,8 @@ public class EquipmentSlotRegistrationTests
     public void TwoPacks_SameSlot_NoOverride_BootError()
     {
         var (rt, policy, _, _) = BuildRuntime();
-        rt.Execute(CloakSlot, "pack-a", "scripts/a.js");
-        rt.Execute(CloakSlot, "pack-b", "scripts/b.js");
+        EsmTest.Load(rt, "pack-a", CloakSlot, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b", CloakSlot, "scripts/b.js");
         var ex = Assert.Throws<InvalidOperationException>(() => policy.Resolve());
         ex.Message.Should().Contain("cloak").And.Contain("override");
     }
@@ -63,10 +63,10 @@ public class EquipmentSlotRegistrationTests
     public void Override_WithDeclaredEdge_Wins()
     {
         var (rt, policy, slots, _) = BuildRuntime(new() { ["pack-b"] = new() { "pack-a" } });
-        rt.Execute(CloakSlot, "pack-a", "scripts/a.js");
-        rt.Execute(
+        EsmTest.Load(rt, "pack-a", CloakSlot, "scripts/a.js");
+        EsmTest.Load(rt, "pack-b",
             "tapestry.equipment.registerSlot({ name: 'cloak', display: 'Mantle', max: 2, override: true });",
-            "pack-b", "scripts/b.js");
+            "scripts/b.js");
         policy.Resolve();
         var slot = slots.GetSlot("cloak");
         slot.Should().NotBeNull();

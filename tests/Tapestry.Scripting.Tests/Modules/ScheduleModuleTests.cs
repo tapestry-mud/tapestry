@@ -26,21 +26,21 @@ public class ScheduleModuleTests
         var fireCount = 0;
         bus.Subscribe("test.fired", _ => fireCount++);
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/test", """
             tapestry.schedule.every(3, function() {
                 tapestry.events.publish('test.fired', {});
             });
-        """, "@tapestry/test");
+        """);
         policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         loop.Tick(); // 1
         loop.Tick(); // 2
-        loop.Tick(); // 3 — fires
+        loop.Tick(); // 3 - fires
         fireCount.Should().Be(1);
 
         loop.Tick(); // 4
         loop.Tick(); // 5
-        loop.Tick(); // 6 — fires again
+        loop.Tick(); // 6 - fires again
         fireCount.Should().Be(2);
     }
 
@@ -60,12 +60,12 @@ public class ScheduleModuleTests
         var fireCount = 0;
         bus.Subscribe("must.not.fire", _ => fireCount++);
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/test", """
             var handle = tapestry.schedule.every(1, function() {
                 tapestry.events.publish('must.not.fire', {});
             });
             tapestry.schedule.cancel(handle);
-        """, "@tapestry/test");
+        """);
 
         loop.Tick();
         fireCount.Should().Be(0);
@@ -97,11 +97,11 @@ public class ScheduleModuleTests
             calledIds.Add(evt.Data["entityId"]?.ToString() ?? "");
         });
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/test", """
             tapestry.schedule.everyForEach(1, { type: 'player' }, function(entity) {
                 tapestry.events.publish('sched.test.entity', { entityId: entity.id });
             });
-        """, "@tapestry/test");
+        """);
         policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         loop.Tick();
@@ -130,20 +130,20 @@ public class ScheduleModuleTests
         bus.Subscribe("reload.test", _ => fireCount++);
 
         // First load
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/survival", """
             tapestry.schedule.every(1, function() {
                 tapestry.events.publish('reload.test', {});
             });
-        """, "@tapestry/survival");
+        """);
 
         // Simulate reload: reset pack, re-execute. Pre-seal, ResetPack's CancelTickHandler pulls
         // the first candidate from the ledger, so the re-registration replaces rather than collides.
         scheduleMod.ResetPack("@tapestry/survival");
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/survival", """
             tapestry.schedule.every(1, function() {
                 tapestry.events.publish('reload.test', {});
             });
-        """, "@tapestry/survival");
+        """);
 
         policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
         loop.Tick();
@@ -169,7 +169,7 @@ public class ScheduleModuleTests
         world.TrackEntity(entity);
         entity.SetProperty("sustenance", 100);
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/survival", """
             var DRAIN_AMOUNT = 1;
             var DRAIN_CADENCE = 300;
             var TIER_FULL_MIN = 67;
@@ -187,7 +187,7 @@ public class ScheduleModuleTests
                 var current = getSustenanceValue(entity.id);
                 tapestry.world.setProperty(entity.id, 'sustenance', Math.max(0, current - DRAIN_AMOUNT));
             });
-        """, "@tapestry/survival");
+        """);
         policy.Resolve(); // seal: tick handlers land in the loop at the seal barrier
 
         for (var i = 0; i < 300; i++) { loop.Tick(); }
@@ -234,7 +234,7 @@ public class ScheduleModuleTests
         world.TrackEntity(entity);
         entity.SetProperty("sustenance", 0); // famished
 
-        rt.Execute(RegenScalingScript, "@tapestry/survival");
+        EsmTest.Load(rt, "@tapestry/survival", RegenScalingScript);
 
         var regenData = new Dictionary<string, object?> { ["vital"] = "hp", ["amount"] = 10 };
         var regenEvent = new GameEvent { Type = "entity.regen", SourceEntityId = entity.Id, Data = regenData };
@@ -258,9 +258,9 @@ public class ScheduleModuleTests
 
         var entity = new Entity("player", "Test");
         world.TrackEntity(entity);
-        entity.SetProperty("sustenance", 50); // hungry (34–66)
+        entity.SetProperty("sustenance", 50); // hungry (34-66)
 
-        rt.Execute(RegenScalingScript, "@tapestry/survival");
+        EsmTest.Load(rt, "@tapestry/survival", RegenScalingScript);
 
         var regenData = new Dictionary<string, object?> { ["vital"] = "hp", ["amount"] = 10 };
         var regenEvent = new GameEvent { Type = "entity.regen", SourceEntityId = entity.Id, Data = regenData };
@@ -295,7 +295,7 @@ public class ScheduleModuleTests
         world.TrackEntity(nearFull);
         nearFull.SetProperty("sustenance", 90);
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/survival", """
             function getSustenanceValue(entityId) {
                 var val = tapestry.world.getProperty(entityId, 'sustenance');
                 return (val === null || val === undefined) ? 100 : val;
@@ -308,7 +308,7 @@ public class ScheduleModuleTests
                     tapestry.world.setProperty(entityId, 'sustenance', Math.min(100, current + sustenanceValue));
                 }
             });
-        """, "@tapestry/survival");
+        """);
 
         bus.Publish(new GameEvent
         {
@@ -325,7 +325,7 @@ public class ScheduleModuleTests
 
         // Read value-tolerantly: JS writes numbers as double, so verify the nutrition
         // LOGIC (apply + cap) by value. The double-vs-int storage issue is a separate
-        // engine concern — see the GMCP hunger read finding.
+        // engine concern - see the GMCP hunger read finding.
         Convert.ToInt32(world.GetEntity(hungry.Id)!.GetProperty<object>("sustenance")).Should().Be(80);
         Convert.ToInt32(world.GetEntity(nearFull.Id)!.GetProperty<object>("sustenance")).Should().Be(100); // capped
     }
@@ -349,9 +349,9 @@ public class ScheduleModuleTests
         world.TrackEntity(fresh);                  // no sustenance set
         var existing = new Entity("player", "Existing");
         world.TrackEntity(existing);
-        existing.SetProperty("sustenance", 20);    // already partway down — must be preserved
+        existing.SetProperty("sustenance", 20);    // already partway down - must be preserved
 
-        rt.Execute("""
+        EsmTest.Load(rt, "@tapestry/survival", """
             function seedSustenance(entityId) {
                 if (!entityId) { return; }
                 var raw = tapestry.world.getProperty(entityId, 'sustenance');
@@ -360,7 +360,7 @@ public class ScheduleModuleTests
                 }
             }
             tapestry.events.on('character.created', function(evt) { seedSustenance(evt.sourceEntityId); });
-        """, "@tapestry/survival");
+        """);
 
         bus.Publish(new GameEvent { Type = "character.created", SourceEntityId = fresh.Id });
         bus.Publish(new GameEvent { Type = "character.created", SourceEntityId = existing.Id });
