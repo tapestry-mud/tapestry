@@ -39,11 +39,11 @@ internal static class EsmTest
         return dir;
     }
 
-    private static string WriteModule(State st, string dir, string prefix, string contents)
+    private static void WriteModule(string dir, string rel, string contents)
     {
-        var rel = $"dist/scripts/__{prefix}{st.Counter++}.js";
-        File.WriteAllText(Path.Combine(dir, rel.Replace('/', Path.DirectorySeparatorChar)), contents);
-        return rel;
+        var full = Path.Combine(dir, rel.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        File.WriteAllText(full, contents);
     }
 
     /// <summary>Load a JS body as an ESM module attributed to packName (replaces Execute(script, packName[, sourceFile])).</summary>
@@ -51,7 +51,11 @@ internal static class EsmTest
     {
         var (loader, st) = Resolve(rt);
         var dir = EnsurePackDir(st, packName);
-        var rel = WriteModule(st, dir, "t", "import * as tapestry from \"@tapestry/engine\";\n" + jsBody);
+        // When a sourceFile is given, use it as the module's relative path so the registration's
+        // captured source file (SourceOf the active module location) matches what the legacy
+        // Execute(script, pack, sourceFile) recorded. Otherwise use a unique synthetic path.
+        var rel = sourceFile ?? $"dist/scripts/__t{st.Counter++}.js";
+        WriteModule(dir, rel, "import * as tapestry from \"@tapestry/engine\";\n" + jsBody);
         loader.Build(st.PackDirs, st.OptionalEdges);
         rt.ImportModule(rt.ModuleKey(packName, rel));
     }
@@ -61,10 +65,18 @@ internal static class EsmTest
     {
         var (loader, st) = Resolve(rt);
         var dir = EnsurePackDir(st, "__eval");
-        var rel = WriteModule(st, dir, "e", "import * as tapestry from \"@tapestry/engine\";\nexport const __result = (" + expr + ");\n");
+        // Tolerate a trailing semicolon/whitespace on the expression (callers migrated from
+        // rt.Evaluate often carry one); it is wrapped as `export const __result = (<expr>);`.
+        var trimmed = expr.Trim();
+        if (trimmed.EndsWith(";", StringComparison.Ordinal))
+        {
+            trimmed = trimmed.Substring(0, trimmed.Length - 1).TrimEnd();
+        }
+        var rel = $"dist/scripts/__e{st.Counter++}.js";
+        WriteModule(dir, rel, "import * as tapestry from \"@tapestry/engine\";\nexport const __result = (" + trimmed + ");\n");
         loader.Build(st.PackDirs, st.OptionalEdges);
         var val = rt.ImportModuleAndGet(rt.ModuleKey("__eval", rel), "__result");
-        if (val is null || val == Jint.Native.JsValue.Null || val == Jint.Native.JsValue.Undefined)
+        if (val is null || val == JsValue.Null || val == JsValue.Undefined)
         {
             return null;
         }
