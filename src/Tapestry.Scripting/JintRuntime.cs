@@ -127,6 +127,13 @@ public class JintRuntime
     public string? GetActivePack() =>
         Interop.TapestryModuleLoader.PackOf(JintActiveModule.ActiveLocation(_engine));
 
+    /// <summary>TEST-ONLY: the ESM module loader (for the EsmTest harness). Null only on legacy-only runtimes.</summary>
+    internal Interop.TapestryModuleLoader? Loader => _loader;
+
+    /// <summary>TEST-ONLY: import a module and read one of its named exports (for EsmTest.Eval).</summary>
+    internal JsValue? ImportModuleAndGet(string moduleKey, string exportName)
+        => _engine.Modules.Import(moduleKey).Get(exportName);
+
     /// <summary>TEST-ONLY raw-JsValue evaluate for the fixture (the public object? Evaluate stays).</summary>
     internal JsValue EvaluateRaw(string expression) => _engine.Evaluate(expression);
 
