@@ -128,6 +128,22 @@ jobs:
       - name: Build server
         run: dotnet build src/Tapestry.Server --configuration Release -v q
 
+      # ESM packs ship compiled dist/scripts (gitignored); content.scripts globs
+      # dist/scripts/**/*.js. The git checkout has only the .ts sources, so the
+      # scenario corpus must be compiled before boot or no pack script loads and
+      # every command returns "Huh?". tsc is pinned to match the CLI's bundled
+      # version. Legacy/script-less packs (no tsconfig.json, e.g. biomes) skip.
+      - name: Build ESM pack dist (tsc)
+        run: |
+          set -euo pipefail
+          npm install -g typescript@5.7.3
+          for d in .packs-src/packages/@tapestry/*/; do
+            if [ -f "${d}tsconfig.json" ]; then
+              echo "Compiling ${d}"
+              (cd "$d" && tsc -p tsconfig.json)
+            fi
+          done
+
       - name: Run telnet scenarios
         run: node tests/tools/telnet-runner.js --all-packs --managed --clean --configuration Release --packs .packs-src/packages
 
