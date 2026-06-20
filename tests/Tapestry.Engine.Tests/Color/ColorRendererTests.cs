@@ -120,4 +120,91 @@ public class ColorRendererTests
         var raw = "\x1b[97mTown Square\x1b[0m";
         renderer.RenderAnsi(raw).Should().Be(raw);
     }
+
+    // --- Nesting (issue #125) ---
+
+    [Fact]
+    public void NestedSemanticTags_TwoLevels_RendersAnsi()
+    {
+        var renderer = CreateRenderer();
+        // danger = bright-red (91), highlight = bright-white (97)
+        var result = renderer.RenderAnsi("<danger>hit for <highlight>40</highlight></danger>");
+        // Inner close resets then re-applies the still-open danger color.
+        result.Should().Be("\x1b[91mhit for \x1b[97m40\x1b[0m\x1b[91m\x1b[0m");
+    }
+
+    [Fact]
+    public void NestedSemanticTags_ResetRestoresParentColor()
+    {
+        var renderer = CreateRenderer();
+        // Text AFTER the inner close must keep the parent (danger) color.
+        var result = renderer.RenderAnsi("<danger>hit <highlight>40</highlight> dmg</danger>");
+        result.Should().Be("\x1b[91mhit \x1b[97m40\x1b[0m\x1b[91m dmg\x1b[0m");
+        // The parent code reappears after the inner reset.
+        result.Should().Contain("\x1b[0m\x1b[91m dmg");
+    }
+
+    [Fact]
+    public void NestedSemanticTags_ThreeLevels_RendersAnsi()
+    {
+        var renderer = CreateRenderer();
+        // danger(91) > npc(96) > highlight(97), each with trailing parent text.
+        var result = renderer.RenderAnsi("<danger>a<npc>b<highlight>c</highlight>d</npc>e</danger>");
+        result.Should().Be(
+            "\x1b[91ma\x1b[96mb\x1b[97mc\x1b[0m\x1b[91m\x1b[96md\x1b[0m\x1b[91me\x1b[0m");
+    }
+
+    [Fact]
+    public void NestedSemanticTags_TwoLevels_PlainStripsAll()
+    {
+        var renderer = CreateRenderer();
+        var result = renderer.RenderPlain("<danger>hit for <highlight>40</highlight> dmg</danger>");
+        result.Should().Be("hit for 40 dmg");
+    }
+
+    [Fact]
+    public void NestedSemanticTags_ThreeLevels_PlainStripsAll()
+    {
+        var renderer = CreateRenderer();
+        var result = renderer.RenderPlain("<danger>a<npc>b<highlight>c</highlight>d</npc>e</danger>");
+        result.Should().Be("abcde");
+    }
+
+    [Fact]
+    public void NestedLiteralColor_InsideSemanticTag_RendersAndRestores()
+    {
+        var renderer = CreateRenderer();
+        // danger(91) wraps a literal color block (bright-yellow = 93).
+        var result = renderer.RenderAnsi("<danger>x <color fg=\"bright-yellow\">y</color> z</danger>");
+        result.Should().Be("\x1b[91mx \x1b[93my\x1b[0m\x1b[91m z\x1b[0m");
+    }
+
+    [Fact]
+    public void NestedSemanticTag_InsideLiteralColor_RendersAndRestores()
+    {
+        var renderer = CreateRenderer();
+        // literal color (bright-red = 91) wraps a semantic highlight (97).
+        var result = renderer.RenderAnsi("<color fg=\"bright-red\">x <highlight>y</highlight> z</color>");
+        result.Should().Be("\x1b[91mx \x1b[97my\x1b[0m\x1b[91m z\x1b[0m");
+    }
+
+    [Fact]
+    public void UnknownOuterTag_StillRendersInnerKnownTag()
+    {
+        var renderer = CreateRenderer();
+        // Outer <unknown> passes through literally; inner <highlight> still renders.
+        var result = renderer.RenderAnsi("<unknown><highlight>x</highlight></unknown>");
+        result.Should().Be("<unknown>\x1b[97mx\x1b[0m</unknown>");
+    }
+
+    [Fact]
+    public void NestedSemanticTags_Plain_Cached()
+    {
+        var renderer = CreateRenderer();
+        var input = "<danger>hit <highlight>40</highlight></danger>";
+        var r1 = renderer.RenderPlain(input);
+        var r2 = renderer.RenderPlain(input);
+        r1.Should().Be("hit 40");
+        ReferenceEquals(r1, r2).Should().BeTrue();
+    }
 }
