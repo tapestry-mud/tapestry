@@ -88,7 +88,8 @@ public class AbilityCommandBridge
             packName: ability.PackName,
             sourceFile: ability.SourceFile,
             visibleTo: visibleTo,
-            roles: ["player", "mob"]
+            roles: ["player", "mob"],
+            pace: Pace.Battle
         );
     }
 

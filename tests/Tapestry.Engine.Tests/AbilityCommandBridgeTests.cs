@@ -100,6 +100,21 @@ public class AbilityCommandBridgeTests
     }
 
     [Fact]
+    public void WireAll_GeneratedCommand_HasBattlePace()
+    {
+        // Move 3a: ability bridge must generate pace:battle commands so the swell clock
+        // intercepts them when a swell is active.
+        var (bridge, commands, abilities, _, _) = Build();
+        abilities.Register(new AbilityDefinition { Id = "kick", Name = "Kick", Type = AbilityType.Active, Category = AbilityCategory.Skill });
+
+        bridge.WireAll();
+
+        var reg = commands.Resolve("kick");
+        Assert.NotNull(reg);
+        Assert.Equal(Pace.Battle, reg!.Pace);
+    }
+
+    [Fact]
     public void ResolveTarget_NamedTargetMiss_InCombat_FallsBackToPrimaryTarget()
     {
         var world = new World();
