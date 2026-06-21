@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Tapestry.Engine;
+using Tapestry.Engine.Combat;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
@@ -173,5 +174,176 @@ public class CommandRouterTests
             Command = parts.Length > 0 ? parts[0] : "",
             Args = parts.Length > 1 ? parts[1..] : []
         };
+    }
+
+    // --- Swell clock dispatch tests ---
+
+    private static (World world, EventBus eventBus, CombatManager combat,
+        WindowValidatorRegistry validators, Room room, Entity player, Entity boss)
+        SetupSwellWorld()
+    {
+        var world = new World();
+        var eventBus = new EventBus();
+        var combat = new CombatManager(world, eventBus);
+        var validators = new WindowValidatorRegistry();
+        var room = new Room("core:arena", "Arena", "A test arena.");
+        world.AddRoom(room);
+
+        var player = new Entity("player", "Travis");
+        player.AddTag("player");
+        player.Stats.BaseMaxHp = 100;
+        player.Stats.Hp = 100;
+        room.AddEntity(player);
+        world.TrackEntity(player);
+
+        var boss = new Entity("npc", "the swell-warden");
+        boss.AddTag("npc");
+        boss.Stats.BaseMaxHp = 200;
+        boss.Stats.Hp = 200;
+        boss.SetProperty("swell_window", "telegraph-rung");
+        boss.SetProperty("swell_tell", "full");
+        boss.SetProperty("swell_baseline_gap_ticks", 2);
+        boss.SetProperty("swell_jitter_ticks", 0);
+        boss.SetProperty("swell_telegraph_ticks", 2);
+        boss.SetProperty("swell_window_ticks", 4);
+        // Both lines use "sidestep" as the counter so the required counter is always known.
+        boss.SetProperty("swell_line1_id", "sweep");
+        boss.SetProperty("swell_line1_counter", "sidestep");
+        boss.SetProperty("swell_line1_tell_full", "The warden winds up a wide SWEEP -- sidestep it!");
+        boss.SetProperty("swell_line2_id", "crush");
+        boss.SetProperty("swell_line2_counter", "sidestep");
+        boss.SetProperty("swell_line2_tell_full", "The warden rears for a downward CRUSH -- sidestep it!");
+        boss.SetProperty("swell_chunk_pct", 15);
+        boss.SetProperty("swell_whiff_pct", 10);
+        boss.SetProperty("swell_weather_pct", 8);
+        boss.SetProperty("swell_narration_countered", "You read it clean and the warden reels.");
+        boss.SetProperty("swell_narration_whiffed", "Wrong read - the blow lands hard.");
+        boss.SetProperty("swell_narration_weathered", "You freeze, and the blow lands.");
+        room.AddEntity(boss);
+        world.TrackEntity(boss);
+
+        return (world, eventBus, combat, validators, room, player, boss);
+    }
+
+    private static void RegisterTelegraphRungValidator(WindowValidatorRegistry validators)
+    {
+        validators.Register("telegraph-rung", ctx =>
+        {
+            if (string.IsNullOrEmpty(ctx.Command.Verb))
+            {
+                return new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" };
+            }
+            if (ctx.Command.Verb == ctx.Swell!.RequiredCounter)
+            {
+                return new ValidationResult { Outcome = WindowOutcome.Countered, NarrationKey = "countered" };
+            }
+            return new ValidationResult { Outcome = WindowOutcome.Whiffed, NarrationKey = "whiffed" };
+        });
+    }
+
+    [Fact]
+    public void Route_BattleVerb_RoutesToSwellClock_NotHandler()
+    {
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        // Router constructed WITH the swell clock.
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var handlerRan = false;
+        registry.Register("sidestep", _ => { handlerRan = true; }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        // Drive to an open Window: baseline ends at tick 2, telegraph ends at tick 4.
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph
+        clock.AdvanceAll(4); // -> Window
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "sidestep",
+            Command = "sidestep",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.False(handlerRan); // clock owns the outcome, not the handler
+    }
+
+    [Fact]
+    public void Route_FreeVerb_DispatchesHandler_AsToday()
+    {
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var ran = false;
+        registry.Register("look", _ => { ran = true; }); // default Pace.Free
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph
+        clock.AdvanceAll(4); // -> Window
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "look",
+            Command = "look",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.True(ran); // free verbs always dispatch immediately
+    }
+
+    [Fact]
+    public void Route_BattleVerb_Abbreviation_CommitsCanonicalCounter()
+    {
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        registry.Register("sidestep", _ => { }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph
+        clock.AdvanceAll(4); // -> Window (both lines use "sidestep" as counter)
+
+        // Player types the abbreviation "side"; registry prefix-matches to "sidestep".
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "side",
+            Command = "side",
+            Args = Array.Empty<string>()
+        });
+
+        // Resolve: canonical "sidestep" was committed, so boss takes chunk damage (COUNTERED).
+        clock.AdvanceAll(5);
+        Assert.True(boss.Stats.Hp < boss.Stats.MaxHp); // COUNTERED, boss took the chunk
+        Assert.Equal(100, player.Stats.Hp);             // player unharmed
     }
 }

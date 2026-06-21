@@ -1,3 +1,4 @@
+using Tapestry.Engine.Combat;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -13,14 +14,16 @@ public class CommandRouter
     private readonly SessionManager _sessions;
     private readonly World _world;
     private readonly BadInputTracker? _badInputTracker;
+    private readonly SwellClockManager? _swellClock;
 
     public CommandRouter(CommandRegistry registry, SessionManager sessions, World world,
-        BadInputTracker? badInputTracker = null)
+        BadInputTracker? badInputTracker = null, SwellClockManager? swellClock = null)
     {
         _registry = registry;
         _sessions = sessions;
         _world = world;
         _badInputTracker = badInputTracker;
+        _swellClock = swellClock;
     }
 
     public void Route(CommandContext ctx)
@@ -58,6 +61,31 @@ public class CommandRouter
                 _sessions.SendToPlayer(ctx.PlayerEntityId, "Huh?\r\n");
                 return;
             }
+        }
+
+        if (registration.Pace == Pace.Battle && _swellClock != null)
+        {
+            // battle-pace commands route to the swell clock instead of their handler.
+            // TryCommit returns NoSwellHere when the player is not mid-swell, which covers
+            // the not-fighting case without requiring an explicit IsInCombat check.
+            // Pass registration.Keyword (the canonical verb), not ctx.Command which may be
+            // an abbreviation - the validator compares against RequiredCounter exactly.
+            var commit = _swellClock.TryCommit(ctx.PlayerEntityId, registration.Keyword);
+            switch (commit)
+            {
+                case SwellCommitResult.Accepted:
+                    break;
+                case SwellCommitResult.NotInWindow:
+                    _sessions.SendToPlayer(ctx.PlayerEntityId, "Too soon - there's no opening yet.\r\n");
+                    break;
+                case SwellCommitResult.NoSwellHere:
+                    _sessions.SendToPlayer(ctx.PlayerEntityId, "There's nothing to counter right now.\r\n");
+                    break;
+                case SwellCommitResult.AlreadyCommitted:
+                    _sessions.SendToPlayer(ctx.PlayerEntityId, "You've already committed this beat.\r\n");
+                    break;
+            }
+            return;
         }
 
         registration.ActorHandler(BuildPlayerActorContext(ctx));
