@@ -21,9 +21,10 @@ node_modules/
 # AI assistant context
 .claude/
 
-# Internal docs and deployment config
-docs/
+# Superpowers planning scaffolding stays internal; docs/ is now the public guides home
 **/docs/superpowers/
+
+# Deployment config
 fly.toml
 
 # Git worktrees
