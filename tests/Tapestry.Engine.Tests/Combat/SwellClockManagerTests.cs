@@ -133,4 +133,132 @@ public class SwellClockManagerTests
 
         Assert.Contains(_events, e => e.Type == "combat.swell.window");
     }
+
+    // --- Task 5 helpers ---
+
+    private void RegisterDefaultValidator()
+    {
+        _validators.Register("telegraph-rung", ctx =>
+        {
+            if (string.IsNullOrEmpty(ctx.Command.Verb))
+            {
+                return new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" };
+            }
+            if (ctx.Command.Verb == ctx.Swell!.RequiredCounter)
+            {
+                return new ValidationResult { Outcome = WindowOutcome.Countered, NarrationKey = "countered" };
+            }
+            return new ValidationResult { Outcome = WindowOutcome.Whiffed, NarrationKey = "whiffed" };
+        });
+    }
+
+    private string RequiredCounterFromTelegraph()
+    {
+        var tele = _events.Last(e => e.Type == "combat.swell.telegraph");
+        var text = tele.Data["text"]!.ToString()!;
+        return text.Contains("SWEEP") ? "sidestep" : "brace";
+    }
+
+    private string WrongCounterFromTelegraph()
+    {
+        return RequiredCounterFromTelegraph() == "sidestep" ? "brace" : "sidestep";
+    }
+
+    [Fact]
+    public void Countered_DamagesBoss_AndNegatesIncoming()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer(hp: 100);
+        var boss = CreateBoss(hp: 200);
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // Telegraph (line + counter locked)
+        clock.AdvanceAll(4); // Window open
+
+        // Read which line was telegraphed from the published event, then commit its counter.
+        var counter = RequiredCounterFromTelegraph();
+        var result = clock.TryCommit(player.Id, counter);
+        Assert.Equal(SwellCommitResult.Accepted, result);
+
+        clock.AdvanceAll(5); // resolve
+
+        Assert.Equal(100, player.Stats.Hp);          // incoming negated
+        Assert.Equal(200 - 30, boss.Stats.Hp);       // 15% of 200 = 30
+        Assert.Contains(_events, e => e.Type == "combat.swell.resolve");
+    }
+
+    [Fact]
+    public void Whiffed_DamagesPlayer()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer(hp: 100);
+        var boss = CreateBoss(hp: 200);
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2);
+        clock.AdvanceAll(4);
+
+        var wrong = WrongCounterFromTelegraph();
+        clock.TryCommit(player.Id, wrong);
+        clock.AdvanceAll(5);
+
+        Assert.Equal(100 - 10, player.Stats.Hp);     // 10% of 100
+        Assert.Equal(200, boss.Stats.Hp);
+    }
+
+    [Fact]
+    public void Weathered_WhenNothingCommitted_DamagesPlayer()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer(hp: 100);
+        var boss = CreateBoss(hp: 200);
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2);
+        clock.AdvanceAll(4); // Window opens, ends at 8
+        clock.AdvanceAll(8); // timeout -> weather -> resolve
+
+        Assert.Equal(100 - 8, player.Stats.Hp);      // 8% of 100
+    }
+
+    [Fact]
+    public void TryCommit_OffWindow_IsRejected()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0); // Baseline
+        Assert.Equal(SwellCommitResult.NotInWindow, clock.TryCommit(player.Id, "sidestep"));
+    }
+
+    [Fact]
+    public void Countered_Lethal_FiresVitalDepleted()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer(hp: 100);
+        var boss = CreateBoss(hp: 25); // 15% of MaxHp = 3; boss is near death so chunk is lethal
+        boss.Stats.Hp = 1;             // already near death; the chunk finishes it
+        _combat.Engage(player, boss);
+        var depleted = new List<GameEvent>();
+        _eventBus.Subscribe("entity.vital.depleted", e => depleted.Add(e));
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2);
+        clock.AdvanceAll(4);
+        clock.TryCommit(player.Id, RequiredCounterFromTelegraph());
+        clock.AdvanceAll(5);
+
+        Assert.Equal(0, boss.Stats.Hp);
+        Assert.Contains(depleted, e => e.SourceEntityId == boss.Id);
+    }
 }

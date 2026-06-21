@@ -118,7 +118,10 @@ public class SwellClockManager
                 }
                 break;
             case SwellPhase.Window:
-                // Commit-then-resolve and timeout-weather land in Task 5.
+                if (state.CommittedVerb != null || tick >= state.PhaseEndsAtTick)
+                {
+                    Resolve(boss, state, tick);
+                }
                 break;
             case SwellPhase.Resolve:
                 break;
@@ -192,6 +195,128 @@ public class SwellClockManager
         state.Phase = SwellPhase.Window;
         state.PhaseEndsAtTick = tick + Math.Max(1, boss.GetProperty<int>("swell_window_ticks"));
         Publish("combat.swell.window", boss, state, "An opening!");
+    }
+
+    public SwellCommitResult TryCommit(Guid actorId, string verb)
+    {
+        // Solo slice: the actor's primary target is the boss.
+        var bossId = _combat.GetPrimaryTarget(actorId);
+        if (bossId == null || !_fights.TryGetValue(bossId.Value, out var state))
+        {
+            return SwellCommitResult.NoSwellHere;
+        }
+        if (state.Phase != SwellPhase.Window)
+        {
+            return SwellCommitResult.NotInWindow;
+        }
+        if (state.CommittedVerb != null)
+        {
+            return SwellCommitResult.AlreadyCommitted;
+        }
+        state.CommittedVerb = verb;
+        return SwellCommitResult.Accepted;
+    }
+
+    private void Resolve(Entity boss, SwellState state, long tick)
+    {
+        state.Phase = SwellPhase.Resolve;
+
+        var player = _world.GetEntity(state.PlayerId);
+        var validator = _validators.Get(boss.GetProperty<string>("swell_window") ?? "");
+
+        ValidationResult result;
+        if (validator == null || player == null)
+        {
+            // Defensive: a swell boss must declare a registered validator. Treat absence as a weather.
+            result = new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" };
+        }
+        else
+        {
+            var context = BuildContext(boss, player, state);
+            result = validator(context);
+        }
+
+        ApplyOutcome(boss, player, result.Outcome);
+
+        var narration = boss.GetProperty<string>($"swell_narration_{result.NarrationKey}")
+            ?? DefaultNarration(result.Outcome);
+        Publish("combat.swell.resolve", boss, state, narration);
+
+        // Back to Baseline; schedule the next swell.
+        state.Phase = SwellPhase.Baseline;
+        state.CommittedVerb = null;
+        state.PhaseEndsAtTick = tick + NextBaselineGap(boss);
+    }
+
+    private CombatContext BuildContext(Entity boss, Entity player, SwellState state)
+    {
+        var (playerTier, _) = HealthTier.Get(player.Stats.Hp, player.Stats.MaxHp);
+        var (bossTier, _) = HealthTier.Get(boss.Stats.Hp, boss.Stats.MaxHp);
+        return new CombatContext
+        {
+            Actor = new ActorView(player.Id, playerTier),
+            Target = new ActorView(boss.Id, bossTier),
+            Phase = "swell",
+            Swell = new SwellView(state.AttackLine, state.RequiredCounter, state.Tell, true),
+            Command = new CommandView(state.CommittedVerb ?? "", boss.Id.ToString())
+        };
+    }
+
+    private void ApplyOutcome(Entity boss, Entity? player, WindowOutcome outcome)
+    {
+        switch (outcome)
+        {
+            case WindowOutcome.Countered:
+                ApplyDamage(boss, Pct(boss.Stats.MaxHp, boss.GetProperty<int>("swell_chunk_pct")), killer: player);
+                break;
+            case WindowOutcome.Whiffed:
+                if (player != null)
+                {
+                    ApplyDamage(player, Pct(player.Stats.MaxHp, boss.GetProperty<int>("swell_whiff_pct")), killer: boss);
+                }
+                break;
+            case WindowOutcome.Weathered:
+                if (player != null)
+                {
+                    ApplyDamage(player, Pct(player.Stats.MaxHp, boss.GetProperty<int>("swell_weather_pct")), killer: boss);
+                }
+                break;
+        }
+    }
+
+    private static int Pct(int max, int pct)
+    {
+        return Math.Max(0, max * pct / 100);
+    }
+
+    private void ApplyDamage(Entity victim, int amount, Entity? killer)
+    {
+        victim.Stats.Hp -= amount;
+        if (victim.Stats.Hp <= 0)
+        {
+            _eventBus.Publish(new GameEvent
+            {
+                Type = "entity.vital.depleted",
+                SourceEntityId = victim.Id,
+                RoomId = victim.LocationRoomId,
+                SourceEntityName = victim.Name,
+                Data = new Dictionary<string, object?>
+                {
+                    ["vital"] = "hp",
+                    ["killerId"] = killer?.Id.ToString()
+                }
+            });
+        }
+    }
+
+    private static string DefaultNarration(WindowOutcome outcome)
+    {
+        return outcome switch
+        {
+            WindowOutcome.Countered => "You counter the blow.",
+            WindowOutcome.Whiffed => "Your counter misses and the blow lands.",
+            _ => "The blow lands.",
+        };
     }
 
     private void Publish(string type, Entity boss, SwellState state, string text)
