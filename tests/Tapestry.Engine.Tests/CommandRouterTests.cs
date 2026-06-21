@@ -413,4 +413,82 @@ public class CommandRouterTests
 
         Assert.False(handlerRan); // handler must NOT run during active swell
     }
+
+    [Fact]
+    public void Route_Move4_CounterVerb_DuringWindow_CommitsAndDoesNotRunHandler()
+    {
+        // Move 4: the known counter verb during Window commits to TryCommit; handler does NOT run.
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var handlerRan = false;
+        registry.Register("sidestep", _ => { handlerRan = true; }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // Telegraph (both lines use "sidestep" in SetupSwellWorld)
+        clock.AdvanceAll(4); // Window open
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "sidestep",
+            Command = "sidestep",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.False(handlerRan); // counter goes through swell clock, not handler
+
+        // Resolve: boss should take chunk damage (COUNTERED)
+        clock.AdvanceAll(5);
+        Assert.True(boss.Stats.Hp < boss.Stats.MaxHp);
+        Assert.Equal(100, player.Stats.Hp);
+    }
+
+    [Fact]
+    public void Route_Move4_NonCounterBattleVerb_DuringActiveSwell_SendsSlowMessage()
+    {
+        // Move 4: a non-counter battle verb during an active swell sends "The world has slowed" message.
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var handlerRan = false;
+        // "cast" is a non-counter battle verb (not the swell counter)
+        registry.Register("cast", _ => { handlerRan = true; }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // Telegraph (active swell)
+        clock.AdvanceAll(4); // Window open
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "cast",
+            Command = "cast",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.False(handlerRan); // handler blocked during active swell
+        // "The world has slowed" message was sent
+        Assert.Contains(connection.SentText, t => t.Contains("The world has slowed"));
+    }
 }

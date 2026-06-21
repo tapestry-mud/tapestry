@@ -69,20 +69,26 @@ public class CommandRouter
             // battle-pace commands are intercepted only when a swell is active for this actor.
             // Pass registration.Keyword (the canonical verb), not ctx.Command which may be
             // an abbreviation - the validator compares against RequiredCounter exactly.
-            var commit = _swellClock.TryCommit(ctx.PlayerEntityId, registration.Keyword);
-            switch (commit)
+            if (_swellClock.IsKnownCounterVerb(ctx.PlayerEntityId, registration.Keyword))
             {
-                case SwellCommitResult.Accepted:
-                    break;
-                case SwellCommitResult.NotInWindow:
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, "Too soon - there's no opening yet.\r\n");
-                    break;
-                case SwellCommitResult.NoSwellHere:
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, "There's nothing to counter right now.\r\n");
-                    break;
-                case SwellCommitResult.AlreadyCommitted:
-                    _sessions.SendToPlayer(ctx.PlayerEntityId, "You've already committed this beat.\r\n");
-                    break;
+                // Counter verb: attempt to commit the beat (validated at Resolve).
+                var commit = _swellClock.TryCommit(ctx.PlayerEntityId, registration.Keyword);
+                switch (commit)
+                {
+                    case SwellCommitResult.Accepted:
+                        break;
+                    case SwellCommitResult.NotInWindow:
+                        _sessions.SendToPlayer(ctx.PlayerEntityId, "Too soon - there's no opening yet.\r\n");
+                        break;
+                    case SwellCommitResult.AlreadyCommitted:
+                        _sessions.SendToPlayer(ctx.PlayerEntityId, "You've already committed this beat.\r\n");
+                        break;
+                }
+            }
+            else
+            {
+                // Non-counter battle verb during an active swell: blocked.
+                _sessions.SendToPlayer(ctx.PlayerEntityId, "The world has slowed. Read the swell.\r\n");
             }
             return;
         }

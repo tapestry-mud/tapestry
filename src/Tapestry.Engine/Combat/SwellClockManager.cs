@@ -220,6 +220,27 @@ public class SwellClockManager
         return _fights.TryGetValue(bossId.Value, out var state) && state.Phase != SwellPhase.Baseline;
     }
 
+    /// <summary>True when the verb matches a known counter verb (line1 or line2) for this actor's boss.</summary>
+    public bool IsKnownCounterVerb(Guid actorId, string verb)
+    {
+        var bossId = _combat.GetPrimaryTarget(actorId);
+        if (bossId == null)
+        {
+            return false;
+        }
+
+        var boss = _world.GetEntity(bossId.Value);
+        if (boss == null)
+        {
+            return false;
+        }
+
+        var c1 = boss.GetProperty<string>("swell_line1_counter");
+        var c2 = boss.GetProperty<string>("swell_line2_counter");
+        return string.Equals(verb, c1, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(verb, c2, StringComparison.OrdinalIgnoreCase);
+    }
+
     private bool IsSwellingPhase(Guid entityId)
     {
         return _fights.TryGetValue(entityId, out var state) && state.Phase != SwellPhase.Baseline;

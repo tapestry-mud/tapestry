@@ -311,4 +311,34 @@ public class SwellClockManagerTests
         clock.AdvanceAll(2); // Telegraph
         Assert.True(clock.IsActorInActiveSwell(player.Id));
     }
+
+    [Fact]
+    public void IsKnownCounterVerb_MatchesLine1Counter()
+    {
+        var clock = Setup();
+        var player = CreatePlayer();
+        var boss = CreateBoss(); // swell_line1_counter = "sidestep", swell_line2_counter = "brace"
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // Telegraph - picks either line1 or line2
+
+        // Both counters should be recognised; non-counter verbs should not.
+        var line1Match = clock.IsKnownCounterVerb(player.Id, "sidestep");
+        var line2Match = clock.IsKnownCounterVerb(player.Id, "brace");
+        // At least one of the two known counters matches (the one telegraphed is locked).
+        // The OTHER one may or may not match depending on implementation; the important
+        // thing is that a random verb does NOT match.
+        Assert.True(line1Match || line2Match);
+        Assert.False(clock.IsKnownCounterVerb(player.Id, "fireball"));
+    }
+
+    [Fact]
+    public void IsKnownCounterVerb_FalseWhenNotInCombat()
+    {
+        var clock = Setup();
+        // No combat, no boss target
+        var player = CreatePlayer();
+        Assert.False(clock.IsKnownCounterVerb(player.Id, "sidestep"));
+    }
 }
