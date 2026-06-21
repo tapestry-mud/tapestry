@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
 
         // Combat
         services.AddSingleton<CombatManager>();
+        services.AddSingleton<WindowValidatorRegistry>();
 
         // Progression
         services.AddSingleton<ProgressionManager>();

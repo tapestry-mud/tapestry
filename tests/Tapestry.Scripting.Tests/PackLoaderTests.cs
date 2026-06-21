@@ -395,7 +395,7 @@ public class PackLoaderTests
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
-            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager),
+            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager, registrationPolicy, new Tapestry.Engine.Combat.WindowValidatorRegistry(), new MobInvocationBudget(), new ServerConfig()),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, new MobInvocationBudget(), new ServerConfig(), NullLogger<MobsModule>.Instance),
             new ThemeModule(themeRegistry, registrationPolicy),

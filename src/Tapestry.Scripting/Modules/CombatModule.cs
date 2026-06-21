@@ -1,7 +1,12 @@
+using Jint.Native;
+using Jint.Native.Object;
+using Jint.Runtime;
+using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Registration;
 using Tapestry.Shared;
 using JintEngine = Jint.Engine;
 
@@ -14,14 +19,31 @@ public class CombatModule : IJintApiModule
     private readonly EventBus _eventBus;
     private readonly GameLoop _gameLoop;
     private readonly EffectManager _effectManager;
+    private readonly RegistrationPolicy _registrationPolicy;
+    private readonly WindowValidatorRegistry _windowValidators;
+    private readonly MobInvocationBudget _invocationBudget;
+    private readonly ServerConfig _config;
 
-    public CombatModule(CombatManager combat, World world, EventBus eventBus, GameLoop gameLoop, EffectManager effectManager)
+    public CombatModule(
+        CombatManager combat,
+        World world,
+        EventBus eventBus,
+        GameLoop gameLoop,
+        EffectManager effectManager,
+        RegistrationPolicy registrationPolicy,
+        WindowValidatorRegistry windowValidators,
+        MobInvocationBudget invocationBudget,
+        ServerConfig config)
     {
         _combat = combat;
         _world = world;
         _eventBus = eventBus;
         _gameLoop = gameLoop;
         _effectManager = effectManager;
+        _registrationPolicy = registrationPolicy;
+        _windowValidators = windowValidators;
+        _invocationBudget = invocationBudget;
+        _config = config;
     }
 
     public string Namespace => "combat";
@@ -232,8 +254,71 @@ public class CombatModule : IJintApiModule
                 var roll = new Random().Next(1, 101);
 
                 return roll > saveTarget;
+            }),
+
+            registerWindow = new Action<string, JsValue>((name, fn) =>
+            {
+                var packName = engine.CurrentPackOwner();
+                var sourceFile = engine.CurrentSourceFile();
+
+                _registrationPolicy.Record(new RegistrationCandidate(
+                    Kind: "combat-window",
+                    Name: name,
+                    Owner: packName,
+                    IsOverride: false,
+                    Commit: () => _windowValidators.Register(name, ctx =>
+                    {
+                        var jsCtx = JsValue.FromObject(engine, new
+                        {
+                            actor = new { id = ctx.Actor.Id.ToString(), hpTier = ctx.Actor.HpTier },
+                            target = new { id = ctx.Target.Id.ToString(), hpTier = ctx.Target.HpTier },
+                            phase = ctx.Phase,
+                            swell = ctx.Swell == null ? (object?)null : new
+                            {
+                                attackLine = ctx.Swell.AttackLine,
+                                requiredCounter = ctx.Swell.RequiredCounter,
+                                tell = ctx.Swell.Tell,
+                                windowOpen = ctx.Swell.WindowOpen
+                            },
+                            command = new { verb = ctx.Command.Verb, target = ctx.Command.Target }
+                        });
+
+                        JsValue resultJs;
+                        using (_invocationBudget.Arm(_config.MobAi.InvocationCapMs))
+                        {
+                            resultJs = engine.Invoke(fn, jsCtx);
+                        }
+
+                        return ReadValidationResult(resultJs);
+                    }),
+                    SourceFile: sourceFile,
+                    Line: 0));
             })
         };
+    }
+
+    private static ValidationResult ReadValidationResult(JsValue resultJs)
+    {
+        if (resultJs is not ObjectInstance obj)
+        {
+            return new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" };
+        }
+
+        var outcomeStr = obj.Get("outcome").ToString();
+        var outcome = outcomeStr.ToUpperInvariant() switch
+        {
+            "COUNTERED" => WindowOutcome.Countered,
+            "WHIFFED" => WindowOutcome.Whiffed,
+            _ => WindowOutcome.Weathered,
+        };
+
+        var keyJs = obj.Get("narrationKey");
+        var key = keyJs.Type == Types.String ? keyJs.ToString() : outcome.ToString().ToLowerInvariant();
+
+        var qualityJs = obj.Get("quality");
+        var quality = qualityJs.Type == Types.String ? qualityJs.ToString() : null;
+
+        return new ValidationResult { Outcome = outcome, Quality = quality, NarrationKey = key };
     }
 
     private record DamageVerbEntry(int MinDamage, string Verb, string LeftDecor, string RightDecor, string Theme);

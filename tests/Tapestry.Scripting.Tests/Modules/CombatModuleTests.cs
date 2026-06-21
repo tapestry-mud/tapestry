@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Registration;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Interop;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -17,6 +19,24 @@ public class CombatModuleTests
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
         return (rt, provider.GetRequiredService<World>(), provider.GetRequiredService<CombatManager>());
+    }
+
+    private (JintRuntime rt, RegistrationPolicy policy, WindowValidatorRegistry registry, PackDependencyGraph graph)
+        BuildRuntimeWithRegistry()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var graph = provider.GetRequiredService<PackDependencyGraph>();
+        graph.Build(new Dictionary<string, List<string>>());
+        var rt = provider.GetRequiredService<JintRuntime>();
+        rt.Initialize();
+        return (rt,
+            provider.GetRequiredService<RegistrationPolicy>(),
+            provider.GetRequiredService<WindowValidatorRegistry>(),
+            graph);
     }
 
     private (Entity entityA, Entity entityB) CreateCombatPair(World world, CombatManager combat)
@@ -87,5 +107,36 @@ public class CombatModuleTests
         var (rt, _, _) = BuildRuntime();
         var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", "tapestry.combat.removeFromAllCombat('not-a-guid')"));
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public void RegisterWindow_RegistersValidator_ThroughTheSeal()
+    {
+        var (rt, policy, registry, _) = BuildRuntimeWithRegistry();
+
+        EsmTest.Load(rt, "test-pack",
+            """
+            tapestry.combat.registerWindow('telegraph-rung', function (ctx) {
+              if (!ctx.command.verb) { return { outcome: 'WEATHERED', narrationKey: 'weathered' }; }
+              return ctx.command.verb === ctx.swell.requiredCounter
+                ? { outcome: 'COUNTERED', narrationKey: 'countered' }
+                : { outcome: 'WHIFFED', narrationKey: 'whiffed' };
+            });
+            """);
+
+        policy.Resolve();
+
+        var validator = registry.Get("telegraph-rung");
+        Assert.NotNull(validator);
+
+        var ctx = new CombatContext
+        {
+            Actor = new ActorView(Guid.NewGuid(), "perfect"),
+            Target = new ActorView(Guid.NewGuid(), "wounded"),
+            Phase = "swell",
+            Swell = new SwellView("sweep", "sidestep", "full", true),
+            Command = new CommandView("sidestep", null)
+        };
+        Assert.Equal(WindowOutcome.Countered, validator!(ctx).Outcome);
     }
 }
