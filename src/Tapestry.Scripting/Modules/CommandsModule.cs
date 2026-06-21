@@ -131,6 +131,23 @@ public class CommandsModule : IJintApiModule
         var overrideVal = obj.Get("override");
         bool isOverride = overrideVal.Type == Types.Boolean && (bool)overrideVal.ToObject()!;
 
+        // Read pace: 'free' (default) or 'battle'
+        var paceValue = Pace.Free;
+        var paceJs = obj.Get("pace");
+        if (paceJs.Type == Types.String)
+        {
+            var paceStr = paceJs.ToString();
+            if (string.Equals(paceStr, "battle", StringComparison.OrdinalIgnoreCase))
+            {
+                paceValue = Pace.Battle;
+            }
+            else if (!string.Equals(paceStr, "free", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"command '{name}': pace must be 'free' or 'battle', got '{paceStr}'");
+            }
+        }
+
         string[] aliases = [];
         var aliasVal = obj.Get("aliases");
         if (aliasVal is JsArray aliasArray)
@@ -241,6 +258,7 @@ public class CommandsModule : IJintApiModule
 
         var capturedArgDefs = argDefinitions;
         var capturedGmcp = gmcpConfig;
+        var capturedPace = paceValue;
 
         Action<ActorContext> actorHandler =
             actorCtx => { InvokeActorHandler(engine, handler, actorCtx, capturedArgDefs, capturedGmcp); };
@@ -263,7 +281,8 @@ public class CommandsModule : IJintApiModule
                 visibleTo,
                 roles: roles,
                 argDefinitions: argDefinitions,
-                gmcp: gmcpConfig),
+                gmcp: gmcpConfig,
+                pace: capturedPace),
             SourceFile: sourceFile,
             Line: 0));
     }

@@ -185,4 +185,41 @@ public class CommandsModuleTests : IDisposable
 
         Assert.Contains("spawn", json);
     }
+
+    [Fact]
+    public void Register_ReadsBattlePaceFromJsObject()
+    {
+        var (rt, registry, _, policy, _) = BuildRuntime();
+        EsmTest.Load(rt, "test-pack", @"
+            tapestry.commands.register({
+                name: 'sidestep',
+                pace: 'battle',
+                roles: ['player'],
+                handler: function (actor, resolved) { }
+            });
+        ");
+        policy.Resolve();
+        var reg = registry.Resolve("sidestep");
+
+        Assert.NotNull(reg);
+        Assert.Equal(Pace.Battle, reg!.Pace);
+    }
+
+    [Fact]
+    public void Register_DefaultsPaceToFreeWhenAbsent()
+    {
+        var (rt, registry, _, policy, _) = BuildRuntime();
+        EsmTest.Load(rt, "test-pack", @"
+            tapestry.commands.register({
+                name: 'wave',
+                roles: ['player'],
+                handler: function (actor, resolved) { }
+            });
+        ");
+        policy.Resolve();
+        var reg = registry.Resolve("wave");
+
+        Assert.NotNull(reg);
+        Assert.Equal(Pace.Free, reg!.Pace);
+    }
 }
