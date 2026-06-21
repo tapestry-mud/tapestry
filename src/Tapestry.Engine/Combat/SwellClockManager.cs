@@ -200,7 +200,24 @@ public class SwellClockManager
     /// <summary>True when this attacker/target pair is mid-swell (Telegraph/Window/Resolve) - the auto-attack skips.</summary>
     public bool IsAutoAttackSuppressed(Guid attackerId, Guid targetId)
     {
+        return IsCombatSuppressed(attackerId, targetId);
+    }
+
+    /// <summary>True when this attacker/target pair is mid-swell (Telegraph/Window/Resolve). Covers both auto-attacks and ability resolution.</summary>
+    public bool IsCombatSuppressed(Guid attackerId, Guid targetId)
+    {
         return IsSwellingPhase(attackerId) || IsSwellingPhase(targetId);
+    }
+
+    /// <summary>True when the actor's primary-target boss is in an active swell (Telegraph/Window/Resolve).</summary>
+    public bool IsActorInActiveSwell(Guid actorId)
+    {
+        var bossId = _combat.GetPrimaryTarget(actorId);
+        if (bossId == null)
+        {
+            return false;
+        }
+        return _fights.TryGetValue(bossId.Value, out var state) && state.Phase != SwellPhase.Baseline;
     }
 
     private bool IsSwellingPhase(Guid entityId)

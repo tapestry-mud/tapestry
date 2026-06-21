@@ -536,4 +536,124 @@ public class AbilityResolutionPhaseTests
         // With hitChance=1, expect roughly 1% hit rate -- definitely < 10 out of 100
         Assert.True(hitCount < 10, $"Expected <10 hits with hitChance=1, got {hitCount}");
     }
+
+    [Fact]
+    public void Execute_SwellActive_SuppressesAbilityExecution()
+    {
+        // Move 1 gate: when IsActorInActiveSwell returns true, the ability must NOT fire.
+        Setup();
+        RegisterKick();
+
+        var player = CreatePlayer("TestPlayer", 100, 50);
+        var mob = CreateMob("SwellBoss", 200);
+
+        mob.SetProperty("swell_window", "telegraph-rung");
+        mob.SetProperty("swell_tell", "full");
+        mob.SetProperty("swell_baseline_gap_ticks", 2);
+        mob.SetProperty("swell_jitter_ticks", 0);
+        mob.SetProperty("swell_telegraph_ticks", 10);
+        mob.SetProperty("swell_window_ticks", 4);
+        mob.SetProperty("swell_line1_id", "sweep");
+        mob.SetProperty("swell_line1_counter", "sidestep");
+        mob.SetProperty("swell_line1_tell_full", "The boss winds up!");
+        mob.SetProperty("swell_chunk_pct", 15);
+        mob.SetProperty("swell_whiff_pct", 10);
+        mob.SetProperty("swell_weather_pct", 8);
+
+        _proficiencyManager.Learn(player.Id, "kick", 95);
+        _combatManager.Engage(player, mob);
+
+        var validators = new WindowValidatorRegistry();
+        validators.Register("telegraph-rung", ctx =>
+            new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" });
+
+        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators);
+        swellClock.AdvanceAll(0);
+        swellClock.AdvanceAll(2); // -> Telegraph (active swell)
+
+        Assert.True(swellClock.IsActorInActiveSwell(player.Id)); // confirm swell is active
+
+        QueueAbility(player, "kick", mob.Id);
+
+        var ctx = new PulseContext
+        {
+            CurrentTick = 3,
+            CurrentPulse = 3,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combatManager,
+            AbilityRegistry = _abilityRegistry,
+            ProficiencyManager = _proficiencyManager,
+            EffectManager = _effectManager,
+            SessionManager = _sessionManager,
+            SwellClockManager = swellClock,
+            Random = new Random(42)
+        };
+
+        _phase.Execute(ctx);
+
+        // Ability must NOT have fired - no ability.used or ability.missed event
+        Assert.DoesNotContain(_events, e => e.Type == "ability.used" || e.Type == "ability.missed");
+        // Queue should still be populated (ability not consumed)
+        var queue = player.GetProperty<List<object>>(AbilityProperties.QueuedActions);
+        Assert.NotNull(queue);
+        Assert.NotEmpty(queue);
+    }
+
+    [Fact]
+    public void Execute_SwellBaseline_AllowsAbilityExecution()
+    {
+        // Move 1 gate: at Baseline (IsActorInActiveSwell=false), ability fires normally.
+        Setup();
+        RegisterKick();
+
+        var player = CreatePlayer("TestPlayer", 100, 50);
+        var mob = CreateMob("SwellBoss", 200);
+
+        mob.SetProperty("swell_window", "telegraph-rung");
+        mob.SetProperty("swell_baseline_gap_ticks", 2);
+        mob.SetProperty("swell_jitter_ticks", 0);
+        mob.SetProperty("swell_telegraph_ticks", 10);
+        mob.SetProperty("swell_window_ticks", 4);
+        mob.SetProperty("swell_line1_id", "sweep");
+        mob.SetProperty("swell_line1_counter", "sidestep");
+        mob.SetProperty("swell_line1_tell_full", "The boss winds up!");
+        mob.SetProperty("swell_chunk_pct", 15);
+        mob.SetProperty("swell_whiff_pct", 10);
+        mob.SetProperty("swell_weather_pct", 8);
+
+        _proficiencyManager.Learn(player.Id, "kick", 95);
+        _combatManager.Engage(player, mob);
+
+        var validators = new WindowValidatorRegistry();
+        validators.Register("telegraph-rung", ctx =>
+            new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" });
+
+        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators);
+        swellClock.AdvanceAll(0); // Baseline
+
+        Assert.False(swellClock.IsActorInActiveSwell(player.Id)); // confirm baseline
+
+        QueueAbility(player, "kick", mob.Id);
+
+        var ctx = new PulseContext
+        {
+            CurrentTick = 1,
+            CurrentPulse = 1,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combatManager,
+            AbilityRegistry = _abilityRegistry,
+            ProficiencyManager = _proficiencyManager,
+            EffectManager = _effectManager,
+            SessionManager = _sessionManager,
+            SwellClockManager = swellClock,
+            Random = new Random(42)
+        };
+
+        _phase.Execute(ctx);
+
+        // Ability SHOULD have fired at Baseline
+        Assert.Contains(_events, e => e.Type == "ability.used" || e.Type == "ability.missed");
+    }
 }

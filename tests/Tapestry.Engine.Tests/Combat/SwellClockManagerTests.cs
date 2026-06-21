@@ -278,4 +278,37 @@ public class SwellClockManagerTests
         Assert.True(clock.IsAutoAttackSuppressed(player.Id, boss.Id));
         Assert.True(clock.IsAutoAttackSuppressed(boss.Id, player.Id)); // either direction
     }
+
+    [Fact]
+    public void IsCombatSuppressed_BehavesLikeIsAutoAttackSuppressed()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0); // Baseline
+        Assert.False(clock.IsCombatSuppressed(player.Id, boss.Id));
+
+        clock.AdvanceAll(2); // Telegraph
+        Assert.True(clock.IsCombatSuppressed(player.Id, boss.Id));
+        Assert.True(clock.IsCombatSuppressed(boss.Id, player.Id));
+    }
+
+    [Fact]
+    public void IsActorInActiveSwell_FalseAtBaseline_TrueDuringTelegraph()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0); // Baseline
+        Assert.False(clock.IsActorInActiveSwell(player.Id));
+
+        clock.AdvanceAll(2); // Telegraph
+        Assert.True(clock.IsActorInActiveSwell(player.Id));
+    }
 }

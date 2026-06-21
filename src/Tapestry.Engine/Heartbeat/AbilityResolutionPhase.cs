@@ -59,6 +59,14 @@ public class AbilityResolutionPhase : IPulseHandler
 
     private void ProcessEntityQueue(Entity entity, PulseContext context)
     {
+        // Swell gate: while the boss is in an active swell (Telegraph/Window/Resolve),
+        // the player's ability queue is frozen. Abilities are not consumed or fizzled;
+        // they remain queued and resume at Baseline.
+        if (context.SwellClockManager?.IsActorInActiveSwell(entity.Id) == true)
+        {
+            return;
+        }
+
         var queue = entity.GetProperty<List<object>>(AbilityProperties.QueuedActions);
         if (queue == null || queue.Count == 0)
         {
