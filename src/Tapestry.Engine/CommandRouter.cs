@@ -63,11 +63,10 @@ public class CommandRouter
             }
         }
 
-        if (registration.Pace == Pace.Battle && _swellClock != null)
+        if (registration.Pace == Pace.Battle && _swellClock != null
+            && _swellClock.IsActorInActiveSwell(ctx.PlayerEntityId))
         {
-            // battle-pace commands route to the swell clock instead of their handler.
-            // TryCommit returns NoSwellHere when the player is not mid-swell, which covers
-            // the not-fighting case without requiring an explicit IsInCombat check.
+            // battle-pace commands are intercepted only when a swell is active for this actor.
             // Pass registration.Keyword (the canonical verb), not ctx.Command which may be
             // an abbreviation - the validator compares against RequiredCounter exactly.
             var commit = _swellClock.TryCommit(ctx.PlayerEntityId, registration.Keyword);
@@ -87,6 +86,7 @@ public class CommandRouter
             }
             return;
         }
+        // NOT in active swell (or no swell clock): fall through to handler (DPS fires normally at Baseline).
 
         registration.ActorHandler(BuildPlayerActorContext(ctx));
     }

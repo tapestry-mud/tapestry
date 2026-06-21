@@ -346,4 +346,71 @@ public class CommandRouterTests
         Assert.True(boss.Stats.Hp < boss.Stats.MaxHp); // COUNTERED, boss took the chunk
         Assert.Equal(100, player.Stats.Hp);             // player unharmed
     }
+
+    [Fact]
+    public void Route_BattleVerb_AtBaseline_FallsThroughToHandler()
+    {
+        // Move 2: a pace:battle command with no active swell must run the handler (DPS fires at Baseline).
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var handlerRan = false;
+        registry.Register("kick", _ => { handlerRan = true; }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0); // Baseline - no active swell
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "kick",
+            Command = "kick",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.True(handlerRan); // handler must run at Baseline
+    }
+
+    [Fact]
+    public void Route_BattleVerb_DuringActiveSwell_IsIntercepted()
+    {
+        // Move 2: a pace:battle command during an active swell is intercepted (handler blocked).
+        var (world, eventBus, combat, validators, _, player, boss) = SetupSwellWorld();
+        RegisterTelegraphRungValidator(validators);
+
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, player);
+        sessions.Add(session);
+
+        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var router = new CommandRouter(registry, sessions, world, swellClock: clock);
+
+        var handlerRan = false;
+        registry.Register("kick", _ => { handlerRan = true; }, pace: Pace.Battle);
+
+        combat.Engage(player, boss);
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph (active swell)
+
+        router.Route(new CommandContext
+        {
+            PlayerEntityId = player.Id,
+            RawInput = "kick",
+            Command = "kick",
+            Args = Array.Empty<string>()
+        });
+
+        Assert.False(handlerRan); // handler must NOT run during active swell
+    }
 }
