@@ -1,6 +1,6 @@
 ---
 capability: combat-resolution
-last-updated: 2026-06-12
+last-updated: 2026-06-21
 ---
 
 # Combat Resolution
@@ -321,6 +321,48 @@ Registered engine properties on items and NPCs:
 
 (src/Tapestry.Engine/Combat/CombatProperties.cs)
 
+### Swell Combat (Boss Slice 1)
+
+The swell loop is an embedded beat in the existing fight, not a separate mode.
+Any in-combat entity carrying a non-empty `swell_window` dial is a swell boss;
+all timing, content, and magnitude levers are read off the mob's properties.
+
+- `SwellClockManager` is a per-fight state machine with phases
+  Baseline -> Telegraph -> Window -> Resolve, advanced every tick.
+  (src/Tapestry.Engine/Combat/SwellClockManager.cs:10;
+  SwellClockManager.cs:33) Telegraph locks one of the boss's two attack lines and
+  emits a decelerating stretch wind-up; the `tell` dial chooses how much the
+  wind-up reveals (full / shape / hidden). (SwellClockManager.cs:131)
+
+- The window opens for the boss's `swell_window_ticks`; the first committed
+  battle counter verb triggers validate + resolve, and a timeout with nothing
+  committed is a weather. (SwellClockManager.cs:193; SwellClockManager.cs:249)
+
+- A swell suspends the fight's combat actions, not just the auto-attack. The
+  auto-attack phase skips a suppressed fight, and the ability-resolution phase
+  freezes a queued ability for an actor in an active swell, so neither weapon
+  swings nor a queued cast/bash leak damage mid-swell.
+  (src/Tapestry.Engine/Combat/ResolveAutoAttacksPhase.cs:39;
+  src/Tapestry.Engine/Heartbeat/AbilityResolutionPhase.cs:65;
+  SwellClockManager.cs:207)
+
+- The validate step runs a deterministic pack-registered validator looked up by
+  the boss's `swell_window` dial; `CombatContext` is the read-only snapshot it
+  receives and `ValidationResult` (Countered | Whiffed | Weathered) is what it
+  returns. (src/Tapestry.Engine/Combat/WindowValidatorRegistry.cs:8;
+  src/Tapestry.Engine/Combat/CombatContext.cs:24)
+
+- `resolve` is the single mutator. It maps the outcome to a clamped HP change
+  read from the boss dials - countered chunks the boss by `swell_chunk_pct`,
+  whiffed/weathered hit the player by `swell_whiff_pct` / `swell_weather_pct` -
+  applies it through the existing stat path, and publishes the existing
+  `entity.vital.depleted` on a lethal result, reusing the death pipeline.
+  (SwellClockManager.cs:269; SwellClockManager.cs:314; SwellClockManager.cs:348)
+
+- Swell beats render to the player through a
+  `combat.swell.telegraph` / `combat.swell.window` / `combat.swell.resolve`
+  event trio. (src/Tapestry.Server/Modules/SwellEventModule.cs:22)
+
 ---
 
 ## Rejected and Reverted
@@ -340,3 +382,5 @@ Registered engine properties on items and NPCs:
 ---
 
 ## Change Log
+
+- 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - the embedded swell loop: per-fight swell clock, the combat-action gate (auto-attack AND ability resolution suspended during a swell), the validate/resolve seam, resolve as the single HP mutator reusing the existing death event

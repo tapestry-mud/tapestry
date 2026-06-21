@@ -7,17 +7,17 @@ known constraints, and change history.
 
 | Capability | File | Last Updated |
 |------------|------|--------------|
-| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-18 |
+| Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-21 |
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-19 |
-| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-19 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-21 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-15 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
-| Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-12 |
+| Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-21 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-06-12 |
 | Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-06-12 |
-| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-06-12 |
+| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-06-21 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-06-12 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-06-12 |

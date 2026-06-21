@@ -1,6 +1,6 @@
 ---
 capability: command-dispatch
-last-updated: 2026-06-18
+last-updated: 2026-06-21
 ---
 
 # Command Dispatch
@@ -84,11 +84,32 @@ the verb to a handler and invokes it.
   command). Disable per-command with `gmcp: false`.
   (src/Tapestry.Scripting/Modules/CommandsModule.cs:429-438)
 
+### Combat tempo (pace)
+
+- A command carries a `Pace` (`Free` | `Battle`, default `Free`).
+  `commands.register` reads `pace: 'free' | 'battle'` off the JS object and
+  rejects any other value. (src/Tapestry.Engine/Pace.cs:8;
+  src/Tapestry.Engine/CommandRegistry.cs:26;
+  src/Tapestry.Scripting/Modules/CommandsModule.cs:134)
+
+- A `Battle`-pace command is intercepted by the swell clock only while a swell is
+  active for the actor; at baseline (and in any non-swell fight) it dispatches
+  through its handler normally, so ordinary DPS is unchanged.
+  (src/Tapestry.Engine/CommandRouter.cs:66)
+
+- During an active swell the router classifies the command three ways: a counter
+  verb commits the beat, any other combat action is blocked with a nudge
+  ("The world has slowed. Read the swell."), and a free verb falls through and
+  fires immediately. The block is a classification branch, not a blanket
+  drop-all-input. (src/Tapestry.Engine/CommandRouter.cs:72;
+  src/Tapestry.Engine/CommandRouter.cs:92)
+
 ## Rejected and Reverted
 
 - None on record.
 
 ## Change Log
 
+- 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - the `pace` (free/battle) command axis and the swell-clock dispatch branch that intercepts battle commands only during an active swell
 - 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)
 - 2026-06-17 [command-help-registry](changes/2026-06-17-command-help-registry.md)

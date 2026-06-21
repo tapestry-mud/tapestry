@@ -1,6 +1,6 @@
 ---
 capability: heartbeat
-last-updated: 2026-06-12
+last-updated: 2026-06-21
 ---
 
 # Heartbeat / Tick System
@@ -157,10 +157,17 @@ The following handlers are wired by `GameLoopService.Configure`.
   `CurrentPulse` (the handler's own pulse index = `tickCount / cadence`).
   (src/Tapestry.Engine/Heartbeat/PulseContext.cs)
 
-- The only registered IPulseHandler in the shipped server is `CombatPulse`:
-  `Name = "CombatPulse"`, `Cadence = 20`, `Priority = 100`. At 100 ms/tick this fires
-  every 2 seconds. `CombatPulse` first runs `AbilityResolutionPhase`, then each
-  `ICombatPhase` in priority order. (src/Tapestry.Engine/Heartbeat/CombatPulse.cs)
+- `CombatPulse` is a registered IPulseHandler: `Name = "CombatPulse"`,
+  `Cadence = 20`, `Priority = 100`. At 100 ms/tick this fires every 2 seconds.
+  `CombatPulse` first runs `AbilityResolutionPhase`, then each `ICombatPhase` in
+  priority order. (src/Tapestry.Engine/Heartbeat/CombatPulse.cs)
+
+- `SwellClockPulse` is a registered IPulseHandler: `Cadence = 1` (every tick),
+  `Priority = 90` (ahead of `CombatPulse`). Each tick it advances the per-fight
+  swell clock for every swell boss in combat; the swell state machine emits its
+  own variable beat gaps rather than rescheduling the handler.
+  (src/Tapestry.Engine/Heartbeat/SwellClockPulse.cs:9;
+  src/Tapestry.Engine/Heartbeat/SwellClockPulse.cs:24)
 
 - NOTE: the name "heartbeat" also appears as the `GameLoop` tick handler name for
   `HeartbeatManager.Tick()`. A separate "connection-heartbeat" handler sends TCP keepalive
@@ -226,3 +233,5 @@ reading game clock state from scripts.
 - None on record.
 
 ## Change Log
+
+- 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `SwellClockPulse` (Cadence 1, Priority 90) drives the per-fight swell clock

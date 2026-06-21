@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-19
+last-updated: 2026-06-21
 ---
 
 # Scripting Runtime
@@ -160,6 +160,18 @@ Notes on two commonly misspelled names:
   rows carry ambiguity (a bare name declared by two or more packs) where policy rows
   carry shadow/override. (src/Tapestry.Scripting/Modules/RegistryModule.cs:40-169)
 
+### Swell combat seam (`tapestry.combat.registerWindow`)
+
+- `tapestry.combat.registerWindow(name, fn)` registers a deterministic window
+  validator through the seal; the engine invokes it at swell resolve with a
+  read-only `CombatContext` and expects a `ValidationResult`. The validator is
+  pack JS, never the model. (src/Tapestry.Scripting/Modules/CombatModule.cs:259;
+  src/Tapestry.Engine/Combat/WindowValidatorRegistry.cs:8)
+- `commands.register` marshals the optional `pace: 'free' | 'battle'` field off
+  the command object (default `free`), rejecting any other value, and threads it
+  to `CommandRegistration.Pace`.
+  (src/Tapestry.Scripting/Modules/CommandsModule.cs:134)
+
 ## Rejected and Reverted
 
 - **Shared-global Execute realm (TOMBSTONE):** Before Phase J, pack scripts ran through
@@ -175,5 +187,6 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `tapestry.combat.registerWindow` validator seam and `pace` marshalling in `commands.register`
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Native ESM loader, `@tapestry/engine` import, lexical GetActivePack attribution; legacy shared-global realm, PackScope, InvokeAsPack, packs.export/require/call/has, RequireProxy, PackExportRegistry, InteropCallSiteScanner deleted
 - 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - `RegistryModule` (`tapestry.registry.*`), the JS interop surface over the policy readers, adapting the property/tag outliers in at this layer
