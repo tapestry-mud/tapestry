@@ -261,4 +261,21 @@ public class SwellClockManagerTests
         Assert.Equal(0, boss.Stats.Hp);
         Assert.Contains(depleted, e => e.SourceEntityId == boss.Id);
     }
+
+    [Fact]
+    public void IsAutoAttackSuppressed_TrueDuringSwell_FalseAtBaseline()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0); // Baseline
+        Assert.False(clock.IsAutoAttackSuppressed(player.Id, boss.Id));
+
+        clock.AdvanceAll(2); // Telegraph
+        Assert.True(clock.IsAutoAttackSuppressed(player.Id, boss.Id));
+        Assert.True(clock.IsAutoAttackSuppressed(boss.Id, player.Id)); // either direction
+    }
 }

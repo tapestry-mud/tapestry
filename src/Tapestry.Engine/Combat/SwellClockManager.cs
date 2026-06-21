@@ -197,6 +197,17 @@ public class SwellClockManager
         Publish("combat.swell.window", boss, state, "An opening!");
     }
 
+    /// <summary>True when this attacker/target pair is mid-swell (Telegraph/Window/Resolve) - the auto-attack skips.</summary>
+    public bool IsAutoAttackSuppressed(Guid attackerId, Guid targetId)
+    {
+        return IsSwellingPhase(attackerId) || IsSwellingPhase(targetId);
+    }
+
+    private bool IsSwellingPhase(Guid entityId)
+    {
+        return _fights.TryGetValue(entityId, out var state) && state.Phase != SwellPhase.Baseline;
+    }
+
     public SwellCommitResult TryCommit(Guid actorId, string verb)
     {
         // Solo slice: the actor's primary target is the boss.

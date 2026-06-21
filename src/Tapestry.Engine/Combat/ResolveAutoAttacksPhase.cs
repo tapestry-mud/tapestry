@@ -36,6 +36,11 @@ public class ResolveAutoAttacksPhase : ICombatPhase
                 continue;
             }
 
+            if (context.SwellClockManager?.IsAutoAttackSuppressed(attacker.Id, target.Id) == true)
+            {
+                continue;
+            }
+
             // Determine swing count: 1 base + extra attack passives
             var swingCount = 1;
             swingCount += context.PassiveAbilityProcessor.GetExtraAttackCount(attacker.Id, context.Random);
