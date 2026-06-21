@@ -183,6 +183,7 @@ builder.Services.AddSingleton<IGameModule, ContentLoadingModule>();
 builder.Services.AddSingleton<QuestScriptCoverageVerifier>();
 builder.Services.AddSingleton<IGameModule, QuestStartupModule>();
 builder.Services.AddSingleton<IGameModule, CombatEventModule>();
+builder.Services.AddSingleton<IGameModule, SwellEventModule>();
 builder.Services.AddSingleton<IGameModule, WorldEventModule>();
 builder.Services.AddSingleton<IGameModule, TickHandlerModule>();
 builder.Services.AddSingleton<IGameModule, PersistenceModule>();

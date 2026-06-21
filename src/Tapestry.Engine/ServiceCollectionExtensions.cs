@@ -106,6 +106,8 @@ public static class ServiceCollectionExtensions
         // Combat
         services.AddSingleton<CombatManager>();
         services.AddSingleton<WindowValidatorRegistry>();
+        services.AddSingleton<SwellClockManager>();
+        services.AddSingleton<SwellClockPulse>();
 
         // Progression
         services.AddSingleton<ProgressionManager>();

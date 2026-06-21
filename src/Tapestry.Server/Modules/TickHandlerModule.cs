@@ -18,6 +18,7 @@ public class TickHandlerModule : IGameModule
     private readonly EventBus _eventBus;
     private readonly HeartbeatManager _heartbeat;
     private readonly CombatPulse _combatPulse;
+    private readonly SwellClockPulse _swellClockPulse;
     private readonly MobAIManager _mobAI;
     private readonly MobCommandQueue _mobCommandQueue;
     private readonly DirtyVitalsBatcher _dirtyVitalsBatcher;
@@ -37,6 +38,7 @@ public class TickHandlerModule : IGameModule
         EventBus eventBus,
         HeartbeatManager heartbeat,
         CombatPulse combatPulse,
+        SwellClockPulse swellClockPulse,
         MobAIManager mobAI,
         MobCommandQueue mobCommandQueue,
         DirtyVitalsBatcher dirtyVitalsBatcher,
@@ -53,6 +55,7 @@ public class TickHandlerModule : IGameModule
         _eventBus = eventBus;
         _heartbeat = heartbeat;
         _combatPulse = combatPulse;
+        _swellClockPulse = swellClockPulse;
         _mobAI = mobAI;
         _mobCommandQueue = mobCommandQueue;
         _dirtyVitalsBatcher = dirtyVitalsBatcher;
@@ -81,6 +84,7 @@ public class TickHandlerModule : IGameModule
         _gameLoop.RegisterTickHandler("mob-ai", 10, () => _mobAI.Tick());
         _gameLoop.RegisterTickHandler("mob-command-queue", 1, () => _mobCommandQueue.ProcessTick());
 
+        _heartbeat.Register(_swellClockPulse);
         _heartbeat.Register(_combatPulse);
         _gameLoop.RegisterTickHandler("heartbeat", 1, () => _heartbeat.Tick());
 

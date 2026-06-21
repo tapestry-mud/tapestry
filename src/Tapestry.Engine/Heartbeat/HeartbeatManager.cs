@@ -18,6 +18,7 @@ public class HeartbeatManager
     private readonly EffectManager _effectManager;
     private readonly SessionManager _sessionManager;
     private readonly AlignmentManager _alignmentManager;
+    private readonly SwellClockManager _swellClockManager;
     private readonly Random _random;
     private readonly List<IPulseHandler> _handlers = new();
     private IPulseHandler[] _sortedHandlers = [];
@@ -37,6 +38,7 @@ public class HeartbeatManager
         EffectManager effectManager,
         SessionManager sessionManager,
         AlignmentManager alignmentManager,
+        SwellClockManager swellClockManager,
         Random? random = null)
     {
         _world = world;
@@ -48,6 +50,7 @@ public class HeartbeatManager
         _effectManager = effectManager;
         _sessionManager = sessionManager;
         _alignmentManager = alignmentManager;
+        _swellClockManager = swellClockManager;
         _random = random ?? new Random();
         _context = new PulseContext
         {
@@ -60,6 +63,7 @@ public class HeartbeatManager
             EffectManager = _effectManager,
             SessionManager = _sessionManager,
             AlignmentManager = _alignmentManager,
+            SwellClockManager = _swellClockManager,
             Random = _random
         };
     }
