@@ -194,7 +194,7 @@ public class SwellClockManager
     {
         state.Phase = SwellPhase.Window;
         state.PhaseEndsAtTick = tick + Math.Max(1, boss.GetProperty<int>("swell_window_ticks"));
-        Publish("combat.swell.window", boss, state, "An opening!");
+        Publish("combat.swell.window", boss, state, $"An opening! [{state.RequiredCounter}]");
     }
 
     /// <summary>True when this attacker/target pair is mid-swell (Telegraph/Window/Resolve) - the auto-attack skips.</summary>
