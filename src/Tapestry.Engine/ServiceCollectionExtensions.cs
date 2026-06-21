@@ -53,7 +53,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<CommandRegistry>(),
             sp.GetRequiredService<SessionManager>(),
             sp.GetRequiredService<World>(),
-            sp.GetRequiredService<BadInputTracker>()));
+            sp.GetRequiredService<BadInputTracker>(),
+            sp.GetRequiredService<SwellClockManager>()));
         services.AddSingleton<SessionManager>();
         // Runtime-only (resets on reboot, ROM behavior) -- see WizlockState docs.
         services.AddSingleton<Login.WizlockState>();
