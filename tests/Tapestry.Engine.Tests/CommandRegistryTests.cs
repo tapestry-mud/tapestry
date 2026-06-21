@@ -278,4 +278,28 @@ public class CommandRegistryTests
         reg.Should().NotBeNull();
         reg!.Priority.Should().Be(10); // priority outranks specificity -- the override contract
     }
+
+    [Fact]
+    public void Register_DefaultsToFreePace()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("look", _ => { });
+
+        var reg = registry.Resolve("look", "player");
+
+        Assert.NotNull(reg);
+        Assert.Equal(Pace.Free, reg!.Pace);
+    }
+
+    [Fact]
+    public void Register_StoresBattlePace()
+    {
+        var registry = new CommandRegistry();
+        registry.Register("sidestep", _ => { }, pace: Pace.Battle);
+
+        var reg = registry.Resolve("sidestep", "player");
+
+        Assert.NotNull(reg);
+        Assert.Equal(Pace.Battle, reg!.Pace);
+    }
 }

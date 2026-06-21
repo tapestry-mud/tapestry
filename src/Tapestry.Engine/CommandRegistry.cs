@@ -21,6 +21,9 @@ public class CommandRegistration
     public string[] Roles { get; init; } = ["player"];
     public Dictionary<string, ArgDefinition>? ArgDefinitions { get; init; }
     public GmcpConfig? Gmcp { get; init; }
+
+    /// <summary>Which combat clock this command obeys. Default Free (immediate, unchanged).</summary>
+    public Pace Pace { get; init; } = Pace.Free;
 }
 
 public class CommandRegistry
@@ -44,7 +47,8 @@ public class CommandRegistry
         Func<Entity, bool>? visibleTo = null,
         string[]? roles = null,
         Dictionary<string, ArgDefinition>? argDefinitions = null,
-        GmcpConfig? gmcp = null)
+        GmcpConfig? gmcp = null,
+        Pace pace = Pace.Free)
     {
         _gate?.AssertCommitScope("command", keyword);
         {
@@ -60,7 +64,8 @@ public class CommandRegistry
                 VisibleTo = visibleTo,
                 Roles = roles ?? ["player"],
                 ArgDefinitions = argDefinitions,
-                Gmcp = gmcp
+                Gmcp = gmcp,
+                Pace = pace
             };
 
             AddToMap(keyword, registration);
