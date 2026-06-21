@@ -87,6 +87,7 @@ public class CommandRouter
             }
             else
             {
+                // reserved: immediate/detection actions (detect-magic, stance-check) run here without committing - detection economy slice
                 // Non-counter battle verb during an active swell: blocked.
                 _sessions.SendToPlayer(ctx.PlayerEntityId, "The world has slowed. Read the swell.\r\n");
             }
