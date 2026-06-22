@@ -53,49 +53,68 @@ public class ApiMobs
         }
     }
 
-    public object? SpawnMob(JsValue options)
+    public object? SpawnMob(JsValue first, JsValue second)
     {
-        if (options is not ObjectInstance obj) { return null; }
-
-        var templateVal = obj.Get("template");
-        var roomVal = obj.Get("roomId");
-        if (templateVal.Type != Types.String || roomVal.Type != Types.String) { return null; }
-
-        var templateId = templateVal.ToString();
-        var roomId = roomVal.ToString();
-
+        string templateId;
+        string roomId;
         SpawnOverride? over = null;
-        var ovVal = obj.Get("override");
-        if (ovVal is ObjectInstance ov)
+
+        if (first is ObjectInstance obj)
         {
-            var maxHpVal = ov.Get("maxHp");
-            var noRerollVal = ov.Get("noReroll");
-            over = new SpawnOverride
+            // Options-object form: spawnMob({ template, roomId, override? })
+            var templateVal = obj.Get("template");
+            var roomVal = obj.Get("roomId");
+            if (templateVal.Type != Types.String || roomVal.Type != Types.String) { return null; }
+            templateId = templateVal.ToString();
+            roomId = roomVal.ToString();
+            var ovVal = obj.Get("override");
+            if (ovVal is ObjectInstance ov)
             {
-                FromType = AsStringOrNull(ov.Get("fromType")),
-                Name = AsStringOrNull(ov.Get("name")),
-                Desc = AsStringOrNull(ov.Get("desc")),
-                MaxHp = maxHpVal.Type == Types.Number ? (int)(double)maxHpVal.ToObject()! : null,
-                Damage = AsStringOrNull(ov.Get("damage")),
-                NoReroll = noRerollVal.Type == Types.Boolean && (bool)noRerollVal.ToObject()!,
-            };
-            var items = ov.Get("items");
-            if (items is JsArray arr)
-            {
-                for (uint i = 0; i < arr.Length; i++)
-                {
-                    var el = arr[(int)i];
-                    if (el.Type != Types.Undefined && el.Type != Types.Null)
-                    {
-                        over.Items.Add(el.ToString());
-                    }
-                }
+                over = ParseOverride(ov);
             }
+        }
+        else if (first.Type == Types.String && second.Type == Types.String)
+        {
+            // Legacy positional form: spawnMob(templateId, roomId)
+            templateId = first.ToString();
+            roomId = second.ToString();
+        }
+        else
+        {
+            return null;
         }
 
         var entity = _spawnManager.SpawnMob(templateId, roomId, over);
         if (entity == null) { return null; }
         return new { id = entity.Id.ToString(), name = entity.Name };
+    }
+
+    private static SpawnOverride ParseOverride(ObjectInstance ov)
+    {
+        var maxHpVal = ov.Get("maxHp");
+        var noRerollVal = ov.Get("noReroll");
+        var result = new SpawnOverride
+        {
+            FromType = AsStringOrNull(ov.Get("fromType")),
+            Name = AsStringOrNull(ov.Get("name")),
+            Desc = AsStringOrNull(ov.Get("desc")),
+            MaxHp = maxHpVal.Type == Types.Number ? (int)(double)maxHpVal.ToObject()! : null,
+            Damage = AsStringOrNull(ov.Get("damage")),
+            NoReroll = noRerollVal.Type == Types.Boolean && (bool)noRerollVal.ToObject()!,
+        };
+        var items = ov.Get("items");
+        if (items is JsArray arr)
+        {
+            for (uint i = 0; i < arr.Length; i++)
+            {
+                var el = arr[(int)i];
+                if (el.Type != Types.Undefined && el.Type != Types.Null)
+                {
+                    result.Items.Add(el.ToString());
+                }
+            }
+        }
+        return result;
     }
 
     private static string? AsStringOrNull(JsValue v) =>

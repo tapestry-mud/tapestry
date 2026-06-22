@@ -168,7 +168,7 @@ public class SpawnManager
             _world.TrackEntity(item);
         }
 
-        if (template.LootTable != null && _lootTables.TryGetValue(template.LootTable, out var lootTable))
+        if (over?.NoReroll != true && template.LootTable != null && _lootTables.TryGetValue(template.LootTable, out var lootTable))
         {
             var lootItemIds = _lootResolver.Resolve(lootTable);
 

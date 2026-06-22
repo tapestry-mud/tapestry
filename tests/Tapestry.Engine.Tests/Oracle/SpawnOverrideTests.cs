@@ -14,6 +14,22 @@ public class SpawnOverrideTests
         return mgr;
     }
 
+    private static SpawnManager BuildManagerWithLoot(World world, EventBus bus, out ItemRegistry items)
+    {
+        items = new ItemRegistry();
+        items.Register(new ItemTemplate { Id = "sword", Name = "sword" });
+        items.Register(new ItemTemplate { Id = "potion", Name = "potion" });
+        var lootTable = new LootTable
+        {
+            Id = "t-loot",
+            Guaranteed = new List<LootGuaranteed> { new LootGuaranteed { Item = "potion", Count = 1 } }
+        };
+        var mgr = new SpawnManager(world, bus, new LootTableResolver(), items);
+        mgr.RegisterTemplate(new MobTemplate { Id = "loot-mob", Name = "loot mob", LootTable = "t-loot" });
+        mgr.RegisterLootTable(lootTable);
+        return mgr;
+    }
+
     [Fact]
     public void SpawnMob_AppliesFrozenOverride_NameAndMaxHp()
     {
@@ -52,6 +68,67 @@ public class SpawnOverrideTests
 
         var respawned = world.GetAllTrackedEntities().Single(e => e.Name == "rot-touched wolf");
         Assert.Equal(41, respawned.Stats.BaseMaxHp);
+    }
+
+    [Fact]
+    public void SpawnMob_NoReroll_DoesNotAddTemplateLoot()
+    {
+        var world = new World();
+        world.AddRoom(new Room("oracle:r2", "Room", "desc"));
+        var mgr = BuildManagerWithLoot(world, new EventBus(), out _);
+
+        // NoReroll override carries a frozen sword; template's loot table would add a potion.
+        var over = new SpawnOverride { FromType = "m1", Name = "frozen wolf", NoReroll = true };
+        over.Items.Add("sword");
+
+        var entity = mgr.SpawnMob("loot-mob", "oracle:r2", over);
+
+        Assert.NotNull(entity);
+        // Only the frozen sword from the override - no potion from the loot table.
+        Assert.Single(entity!.Contents);
+        Assert.Equal("sword", entity.Contents[0].GetProperty<string>("template_id") ?? entity.Contents[0].Name);
+    }
+
+    [Fact]
+    public void SpawnMob_NormalSpawn_StillResolvesTemplateLoot()
+    {
+        var world = new World();
+        world.AddRoom(new Room("oracle:r3", "Room", "desc"));
+        var mgr = BuildManagerWithLoot(world, new EventBus(), out _);
+
+        // No override - should still get the guaranteed loot from the loot table.
+        var entity = mgr.SpawnMob("loot-mob", "oracle:r3", null);
+
+        Assert.NotNull(entity);
+        Assert.Single(entity!.Contents); // one guaranteed potion from loot table
+    }
+
+    [Fact]
+    public void RunAreaReset_NoReroll_DoesNotAccumulateLootAcrossResets()
+    {
+        var world = new World();
+        world.AddRoom(new Room("oracle:r4", "Room", "desc"));
+        var mgr = BuildManagerWithLoot(world, new EventBus(), out _);
+
+        var over = new SpawnOverride { FromType = "m1", Name = "frozen wolf", NoReroll = true };
+        over.Items.Add("sword");
+        mgr.RegisterRoomSpawns("oracle2", "oracle:r4",
+            new[] { (Mob: "loot-mob", Count: 1, Rare: (RareSpawnConfig?)null,
+                     Tags: (IEnumerable<string>)new[] { "persistent" }, Override: (SpawnOverride?)over) },
+            effectiveResetInterval: 0);
+
+        mgr.RunAreaReset("oracle2");
+        var room = world.GetRoom("oracle:r4")!;
+        var first = room.Entities.First(e => e.Name == "frozen wolf");
+        // Kill the mob so reset respawns it
+        room.RemoveEntity(first);
+        world.UntrackEntity(first);
+
+        mgr.RunAreaReset("oracle2");
+        var respawned = world.GetAllTrackedEntities().Single(e => e.Name == "frozen wolf");
+
+        // After respawn, only the frozen sword - loot table potion must not appear.
+        Assert.Single(respawned.Contents);
     }
 
     [Fact]
