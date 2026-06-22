@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Persistence;
@@ -10,6 +12,7 @@ using Tapestry.Shared;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Jint.Native;
+using Jint.Native.Object;
 using Jint.Runtime;
 using JintEngine = Jint.Engine;
 
@@ -32,6 +35,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly AreaRegistry _areaRegistry;
     private readonly RecommendBroker? _recommend;
     private readonly ConnectionLoader? _connections;
+    private readonly GameLoop? _gameLoop;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
     // recommend-only Neighbors list (cleared before serialization) and any other
@@ -51,7 +55,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         HashSet<string> loadedPackNamespaces,
         AreaRegistry areaRegistry,
         RecommendBroker? recommend = null,
-        ConnectionLoader? connections = null)
+        ConnectionLoader? connections = null,
+        GameLoop? gameLoop = null)
     {
         _world = world;
         _projector = projector;
@@ -61,6 +66,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _areaRegistry = areaRegistry;
         _recommend = recommend;
         _connections = connections;
+        _gameLoop = gameLoop;
     }
 
     public string Namespace => "authoring";
@@ -118,6 +124,48 @@ public sealed class WorldAuthoringModule : IJintApiModule
             clearRoomAttribute = new Func<string, string, string>(ClearRoomAttribute),
             deleteRoom = new Func<string, bool>(DeleteRoom),
             recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true),
+            recommend = new Action<JsValue, JsValue>((options, callback) =>
+            {
+                // Pack already checked recommendEnabled(); double-guard here.
+                if (_recommend == null || !_recommend.IsEnabled || _gameLoop == null || options is not ObjectInstance opt)
+                {
+                    _gameLoop?.Schedule(() => jint.Invoke(callback, JsValue.Null));
+                    return;
+                }
+                var fieldVal = opt.Get("field");
+                var field = fieldVal.Type == Types.String ? fieldVal.ToString() : "description";
+                var templateVal = opt.Get("template");
+                var template = templateVal.Type == Types.String ? templateVal.ToString() : "";
+                var systemVal = opt.Get("system");
+                var system = systemVal.Type == Types.String ? systemVal.ToString() : null;
+
+                // Engine projects the room context (neighbors/area/biome). Empty RoomData when
+                // no roomId (e.g. area-creation dressing before any room exists).
+                var roomIdVal = opt.Get("roomId");
+                var room = roomIdVal.Type == Types.String ? _world.GetRoom(roomIdVal.ToString()) : null;
+                var roomData = room != null ? _projector.Project(room) : new RoomData();
+
+                var vars = new Dictionary<string, string>();
+                if (opt.Get("vars") is ObjectInstance vobj)
+                {
+                    foreach (var p in vobj.GetOwnProperties())
+                    {
+                        vars[p.Key.ToString()] = p.Value.Value?.ToString() ?? "";
+                    }
+                }
+
+                var ctx = new PackRoomContext { Room = roomData, Template = template, System = system, Vars = vars };
+
+                // Off-loop async; deliver the result back on the loop thread via Schedule.
+                _ = _recommend.RecommendAsync(new RecommendRequest(field, ctx))
+                    .ContinueWith(t =>
+                    {
+                        var text = (t.Status == TaskStatus.RanToCompletion && t.Result.Suggestions.Count > 0)
+                            ? t.Result.Suggestions[0]
+                            : null;
+                        _gameLoop.Schedule(() => jint.Invoke(callback, text == null ? JsValue.Null : (JsValue)text));
+                    });
+            }),
             // Jint exposes CLR members by exact (PascalCase) name; project to camelCase for pack JS.
             // JsValue (not bool): a missing JS arg must mean "include WIP" to match GetAreas's
             // C# default. Jint 4.x marshals a missing arg to CLR null (so `getAreas()` -> null);

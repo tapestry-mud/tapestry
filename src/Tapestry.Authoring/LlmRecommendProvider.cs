@@ -14,7 +14,7 @@ public sealed record RecommendLlmConfig(
     bool RequiresKey, double Temperature, int MaxSentences, int Candidates, int TimeoutSeconds);
 
 /// <summary>Author-intent-seeded recommendation. Name/description go to the LLM; exits stay
-/// structural (rooms only). Never throws into the caller — all client failures degrade to Empty.</summary>
+/// structural (rooms only). Never throws into the caller - all client failures degrade to Empty.</summary>
 public sealed class LlmRecommendProvider : IRecommendProvider
 {
     private readonly ILlmClient _client;
@@ -43,6 +43,25 @@ public sealed class LlmRecommendProvider : IRecommendProvider
     {
         var field = (request.Field ?? "").ToLowerInvariant();
 
+        // PackRoomContext branch MUST be first - before the hard (RoomData) cast below.
+        // A PackRoomContext is neither AreaData nor RoomData; falling through to the cast
+        // throws InvalidCastException.
+        if (request.Context is PackRoomContext pack)
+        {
+            var (sys, usr) = _roomBuilder.Build(field, pack.Room, pack.Template, pack.System, pack.Vars);
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
+                var text = await _client.CompleteAsync(sys, usr, _opts, cts.Token);
+                var clean = NormalizeSuggestion(text);
+                return string.IsNullOrWhiteSpace(clean) ? RecommendResult.Empty : new RecommendResult(new[] { clean });
+            }
+            catch
+            {
+                return RecommendResult.Empty; // degrade to placeholder; never throw into the loop
+            }
+        }
+
         string system, user;
         if (request.Context is AreaData area)
         {
@@ -51,7 +70,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         else
         {
             var room = (RoomData)request.Context;
-            // Exits stay structural — never burn an LLM call on direction math.
+            // Exits stay structural - never burn an LLM call on direction math.
             if (field == "exits")
             {
                 return ExitHeuristic.Suggest(room);
@@ -74,7 +93,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
             }
             catch (Exception)
             {
-                // Degrade gracefully — a failed candidate is dropped; never throw into the tick path.
+                // Degrade gracefully - a failed candidate is dropped; never throw into the tick path.
             }
         }
 
@@ -82,10 +101,12 @@ public sealed class LlmRecommendProvider : IRecommendProvider
     }
 
     // Normalize a raw LLM suggestion for MUD use:
-    //  (1) collapse all whitespace runs (incl. the newlines models love) to single spaces -- a
+    //  (1) collapse all whitespace runs (incl. the newlines models love) to single spaces - a
     //      description is one block the client word-wraps, and bare LF staircases over telnet;
-    //  (2) strip ONE surrounding pair of quotes -- models wrap short names/titles in "..." which
-    //      would otherwise be stored as part of the value (e.g. a room name of '"Burnt Heel Turn"').
+    //  (2) strip ONE surrounding pair of quotes - models wrap short names/titles in "..." which
+    //      would otherwise be stored as part of the value (e.g. a room name of '"Burnt Heel Turn"');
+    //  (3) ASCII fold: transliterate smart quotes and dashes, then drop any remaining char >= 128.
+    //      Player-facing output must be strict 7-bit ASCII (telnet mojibake on non-ASCII).
     private static string NormalizeSuggestion(string text)
     {
         var s = System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ").Trim();
@@ -98,6 +119,39 @@ public sealed class LlmRecommendProvider : IRecommendProvider
                 s = s.Substring(1, s.Length - 2).Trim();
             }
         }
-        return s;
+        return AsciiFold(s);
+    }
+
+    // Transliterate known non-ASCII characters to ASCII equivalents, then drop anything
+    // remaining that is >= 128. This is the single enforcement point for the strict 7-bit
+    // ASCII contract on LLM output.
+    private static string AsciiFold(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            if (c < 128)
+            {
+                sb.Append(c);
+            }
+            else if (c == '“' || c == '”' || c == '„' || c == '‟') // smart double quotes
+            {
+                sb.Append('"');
+            }
+            else if (c == '‘' || c == '’' || c == '‚' || c == '‛') // smart single quotes
+            {
+                sb.Append('\'');
+            }
+            else if (c == '–' || c == '—' || c == '―') // en-dash, em-dash, horizontal bar
+            {
+                sb.Append('-');
+            }
+            else if (c == '…') // ellipsis
+            {
+                sb.Append("...");
+            }
+            // else: drop chars >= 128 that have no clean ASCII equivalent
+        }
+        return sb.ToString();
     }
 }

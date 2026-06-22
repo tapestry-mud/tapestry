@@ -187,7 +187,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<LoadedPackNamespaces>().Namespaces,
                 sp.GetRequiredService<AreaRegistry>(),
                 sp.GetRequiredService<RecommendBroker>(),
-                sp.GetRequiredService<ConnectionLoader>());
+                sp.GetRequiredService<ConnectionLoader>(),
+                sp.GetRequiredService<GameLoop>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 

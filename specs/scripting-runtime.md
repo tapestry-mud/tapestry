@@ -172,6 +172,38 @@ Notes on two commonly misspelled names:
   to `CommandRegistration.Pace`.
   (src/Tapestry.Scripting/Modules/CommandsModule.cs:134)
 
+### authoring.recommend -- headless LLM binding
+
+- `authoring.recommend(options, callback)` kicks off a non-blocking LLM call and
+  delivers the result via `callback(result)` on the game loop thread. Fire-and-forget;
+  returns nothing. The callback receives a sanitized ASCII string or `null` on
+  disabled/timeout/failure.
+- `options` shape: `{ field: string, roomId?: string, template: string, system?: string, vars?: { [k]: string } }`.
+  - `field`: the recommend field (e.g. `"description"`, `"name"`).
+  - `roomId`: when set, the engine projects that room's context (neighbors, area, biome)
+    as structural grounding for the prompt. Omit when no room exists yet.
+  - `template`: pack-owned task line with `{varName}` placeholders (vars substituted before sending).
+  - `system`: optional pack-owned system voice; falls back to the engine default when omitted.
+  - `vars`: optional key-value map substituted into `template`.
+- The engine projects neighbor-aware context via `RoomProjector` + `RoomPromptBuilder`
+  (same 1-hop neighbor name/biome/description stitching used by the interactive builder
+  recommend flow). The pack supplies the task line and system voice; engine code is touched
+  only to project context, never to author wording.
+- The async call rides `RecommendBroker.RecommendAsync` off the loop thread, then
+  `ContinueWith -> GameLoop.Schedule(Action)` so the JS callback runs on the loop thread.
+  This is the same mechanism network threads use to post work onto the loop.
+- The binding double-guards `recommendEnabled`: if the broker is disabled, not present,
+  or `options` is not a JS object, it schedules `callback(null)` immediately and returns.
+- Output is sanitized via the existing `OutputSanitizer.Clean` + `NormalizeSuggestion`
+  path, extended with an `AsciiFold` step that transliterates smart quotes/dashes and
+  drops any remaining char >= 128, enforcing the strict 7-bit ASCII contract.
+- `authoring.recommendEnabled()` (existing) is the pack-side pre-check; the binding
+  double-guards so a pack that skips the check still degrades gracefully.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs;
+  src/Tapestry.Engine/Recommend/PackRoomContext.cs;
+  src/Tapestry.Authoring/RoomPromptBuilder.cs;
+  src/Tapestry.Authoring/LlmRecommendProvider.cs)
+
 ## Rejected and Reverted
 
 - **Shared-global Execute realm (TOMBSTONE):** Before Phase J, pack scripts ran through
@@ -187,6 +219,7 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md) - `authoring.recommend(options, callback)` non-blocking headless LLM binding; engine-projected context + pack-owned template; ASCII-fold sanitization
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `tapestry.combat.registerWindow` validator seam and `pace` marshalling in `commands.register`
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Native ESM loader, `@tapestry/engine` import, lexical GetActivePack attribution; legacy shared-global realm, PackScope, InvokeAsPack, packs.export/require/call/has, RequireProxy, PackExportRegistry, InteropCallSiteScanner deleted
 - 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - `RegistryModule` (`tapestry.registry.*`), the JS interop surface over the policy readers, adapting the property/tag outliers in at this layer

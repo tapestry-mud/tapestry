@@ -169,6 +169,23 @@ files (written under the game data root at runtime).
 - `create room <key>` creates a room in the current area with no auto-exit and no move.
   (packs/@tapestry/builder/scripts/commands/create.js:72-96)
 
+### Oracle headless recommend seam
+
+- The recommend engine is callable from pack JS without an interactive builder session via
+  `authoring.recommend(options, callback)` (see scripting-runtime.md for the full contract).
+- The engine projects room context (neighbors, area, biome) using `RoomProjector` +
+  `RoomPromptBuilder`'s neighbor-stitching path. The result is wrapped in a `PackRoomContext`
+  carrying the projected `RoomData`, the pack-supplied template, system voice, and `vars` map.
+  `LlmRecommendProvider` detects `PackRoomContext` as its first branch (before the existing
+  hard `RoomData` cast) and routes to the pack-driven `RoomPromptBuilder.Build` overload.
+- All LLM output passes through `OutputSanitizer.Clean` + `NormalizeSuggestion`, extended
+  with an `AsciiFold` step that transliterates smart quotes, smart apostrophes, and dashes
+  to ASCII equivalents and drops any remaining char >= 128. This satisfies the strict 7-bit
+  ASCII player-facing output contract without a parallel sanitizer.
+  (src/Tapestry.Engine/Recommend/PackRoomContext.cs;
+  src/Tapestry.Authoring/RoomPromptBuilder.cs;
+  src/Tapestry.Authoring/LlmRecommendProvider.cs)
+
 ### Oracle-frozen spawn sidecar
 
 - A room side-car can carry a `spawns:` block: a list of entries with `base:` (mob template
@@ -230,4 +247,5 @@ files (written under the game data root at runtime).
 ## Change Log
 
 - 2026-06-15 [extend-baked-in-areas](changes/2026-06-15-extend-baked-in-areas.md)
+- 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md)
 - 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)

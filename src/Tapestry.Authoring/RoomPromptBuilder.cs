@@ -4,7 +4,7 @@ using Tapestry.Engine.Authoring;
 
 namespace Tapestry.Authoring;
 
-/// <summary>Prompt text as data — overridable from config so tuning needs no recompile.
+/// <summary>Prompt text as data - overridable from config so tuning needs no recompile.
 /// <paramref name="TaskLines"/> is keyed by lowercased field name.</summary>
 public sealed record RecommendPromptConfig(
     string SystemPrompt,
@@ -25,7 +25,7 @@ public sealed record RecommendPromptConfig(
         "No preamble, no 'Sure!'.";
 
     public const string DefaultNeighborGuidance =
-        "Match the theme and tone of the adjacent rooms above, but make this room its own distinct place — do not copy their specific details or wording.";
+        "Match the theme and tone of the adjacent rooms above, but make this room its own distinct place - do not copy their specific details or wording.";
 
     public static IReadOnlyDictionary<string, string> DefaultTaskLines => new Dictionary<string, string>
     {
@@ -64,6 +64,57 @@ public sealed class RoomPromptBuilder
         var f = (field ?? "").ToLowerInvariant();
         var sb = new StringBuilder();
 
+        AppendContext(sb, ctx);
+
+        // 1b. Sibling fields: feed the room's OTHER authored field so e.g. `~` on `name`
+        // with no hint can derive a name from the description just written, and vice versa.
+        if (f == "name" && !string.IsNullOrWhiteSpace(ctx.Description))
+        {
+            sb.Append("Description: ").Append(ctx.Description).Append(".\n");
+        }
+        if (f == "description" && !string.IsNullOrWhiteSpace(ctx.Name))
+        {
+            sb.Append("Name: ").Append(ctx.Name).Append(".\n");
+        }
+
+        // 4. Author intent - placed prominently, when supplied.
+        if (!string.IsNullOrWhiteSpace(hint))
+        {
+            sb.Append("Intent: ").Append(hint!.Trim()).Append(".\n");
+        }
+
+        // 5. Per-field task line (config-overridable; defaults from the LLooM-validated set).
+        if (_config.TaskLines.TryGetValue(f, out var taskLine) && !string.IsNullOrWhiteSpace(taskLine))
+        {
+            sb.Append(taskLine).Append('\n');
+        }
+
+        // 6. Sentence constraint for description only.
+        if (f == "description")
+        {
+            sb.Append("Constraint: <=").Append(_config.MaxSentences).Append(" sentences.\n");
+        }
+
+        return (_config.SystemPrompt, sb.ToString().TrimEnd('\n'));
+    }
+
+    // Pack-driven variant: same neighbor-aware context block, but the task line and system
+    // voice come from the pack (wording stays in the pack; engine only projects context).
+    public (string System, string User) Build(
+        string field, RoomData ctx, string packTemplate, string? packSystem,
+        IReadOnlyDictionary<string, string> vars)
+    {
+        var sb = new StringBuilder();
+        AppendContext(sb, ctx);
+        sb.Append(Substitute(packTemplate, vars)).Append('\n');
+        return (string.IsNullOrWhiteSpace(packSystem) ? _config.SystemPrompt : packSystem!,
+                sb.ToString().TrimEnd('\n'));
+    }
+
+    // Shared structural grounding block: area/biome, exits, neighbor flavor + guidance.
+    // Called by both Build overloads so neighbor-stitching has exactly one implementation.
+    private void AppendContext(StringBuilder sb, RoomData ctx)
+    {
         // 1. Structural grounding. Prefer the area's display name + creative theme when known.
         if (!string.IsNullOrWhiteSpace(ctx.AreaName) && !string.IsNullOrWhiteSpace(ctx.AreaTheme))
         {
@@ -82,24 +133,13 @@ public sealed class RoomPromptBuilder
             sb.Append("Biome: ").Append(ctx.Biome).Append(".\n");
         }
 
-        // 1b. Sibling fields: feed the room's OTHER authored field so e.g. `~` on `name`
-        // with no hint can derive a name from the description just written, and vice versa.
-        if (f == "name" && !string.IsNullOrWhiteSpace(ctx.Description))
-        {
-            sb.Append("Description: ").Append(ctx.Description).Append(".\n");
-        }
-        if (f == "description" && !string.IsNullOrWhiteSpace(ctx.Name))
-        {
-            sb.Append("Name: ").Append(ctx.Name).Append(".\n");
-        }
-
         // 2. Exits, with target names resolved from neighbors where the room exists.
         if (ctx.Exits.Count > 0)
         {
             sb.Append("Exits: ").Append(FormatExits(ctx)).Append(".\n");
         }
 
-        // 3. Neighbor flavor — name (+biome) plus a short description snippet so adjacency
+        // 3. Neighbor flavor - name (+biome) plus a short description snippet so adjacency
         // propagates theme. Snippet is the neighbor's first sentence, capped, to keep the
         // prompt tight for a small local model and limit verbatim copying.
         var includedNeighborDescription = false;
@@ -126,26 +166,16 @@ public sealed class RoomPromptBuilder
         {
             sb.Append(_config.NeighborGuidance).Append('\n');
         }
+    }
 
-        // 4. Author intent — placed prominently, when supplied.
-        if (!string.IsNullOrWhiteSpace(hint))
+    private static string Substitute(string template, IReadOnlyDictionary<string, string> vars)
+    {
+        var s = template;
+        foreach (var kv in vars)
         {
-            sb.Append("Intent: ").Append(hint!.Trim()).Append(".\n");
+            s = s.Replace("{" + kv.Key + "}", kv.Value);
         }
-
-        // 5. Per-field task line (config-overridable; defaults from the LLooM-validated set).
-        if (_config.TaskLines.TryGetValue(f, out var taskLine) && !string.IsNullOrWhiteSpace(taskLine))
-        {
-            sb.Append(taskLine).Append('\n');
-        }
-
-        // 6. Sentence constraint for description only.
-        if (f == "description")
-        {
-            sb.Append("Constraint: <=").Append(_config.MaxSentences).Append(" sentences.\n");
-        }
-
-        return (_config.SystemPrompt, sb.ToString().TrimEnd('\n'));
+        return s;
     }
 
     /// <summary>First sentence of the text, trimmed and capped at <paramref name="maxChars"/>
@@ -161,7 +191,7 @@ public sealed class RoomPromptBuilder
         var sentence = end >= 0 ? t.Substring(0, end + 1) : t;
         if (sentence.Length > maxChars)
         {
-            sentence = sentence.Substring(0, maxChars).TrimEnd() + "…";
+            sentence = sentence.Substring(0, maxChars).TrimEnd() + "...";
         }
         return sentence;
     }
