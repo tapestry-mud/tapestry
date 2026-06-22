@@ -189,7 +189,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<StubExitResolver>(),
                 sp.GetRequiredService<RecommendBroker>(),
                 sp.GetRequiredService<ConnectionLoader>(),
-                sp.GetRequiredService<GameLoop>());
+                sp.GetRequiredService<GameLoop>(),
+                sp.GetRequiredService<ILogger<WorldAuthoringModule>>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 

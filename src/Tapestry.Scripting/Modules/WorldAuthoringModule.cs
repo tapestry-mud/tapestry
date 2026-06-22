@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Persistence;
@@ -37,6 +38,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly ConnectionLoader? _connections;
     private readonly GameLoop? _gameLoop;
     private readonly StubExitResolver _stubResolver;
+    private readonly ILogger<WorldAuthoringModule> _logger;
+    private static int _recommendInFlight;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
     // recommend-only Neighbors list (cleared before serialization) and any other
@@ -61,7 +64,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         StubExitResolver stubResolver,
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null,
-        GameLoop? gameLoop = null)
+        GameLoop? gameLoop = null,
+        ILogger<WorldAuthoringModule>? logger = null)
     {
         _world = world;
         _projector = projector;
@@ -73,6 +77,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _recommend = recommend;
         _connections = connections;
         _gameLoop = gameLoop;
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<WorldAuthoringModule>.Instance;
     }
 
     public string Namespace => "authoring";
@@ -163,12 +168,31 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 var ctx = new PackRoomContext { Room = roomData, Template = template, System = system, Vars = vars };
 
                 // Off-loop async; deliver the result back on the loop thread via Schedule.
+                // Track in-flight count and log latency + outcome at INFO for observability.
+                var inflight = System.Threading.Interlocked.Increment(ref _recommendInFlight);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                _logger.LogInformation("recommend[{Field}] dispatch inflight={Inflight}", field, inflight);
                 _ = _recommend.RecommendAsync(new RecommendRequest(field, ctx))
                     .ContinueWith(t =>
                     {
-                        var text = (t.Status == TaskStatus.RanToCompletion && t.Result.Suggestions.Count > 0)
-                            ? t.Result.Suggestions[0]
-                            : null;
+                        sw.Stop();
+                        var elapsed = (long)sw.Elapsed.TotalMilliseconds;
+                        var remaining = System.Threading.Interlocked.Decrement(ref _recommendInFlight);
+                        string outcome;
+                        if (t.IsFaulted || t.IsCanceled)
+                        {
+                            outcome = "fault";
+                        }
+                        else if (t.Result.Suggestions.Count > 0)
+                        {
+                            outcome = "ok";
+                        }
+                        else
+                        {
+                            outcome = "empty";
+                        }
+                        _logger.LogInformation("recommend[{Field}] {Outcome} {Ms}ms inflight={Inflight}", field, outcome, elapsed, remaining);
+                        var text = outcome == "ok" ? t.Result.Suggestions[0] : null;
                         _gameLoop.Schedule(() => jint.Invoke(callback, text == null ? JsValue.Null : (JsValue)text));
                     });
             }),
