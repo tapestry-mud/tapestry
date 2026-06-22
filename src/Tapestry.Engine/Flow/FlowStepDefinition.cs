@@ -43,4 +43,4 @@ public class ConfirmStep : FlowStepDefinition
     public Action<Entity>? OnNo { get; init; }
 }
 
-public record FlowCompletionResult(bool Success, string? Message = null);
+public record FlowCompletionResult(bool Success, string? Message = null, bool SuppressLook = false);

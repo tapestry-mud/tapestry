@@ -40,6 +40,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly StubExitResolver _stubResolver;
     private readonly ILogger<WorldAuthoringModule> _logger;
     private readonly TapestryMetrics? _metrics;
+    private const int RecommendMaxInFlight = 2;
     private static int _recommendInFlight;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
@@ -169,6 +170,24 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 }
 
                 var ctx = new PackRoomContext { Room = roomData, Template = template, System = system, Vars = vars };
+
+                // Concurrency cap: shed excess calls rather than flood the LLM backend.
+                var currentInFlight = System.Threading.Volatile.Read(ref _recommendInFlight);
+                if (currentInFlight >= RecommendMaxInFlight)
+                {
+                    _logger.LogInformation("recommend[{Field}] shed inflight={Inflight}", field, currentInFlight);
+                    if (_metrics != null)
+                    {
+                        var shedTags = new System.Diagnostics.TagList
+                        {
+                            new KeyValuePair<string, object?>("field", field),
+                            new KeyValuePair<string, object?>("outcome", "shed")
+                        };
+                        _metrics.RecommendTotal.Add(1, shedTags);
+                    }
+                    _gameLoop.Schedule(() => jint.Invoke(callback, JsValue.Null));
+                    return;
+                }
 
                 // Off-loop async; deliver the result back on the loop thread via Schedule.
                 // Track in-flight count and log latency + outcome at INFO for observability.

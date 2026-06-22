@@ -91,7 +91,9 @@ public class FlowsModule : IJintApiModule
                         var messageVal = resultObj.Get("message");
                         var message = (messageVal.Type != Types.Undefined && messageVal.Type != Types.Null)
                             ? messageVal.ToString() : null;
-                        return new FlowCompletionResult(success, message);
+                        var suppressLookVal = resultObj.Get("suppress_look");
+                        var suppressLook = suppressLookVal.Type == Types.Boolean && (bool)suppressLookVal.ToObject()!;
+                        return new FlowCompletionResult(success, message, suppressLook);
                     }
 
                     return new FlowCompletionResult(true);
