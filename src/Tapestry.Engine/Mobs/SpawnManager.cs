@@ -1,5 +1,6 @@
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Classes;
+using Tapestry.Engine.Combat;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Races;
@@ -79,7 +80,7 @@ public class SpawnManager
     public void RegisterRoomSpawns(
         string areaId,
         string roomId,
-        IEnumerable<(string Mob, int Count, RareSpawnConfig? Rare, IEnumerable<string> Tags)> rules,
+        IEnumerable<(string Mob, int Count, RareSpawnConfig? Rare, IEnumerable<string> Tags, SpawnOverride? Override)> rules,
         int effectiveResetInterval)
     {
         if (!_areaConfigs.TryGetValue(areaId, out var config))
@@ -96,7 +97,8 @@ public class SpawnManager
                 Mob = rule.Mob,
                 Count = rule.Count,
                 Rare = rule.Rare,
-                Tags = rule.Tags.ToList()
+                Tags = rule.Tags.ToList(),
+                Override = rule.Override
             });
         }
     }
@@ -112,7 +114,7 @@ public class SpawnManager
         rooms.Add((roomId, fixtureTemplateIds.ToList()));
     }
 
-    public Entity? SpawnMob(string templateId, string roomId)
+    public Entity? SpawnMob(string templateId, string roomId, SpawnOverride? over = null)
     {
         if (!_templates.TryGetValue(templateId, out var template))
         {
@@ -127,6 +129,12 @@ public class SpawnManager
 
         var entity = template.CreateEntity();
         MobStatDerivation.Apply(entity, template, _classes, _races);
+
+        if (over != null)
+        {
+            ApplyOverride(entity, over);
+        }
+
         entity.LocationRoomId = roomId;
         room.AddEntity(entity);
         _world.TrackEntity(entity);
@@ -215,6 +223,28 @@ public class SpawnManager
         return entity;
     }
 
+    private void ApplyOverride(Entity entity, SpawnOverride over)
+    {
+        if (!string.IsNullOrWhiteSpace(over.Name)) { entity.Name = over.Name!; }
+        if (!string.IsNullOrWhiteSpace(over.Desc)) { entity.SetProperty(CommonProperties.Description, over.Desc); }
+        if (over.MaxHp is int hp)
+        {
+            entity.Stats.BaseMaxHp = hp;
+            entity.Stats.Hp = entity.Stats.MaxHp;
+        }
+        if (!string.IsNullOrWhiteSpace(over.Damage)) { entity.SetProperty(CombatProperties.DamageDice, over.Damage); }
+        if (over.FromType != null) { entity.SetProperty("oracle_from_type", over.FromType); }
+        foreach (var itemId in over.Items)
+        {
+            var item = _itemRegistry.CreateItem(itemId);
+            if (item != null)
+            {
+                entity.AddToContents(item);
+                _world.TrackEntity(item);
+            }
+        }
+    }
+
     public void RunAreaReset(string areaName)
     {
         if (!_areaConfigs.TryGetValue(areaName, out var config))
@@ -256,12 +286,13 @@ public class SpawnManager
             {
                 var mobId = rule.Mob;
 
-                if (rule.Rare != null && _random.NextDouble() < rule.Rare.Chance)
+                // A frozen override means "the same instance returns" - never rare-swap it.
+                if (rule.Override == null && rule.Rare != null && _random.NextDouble() < rule.Rare.Chance)
                 {
                     mobId = rule.Rare.Mob;
                 }
 
-                var entity = SpawnMob(mobId, rule.Room);
+                var entity = SpawnMob(mobId, rule.Room, rule.Override);
                 if (entity != null)
                 {
                     _spawnTracking[entity.Id] = (areaName, i);
@@ -367,4 +398,15 @@ public class SpawnManager
 
     public AreaSpawnConfig? GetAreaConfig(string areaName) =>
         _areaConfigs.GetValueOrDefault(areaName);
+
+    /// <summary>Returns the spawn rules for a specific room, for projecting into the room
+    /// sidecar. Returns an empty sequence if the area or room has no registered rules.</summary>
+    public IEnumerable<SpawnRule> GetRoomSpawns(string areaId, string roomId)
+    {
+        if (!_areaConfigs.TryGetValue(areaId, out var config))
+        {
+            return Enumerable.Empty<SpawnRule>();
+        }
+        return config.Spawns.Where(s => string.Equals(s.Room, roomId, StringComparison.OrdinalIgnoreCase));
+    }
 }

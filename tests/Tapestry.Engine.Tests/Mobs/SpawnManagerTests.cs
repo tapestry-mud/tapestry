@@ -523,9 +523,9 @@ public class SpawnManagerTests
         var itemRegistry = new ItemRegistry();
         var spawnManager = new SpawnManager(world, eventBus, resolver, itemRegistry);
 
-        var rules = new (string Mob, int Count, RareSpawnConfig? Rare, IEnumerable<string> Tags)[]
+        var rules = new (string Mob, int Count, RareSpawnConfig? Rare, IEnumerable<string> Tags, SpawnOverride? Override)[]
         {
-            ("core:goblin", 2, null, Array.Empty<string>())
+            ("core:goblin", 2, null, Array.Empty<string>(), null)
         };
 
         spawnManager.RegisterRoomSpawns("starter-town", "core:training-grounds", rules, 300);

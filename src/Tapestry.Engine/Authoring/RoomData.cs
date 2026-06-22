@@ -22,6 +22,9 @@ public sealed class RoomData : IRecommendContext
     public Dictionary<string, object?> Properties { get; set; } = new();
     /// <summary>Direction (lowercased) → target room id.</summary>
     public Dictionary<string, string> Exits { get; set; } = new();
+    /// <summary>Oracle-frozen spawn rules with overrides; round-trips so a minted room's
+    /// rolled mobs survive a reload. Empty for hand-built rooms (omitted from YAML).</summary>
+    public List<RoomSpawnData> Spawns { get; set; } = new();
     /// <summary>1-hop neighbor summaries (recommend context only; not serialized to the side-car).</summary>
     public List<RoomNeighbor> Neighbors { get; set; } = new();
 

@@ -169,6 +169,21 @@ files (written under the game data root at runtime).
 - `create room <key>` creates a room in the current area with no auto-exit and no move.
   (packs/@tapestry/builder/scripts/commands/create.js:72-96)
 
+### Oracle-frozen spawn sidecar
+
+- A room side-car can carry a `spawns:` block: a list of entries with `base:` (mob template
+  ID) and an optional `override:` sub-object (`from_type`, `name`, `desc`, `max_hp`,
+  `damage`, `items`). This block round-trips through the YAML serializer so an
+  oracle-minted room's rolled mobs survive a reload.
+  (src/Tapestry.Engine/Authoring/RoomSpawnData.cs; src/Tapestry.Engine/Authoring/RoomData.cs)
+- `RoomProjector` populates `RoomData.Spawns` from the area's registered `SpawnRule` entries
+  when a `SpawnManager` is injected (optional; hand-built rooms without oracle spawns pass
+  nothing and the field stays empty and is omitted from YAML).
+  (src/Tapestry.Engine/Authoring/RoomProjector.cs)
+- The serializer uses `OmitNull | OmitEmptyCollections` so the `spawns:` key is absent from
+  YAML for rooms with no frozen spawns - preserving pack-room YAML cleanliness.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:40-44)
+
 ### Provenance classification
 
 - Every area and room is classified as one of three provenance labels: `[pack]` (loaded
@@ -215,3 +230,4 @@ files (written under the game data root at runtime).
 ## Change Log
 
 - 2026-06-15 [extend-baked-in-areas](changes/2026-06-15-extend-baked-in-areas.md)
+- 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)

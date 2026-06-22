@@ -243,7 +243,7 @@ public class MobsModule : IJintApiModule
             getProperties = new Func<string, Dictionary<string, object?>?>(_mobs.GetEntityProperties),
             getTicksSinceLastAction = new Func<string, long>(_mobs.GetMobTicksSinceLastAction),
             recordAction = new Action<string>(_mobs.RecordMobAction),
-            spawnMob = new Func<string, string, object?>(_mobs.SpawnMob)
+            spawnMob = new Func<JsValue, object?>(_mobs.SpawnMob)
         };
     }
 }

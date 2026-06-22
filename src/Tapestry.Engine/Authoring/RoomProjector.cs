@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Shared;
@@ -14,13 +15,16 @@ public sealed class RoomProjector
     private readonly PropertyRegistry _properties;
     private readonly TagRegistry _tags;
     private readonly AreaRegistry _areas;
+    private readonly SpawnManager? _spawnManager;
 
-    public RoomProjector(World world, PropertyRegistry properties, TagRegistry tags, AreaRegistry areas)
+    public RoomProjector(World world, PropertyRegistry properties, TagRegistry tags, AreaRegistry areas,
+                         SpawnManager? spawnManager = null)
     {
         _world = world;
         _properties = properties;
         _tags = tags;
         _areas = areas;
+        _spawnManager = spawnManager;
     }
 
     public RoomData Project(Room room)
@@ -75,6 +79,27 @@ public sealed class RoomProjector
                     Biome = neighbor.Tags.FirstOrDefault(t => biomeTagNames.Contains(t)),
                     Description = neighbor.Description,
                 });
+            }
+        }
+
+        if (_spawnManager != null && !string.IsNullOrEmpty(room.Area))
+        {
+            foreach (var rule in _spawnManager.GetRoomSpawns(room.Area!, room.Id))
+            {
+                var spawnData = new RoomSpawnData { Base = rule.Mob };
+                if (rule.Override != null)
+                {
+                    spawnData.Override = new RoomSpawnOverrideData
+                    {
+                        FromType = rule.Override.FromType,
+                        Name = rule.Override.Name,
+                        Desc = rule.Override.Desc,
+                        MaxHp = rule.Override.MaxHp,
+                        Damage = rule.Override.Damage,
+                        Items = rule.Override.Items.ToList()
+                    };
+                }
+                data.Spawns.Add(spawnData);
             }
         }
 

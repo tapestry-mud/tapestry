@@ -14,6 +14,7 @@ public class SpawnRule
     public RareSpawnConfig? Rare { get; set; }
     public int? RespawnOverride { get; set; }
     public List<string> Tags { get; set; } = new();
+    public SpawnOverride? Override { get; set; }
 }
 
 public class AreaSpawnConfig

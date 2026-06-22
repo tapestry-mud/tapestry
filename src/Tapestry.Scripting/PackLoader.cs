@@ -325,7 +325,7 @@ public class PackLoader : IPackManifestProvider
                 _spawnManager.RegisterRoomSpawns(
                     areaId,
                     room.Id,
-                    result.Spawns.Select(s => (s.Mob, s.Count, s.Rare, (IEnumerable<string>)s.Tags)),
+                    result.Spawns.Select(s => (s.Mob, s.Count, s.Rare, (IEnumerable<string>)s.Tags, (SpawnOverride?)null)),
                     effectiveInterval);
             }
         }

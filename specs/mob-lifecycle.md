@@ -87,11 +87,34 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
   Non-persistent rules repopulate to `Count` on every reset.
   (src/Tapestry.Engine/Mobs/SpawnManager.cs:218-270;
   src/Tapestry.Engine/Mobs/SpawnRule.cs:9-17)
-- `SpawnMob(templateId, roomId)` is the core spawn path: calls `template.CreateEntity()`,
-  applies `MobStatDerivation.Apply`, places the entity in the room, instantiates and
-  equips equipment items, resolves and places loot, registers proficiencies for abilities,
-  then publishes `mob.spawn`.
+- `SpawnMob(templateId, roomId, over?)` is the core spawn path: calls `template.CreateEntity()`,
+  applies `MobStatDerivation.Apply`, then applies a `SpawnOverride` blob if present (see below),
+  places the entity in the room, instantiates and equips equipment items, resolves and places loot,
+  registers proficiencies for abilities, then publishes `mob.spawn`.
   (src/Tapestry.Engine/Mobs/SpawnManager.cs:115-215)
+
+### Frozen spawn override
+
+- `SpawnOverride` is a sealed class carrying per-instance facts captured at generation time:
+  `FromType` (source template hint), `Name`, `Desc`, `MaxHp`, `Damage` (dice expression),
+  `Items` (item template IDs to add to contents), and `NoReroll` (bool).
+  (src/Tapestry.Engine/Mobs/SpawnOverride.cs)
+- `SpawnRule.Override` holds an optional `SpawnOverride?`; when set, `RunAreaReset` applies it
+  on every spawn of that slot and skips the rare-swap (the frozen instance always returns).
+  (src/Tapestry.Engine/Mobs/SpawnRule.cs:17; src/Tapestry.Engine/Mobs/SpawnManager.cs)
+- `SpawnManager.ApplyOverride` is called inside `SpawnMob` immediately after
+  `MobStatDerivation.Apply`. It writes `Name`, `description`, `BaseMaxHp`/`Hp`,
+  `damage_dice`, `oracle_from_type`, and contents items from the blob - verbatim, no
+  re-roll. `Hp` is clamped to the new `MaxHp` after `BaseMaxHp` is set.
+  (src/Tapestry.Engine/Mobs/SpawnManager.cs)
+- `RegisterRoomSpawns` tuple gains an `Override: SpawnOverride?` member; callers that have
+  no frozen override pass `null`. The `PackLoader` authored-room path passes `null`.
+  (src/Tapestry.Engine/Mobs/SpawnManager.cs:79-102;
+  src/Tapestry.Scripting/PackLoader.cs:325-329)
+- JS: `mobs.spawnMob(options)` where `options` is `{ template, roomId, override?: { fromType,
+  name, desc, maxHp, damage, items, noReroll } }`. The binding accepts a single `JsValue`
+  options object and unpacks manually per the Jint convention.
+  (src/Tapestry.Scripting/Services/ApiMobs.cs; src/Tapestry.Scripting/Modules/MobsModule.cs)
 - Spawn-tracking dict maps spawned entity `Guid` to `(areaId, spawnIndex)`. This allows
   persistent-tag cap checks to count survivors across rooms.
   (src/Tapestry.Engine/Mobs/SpawnManager.cs:25, 247-268)
@@ -161,3 +184,5 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 - None on record.
 
 ## Change Log
+
+- 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)

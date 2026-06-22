@@ -1,3 +1,6 @@
+using Jint.Native;
+using Jint.Native.Object;
+using Jint.Runtime;
 using Tapestry.Engine;
 using Tapestry.Engine.Mobs;
 
@@ -50,14 +53,51 @@ public class ApiMobs
         }
     }
 
-    public object? SpawnMob(string templateId, string roomId)
+    public object? SpawnMob(JsValue options)
     {
-        var entity = _spawnManager.SpawnMob(templateId, roomId);
-        if (entity == null)
+        if (options is not ObjectInstance obj) { return null; }
+
+        var templateVal = obj.Get("template");
+        var roomVal = obj.Get("roomId");
+        if (templateVal.Type != Types.String || roomVal.Type != Types.String) { return null; }
+
+        var templateId = templateVal.ToString();
+        var roomId = roomVal.ToString();
+
+        SpawnOverride? over = null;
+        var ovVal = obj.Get("override");
+        if (ovVal is ObjectInstance ov)
         {
-            return null;
+            var maxHpVal = ov.Get("maxHp");
+            var noRerollVal = ov.Get("noReroll");
+            over = new SpawnOverride
+            {
+                FromType = AsStringOrNull(ov.Get("fromType")),
+                Name = AsStringOrNull(ov.Get("name")),
+                Desc = AsStringOrNull(ov.Get("desc")),
+                MaxHp = maxHpVal.Type == Types.Number ? (int)(double)maxHpVal.ToObject()! : null,
+                Damage = AsStringOrNull(ov.Get("damage")),
+                NoReroll = noRerollVal.Type == Types.Boolean && (bool)noRerollVal.ToObject()!,
+            };
+            var items = ov.Get("items");
+            if (items is JsArray arr)
+            {
+                for (uint i = 0; i < arr.Length; i++)
+                {
+                    var el = arr[(int)i];
+                    if (el.Type != Types.Undefined && el.Type != Types.Null)
+                    {
+                        over.Items.Add(el.ToString());
+                    }
+                }
+            }
         }
 
+        var entity = _spawnManager.SpawnMob(templateId, roomId, over);
+        if (entity == null) { return null; }
         return new { id = entity.Id.ToString(), name = entity.Name };
     }
+
+    private static string? AsStringOrNull(JsValue v) =>
+        v.Type == Types.String ? v.ToString() : null;
 }
