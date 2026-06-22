@@ -186,6 +186,7 @@ public static class ServiceCollectionExtensions
                 roomsRoot,
                 sp.GetRequiredService<LoadedPackNamespaces>().Namespaces,
                 sp.GetRequiredService<AreaRegistry>(),
+                sp.GetRequiredService<StubExitResolver>(),
                 sp.GetRequiredService<RecommendBroker>(),
                 sp.GetRequiredService<ConnectionLoader>(),
                 sp.GetRequiredService<GameLoop>());

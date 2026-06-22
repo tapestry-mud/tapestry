@@ -81,7 +81,7 @@ public class AuthoredRoomLoader
             foreach (var dir in room.AvailableExits())
             {
                 var exit = room.GetExit(dir);
-                if (exit != null && _world.GetRoom(exit.TargetRoomId) == null)
+                if (exit != null && !exit.IsStub && _world.GetRoom(exit.TargetRoomId) == null)
                 {
                     _logger.LogWarning("Authored room {Id} exit {Dir} -> '{Target}' has no target room",
                         room.Id, dir, exit.TargetRoomId);

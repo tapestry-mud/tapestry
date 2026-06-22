@@ -20,8 +20,8 @@ public sealed class RoomData : IRecommendContext
     public List<string> Tags { get; set; } = new();
     /// <summary>Declared room properties (applies_to:[room]) present on the room.</summary>
     public Dictionary<string, object?> Properties { get; set; } = new();
-    /// <summary>Direction (lowercased) → target room id.</summary>
-    public Dictionary<string, string> Exits { get; set; } = new();
+    /// <summary>Direction (lowercased) -> exit descriptor (real or stub).</summary>
+    public Dictionary<string, ExitData> Exits { get; set; } = new();
     /// <summary>Oracle-frozen spawn rules with overrides; round-trips so a minted room's
     /// rolled mobs survive a reload. Empty for hand-built rooms (omitted from YAML).</summary>
     public List<RoomSpawnData> Spawns { get; set; } = new();

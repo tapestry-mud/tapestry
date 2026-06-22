@@ -103,7 +103,7 @@ public class World : ITagObserver
 
     public IEnumerable<Room> AllRooms => _rooms.Values;
 
-    public bool MoveEntity(Entity entity, Direction direction)
+    public bool MoveEntity(Entity entity, Direction direction, StubExitResolver? resolver = null)
     {
         if (entity.LocationRoomId == null)
         {
@@ -120,6 +120,19 @@ public class World : ITagObserver
         if (exit == null)
         {
             return false;
+        }
+
+        if (exit.IsStub)
+        {
+            if (resolver == null || !resolver.TryResolve(currentRoom.Id, direction.ToString().ToLowerInvariant()))
+            {
+                return false;
+            }
+            exit = currentRoom.GetExit(direction);
+            if (exit == null || exit.IsStub)
+            {
+                return false;
+            }
         }
 
         var targetRoom = GetRoom(exit.TargetRoomId);
@@ -133,7 +146,7 @@ public class World : ITagObserver
         return true;
     }
 
-    public bool MoveEntity(Entity entity, Direction direction, DoorService doorService, EventBus eventBus)
+    public bool MoveEntity(Entity entity, Direction direction, DoorService doorService, EventBus eventBus, StubExitResolver? resolver = null)
     {
         if (entity.LocationRoomId == null)
         {
@@ -150,6 +163,19 @@ public class World : ITagObserver
         if (exit == null)
         {
             return false;
+        }
+
+        if (exit.IsStub)
+        {
+            if (resolver == null || !resolver.TryResolve(currentRoom.Id, direction.ToString().ToLowerInvariant()))
+            {
+                return false;
+            }
+            exit = currentRoom.GetExit(direction);
+            if (exit == null || exit.IsStub)
+            {
+                return false;
+            }
         }
 
         if (exit.Door != null && exit.Door.IsClosed)

@@ -39,7 +39,7 @@ internal sealed class AreaAuthoringHarness
         var registry = new AreaRegistry();
         var mod = new WorldAuthoringModule(
             world, projector, writer, root, loadedPackNamespaces,
-            registry, recommend: null, connections: connections);
+            registry, new StubExitResolver(), recommend: null, connections: connections);
         return new AreaAuthoringHarness(mod, registry, root);
     }
 }

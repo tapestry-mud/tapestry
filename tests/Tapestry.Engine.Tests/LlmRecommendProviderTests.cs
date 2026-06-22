@@ -125,7 +125,7 @@ public class LlmRecommendProviderTests
         var client = new FakeLlmClient();
         var provider = Provider(client, Config());
         var data = new RoomData();
-        data.Exits["north"] = "ns:x";
+        data.Exits["north"] = new ExitData { Target = "ns:x" };
 
         var result = await provider.RecommendAsync(new RecommendRequest("exits", data));
 

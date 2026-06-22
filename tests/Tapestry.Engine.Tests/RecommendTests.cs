@@ -30,8 +30,8 @@ public class RecommendTests
     public async Task Stub_exits_returns_available_minus_used()
     {
         var data = new RoomData();
-        data.Exits["north"] = "ns:x";
-        data.Exits["up"] = "ns:y";
+        data.Exits["north"] = new ExitData { Target = "ns:x" };
+        data.Exits["up"] = new ExitData { Target = "ns:y" };
 
         var broker = new RecommendBroker();
         broker.Register(new StaticStubRecommendProvider(delayMs: 0));
@@ -49,8 +49,8 @@ public class RecommendTests
     public void ExitHeuristic_offers_unused_directions_only()
     {
         var data = new RoomData();
-        data.Exits["north"] = "ns:x";
-        data.Exits["UP"] = "ns:y"; // case-insensitive
+        data.Exits["north"] = new ExitData { Target = "ns:x" };
+        data.Exits["UP"] = new ExitData { Target = "ns:y" }; // case-insensitive
 
         var result = Tapestry.Engine.Recommend.ExitHeuristic.Suggest(data);
 

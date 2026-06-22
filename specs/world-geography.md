@@ -120,6 +120,36 @@ command-dispatch.md.
   removed exit. Creation publishes portal.opened.
   (src/Tapestry.Engine/TemporaryExitService.cs:123-147)
 
+### Stub exits and lazy-mint movement
+
+- `Exit.IsStub` (bool) marks an exit as a placeholder pointing at no real room
+  (TargetRoomId is empty string). Stub exits are serializable and survive
+  side-car write/reload. Movement through a stub exit requires a registered
+  `StubExitResolver` to mint the neighbor room; without one the move fails
+  gracefully (returns false, entity stays in place).
+  (src/Tapestry.Engine/Exit.cs; src/Tapestry.Engine/StubExitResolver.cs)
+
+- `World.MoveEntity(entity, direction, resolver?)` (simple overload) accepts an
+  optional `StubExitResolver`. When the exit is a stub, it calls
+  `resolver.TryResolve(roomId, directionString)`. The resolver is expected to
+  mint the neighbor room, wire the exit to a real room id, and return true.
+  `MoveEntity` re-fetches the exit after TryResolve; if it is still a stub or
+  null the move returns false.
+  (src/Tapestry.Engine/World.cs:MoveEntity)
+
+- `World.MoveEntity(entity, direction, doorService, eventBus, resolver?)` (door-
+  aware overload) applies the same stub check before the door check.
+  (src/Tapestry.Engine/World.cs:MoveEntity)
+
+- `StubExitResolver` is a singleton delegate registry. `Register` replaces the
+  single resolver; `TryResolve` calls it and returns false on exception or if no
+  resolver is registered. The resolver receives (roomId, directionString).
+  (src/Tapestry.Engine/StubExitResolver.cs)
+
+- `ApiWorld.MoveEntity` passes the injected `StubExitResolver` to `World.MoveEntity`,
+  so oracle-controlled movement is automatic for all pack movement calls.
+  (src/Tapestry.Scripting/Services/ApiWorld.cs)
+
 ## Rejected and Reverted
 
 - None on record.

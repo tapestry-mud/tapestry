@@ -43,7 +43,7 @@ public class RoomProjectorTests
         Assert.Equal("forest", data.Biome);
         Assert.Equal(new[] { "safe" }, data.Tags.ToArray());
         Assert.Equal("forest", data.Properties["terrain"]);
-        Assert.Equal("ns:n", data.Exits["north"]);
+        Assert.Equal("ns:n", data.Exits["north"].Target);
         Assert.Single(data.Neighbors);
         Assert.Equal("North Room", data.Neighbors[0].Name);
     }

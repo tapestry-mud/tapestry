@@ -6,6 +6,7 @@ public class Exit
     public Dictionary<string, object?> Conditions { get; set; } = new();
     public DoorState? Door { get; set; }
     public string? DisplayName { get; set; }
+    public bool IsStub { get; set; }
 
     public Exit(string targetRoomId)
     {

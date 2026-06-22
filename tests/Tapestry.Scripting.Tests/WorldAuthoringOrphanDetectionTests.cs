@@ -35,7 +35,7 @@ public class WorldAuthoringOrphanDetectionTests : IDisposable
         _mod = new WorldAuthoringModule(
             _world, projector, writer, _root,
             new HashSet<string> { "legends-forgotten" },
-            new AreaRegistry(), recommend: null, connections: _connections);
+            new AreaRegistry(), new StubExitResolver(), recommend: null, connections: _connections);
     }
 
     public void Dispose()

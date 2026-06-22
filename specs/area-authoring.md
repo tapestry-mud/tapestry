@@ -226,6 +226,43 @@ files (written under the game data root at runtime).
   Collisions are resolved by appending `-2`, `-3`, etc.
   (src/Tapestry.Engine/Authoring/RoomSlugger.cs)
 
+### Stub exits in room YAML
+
+- A room exit may be a stub (placeholder with no real target room). The YAML
+  format for a stub exit is a mapping: `north: {stub: true, label: "a misty passage"}`.
+  A real exit remains a bare scalar: `north: "oracle:origin"`. This is backward-
+  compatible: the ExitDataConverter reads the legacy scalar form unchanged.
+  (src/Tapestry.Engine/Authoring/ExitData.cs;
+  src/Tapestry.Engine/Authoring/ExitDataConverter.cs;
+  src/Tapestry.Scripting/YamlContentLoader.cs:ParseExit)
+
+- `RoomData.Exits` is now `Dictionary<string, ExitData>` where `ExitData` carries
+  `Target` (string), `Stub` (bool), and `Label` (string). Non-stub exits serialize
+  as bare scalars (byte-identical to the legacy `Dictionary<string, string>` form).
+  Stub exits serialize as a `{stub: true, label: "..."}` mapping.
+  (src/Tapestry.Engine/Authoring/RoomData.cs)
+
+- `RoomProjector.Project` emits `ExitData { Stub=true, Label=exit.DisplayName }` for
+  stub exits and `ExitData { Target=exit.TargetRoomId }` for real exits. The neighbor
+  projection loop naturally skips stubs because `_world.GetRoom("")` returns null.
+  (src/Tapestry.Engine/Authoring/RoomProjector.cs)
+
+- `WorldAuthoringModule.Serializer` registers `ExitDataConverter` so side-car writes
+  emit stubs as mappings and real exits as bare scalars.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs)
+
+- `AuthoredRoomLoader` skips the missing-target warning for stub exits
+  (`!exit.IsStub` guard added). Stubs have an empty TargetRoomId by design.
+  (src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs)
+
+- `tapestry.authoring.setStubExit(roomId, direction, label)` mints a stub exit on a
+  runtime-authored (oracle-area) room and writes the side-car. Gated by `IsOracleArea`:
+  only areas with no `SourcePack` (i.e. runtime-authored areas) accept stub exits.
+  `tapestry.authoring.registerStubResolver(fn)` registers the JS resolver delegate
+  on the singleton `StubExitResolver`. The JS function receives (roomId, dirStr) and
+  must return a boolean.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:SetStubExit,IsOracleArea)
+
 ## Rejected and Reverted
 
 - **Persisting runtime connection exits into side-cars or exported packs (TOMBSTONE):**

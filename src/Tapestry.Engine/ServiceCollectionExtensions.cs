@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
 
         // Core
         services.AddSingleton<World>();
+        services.AddSingleton<StubExitResolver>();
         services.AddSingleton<EventBus>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<EmoteRegistry>();

@@ -36,15 +36,19 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly RecommendBroker? _recommend;
     private readonly ConnectionLoader? _connections;
     private readonly GameLoop? _gameLoop;
+    private readonly StubExitResolver _stubResolver;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
     // recommend-only Neighbors list (cleared before serialization) and any other
     // empty collection (tags/properties/exits) never emit a key. This keeps the
     // side-car a clean pack-room YAML and guarantees no `neighbors:` leaks.
+    // ExitDataConverter emits non-stub exits as bare scalars (byte-identical to legacy)
+    // and stub exits as { stub: true, label: "..." } mappings.
     private static readonly ISerializer Serializer = new SerializerBuilder()
         .WithNamingConvention(UnderscoredNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(
             DefaultValuesHandling.OmitNull | DefaultValuesHandling.OmitEmptyCollections)
+        .WithTypeConverter(new Tapestry.Engine.Authoring.ExitDataConverter())
         .Build();
 
     public WorldAuthoringModule(
@@ -54,6 +58,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         string root,
         HashSet<string> loadedPackNamespaces,
         AreaRegistry areaRegistry,
+        StubExitResolver stubResolver,
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null,
         GameLoop? gameLoop = null)
@@ -64,6 +69,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _root = root;
         _loadedPackNamespaces = loadedPackNamespaces;
         _areaRegistry = areaRegistry;
+        _stubResolver = stubResolver;
         _recommend = recommend;
         _connections = connections;
         _gameLoop = gameLoop;
@@ -187,7 +193,17 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 id = r.Id,
                 name = r.Name,
                 provenance = r.Provenance
-            }).ToArray())
+            }).ToArray()),
+            setStubExit = new Func<string, string, string, bool>((roomId, direction, label) =>
+                SetStubExit(roomId, direction, label)),
+            registerStubResolver = new Action<JsValue>(fn =>
+            {
+                _stubResolver.Register((roomId, dir) =>
+                {
+                    var r = jint.Invoke(fn, roomId, dir);
+                    return r.Type == Types.Boolean && (bool)r.ToObject()!;
+                });
+            })
         };
     }
 
@@ -437,6 +453,23 @@ public sealed class WorldAuthoringModule : IJintApiModule
             WriteSideCar(room);
         }
         return result.Message;
+    }
+
+    private bool SetStubExit(string roomId, string direction, string label)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null || !IsOracleArea(room.Area)) { return false; }
+        if (!DirectionExtensions.TryParse(direction ?? "", out var dir)) { return false; }
+        room.SetExit(dir, new Exit("") { IsStub = true, DisplayName = label });
+        WriteSideCar(room);
+        return true;
+    }
+
+    private bool IsOracleArea(string? areaId)
+    {
+        if (string.IsNullOrEmpty(areaId)) { return false; }
+        var areaDef = _areaRegistry.Get(areaId);
+        return areaDef != null && string.IsNullOrEmpty(areaDef.SourcePack);
     }
 
     public bool DeleteRoom(string roomId)

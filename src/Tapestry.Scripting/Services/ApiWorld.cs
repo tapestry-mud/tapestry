@@ -18,10 +18,12 @@ public class ApiWorld
     private readonly VisibilityFilter _visibility;
     private readonly SpawnManager _spawnManager;
     private readonly ItemRegistry _itemRegistry;
+    private readonly StubExitResolver _stubResolver;
 
     public ApiWorld(World world, EventBus eventBus, SessionManager sessions, MobAIManager mobAIManager,
                     AlignmentManager alignmentManager, ApiMessaging messaging, DoorService doorService,
-                    VisibilityFilter visibility, SpawnManager spawnManager, ItemRegistry itemRegistry)
+                    VisibilityFilter visibility, SpawnManager spawnManager, ItemRegistry itemRegistry,
+                    StubExitResolver stubResolver)
     {
         _world = world;
         _eventBus = eventBus;
@@ -33,6 +35,7 @@ public class ApiWorld
         _visibility = visibility;
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
+        _stubResolver = stubResolver;
     }
 
     // --- Movement ---
@@ -120,7 +123,7 @@ public class ApiWorld
         }
 
         var oldRoomId = entity.LocationRoomId;
-        var moved = _world.MoveEntity(entity, dir);
+        var moved = _world.MoveEntity(entity, dir, _stubResolver);
 
         if (moved)
         {

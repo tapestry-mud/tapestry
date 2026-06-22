@@ -66,7 +66,14 @@ public sealed class RoomProjector
                 continue;
             }
             var dirKey = dir.ToString().ToLowerInvariant();
-            data.Exits[dirKey] = exit.TargetRoomId;
+            if (exit.IsStub)
+            {
+                data.Exits[dirKey] = new ExitData { Stub = true, Label = exit.DisplayName };
+            }
+            else
+            {
+                data.Exits[dirKey] = new ExitData { Target = exit.TargetRoomId };
+            }
 
             var neighbor = _world.GetRoom(exit.TargetRoomId);
             if (neighbor != null)

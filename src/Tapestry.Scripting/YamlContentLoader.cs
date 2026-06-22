@@ -447,6 +447,13 @@ public static class YamlContentLoader
         // Object: { target: "core:inn", name: "...", door: { ... } }
         if (exitValue is Dictionary<object, object> dict)
         {
+            // Stub exit: { stub: true, label: "..." } - no target, IsStub=true
+            if (dict.TryGetValue("stub", out var stubVal) && stubVal != null && Convert.ToBoolean(stubVal))
+            {
+                var label = dict.TryGetValue("label", out var lv) ? lv?.ToString() ?? "" : "";
+                return new Exit("") { IsStub = true, DisplayName = label };
+            }
+
             var target = dict.TryGetValue("target", out var t) ? t?.ToString() ?? "" : "";
             var exit = new Exit(target);
 

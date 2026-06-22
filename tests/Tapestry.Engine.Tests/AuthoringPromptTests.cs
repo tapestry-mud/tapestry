@@ -30,8 +30,8 @@ public class AuthoringPromptTests
             Biome = "stone",
             Tags = new List<string> { "indoor" },
         };
-        ctx.Exits["north"] = "castle:gate";
-        ctx.Exits["south"] = "castle:courtyard"; // dug but unnamed (no neighbor entry)
+        ctx.Exits["north"] = new ExitData { Target = "castle:gate" };
+        ctx.Exits["south"] = new ExitData { Target = "castle:courtyard" }; // dug but unnamed (no neighbor entry)
         ctx.Neighbors.Add(new RoomNeighbor
         {
             Direction = "north", Id = "castle:gate", Name = "Castle Gate", Biome = "stone",
@@ -112,7 +112,7 @@ public class AuthoringPromptTests
     public void Builder_truncates_long_neighbor_description_to_first_sentence()
     {
         var ctx = new RoomData { Id = "a:1", Area = "a" };
-        ctx.Exits["east"] = "a:2";
+        ctx.Exits["east"] = new ExitData { Target = "a:2" };
         ctx.Neighbors.Add(new RoomNeighbor
         {
             Direction = "east", Id = "a:2", Name = "Hall",
@@ -129,7 +129,7 @@ public class AuthoringPromptTests
     public void Builder_omits_guidance_when_no_neighbor_has_a_description()
     {
         var ctx = new RoomData { Id = "a:1", Area = "a" };
-        ctx.Exits["east"] = "a:2";
+        ctx.Exits["east"] = new ExitData { Target = "a:2" };
         ctx.Neighbors.Add(new RoomNeighbor { Direction = "east", Id = "a:2", Name = "Plain Room" }); // no Description
         var builder = new RoomPromptBuilder(RecommendPromptConfig.Default);
         var (_, user) = builder.Build("description", ctx, null);
