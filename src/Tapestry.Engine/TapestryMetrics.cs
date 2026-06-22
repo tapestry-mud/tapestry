@@ -27,6 +27,9 @@ public class TapestryMetrics
     public UpDownCounter<long> LinkDeadActive { get; }
     public Counter<long> LinkDeadReconnected { get; }
     public Counter<long> LinkDeadExpired { get; }
+    public Histogram<double> RecommendDuration { get; }
+    public UpDownCounter<long> RecommendInFlight { get; }
+    public Counter<long> RecommendTotal { get; }
 
     public TapestryMetrics()
     {
@@ -113,6 +116,19 @@ public class TapestryMetrics
         LinkDeadExpired = _meter.CreateCounter<long>(
             "tapestry_linkdead_expired",
             description: "Linkdead sessions that timed out and were despawned");
+
+        RecommendDuration = _meter.CreateHistogram<double>(
+            "tapestry.recommend.duration_ms",
+            unit: "ms",
+            description: "LLM recommend call latency, tagged by field and outcome");
+
+        RecommendInFlight = _meter.CreateUpDownCounter<long>(
+            "tapestry.recommend.in_flight",
+            description: "Concurrent in-flight recommend calls");
+
+        RecommendTotal = _meter.CreateCounter<long>(
+            "tapestry.recommend.total",
+            description: "Recommend calls, tagged by field and outcome");
     }
 
     /// <summary>

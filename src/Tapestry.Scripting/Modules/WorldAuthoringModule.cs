@@ -39,6 +39,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly GameLoop? _gameLoop;
     private readonly StubExitResolver _stubResolver;
     private readonly ILogger<WorldAuthoringModule> _logger;
+    private readonly TapestryMetrics? _metrics;
     private static int _recommendInFlight;
 
     // Mirrors ConnectionsModule's serializer, plus OmitEmptyCollections so the
@@ -65,7 +66,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null,
         GameLoop? gameLoop = null,
-        ILogger<WorldAuthoringModule>? logger = null)
+        ILogger<WorldAuthoringModule>? logger = null,
+        TapestryMetrics? metrics = null)
     {
         _world = world;
         _projector = projector;
@@ -78,6 +80,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _connections = connections;
         _gameLoop = gameLoop;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<WorldAuthoringModule>.Instance;
+        _metrics = metrics;
     }
 
     public string Namespace => "authoring";
@@ -170,6 +173,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 // Off-loop async; deliver the result back on the loop thread via Schedule.
                 // Track in-flight count and log latency + outcome at INFO for observability.
                 var inflight = System.Threading.Interlocked.Increment(ref _recommendInFlight);
+                _metrics?.RecommendInFlight.Add(1);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _logger.LogInformation("recommend[{Field}] dispatch inflight={Inflight}", field, inflight);
                 _ = _recommend.RecommendAsync(new RecommendRequest(field, ctx))
@@ -192,6 +196,17 @@ public sealed class WorldAuthoringModule : IJintApiModule
                             outcome = "empty";
                         }
                         _logger.LogInformation("recommend[{Field}] {Outcome} {Ms}ms inflight={Inflight}", field, outcome, elapsed, remaining);
+                        if (_metrics != null)
+                        {
+                            var tags = new System.Diagnostics.TagList
+                            {
+                                new KeyValuePair<string, object?>("field", field),
+                                new KeyValuePair<string, object?>("outcome", outcome)
+                            };
+                            _metrics.RecommendDuration.Record(elapsed, tags);
+                            _metrics.RecommendTotal.Add(1, tags);
+                            _metrics.RecommendInFlight.Add(-1);
+                        }
                         var text = outcome == "ok" ? t.Result.Suggestions[0] : null;
                         _gameLoop.Schedule(() => jint.Invoke(callback, text == null ? JsValue.Null : (JsValue)text));
                     });

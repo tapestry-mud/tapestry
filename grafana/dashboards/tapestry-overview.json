@@ -400,6 +400,67 @@
         { "expr": "sum by (behavior, pack) (increase(tapestry_mob_ai_quarantine_total[1h]))", "legendFormat": "{{behavior}} ({{pack}})", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
+      "id": 30,
+      "title": "LLM Recommend (Oracle)",
+      "type": "row",
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "gridPos": { "h": 8, "w": 10, "x": 0, "y": 60 },
+      "id": 31,
+      "title": "Recommend Latency (p50 / p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "LLM recommend call latency by field. p50 = typical; p95 = tail. Elevated tail with low in-flight = LLM cold start or timeout.",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, field) (rate(tapestry_recommend_duration_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "p50 {{field}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, field) (rate(tapestry_recommend_duration_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "p95 {{field}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 6, "x": 10, "y": 60 },
+      "id": 32,
+      "title": "Recommend In-Flight",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Concurrent in-flight LLM recommend calls. Sustained nonzero at low traffic = LLM is slow or hanging.",
+      "targets": [
+        {
+          "expr": "sum(tapestry_recommend_in_flight)",
+          "legendFormat": "in-flight",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 60 },
+      "id": 33,
+      "title": "Recommend Throughput by Outcome",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Recommend call rate per minute by outcome (ok/empty/fault). Climbing fault = LLM errors; climbing empty = prompt needs tuning.",
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(tapestry_recommend_total_total[5m])) * 60",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     }
   ],
   "schemaVersion": 39,

@@ -190,7 +190,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<RecommendBroker>(),
                 sp.GetRequiredService<ConnectionLoader>(),
                 sp.GetRequiredService<GameLoop>(),
-                sp.GetRequiredService<ILogger<WorldAuthoringModule>>());
+                sp.GetRequiredService<ILogger<WorldAuthoringModule>>(),
+                sp.GetRequiredService<TapestryMetrics>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 
