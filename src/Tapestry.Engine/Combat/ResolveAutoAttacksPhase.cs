@@ -79,7 +79,7 @@ public class ResolveAutoAttacksPhase : ICombatPhase
 
                 if (hitResult.IsHit)
                 {
-                    var damageDice = HitResolver.GetWeaponDamageDice(weapon);
+                    var damageDice = HitResolver.GetWeaponDamageDice(weapon, attacker);
                     var damage = HitResolver.CalculateDamage(attacker, damageDice, context.Random);
                     target.Stats.Hp -= damage;
 

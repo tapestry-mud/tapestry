@@ -98,15 +98,24 @@ public static class HitResolver
         return Math.Max(1, scaledDamage);
     }
 
-    public static string GetWeaponDamageDice(Entity? weapon)
+    public static string GetWeaponDamageDice(Entity? weapon, Entity? attacker = null)
     {
-        if (weapon == null)
+        if (weapon != null)
         {
-            return UnarmedDamageDice;
+            var dice = weapon.GetProperty<string>(CombatProperties.DamageDice);
+            if (!string.IsNullOrEmpty(dice)) { return dice; }
         }
 
-        var dice = weapon.GetProperty<string>(CombatProperties.DamageDice);
-        return string.IsNullOrEmpty(dice) ? UnarmedDamageDice : dice;
+        // No weapon (or weapon carries no dice): fall back to the attacker's intrinsic
+        // damage_dice (mobs/NPCs may carry it; it is registered for Npc). An unarmed
+        // entity with no damage_dice (e.g. a weaponless player) still gets UnarmedDamageDice.
+        if (attacker != null)
+        {
+            var natural = attacker.GetProperty<string>(CombatProperties.DamageDice);
+            if (!string.IsNullOrEmpty(natural)) { return natural; }
+        }
+
+        return UnarmedDamageDice;
     }
 
     public static Entity? GetWieldedWeapon(Entity entity)

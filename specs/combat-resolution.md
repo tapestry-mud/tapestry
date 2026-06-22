@@ -151,6 +151,13 @@ disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
   (hit regardless of AC). Otherwise hit if total roll >= AC.
   (HitResolver.cs:67)
 
+- Damage dice source precedence: (1) the wielded weapon's `damage_dice` property
+  if a weapon is equipped; (2) the attacker's own `damage_dice` property if set
+  (mobs/NPCs carry this to express their natural attack table); (3) the unarmed
+  default `1d2+0`. This means an unarmed mob with `damage_dice: "3d6"` hits per
+  its template, not the unarmed default.
+  (HitResolver.cs:101; HitResolverTests.cs:GetWeaponDamageDice_*)
+
 - Unarmed base damage dice: `1d2+0`. Unarmed damage type: `bash`.
   (HitResolver.cs:8)
 

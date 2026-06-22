@@ -322,6 +322,40 @@ public class HitResolverTests
         var damage = HitResolver.CalculateDamage(attacker, HitResolver.UnarmedDamageDice, random);
         Assert.InRange(damage, 1, 2);
     }
+
+    // Spec: unarmed attacker with intrinsic damage_dice uses its own dice (mob damage table).
+    [Fact]
+    public void GetWeaponDamageDice_NoWeapon_AttackerHasDamageDice_ReturnsAttackerDice()
+    {
+        var attacker = CreateAttacker();
+        attacker.SetProperty(CombatProperties.DamageDice, "3d6");
+        Assert.Equal("3d6", HitResolver.GetWeaponDamageDice(null, attacker));
+    }
+
+    // Spec: unarmed attacker with no intrinsic damage_dice falls back to unarmed default.
+    [Fact]
+    public void GetWeaponDamageDice_NoWeapon_AttackerHasNoDamageDice_ReturnsUnarmedDefault()
+    {
+        var attacker = CreateAttacker();
+        Assert.Equal(HitResolver.UnarmedDamageDice, HitResolver.GetWeaponDamageDice(null, attacker));
+    }
+
+    // Spec: weapon dice take priority over attacker intrinsic dice.
+    [Fact]
+    public void GetWeaponDamageDice_WeaponWithDice_AttackerHasDice_WeaponWins()
+    {
+        var attacker = CreateAttacker();
+        attacker.SetProperty(CombatProperties.DamageDice, "3d6");
+        var weapon = CreateWeapon(damageDice: "2d8");
+        Assert.Equal("2d8", HitResolver.GetWeaponDamageDice(weapon, attacker));
+    }
+
+    // Spec: null attacker (legacy callers) still returns unarmed default unchanged.
+    [Fact]
+    public void GetWeaponDamageDice_NoWeapon_NullAttacker_ReturnsUnarmedDefault()
+    {
+        Assert.Equal(HitResolver.UnarmedDamageDice, HitResolver.GetWeaponDamageDice(null, null));
+    }
 }
 
 /// <summary>
