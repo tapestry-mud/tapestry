@@ -127,7 +127,7 @@ public class TapestryMetrics
             description: "Concurrent in-flight recommend calls");
 
         RecommendTotal = _meter.CreateCounter<long>(
-            "tapestry.recommend.total",
+            "tapestry.recommend.calls",
             description: "Recommend calls, tagged by field and outcome");
     }
 

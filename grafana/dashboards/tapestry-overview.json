@@ -455,7 +455,7 @@
       "description": "Recommend call rate per minute by outcome (ok/empty/fault). Climbing fault = LLM errors; climbing empty = prompt needs tuning.",
       "targets": [
         {
-          "expr": "sum by (outcome) (rate(tapestry_recommend_total_total[5m])) * 60",
+          "expr": "sum by (outcome) (rate(tapestry_recommend_calls_total[5m])) * 60",
           "legendFormat": "{{outcome}}",
           "refId": "A"
         }
