@@ -35,6 +35,11 @@ public class AreaTickService
             state.TicksSinceLastFire++;
 
             var baseInterval = state.OverrideResetInterval ?? areaDef.ResetInterval;
+            // Repop-off: a non-positive effective interval disables the recurring reset
+            // entirely (solo/oracle areas populate once at boot, then never repop). Boot
+            // population is decoupled - GameLoopService calls RunAreaReset directly - so
+            // this gate only suppresses the tick-driven reset, never the initial fill.
+            if (baseInterval <= 0) { continue; }
             var modifier = playerCount > 0
                 ? (state.OverrideOccupiedModifier ?? areaDef.OccupiedModifier)
                 : 1.0f;

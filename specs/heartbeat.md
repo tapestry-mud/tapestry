@@ -1,6 +1,6 @@
 ---
 capability: heartbeat
-last-updated: 2026-06-21
+last-updated: 2026-06-22
 ---
 
 # Heartbeat / Tick System
@@ -197,6 +197,11 @@ has reached its effective interval.
 - Player counts are rebuilt from scratch each call to `AreaTickService.Tick()` by scanning
   all room entities. (AreaTickService.cs:75)
 
+- An area whose effective reset interval is `<= 0` never fires `area.tick` after boot; it
+  is populated once at startup via the boot path (which calls `RunAreaReset` directly) and
+  then never repops. This is the repop-off guard used by solo/oracle areas.
+  (AreaTickService.cs:38; RepopOffGuardTests)
+
 ### Game clock
 
 `GameClock.Tick()` is called every game-loop tick. A new in-game hour advances when
@@ -234,4 +239,5 @@ reading game clock state from scripts.
 
 ## Change Log
 
+- 2026-06-22 [solo-oracle-slice-1](changes/2026-06-22-solo-oracle-slice-1.md) - repop-off guard: `reset_interval <= 0` disables recurring area reset (solo/oracle areas populate once at boot, never repop)
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `SwellClockPulse` (Cadence 1, Priority 90) drives the per-fight swell clock
