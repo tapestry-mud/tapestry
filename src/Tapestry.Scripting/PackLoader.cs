@@ -43,6 +43,7 @@ public class PackLoader : IPackManifestProvider
     private readonly LoadedPackNamespaces _loadedNamespaces;
     private readonly RegistrationPolicy _registrationPolicy;
     private readonly RegistrationGate? _registrationGate;
+    private readonly OracleTableRegistry _oracleRegistry;
     private readonly List<(string RoomId, string ItemId)> _pendingFixtures = new();
     private readonly Dictionary<string, string> _registeredEntityFiles = new();
 
@@ -64,6 +65,7 @@ public class PackLoader : IPackManifestProvider
                      ScheduleModule scheduleModule,
                      LoadedPackNamespaces loadedNamespaces,
                      RegistrationPolicy registrationPolicy,
+                     OracleTableRegistry oracleRegistry,
                      RegistrationGate? registrationGate = null)
     {
         _registrationGate = registrationGate;
@@ -84,6 +86,7 @@ public class PackLoader : IPackManifestProvider
         _scheduleModule = scheduleModule;
         _loadedNamespaces = loadedNamespaces;
         _registrationPolicy = registrationPolicy;
+        _oracleRegistry = oracleRegistry;
     }
 
     // "@tapestry/core" -> "tapestry-core", "my-pack" -> "my-pack"
@@ -190,6 +193,11 @@ public class PackLoader : IPackManifestProvider
         if (!string.IsNullOrEmpty(manifest.Content.AreaDefinitions))
         {
             LoadAreaDefinitions(packDirectory, manifest.Content.AreaDefinitions, packNamespace);
+        }
+
+        if (!string.IsNullOrEmpty(manifest.Content.Oracle))
+        {
+            LoadOracleData(packDirectory, manifest.Content.Oracle, packNamespace);
         }
 
         if (!string.IsNullOrEmpty(manifest.Content.Rooms))
@@ -605,6 +613,27 @@ public class PackLoader : IPackManifestProvider
             _areaRegistry.Register(def);
             _logger.LogDebug("  Area: {Id} (pack {Pack})", def.Id, packName);
         }
+    }
+
+    private void LoadOracleData(string packDir, string glob, string packName)
+    {
+        foreach (var file in MatchFiles(packDir, glob))
+        {
+            var yaml = File.ReadAllText(file);
+            var table = YamlContentLoader.LoadOracleTable(yaml);
+            table.SourcePack = packName;
+            table.Id = OracleTable.OracleTableId(AreaIdFromPath(file), table.Kind);
+            _oracleRegistry.Register(table);
+            _logger.LogDebug("  OracleTable: {Id} (pack {Pack})", table.Id, packName);
+        }
+    }
+
+    // areas/<area-id>/.../<kind>-oracle-table.yaml -> "<area-id>"
+    private static string AreaIdFromPath(string filePath)
+    {
+        var parts = filePath.Replace('\\', '/').Split('/');
+        var idx = Array.IndexOf(parts, "areas");
+        return (idx >= 0 && idx + 1 < parts.Length) ? parts[idx + 1] : "area";
     }
 
     private void LoadWeatherZones(string packDir, string glob)

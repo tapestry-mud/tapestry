@@ -435,7 +435,7 @@ public class PackLoaderTests
         var loader = new PackLoader(world, slotRegistry, runtime, themeRegistry, spawnManager, itemRegistry,
             NullLogger<PackLoader>.Instance, packContext, areaRegistry, weatherZoneRegistry, helpService, tagRegistry,
             propertyRegistry, questRegistry, scheduleModule,
-            new LoadedPackNamespaces(), registrationPolicy);
+            new LoadedPackNamespaces(), registrationPolicy, new OracleTableRegistry());
 
         return (world, itemRegistry, spawnManager, loader, areaRegistry);
     }

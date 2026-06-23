@@ -1,6 +1,6 @@
 ---
 capability: pack-loading
-last-updated: 2026-06-19
+last-updated: 2026-06-23
 ---
 
 # Pack Loading
@@ -69,8 +69,8 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 - `validation: lenient` downgrades unknown tag/property errors to warnings for that pack;
   default is `strict`. (src/Tapestry.Shared/PackManifest.cs:21; src/Tapestry.Scripting/PackValidator.cs:271-302)
 - `content:` sub-keys are all glob patterns relative to the pack directory. Recognised keys:
-  `area_definitions`, `rooms`, `items`, `mobs`, `scripts`, `strings`, `equipment_slots`,
-  `weather_zones`, `help`, `quests`, `motd`, `motd_color`. (src/Tapestry.Shared/PackManifest.cs:29-45)
+  `area_definitions`, `oracle`, `rooms`, `items`, `mobs`, `scripts`, `strings`, `equipment_slots`,
+  `weather_zones`, `help`, `quests`, `motd`, `motd_color`. (src/Tapestry.Shared/PackManifest.cs:29-46)
 - The first pack to declare a non-empty `content.motd` file path wins; subsequent packs'
   motd declarations are silently ignored. (src/Tapestry.Scripting/PackLoader.cs:140-163)
 
@@ -102,6 +102,30 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 - `LoadContent` runs weather zones, area definitions, rooms, items, fixtures, themes, mobs,
   scripts, help, and quests in that fixed order. The content pass runs in dependency-
   topological order. (src/Tapestry.Scripting/PackLoader.cs:177-244; src/Tapestry.Server/Modules/ContentLoadingModule.cs:159-179)
+
+### Oracle table content kind
+
+- A pack declares its oracle tables via the `oracle:` glob in `pack.yaml` (e.g.
+  `oracle: "areas/**/*-oracle-table.yaml"`). The snake_case key maps to `PackContentPaths.Oracle`
+  via `UnderscoredNamingConvention`. (src/Tapestry.Shared/PackManifest.cs)
+- `PackLoader.LoadContent` dispatches to `LoadOracleData` when `manifest.Content.Oracle` is
+  non-empty, mirroring the `LoadAreaDefinitions` pattern: glob -> deserialize -> register.
+  (src/Tapestry.Scripting/PackLoader.cs)
+- Each matched file is deserialized via `YamlContentLoader.LoadOracleTable`, which reads the
+  `oracle_table:` envelope and returns an `OracleTable` with a `Kind` field and weighted
+  `Entries`. (src/Tapestry.Scripting/YamlContentLoader.cs)
+- The canonical table id is `<area-folder>:<kind>`, derived by:
+  1. Extracting the area folder name from the file path segment immediately after `areas/`
+     (e.g. `areas/castle-kitchen/mobs/mob-oracle-table.yaml` -> `"castle-kitchen"`).
+  2. Combining with `table.Kind` via `OracleTable.OracleTableId(areaId, kind)` ->
+     `$"{areaId}:{kind}"` (e.g. `"castle-kitchen:mobs"`).
+  This is the ONE canonical id used by the loader (T2), the same-session register (T4),
+  the authored-table loader (T6), and the pack resolver (P-C). (src/Tapestry.Shared/OracleTable.cs)
+- The resolved id is stored on `table.Id` before calling `OracleTableRegistry.Register`.
+  `table.SourcePack` is set to the pack namespace. (src/Tapestry.Scripting/PackLoader.cs)
+- `OracleTableRegistry` is a singleton (registered in `AddTapestryEngine`) resolved by DI as
+  a `PackLoader` constructor parameter. (src/Tapestry.Engine/ServiceCollectionExtensions.cs;
+  tests/Tapestry.Engine.Tests/OracleTableLoadTests.cs:PackLoader_loads_oracle_tables_from_glob_and_keys_by_area_and_kind)
 
 ### Script loading and init.js priority
 
@@ -150,4 +174,5 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 
 ## Change Log
 
+- 2026-06-23 oracle-pack-loading - Added `oracle:` content glob; PackLoader.LoadOracleData mirrors LoadAreaDefinitions; canonical id is `<area-folder>:<kind>` via OracleTable.OracleTableId; OracleTableRegistry injected via DI ctor param
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Script loading now imports each file as a native ES module via ImportModule; attribution is lexical (no __currentPack globals); PackValidator no longer validates interop call sites (deleted)
