@@ -30,7 +30,7 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         var writer = new AttributeWriter(props, tags);
         _mod = new WorldAuthoringModule(
             _world, projector, writer, _root, new HashSet<string> { "legends-forgotten" },
-            new AreaRegistry(), new StubExitResolver());
+            new AreaRegistry(), new StubExitResolver(), new OracleTableRegistry());
 
         _runtime = new JintRuntime(
             new IJintApiModule[] { _mod },

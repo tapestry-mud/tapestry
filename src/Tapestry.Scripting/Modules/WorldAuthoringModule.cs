@@ -65,7 +65,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         HashSet<string> loadedPackNamespaces,
         AreaRegistry areaRegistry,
         StubExitResolver stubResolver,
-        OracleTableRegistry? oracleRegistry = null,
+        OracleTableRegistry oracleRegistry,
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null,
         GameLoop? gameLoop = null,
@@ -79,7 +79,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _loadedPackNamespaces = loadedPackNamespaces;
         _areaRegistry = areaRegistry;
         _stubResolver = stubResolver;
-        _oracleRegistry = oracleRegistry ?? new OracleTableRegistry();
+        _oracleRegistry = oracleRegistry;
         _recommend = recommend;
         _connections = connections;
         _gameLoop = gameLoop;
