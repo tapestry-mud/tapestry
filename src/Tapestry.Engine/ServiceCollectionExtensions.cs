@@ -154,6 +154,7 @@ public static class ServiceCollectionExtensions
         // Doors / Portals / Areas
         services.AddSingleton<DoorService>();
         services.AddSingleton<AreaRegistry>();
+        services.AddSingleton<OracleTableRegistry>();
         services.AddSingleton<WeatherZoneRegistry>();
         services.AddSingleton<GameClock>();
         services.AddSingleton<WeatherService>();

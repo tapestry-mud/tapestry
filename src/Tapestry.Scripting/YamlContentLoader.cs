@@ -630,6 +630,64 @@ public static class YamlContentLoader
         return room;
     }
 
+    // Envelope DTOs - private to the loader, mapped via UnderscoredNamingConvention.
+    private sealed class OracleTableEnvelope
+    {
+        public OracleTableBody OracleTable { get; set; } = new();
+    }
+
+    private sealed class OracleTableBody
+    {
+        public string Kind { get; set; } = "";
+        public List<Dictionary<string, object>> Entries { get; set; } = new();
+    }
+
+    public static OracleTable LoadOracleTable(string yaml)
+    {
+        var env = Deserializer.Deserialize<OracleTableEnvelope>(yaml);
+        var table = new OracleTable { Kind = env.OracleTable.Kind };
+        foreach (var raw in env.OracleTable.Entries)
+        {
+            var entry = new OracleEntry();
+            foreach (var kv in raw)
+            {
+                var v = kv.Value?.ToString() ?? "";
+                switch (kv.Key)
+                {
+                    case "w": { entry.W = int.TryParse(v, out var w) ? w : 0; break; }
+                    case "id": { entry.Id = v; break; }
+                    case "name": { entry.Name = v; break; }
+                    case "desc": { entry.Desc = v; break; }
+                    case "balance_ref": { entry.BalanceRef = v; break; }
+                    case "rarity": { entry.Rarity = v; break; }
+                    default: { entry.Extra[kv.Key] = v; break; }
+                }
+            }
+            table.Entries.Add(entry);
+        }
+        return table;
+    }
+
+    public static string SerializeOracleTable(OracleTable table)
+    {
+        var entries = new List<Dictionary<string, object>>();
+        foreach (var e in table.Entries)
+        {
+            var d = new Dictionary<string, object> { ["w"] = e.W, ["id"] = e.Id };
+            if (!string.IsNullOrEmpty(e.Name)) { d["name"] = e.Name; }
+            if (!string.IsNullOrEmpty(e.Desc)) { d["desc"] = e.Desc; }
+            if (!string.IsNullOrEmpty(e.BalanceRef)) { d["balance_ref"] = e.BalanceRef; }
+            if (!string.IsNullOrEmpty(e.Rarity)) { d["rarity"] = e.Rarity; }
+            foreach (var kv in e.Extra) { d[kv.Key] = kv.Value; }
+            entries.Add(d);
+        }
+        var env = new Dictionary<string, object>
+        {
+            ["oracle_table"] = new Dictionary<string, object> { ["kind"] = table.Kind, ["entries"] = entries },
+        };
+        return AreaSerializer.Serialize(env);
+    }
+
     // Private model classes
 
     private class ThemeFileModel
