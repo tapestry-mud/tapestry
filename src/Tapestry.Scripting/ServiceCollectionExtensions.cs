@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJintApiModule, RegistryModule>();
         services.AddSingleton<IJintApiModule, CurrencyModule>();
         services.AddSingleton<IJintApiModule, ShopModule>();
+        services.AddSingleton<IJintApiModule, OracleModule>();
         services.AddSingleton<IJintApiModule, ConsumablesModule>();
         services.AddSingleton<IJintApiModule, RestModule>();
         services.AddSingleton<IJintApiModule, DoorsModule>();

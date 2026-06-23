@@ -50,7 +50,7 @@ The following namespaces are available as named exports on `@tapestry/engine`:
   `consumables`, `rest`, `doors`, `portals`, `area`, `time`, `weather`, `returnaddress`,
   `data`, `rarity`, `essence`, `stacking`, `packs`, `quests`, `watch`, `args`, `flows`,
   `schedule`, `gmcp`, `respond`, `notifications`, `connections`, `rooms`, `authoring`, `fs`,
-  `registry`
+  `registry`, `oracle`
 
 (src/Tapestry.Scripting/ServiceCollectionExtensions.cs:37-199; each module's `Namespace` property)
 
@@ -204,6 +204,19 @@ Notes on two commonly misspelled names:
   src/Tapestry.Authoring/RoomPromptBuilder.cs;
   src/Tapestry.Authoring/LlmRecommendProvider.cs)
 
+### tapestry.oracle -- read-only oracle table binding
+
+- `tapestry.oracle.table(id)` looks up a registered `OracleTable` by id and returns a
+  plain JS object `{ id, kind, entries: [{ w, id, name, desc, balance_ref, rarity, extra }] }`,
+  or `null` when the id is not registered. The binding is read-only; no mutation surface is
+  exposed. (src/Tapestry.Scripting/Modules/OracleModule.cs)
+- Rolling is the pack's responsibility. The engine binding exposes the frozen entry list so
+  the pack's seeded PRNG (e.g. `splitmix64`) can perform deterministic weighted selection
+  on any box without engine involvement.
+- `OracleModule` is registered as an `IJintApiModule` singleton in
+  `Tapestry.Scripting.ServiceCollectionExtensions`, receiving `OracleTableRegistry` via
+  constructor injection. (src/Tapestry.Scripting/ServiceCollectionExtensions.cs)
+
 ## Rejected and Reverted
 
 - **Shared-global Execute realm (TOMBSTONE):** Before Phase J, pack scripts ran through
@@ -219,6 +232,7 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-06-23 solo-oracle-v2 T3 - `tapestry.oracle.table(id)` read-only binding; `OracleModule` registered as `IJintApiModule`; rolling stays in pack JS
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md) - `authoring.recommend(options, callback)` non-blocking headless LLM binding; engine-projected context + pack-owned template; ASCII-fold sanitization
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `tapestry.combat.registerWindow` validator seam and `pace` marshalling in `commands.register`
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Native ESM loader, `@tapestry/engine` import, lexical GetActivePack attribution; legacy shared-global realm, PackScope, InvokeAsPack, packs.export/require/call/has, RequireProxy, PackExportRegistry, InteropCallSiteScanner deleted
