@@ -138,5 +138,18 @@ public class CombatModuleTests
             Command = new CommandView("sidestep", null)
         };
         Assert.Equal(WindowOutcome.Countered, validator!(ctx).Outcome);
+
+        // A WRONG counter (the bug-2 report: "wrong counter still damages the boss").
+        // The real Jint validator must return WHIFFED, not COUNTERED, so resolve damages
+        // the player and never the boss. Proves the resolve path is not the source of boss damage.
+        var wrongCtx = new CombatContext
+        {
+            Actor = new ActorView(Guid.NewGuid(), "perfect"),
+            Target = new ActorView(Guid.NewGuid(), "wounded"),
+            Phase = "swell",
+            Swell = new SwellView("sweep", "sidestep", "full", true),
+            Command = new CommandView("brace", null)
+        };
+        Assert.Equal(WindowOutcome.Whiffed, validator!(wrongCtx).Outcome);
     }
 }
