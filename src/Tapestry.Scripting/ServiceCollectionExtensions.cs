@@ -176,6 +176,17 @@ public static class ServiceCollectionExtensions
                 logger);
         });
 
+        services.AddSingleton<AuthoredOracleLoader>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            var areasRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory); // same data/areas root
+            var logger = sp.GetRequiredService<ILogger<AuthoredOracleLoader>>();
+            return new AuthoredOracleLoader(
+                areasRoot,
+                sp.GetRequiredService<OracleTableRegistry>(),
+                logger);
+        });
+
         services.AddSingleton<WorldAuthoringModule>(sp =>
         {
             var config = sp.GetRequiredService<ServerConfig>();

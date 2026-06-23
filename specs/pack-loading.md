@@ -127,6 +127,38 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
   a `PackLoader` constructor parameter. (src/Tapestry.Engine/ServiceCollectionExtensions.cs;
   tests/Tapestry.Engine.Tests/OracleTableLoadTests.cs:PackLoader_loads_oracle_tables_from_glob_and_keys_by_area_and_kind)
 
+### AuthoredOracleLoader -- boot reload of frozen tables
+
+- `AuthoredOracleLoader` scans the authoring root (`config.Persistence.RoomsPath`, i.e.
+  `data/areas`) for oracle table side-car files at boot and registers them into
+  `OracleTableRegistry`. This is the reload complement to T4 (same-session live register):
+  T4 keeps tables live during the current session; `AuthoredOracleLoader` restores them after
+  a reboot. (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
+- Matched files: any `*.yaml` file whose name ends in `-oracle-table.yaml` (e.g.
+  `mobs/mob-oracle-table.yaml`, `items/item-oracle-table.yaml`) OR equals `places-oracle.yaml`
+  (case-insensitive). All other YAML files (e.g. `area.yaml`, room files) are skipped.
+  (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
+- Area id extraction: the first path segment after the root, e.g.
+  `data/areas/castle-kitchen/mobs/mob-oracle-table.yaml` -> `"castle-kitchen"`.
+  This mirrors the path `WorldAuthoringModule.OracleTableSideCarPath` writes.
+  (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
+- The canonical id is `OracleTable.OracleTableId(areaId, table.Kind)` = `"<areaId>:<kind>"`,
+  identical to the key used by the pack loader (T2), the same-session register (T4), and the
+  resolver (P-C). `table.SourcePack` is set to the area id (not a pack namespace).
+  (src/Tapestry.Shared/OracleTable.cs)
+- The `pack oracle:` glob covers only tables shipped inside a pack directory (baked sets).
+  Tables frozen to the authoring root via `authoring.writeOracleTable` are NOT under any pack
+  dir, so the pack glob never reaches them; `AuthoredOracleLoader` is the only reload path.
+- `AuthoredOracleLoader` is registered as a singleton in `Tapestry.Scripting/ServiceCollectionExtensions.cs`
+  (same pattern as `AuthoredAreaLoader` and `AuthoredRoomLoader`), wired to the same
+  `config.Persistence.RoomsPath` root. `ContentLoadingModule.Configure` calls `.Load()` after
+  `AuthoredAreaLoader` and `AuthoredRoomLoader`.
+  (src/Tapestry.Scripting/ServiceCollectionExtensions.cs; src/Tapestry.Server/Modules/ContentLoadingModule.cs)
+- Missing root: if the authoring root does not exist, `Load()` returns immediately with no error.
+  (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
+- Bad file: a file that fails to parse is logged as a warning and skipped; the rest of the scan
+  continues. (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
+
 ### Script loading and init.js priority
 
 - The `content.scripts` glob is resolved via `Microsoft.Extensions.FileSystemGlobbing.Matcher`
@@ -174,5 +206,6 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 
 ## Change Log
 
+- 2026-06-23 authored-oracle-loader - AuthoredOracleLoader scans data/areas/** for *-oracle-table.yaml and places-oracle.yaml at boot; registered alongside AuthoredAreaLoader/AuthoredRoomLoader; ContentLoadingModule wired; boot reload completes the T4/T6 dual-path design
 - 2026-06-23 oracle-pack-loading - Added `oracle:` content glob; PackLoader.LoadOracleData mirrors LoadAreaDefinitions; canonical id is `<area-folder>:<kind>` via OracleTable.OracleTableId; OracleTableRegistry injected via DI ctor param
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Script loading now imports each file as a native ES module via ImportModule; attribution is lexical (no __currentPack globals); PackValidator no longer validates interop call sites (deleted)

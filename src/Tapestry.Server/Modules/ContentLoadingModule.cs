@@ -23,6 +23,7 @@ public class ContentLoadingModule : IGameModule
     private readonly ConnectionLoader _connectionLoader;
     private readonly AuthoredRoomLoader _authoredRoomLoader;
     private readonly AuthoredAreaLoader _authoredAreaLoader;
+    private readonly AuthoredOracleLoader _authoredOracleLoader;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
@@ -40,6 +41,7 @@ public class ContentLoadingModule : IGameModule
         ConnectionLoader connectionLoader,
         AuthoredRoomLoader authoredRoomLoader,
         AuthoredAreaLoader authoredAreaLoader,
+        AuthoredOracleLoader authoredOracleLoader,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
         PackDependencyGraph dependencyGraph,
@@ -54,6 +56,7 @@ public class ContentLoadingModule : IGameModule
         _connectionLoader = connectionLoader;
         _authoredRoomLoader = authoredRoomLoader;
         _authoredAreaLoader = authoredAreaLoader;
+        _authoredOracleLoader = authoredOracleLoader;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
@@ -78,8 +81,11 @@ public class ContentLoadingModule : IGameModule
 
         // Authored side-cars overlay packed content. Areas before rooms (parents first);
         // both after packs so SourcePack is already stamped for [pack +edits] overlay.
+        // Oracle tables load after areas (same root); pack oracle: globs cover tables inside
+        // pack dirs only, so authored tables frozen to data/areas/** need this separate pass.
         _authoredAreaLoader.Load();
         _authoredRoomLoader.Load();
+        _authoredOracleLoader.Load();
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd

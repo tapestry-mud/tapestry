@@ -22,6 +22,7 @@ internal sealed class TempAuthoringRoot : IDisposable
     private readonly WorldAuthoringModule _module;
     private readonly AreaRegistry _areaRegistry;
 
+    public string RootPath => _root;
     public OracleTableRegistry Registry { get; }
 
     public TempAuthoringRoot()
@@ -50,6 +51,14 @@ internal sealed class TempAuthoringRoot : IDisposable
     public string WriteOracleTable(string areaId, OracleTable table)
     {
         return _module.WriteOracleTableSideCar(areaId, table);
+    }
+
+    public void WriteRawFile(string relativePath, string content)
+    {
+        var fullPath = System.IO.Path.Combine(_root, relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+        var dir = System.IO.Path.GetDirectoryName(fullPath)!;
+        if (!Directory.Exists(dir)) { Directory.CreateDirectory(dir); }
+        File.WriteAllText(fullPath, content);
     }
 
     public bool CreateArea(string areaId, string name) { return _module.CreateArea(areaId, name); }
