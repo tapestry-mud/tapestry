@@ -20,6 +20,7 @@ internal sealed class TempAuthoringRoot : IDisposable
 {
     private readonly string _root;
     private readonly WorldAuthoringModule _module;
+    private readonly AreaRegistry _areaRegistry;
 
     public OracleTableRegistry Registry { get; }
 
@@ -31,8 +32,8 @@ internal sealed class TempAuthoringRoot : IDisposable
         var world = new World();
         var props = new PropertyRegistry();
         var tags = new TagRegistry();
-        var areaRegistry = new AreaRegistry();
-        var projector = new RoomProjector(world, props, tags, areaRegistry);
+        _areaRegistry = new AreaRegistry();
+        var projector = new RoomProjector(world, props, tags, _areaRegistry);
         var writer = new AttributeWriter(props, tags);
         var loadedPackNamespaces = new HashSet<string>();
         var connections = new ConnectionLoader(
@@ -41,7 +42,7 @@ internal sealed class TempAuthoringRoot : IDisposable
 
         _module = new WorldAuthoringModule(
             world, projector, writer, _root, loadedPackNamespaces,
-            areaRegistry, new StubExitResolver(), oracleRegistry: Registry,
+            _areaRegistry, new StubExitResolver(), oracleRegistry: Registry,
             recommend: null, connections: connections);
     }
 
@@ -50,6 +51,15 @@ internal sealed class TempAuthoringRoot : IDisposable
     {
         return _module.WriteOracleTableSideCar(areaId, table);
     }
+
+    public bool CreateArea(string areaId, string name) { return _module.CreateArea(areaId, name); }
+
+    public string SetAreaAttribute(string areaId, string attr, string value)
+    {
+        return _module.SetAreaAttribute(areaId, attr, value);
+    }
+
+    public AreaDefinition? GetAreaDefinition(string areaId) { return _areaRegistry.Get(areaId); }
 
     public void Dispose()
     {

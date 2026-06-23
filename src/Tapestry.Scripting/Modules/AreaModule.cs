@@ -32,7 +32,8 @@ public class AreaModule : IJintApiModule
                     resetInterval = def.ResetInterval,
                     occupiedModifier = def.OccupiedModifier,
                     weatherZone = def.WeatherZone,
-                    flags = def.Flags.ToArray()
+                    flags = def.Flags.ToArray(),
+                    seed = def.Seed
                 };
             }),
             playerCount = new Func<string, int>(areaId => _areaTick.GetPlayerCount(areaId)),

@@ -128,8 +128,16 @@ files (written under the game data root at runtime).
   side-car atomically. (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:518-576)
 
 - `setAreaAttribute` accepts `level_range` (two-integer range), `reset_interval`
-  (integer seconds), and `wip` (bool). Other attribute names are rejected.
-  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:524-576)
+  (integer seconds), `wip` (bool), and `seed` (long integer). Other attribute names
+  are rejected. (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:524-576)
+
+- `area.yaml` carries a `seed:` field (long integer, omitted when zero). It is set
+  via `setAreaAttribute(areaId, "seed", n)` and returned by `tapestry.area.get(areaId)`
+  as `seed`. The seed is persisted so a shared or reloaded area replays as a pure
+  function of its stored seed - the one unseeded creation roll survives restart and
+  cross-session sharing. (src/Tapestry.Engine/AreaDefinition.cs;
+  src/Tapestry.Scripting/YamlContentLoader.cs:SerializeAreaDefinition,LoadAreaDefinition;
+  src/Tapestry.Scripting/Modules/AreaModule.cs)
 
 ### dig command (builder pack)
 

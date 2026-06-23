@@ -17,6 +17,10 @@ public class AreaDefinition
     public Dictionary<string, WeatherMessages> WeatherMessages { get; init; } = new();
     public Dictionary<string, string> TimeMessages { get; init; } = new();
 
+    /// <summary>Deterministic seed rolled at area creation. Persisted to area.yaml so a
+    /// shared or reloaded area replays as a pure function of this value.</summary>
+    public long Seed { get; set; }
+
     /// <summary>Pack that loaded this area; null = runtime-authored. Transient, never serialized.</summary>
     public string? SourcePack { get; set; }
 }

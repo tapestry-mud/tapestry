@@ -769,6 +769,12 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 }
                 break;
             }
+            case "seed":
+            {
+                if (!long.TryParse(value, out var seed)) { return $"Invalid seed: {value}"; }
+                def.Seed = seed;
+                break;
+            }
             default:
             {
                 return "Unknown area attribute: " + attr;

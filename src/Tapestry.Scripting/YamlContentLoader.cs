@@ -55,6 +55,7 @@ public static class YamlContentLoader
             OccupiedModifier = def.OccupiedModifier,
             WeatherZone = def.WeatherZone,
             Flags = def.Flags.Count > 0 ? def.Flags : null,
+            Seed = def.Seed != 0 ? def.Seed : null,
             WeatherMessages = def.WeatherMessages.Count > 0
                 ? def.WeatherMessages.ToDictionary(
                     kvp => kvp.Key,
@@ -227,6 +228,7 @@ public static class YamlContentLoader
             OccupiedModifier = m.OccupiedModifier,
             WeatherZone = m.WeatherZone,
             Flags = m.Flags ?? new(),
+            Seed = m.Seed ?? 0,
             WeatherMessages = m.WeatherMessages != null
                 ? m.WeatherMessages.ToDictionary(
                     kvp => kvp.Key,
@@ -790,6 +792,7 @@ public static class YamlContentLoader
         public float OccupiedModifier { get; set; } = 3.0f;
         public string? WeatherZone { get; set; }
         public List<string>? Flags { get; set; }
+        public long? Seed { get; set; }
         public Dictionary<string, WeatherMessagesModel>? WeatherMessages { get; set; }
         public Dictionary<string, string>? TimeMessages { get; set; }
     }
