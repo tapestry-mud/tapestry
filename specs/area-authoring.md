@@ -263,6 +263,20 @@ files (written under the game data root at runtime).
   must return a boolean.
   (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:SetStubExit,IsOracleArea)
 
+- <!-- {B:authoring.writeOracleTable} -->
+  `tapestry.authoring.writeOracleTable({ areaId, kind, entries })` is a table-sidecar
+  writer parallel to the area/room sidecar writers. It (1) registers the table into the
+  live `OracleTableRegistry` under `OracleTable.OracleTableId(areaId, kind)` (i.e.
+  `<areaId>:<kind>`) so `tapestry.oracle.table(...)` resolves in the same solo run
+  without a reboot, and (2) writes the sidecar YAML via `YamlContentLoader.SerializeOracleTable`.
+  Path placement mirrors `AreaSideCarPath`/`SideCarPath` exactly: `_root` is already
+  `data/areas`, no `"areas"` literal is added, and `SafeSegment` is applied to `areaId`.
+  - `kind == "places"` -> `<_root>/<areaId>/places-oracle.yaml` (area-root, no subfolder)
+  - all other kinds   -> `<_root>/<areaId>/<kind>/<singular>-oracle-table.yaml`
+    where `singular` = kind with trailing `s` removed (e.g. `mobs` -> `mob-oracle-table.yaml`)
+  `entries` is an array of `{ w, id, name?, desc?, balance_ref?, rarity? }` objects.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:WriteOracleTableSideCar,OracleTableSideCarPath)
+
 ## Rejected and Reverted
 
 - **Persisting runtime connection exits into side-cars or exported packs (TOMBSTONE):**

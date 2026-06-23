@@ -34,6 +34,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly string _root;
     private readonly HashSet<string> _loadedPackNamespaces;
     private readonly AreaRegistry _areaRegistry;
+    private readonly OracleTableRegistry _oracleRegistry;
     private readonly RecommendBroker? _recommend;
     private readonly ConnectionLoader? _connections;
     private readonly GameLoop? _gameLoop;
@@ -64,6 +65,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         HashSet<string> loadedPackNamespaces,
         AreaRegistry areaRegistry,
         StubExitResolver stubResolver,
+        OracleTableRegistry? oracleRegistry = null,
         RecommendBroker? recommend = null,
         ConnectionLoader? connections = null,
         GameLoop? gameLoop = null,
@@ -77,6 +79,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _loadedPackNamespaces = loadedPackNamespaces;
         _areaRegistry = areaRegistry;
         _stubResolver = stubResolver;
+        _oracleRegistry = oracleRegistry ?? new OracleTableRegistry();
         _recommend = recommend;
         _connections = connections;
         _gameLoop = gameLoop;
@@ -261,6 +264,37 @@ public sealed class WorldAuthoringModule : IJintApiModule
                     var r = jint.Invoke(fn, roomId, dir);
                     return r.Type == Types.Boolean && (bool)r.ToObject()!;
                 });
+            }),
+            writeOracleTable = new Action<JsValue>(options =>
+            {
+                if (options is not ObjectInstance obj) { return; }
+                var areaId = obj.Get("areaId").ToString();
+                var kind = obj.Get("kind").ToString();
+                var table = new OracleTable { Kind = kind };
+                if (obj.Get("entries") is JsArray arr)
+                {
+                    for (uint i = 0; i < arr.Length; i++)
+                    {
+                        if (arr[(int)i] is not ObjectInstance eo) { continue; }
+                        var wVal = eo.Get("w");
+                        var idVal = eo.Get("id");
+                        var entry = new OracleEntry
+                        {
+                            W = wVal.Type == Types.Number ? (int)(double)wVal.ToObject()! : 0,
+                            Id = idVal.Type == Types.String ? idVal.ToString() : "",
+                        };
+                        var nameVal = eo.Get("name");
+                        if (nameVal.Type == Types.String) { entry.Name = nameVal.ToString(); }
+                        var descVal = eo.Get("desc");
+                        if (descVal.Type == Types.String) { entry.Desc = descVal.ToString(); }
+                        var balanceRefVal = eo.Get("balance_ref");
+                        if (balanceRefVal.Type == Types.String) { entry.BalanceRef = balanceRefVal.ToString(); }
+                        var rarityVal = eo.Get("rarity");
+                        if (rarityVal.Type == Types.String) { entry.Rarity = rarityVal.ToString(); }
+                        table.Entries.Add(entry);
+                    }
+                }
+                WriteOracleTableSideCar(areaId, table);
             })
         };
     }
@@ -631,6 +665,37 @@ public sealed class WorldAuthoringModule : IJintApiModule
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
         File.WriteAllText(path, YamlContentLoader.SerializeAreaDefinition(def));
+    }
+
+    // Mirrors AreaSideCarPath/SideCarPath - _root is already data/areas, NO "areas" literal, SafeSegment applied.
+    // places  -> <_root>/<areaId>/places-oracle.yaml
+    // other   -> <_root>/<areaId>/<kind>/<singular>-oracle-table.yaml  (e.g. mobs/mob-oracle-table.yaml)
+    private string OracleTableSideCarPath(string areaId, string kind)
+    {
+        if (kind == "places")
+        {
+            return Path.Combine(_root, SafeSegment(areaId), "places-oracle.yaml");
+        }
+        var singular = kind.EndsWith("s", StringComparison.Ordinal) ? kind[..^1] : kind;
+        return Path.Combine(_root, SafeSegment(areaId), kind, $"{singular}-oracle-table.yaml");
+    }
+
+    /// <summary>Registers <paramref name="table"/> into the live <see cref="OracleTableRegistry"/>
+    /// (same-session visibility) then writes its sidecar YAML file under the authoring root.
+    /// Returns the path written. This is the freeze step the generator calls once at creation.</summary>
+    public string WriteOracleTableSideCar(string areaId, OracleTable table)
+    {
+        // Register into the live registry first so tapestry.oracle.table(...) resolves in
+        // the same solo run - without this the new area mints empty until the next reboot.
+        table.Id = OracleTable.OracleTableId(areaId, table.Kind);
+        table.SourcePack = areaId;
+        _oracleRegistry.Register(table);
+
+        var path = OracleTableSideCarPath(areaId, table.Kind);
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
+        File.WriteAllText(path, YamlContentLoader.SerializeOracleTable(table));
+        return path;
     }
 
     private static string SlugToName(string areaId)

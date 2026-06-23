@@ -188,6 +188,7 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<LoadedPackNamespaces>().Namespaces,
                 sp.GetRequiredService<AreaRegistry>(),
                 sp.GetRequiredService<StubExitResolver>(),
+                sp.GetRequiredService<OracleTableRegistry>(),
                 sp.GetRequiredService<RecommendBroker>(),
                 sp.GetRequiredService<ConnectionLoader>(),
                 sp.GetRequiredService<GameLoop>(),
