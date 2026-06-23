@@ -59,9 +59,11 @@ declared override.
   (src/Tapestry.Engine/Registration/RegistrationPolicy.cs:103-170)
 
 - **OracleTableRegistry:** A content registry (not seal-gated; like `AreaRegistry`, registered
-  directly by `PackLoader`). Keys are `<namespace>:<area-id>:<kind>` so two areas' tables of
-  the same kind never collide (e.g. `tapestry:kitchen:mobs`). Holds the frozen oracle tables
-  a pack reads at runtime. Registered as a singleton in `ServiceCollectionExtensions`.
+  directly by `PackLoader`). Keys are `<area-slug>:<kind>` where `area-slug` is the area folder
+  name (unique authoring root key), so two areas' tables of the same kind never collide
+  (e.g. `castle-kitchen:mobs`). The canonical key is produced by `OracleTable.OracleTableId(areaId, kind)`.
+  Holds the frozen oracle tables a pack reads at runtime. Registered as a singleton in
+  `ServiceCollectionExtensions`.
   (src/Tapestry.Engine/OracleTableRegistry.cs;
   src/Tapestry.Shared/OracleTable.cs;
   tests/Tapestry.Engine.Tests/OracleTableLoadTests.cs)
