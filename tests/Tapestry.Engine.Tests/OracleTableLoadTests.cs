@@ -33,12 +33,40 @@ public class OracleTableLoadTests
         oracle_table:
           kind: items
           entries:
-            - { w: 70, id: ladle, name: "Ladle", desc: "Dented.", balance_ref: weapon, rarity: common }
+            - { w: 70, id: ladle, name: "Ladle", desc: "Dented.", balance_ref: weapon, rarity: common, custom_field: rare-drop }
         """;
 
         var table = YamlContentLoader.LoadOracleTable(yaml);
 
         Assert.Equal("common", table.Entries[0].Rarity);
+        Assert.Equal("rare-drop", table.Entries[0].Extra["custom_field"]);
+    }
+
+    [Fact]
+    public void SerializeOracleTable_round_trips_entries()
+    {
+        var table = new Tapestry.Shared.OracleTable
+        {
+            Kind = "mobs",
+            Entries = new()
+            {
+                new Tapestry.Shared.OracleEntry
+                {
+                    W = 60,
+                    Id = "angry-cook",
+                    Name = "Angry Cook",
+                    BalanceRef = "mob",
+                },
+            },
+        };
+
+        var yaml = YamlContentLoader.SerializeOracleTable(table);
+        var reloaded = YamlContentLoader.LoadOracleTable(yaml);
+
+        Assert.Equal("mobs", reloaded.Kind);
+        Assert.Single(reloaded.Entries);
+        Assert.Equal("angry-cook", reloaded.Entries[0].Id);
+        Assert.Equal(60, reloaded.Entries[0].W);
     }
 
     [Fact]
