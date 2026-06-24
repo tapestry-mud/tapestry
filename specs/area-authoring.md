@@ -123,6 +123,15 @@ files (written under the game data root at runtime).
   `area.yaml` side-car; duplicate ids are rejected.
   (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:626-640)
 
+- `createPack(packName)` creates a runtime destination pack so generated content can be
+  authored into a brand-new namespace: it registers the pack namespace into the live
+  loaded-namespaces set (so a subsequent `createRoom` in that namespace is accepted) and
+  writes a minimal `type: world` `pack.yaml` under the packs root (so the namespace
+  re-registers on reboot and harvest has a real pack to fold). Idempotent - if the
+  namespace is already loaded it returns it without writing. Returns the registered
+  namespace (scoped `@scope/name` maps to `scope-name`), or null for an empty name.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:CreatePack)
+
 - Area mutators (`setAreaName`, `setAreaShort`, `setAreaDescription`, `setAreaTheme`,
   `setAreaLore`, `setAreaAttribute`) all update the live registry and rewrite the area
   side-car atomically. (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:518-576)
@@ -138,6 +147,12 @@ files (written under the game data root at runtime).
   cross-session sharing. (src/Tapestry.Engine/AreaDefinition.cs;
   src/Tapestry.Scripting/YamlContentLoader.cs:SerializeAreaDefinition,LoadAreaDefinition;
   src/Tapestry.Scripting/Modules/AreaModule.cs)
+
+- `tapestry.area.get(areaId)` projects `id`, `name`, `theme`, `levelRange`,
+  `resetInterval`, `occupiedModifier`, `weatherZone`, `flags`, and `seed`. The `theme`
+  field is the persisted area theme, so a reloaded area can reconstruct theme-derived
+  state (e.g. generated room names) off disk without the in-memory creation context.
+  (src/Tapestry.Scripting/Modules/AreaModule.cs)
 
 ### dig command (builder pack)
 

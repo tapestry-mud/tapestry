@@ -204,7 +204,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<ConnectionLoader>(),
                 sp.GetRequiredService<GameLoop>(),
                 sp.GetRequiredService<ILogger<WorldAuthoringModule>>(),
-                sp.GetRequiredService<TapestryMetrics>());
+                sp.GetRequiredService<TapestryMetrics>(),
+                config.ResolvedPacksDirectory);
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 

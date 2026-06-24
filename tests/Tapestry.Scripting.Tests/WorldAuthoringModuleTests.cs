@@ -65,6 +65,44 @@ public class WorldAuthoringModuleTests
     }
 
     [Fact]
+    public void CreatePack_registers_namespace_writes_manifest_and_enables_CreateRoom()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "authmod-" + Path.GetRandomFileName());
+        var packsRoot = Path.Combine(Path.GetTempPath(), "authpacks-" + Path.GetRandomFileName());
+        var world = new World();
+        var props = new PropertyRegistry();
+        props.RegisterEngineProperty("terrain", "t", PropertyValueType.String, appliesTo: new[] { EntityTypes.Room });
+        var projector = new RoomProjector(world, props, new TagRegistry(), new AreaRegistry());
+        var writer = new AttributeWriter(props, new TagRegistry());
+        var loadedPackNamespaces = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        var mod = new WorldAuthoringModule(
+            world, projector, writer, root, loadedPackNamespaces,
+            new AreaRegistry(), new StubExitResolver(), new OracleTableRegistry(),
+            packsRoot: packsRoot);
+
+        // A room in an unregistered namespace cannot be created yet.
+        Assert.False(mod.CreateRoom("scratch-oracle-run-x", "scratch-oracle-run:room", "A", "d"));
+
+        // createPack registers the namespace AND persists a loadable manifest.
+        var ns = mod.CreatePack("@scratch/oracle-run");
+        Assert.Equal("scratch-oracle-run", ns);
+        Assert.Contains("scratch-oracle-run", loadedPackNamespaces);
+        var manifestPath = Path.Combine(packsRoot, "@scratch", "oracle-run", "pack.yaml");
+        Assert.True(File.Exists(manifestPath));
+        var manifest = YamlContentLoader.LoadManifest(File.ReadAllText(manifestPath));
+        Assert.Equal("@scratch/oracle-run", manifest.Name);
+
+        // Now a room in that namespace creates successfully.
+        Assert.True(mod.CreateRoom("scratch-oracle-run-x", "scratch-oracle-run:room", "A", "d"));
+
+        // Idempotent: a second call returns the namespace and does not throw.
+        Assert.Equal("scratch-oracle-run", mod.CreatePack("@scratch/oracle-run"));
+
+        Directory.Delete(root, recursive: true);
+        Directory.Delete(packsRoot, recursive: true);
+    }
+
+    [Fact]
     public void SetRoomExit_then_sidecar_roundtrips_through_LoadRoom()
     {
         var (mod, world, root, _) = Build();

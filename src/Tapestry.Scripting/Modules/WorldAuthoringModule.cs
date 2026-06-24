@@ -32,6 +32,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly RoomProjector _projector;
     private readonly AttributeWriter _writer;
     private readonly string _root;
+    private readonly string? _packsRoot;
     private readonly HashSet<string> _loadedPackNamespaces;
     private readonly AreaRegistry _areaRegistry;
     private readonly OracleTableRegistry _oracleRegistry;
@@ -70,7 +71,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         ConnectionLoader? connections = null,
         GameLoop? gameLoop = null,
         ILogger<WorldAuthoringModule>? logger = null,
-        TapestryMetrics? metrics = null)
+        TapestryMetrics? metrics = null,
+        string? packsRoot = null)
     {
         _world = world;
         _projector = projector;
@@ -85,6 +87,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _gameLoop = gameLoop;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<WorldAuthoringModule>.Instance;
         _metrics = metrics;
+        _packsRoot = packsRoot;
     }
 
     public string Namespace => "authoring";
@@ -96,6 +99,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         return new
         {
             createArea = new Func<string, string, bool>((id, name) => CreateArea(id, name)),
+            createPack = new Func<string, string?>(CreatePack),
             // Jint exposes CLR members by exact (PascalCase) name; pack JS reads camelCase,
             // so project AreaInfo into a camelCase anon object (matches the ShopModule convention).
             getArea = new Func<string, object>(id =>
@@ -847,6 +851,79 @@ public sealed class WorldAuthoringModule : IJintApiModule
             list.Add(new RoomSummary(room.Id, room.Name, provenance));
         }
         return list;
+    }
+
+    /// <summary>
+    /// Creates a destination pack for solo-generated content: registers its namespace into the
+    /// live loaded-namespaces set (so a post-boot createRoom in that namespace is accepted) AND
+    /// persists a minimal world-pack manifest under the packs root (so the namespace re-registers
+    /// on reboot and harvest has a real pack to fold). Idempotent: if the namespace is already
+    /// loaded (a pre-existing pack, or a prior call), it returns the namespace without writing.
+    /// Returns the registered namespace, or null for an empty name.
+    /// </summary>
+    public string? CreatePack(string packName)
+    {
+        if (string.IsNullOrWhiteSpace(packName))
+        {
+            return null;
+        }
+        var ns = PackLoader.PackNamespace(packName);
+        if (_loadedPackNamespaces.Contains(ns))
+        {
+            return ns;
+        }
+        if (!string.IsNullOrEmpty(_packsRoot))
+        {
+            var dir = DestinationPackDir(_packsRoot, packName);
+            Directory.CreateDirectory(dir);
+            var manifestPath = Path.Combine(dir, "pack.yaml");
+            if (!File.Exists(manifestPath))
+            {
+                File.WriteAllText(manifestPath, BuildDestinationManifest(packName));
+            }
+        }
+        _loadedPackNamespaces.Add(ns);
+        return ns;
+    }
+
+    // packsRoot/@scope/name for a scoped name; packsRoot/name otherwise. Mirrors the on-disk
+    // layout DiscoverPackDirectories expects so the written pack reloads next boot.
+    private static string DestinationPackDir(string packsRoot, string packName)
+    {
+        if (packName.Contains('/'))
+        {
+            var parts = packName.Split('/', 2);
+            return Path.Combine(packsRoot, parts[0], parts[1]);
+        }
+        return Path.Combine(packsRoot, packName);
+    }
+
+    private static string BuildDestinationManifest(string packName)
+    {
+        var display = packName.Contains('/') ? packName.Split('/', 2)[1] : packName;
+        return string.Join("\n", new[]
+        {
+            $"name: \"{packName}\"",
+            "version: \"0.0.1\"",
+            "type: world",
+            $"display_name: \"{display}\"",
+            "description: \"Generated solo oracle destination pack.\"",
+            "author: \"Tapestry\"",
+            "license: \"AGPL-3.0\"",
+            "engine: \">=0.0.1\"",
+            "validation: lenient",
+            "active: true",
+            "load_order: 900",
+            "dependencies:",
+            "  \"@tapestry/oracle\": \"^0.1.0\"",
+            "content:",
+            "  area_definitions: \"areas/**/area.yaml\"",
+            "  rooms: \"areas/**/rooms/*.yaml\"",
+            "  oracle: \"areas/**/*-oracle-table.yaml\"",
+            "  mobs: \"areas/**/mobs/*.yaml\"",
+            "  items: \"areas/**/items/*.yaml\"",
+            "",
+        });
     }
 
     public bool CreateArea(string areaId, string? name)

@@ -28,6 +28,7 @@ public class AreaModule : IJintApiModule
                 {
                     id = def.Id,
                     name = def.Name,
+                    theme = def.Theme,
                     levelRange = def.LevelRange,
                     resetInterval = def.ResetInterval,
                     occupiedModifier = def.OccupiedModifier,
