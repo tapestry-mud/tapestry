@@ -59,7 +59,7 @@ public sealed class AuthoredRoomLoaderTests : IDisposable
         // Item YAML in items/ subdirectory should be skipped entirely by the room loader.
         // (This is the exact file that caused the boot-crash reported in playtest.)
         WriteFile(
-            @"area1\items\loot-dented-ladle-12345-0.yaml",
+            System.IO.Path.Combine("area1", "items", "loot-dented-ladle-12345-0.yaml"),
             """
             id: "area1:loot-dented-ladle-12345-0"
             name: dented ladle
@@ -82,7 +82,7 @@ public sealed class AuthoredRoomLoaderTests : IDisposable
     {
         // *-oracle-table.yaml inside rooms/ is an oracle baked-rooms set, not an authored room.
         WriteFile(
-            @"area1\rooms\room-oracle-table.yaml",
+            System.IO.Path.Combine("area1", "rooms", "room-oracle-table.yaml"),
             """
             oracle_table:
               kind: rooms
@@ -99,7 +99,7 @@ public sealed class AuthoredRoomLoaderTests : IDisposable
     public void real_room_in_rooms_dir_is_loaded()
     {
         var roomId = "test-area:room-abc";
-        WriteFile($@"test-area\rooms\room-abc.yaml", MinimalRoom(roomId));
+        WriteFile(System.IO.Path.Combine("test-area", "rooms", "room-abc.yaml"), MinimalRoom(roomId));
 
         _loader.Load();
         var room = _world.GetRoom(roomId);
@@ -111,7 +111,7 @@ public sealed class AuthoredRoomLoaderTests : IDisposable
     public void area_yaml_at_area_root_is_not_loaded_as_room()
     {
         WriteFile(
-            @"area1\area.yaml",
+            System.IO.Path.Combine("area1", "area.yaml"),
             """
             id: "area1"
             name: "Test Area"
