@@ -4,6 +4,7 @@ using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Tags;
 using Tapestry.Scripting;
@@ -21,13 +22,16 @@ internal sealed class TempAuthoringRoot : IDisposable
     private readonly string _root;
     private readonly WorldAuthoringModule _module;
     private readonly AreaRegistry _areaRegistry;
+    private readonly ItemRegistry _itemRegistry;
 
     public string RootPath => _root;
+    public string Path => _root;
     public OracleTableRegistry Registry { get; }
+    public ItemRegistry Items => _itemRegistry;
 
     public TempAuthoringRoot()
     {
-        _root = Path.Combine(Path.GetTempPath(), "tap-oracle-" + Path.GetRandomFileName());
+        _root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tap-oracle-" + System.IO.Path.GetRandomFileName());
         Directory.CreateDirectory(_root);
 
         var world = new World();
@@ -38,13 +42,31 @@ internal sealed class TempAuthoringRoot : IDisposable
         var writer = new AttributeWriter(props, tags);
         var loadedPackNamespaces = new HashSet<string>();
         var connections = new ConnectionLoader(
-            world, NullLogger<ConnectionLoader>.Instance, Path.Combine(_root, "connections"));
+            world, NullLogger<ConnectionLoader>.Instance, System.IO.Path.Combine(_root, "connections"));
         Registry = new OracleTableRegistry();
+        _itemRegistry = new ItemRegistry();
 
         _module = new WorldAuthoringModule(
             world, projector, writer, _root, loadedPackNamespaces,
             _areaRegistry, new StubExitResolver(), oracleRegistry: Registry,
-            recommend: null, connections: connections);
+            recommend: null, connections: connections, itemRegistry: _itemRegistry);
+    }
+
+    public void RegisterBaseItem(string id, string name, string type)
+    {
+        _itemRegistry.Register(new ItemTemplate { Id = id, Name = name, Type = type });
+    }
+
+    public string? WriteItemTemplate(string areaId, string id, string baseId, string name,
+        string desc, Dictionary<string, object?> properties)
+    {
+        return _module.WriteItemTemplateSideCar(areaId, id, baseId, name, desc, null, properties);
+    }
+
+    public string ItemSideCarPath(string areaId, string id)
+    {
+        var shortId = id.Contains(':') ? id[(id.LastIndexOf(':') + 1)..] : id;
+        return System.IO.Path.Combine(_root, areaId, "items", $"{shortId}.yaml");
     }
 
     /// <summary>Calls the internal WriteOracleTableSideCar and returns the path written.</summary>

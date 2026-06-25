@@ -286,6 +286,22 @@ files (written under the game data root at runtime).
   must return a boolean.
   (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:SetStubExit,IsOracleArea)
 
+- <!-- {B:authoring.writeItemTemplate} -->
+  `tapestry.authoring.writeItemTemplate({ areaId, id, base, name, desc, type?, properties })`
+  is an item-template sidecar writer parallel to `writeOracleTable`. It (1) looks up the
+  base template by id in the live `ItemRegistry` (returns null if unknown), (2) merges the
+  base template's keywords/tags/properties with the rolled `properties` overlay plus
+  `description`, (3) **registers** the merged `ItemTemplate` under `id` in the live
+  `ItemRegistry` so same-session mob inventory resolves without a reboot, and (4) writes
+  the sidecar YAML via `YamlContentLoader.SerializeItemDefinition` to
+  `<_root>/<areaId>/items/<shortId>.yaml` (where `shortId` is the segment after the last `:`
+  in `id`). Path placement mirrors `WriteOracleTableSideCar`: `_root` is already
+  `data/areas`, no `"areas"` literal added, `SafeSegment` applied to `areaId`. Nested
+  all-numeric maps in `properties` (e.g. the `ac` damage-type map) are coerced to
+  `Dictionary<string,int>` so `GetProperty<Dictionary<string,int>>("ac")` resolves on an
+  exact-type match. Returns the registered `id` string, or null if the base is unknown.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:WriteItemTemplateSideCar,ItemTemplateSideCarPath)
+
 - <!-- {B:authoring.writeOracleTable} -->
   `tapestry.authoring.writeOracleTable({ areaId, kind, entries })` is a table-sidecar
   writer parallel to the area/room sidecar writers. It (1) registers the table into the

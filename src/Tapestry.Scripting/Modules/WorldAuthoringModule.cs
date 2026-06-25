@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Recommend;
 using Tapestry.Scripting.Connections;
@@ -13,6 +14,7 @@ using Tapestry.Shared;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Jint.Native;
+using Jint.Native.Array;
 using Jint.Native.Object;
 using Jint.Runtime;
 using JintEngine = Jint.Engine;
@@ -36,6 +38,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly HashSet<string> _loadedPackNamespaces;
     private readonly AreaRegistry _areaRegistry;
     private readonly OracleTableRegistry _oracleRegistry;
+    private readonly ItemRegistry? _itemRegistry;
     private readonly RecommendBroker? _recommend;
     private readonly ConnectionLoader? _connections;
     private readonly GameLoop? _gameLoop;
@@ -72,7 +75,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         GameLoop? gameLoop = null,
         ILogger<WorldAuthoringModule>? logger = null,
         TapestryMetrics? metrics = null,
-        string? packsRoot = null)
+        string? packsRoot = null,
+        ItemRegistry? itemRegistry = null)
     {
         _world = world;
         _projector = projector;
@@ -82,6 +86,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _areaRegistry = areaRegistry;
         _stubResolver = stubResolver;
         _oracleRegistry = oracleRegistry;
+        _itemRegistry = itemRegistry;
         _recommend = recommend;
         _connections = connections;
         _gameLoop = gameLoop;
@@ -299,6 +304,20 @@ public sealed class WorldAuthoringModule : IJintApiModule
                     }
                 }
                 WriteOracleTableSideCar(areaId, table);
+            }),
+            writeItemTemplate = new Func<JsValue, object?>(options =>
+            {
+                if (options is not ObjectInstance obj) { return null; }
+                var areaId = obj.Get("areaId").ToString();
+                var id = obj.Get("id").ToString();
+                var baseId = obj.Get("base").ToString();
+                var name = obj.Get("name").ToString();
+                var descVal = obj.Get("desc");
+                var desc = descVal.Type == Types.String ? descVal.ToString() : "";
+                var typeVal = obj.Get("type");
+                var type = typeVal.Type == Types.String ? typeVal.ToString() : null;
+                var props = ToClrProperties(obj.Get("properties"));
+                return WriteItemTemplateSideCar(areaId, id, baseId, name, desc, type, props);
             })
         };
     }
@@ -700,6 +719,103 @@ public sealed class WorldAuthoringModule : IJintApiModule
         if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
         File.WriteAllText(path, YamlContentLoader.SerializeOracleTable(table));
         return path;
+    }
+
+    // Mirrors OracleTableSideCarPath - _root is already data/areas, NO "areas" literal, SafeSegment applied.
+    private string ItemTemplateSideCarPath(string areaId, string id)
+    {
+        var shortId = id.Contains(':') ? id[(id.LastIndexOf(':') + 1)..] : id;
+        return Path.Combine(_root, SafeSegment(areaId), "items", $"{shortId}.yaml");
+    }
+
+    // Returns the registered id, or null if the base template is unknown or ItemRegistry not wired.
+    public string? WriteItemTemplateSideCar(
+        string areaId, string id, string baseId, string name, string desc,
+        string? type, Dictionary<string, object?> properties)
+    {
+        if (_itemRegistry == null) { return null; }
+        var baseTemplate = _itemRegistry.GetTemplate(baseId);
+        if (baseTemplate == null) { return null; }
+
+        // Inherit static identity from the base; overlay rolled fields.
+        var mergedRaw = new Dictionary<string, object?>(baseTemplate.Properties);
+        foreach (var kv in properties) { mergedRaw[kv.Key] = kv.Value; }
+        mergedRaw["description"] = desc;
+        // Coerce any nested all-numeric dict to Dictionary<string,int> so GetProperty<Dictionary<string,int>>("ac") resolves.
+        var merged = NormalizeClrProperties(mergedRaw);
+
+        var template = new ItemTemplate
+        {
+            Id = id,
+            Name = name,
+            Type = string.IsNullOrEmpty(type) ? baseTemplate.Type : type!,
+            Tags = new List<string>(baseTemplate.Tags),
+            Keywords = new List<string>(baseTemplate.Keywords),
+            Properties = merged,
+        };
+        _itemRegistry.Register(template);
+
+        var path = ItemTemplateSideCarPath(areaId, id);
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
+        File.WriteAllText(path, YamlContentLoader.SerializeItemDefinition(
+            id, name, template.Type, template.Keywords, template.Tags, merged));
+        return id;
+    }
+
+    // Converts a JS properties object to a CLR Dictionary<string,object?>.
+    // Nested all-numeric JS objects (e.g. the ac map) become Dictionary<string,int>
+    // so GetProperty<Dictionary<string,int>>("ac") resolves on an exact-type match.
+    private static Dictionary<string, object?> ToClrProperties(JsValue value)
+    {
+        var result = new Dictionary<string, object?>();
+        if (value is not ObjectInstance obj) { return result; }
+        foreach (var prop in obj.GetOwnProperties())
+        {
+            var k = prop.Key.ToString();
+            var v = prop.Value.Value;
+            if (v is ObjectInstance nested && v is not JsArray)
+            {
+                var intMap = new Dictionary<string, int>();
+                var ok = true;
+                foreach (var np in nested.GetOwnProperties())
+                {
+                    var nv = np.Value.Value;
+                    if (nv.Type == Types.Number) { intMap[np.Key.ToString()] = (int)(double)nv.ToObject()!; }
+                    else { ok = false; break; }
+                }
+                result[k] = ok ? (object?)intMap : nested.ToString();
+            }
+            else if (v.Type == Types.Number) { result[k] = (double)v.ToObject()!; }
+            else if (v.Type == Types.Boolean) { result[k] = (bool)v.ToObject()!; }
+            else { result[k] = v.ToString(); }
+        }
+        return result;
+    }
+
+    // Coerces any nested Dictionary<string,object?> whose values are all numeric
+    // to Dictionary<string,int>, mirroring what ToClrProperties does for the JS path.
+    private static Dictionary<string, object?> NormalizeClrProperties(Dictionary<string, object?> props)
+    {
+        var result = new Dictionary<string, object?>(props.Count);
+        foreach (var kv in props)
+        {
+            if (kv.Value is Dictionary<string, object?> nested)
+            {
+                var intMap = new Dictionary<string, int>(nested.Count);
+                var allInts = true;
+                foreach (var nkv in nested)
+                {
+                    if (nkv.Value is int i) { intMap[nkv.Key] = i; }
+                    else if (nkv.Value is long l) { intMap[nkv.Key] = (int)l; }
+                    else if (nkv.Value is double d) { intMap[nkv.Key] = (int)d; }
+                    else { allInts = false; break; }
+                }
+                result[kv.Key] = allInts ? (object?)intMap : kv.Value;
+            }
+            else { result[kv.Key] = kv.Value; }
+        }
+        return result;
     }
 
     private static string SlugToName(string areaId)

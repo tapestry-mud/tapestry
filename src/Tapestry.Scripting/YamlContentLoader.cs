@@ -670,6 +670,21 @@ public static class YamlContentLoader
         return table;
     }
 
+    public static string SerializeItemDefinition(string id, string name, string type,
+        List<string> keywords, List<string> tags, Dictionary<string, object?> properties)
+    {
+        var doc = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["name"] = name,
+            ["type"] = type,
+            ["keywords"] = keywords,
+            ["tags"] = tags,
+            ["properties"] = properties,
+        };
+        return AreaSerializer.Serialize(doc);
+    }
+
     public static string SerializeOracleTable(OracleTable table)
     {
         var entries = new List<Dictionary<string, object>>();
