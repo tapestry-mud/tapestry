@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Tapestry.Engine.Persistence;
 using Tapestry.Scripting;
 using Xunit;
 
@@ -46,7 +47,7 @@ public class ItemTemplateSideCarTests
         Assert.DoesNotContain("/areas/areas/", path);
         Assert.Contains("/castle-kitchen/items/", path);
 
-        var reloaded = YamlContentLoader.LoadItem(System.IO.File.ReadAllText(path));
+        var reloaded = YamlContentLoader.LoadItem(System.IO.File.ReadAllText(path), new PropertyRegistry());
         Assert.Equal("castle-kitchen:loot-cleaver-1", reloaded.Id);
         Assert.Equal("Boning Cleaver", reloaded.Name);
         Assert.Equal("3d8", reloaded.Properties["damage_dice"].ToString());

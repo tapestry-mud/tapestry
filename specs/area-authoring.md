@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-06-15
+last-updated: 2026-06-25
 ---
 
 # Area Authoring
@@ -84,9 +84,11 @@ files (written under the game data root at runtime).
   pack-defined fields while preserving the packed area's `SourcePack` value.
   (src/Tapestry.Scripting/Authoring/AuthoredAreaLoader.cs:14-67)
 
-- `AuthoredRoomLoader` then applies room side-cars from `<root>/<area>/rooms/*.yaml`,
-  skipping files named `area.yaml` to avoid misinterpreting area side-cars as rooms.
-  (src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-48)
+- `AuthoredRoomLoader` then applies room side-cars: it scans `<root>/**/*.yaml` recursively
+  but filters to files whose immediate parent directory is named `rooms`, and skips any file
+  whose name ends in `-oracle-table.yaml`. This excludes item side-cars (`items/`), oracle
+  table files, and the `area.yaml` root side-car from being parsed as rooms.
+  (src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-53)
 
 - Authored rooms that duplicate an already-loaded pack room are skipped with a warning,
   not rejected fatally. (src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:62-68)
@@ -327,15 +329,21 @@ files (written under the game data root at runtime).
   (commit 3ddab86 "fix(scripting): side-car writes never persist connection-backed exits
   (composition leak)"; src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:412-462)
 
-- **AuthoredRoomLoader parsing area.yaml files as rooms (TOMBSTONE):**
-  The loader previously attempted to parse every YAML file under the data root, including
-  area side-cars (`area.yaml`), as room definitions, causing load failures on authored
-  area data. Fixed by filtering out filenames equal to `area.yaml` before processing.
-  (commit 5904fdd "fix(engine): AuthoredRoomLoader skips area.yaml side-cars";
-  src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-48)
+- **AuthoredRoomLoader parsing non-room YAML files as rooms (TOMBSTONE):**
+  The loader previously scanned all `*.yaml` files under the data root recursively without
+  restricting by parent directory. This caused item side-cars (`items/*.yaml`), oracle table
+  files (`*-oracle-table.yaml`), and area root files (`area.yaml`) to be parsed as rooms,
+  triggering `PackValidator.ValidateProperties` crashes on boot (e.g. an item's `slot`
+  property flagged as not applying to type=room). Fixed by: (1) filtering to files whose
+  immediate parent directory is named `rooms`; (2) skipping files ending in
+  `-oracle-table.yaml`. The old filename filter (`area.yaml`) is superseded by the
+  parent-dir filter.
+  (commit d1cb297 "fix(room-loader): exclude items/ and oracle-table files from the room scan";
+  src/Tapestry.Scripting/Authoring/AuthoredRoomLoader.cs:44-53)
 
 ## Change Log
 
-- 2026-06-15 [extend-baked-in-areas](changes/2026-06-15-extend-baked-in-areas.md)
+- 2026-06-25 [solo-oracle-v2-completion](changes/2026-06-25-solo-oracle-v2-completion.md) - authoring.writeItemTemplate freeze seam; AuthoredRoomLoader scan hardened to rooms/ dir + skip oracle-table files
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md)
 - 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)
+- 2026-06-15 [extend-baked-in-areas](changes/2026-06-15-extend-baked-in-areas.md)
