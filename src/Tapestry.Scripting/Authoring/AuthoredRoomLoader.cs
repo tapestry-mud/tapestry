@@ -42,9 +42,14 @@ public class AuthoredRoomLoader
         }
 
         var files = Directory.GetFiles(_roomsRoot, "*.yaml", SearchOption.AllDirectories)
-            // Area side-cars (<area>/area.yaml) live in the same tree but are loaded by
-            // AuthoredAreaLoader, not here. Skip them so we never parse an area as a room.
-            .Where(f => !string.Equals(Path.GetFileName(f), "area.yaml", System.StringComparison.OrdinalIgnoreCase))
+            // Only load files whose immediate parent directory is named "rooms".
+            // Item side-cars live under items/, oracle tables under mobs/boss/prose/places/,
+            // and area.yaml lives at the area root -- all are excluded by this filter.
+            .Where(f => string.Equals(
+                Path.GetFileName(Path.GetDirectoryName(f)), "rooms",
+                StringComparison.OrdinalIgnoreCase))
+            // Oracle table files end in -oracle-table.yaml -- skip them (not real rooms).
+            .Where(f => !Path.GetFileName(f).EndsWith("-oracle-table.yaml", StringComparison.OrdinalIgnoreCase))
             .OrderBy(f => f)
             .ToList();
 
