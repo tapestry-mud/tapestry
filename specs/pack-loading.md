@@ -159,6 +159,34 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 - Bad file: a file that fails to parse is logged as a warning and skipped; the rest of the scan
   continues. (src/Tapestry.Scripting/Authoring/AuthoredOracleLoader.cs)
 
+### AuthoredItemLoader -- boot reload of frozen item side-cars
+
+- <!-- {B:AuthoredItemLoader} -->
+  `AuthoredItemLoader` scans the authoring root (`config.Persistence.RoomsPath`, i.e. `data/areas`)
+  for item-template side-car files at boot and registers them into `ItemRegistry`. This is the reload
+  complement to `authoring.writeItemTemplate` (A1): `writeItemTemplate` keeps a frozen item live
+  during the current session; `AuthoredItemLoader` restores it after a reboot so a re-spawned mob's
+  `override.items` list still resolves.
+  (src/Tapestry.Scripting/Authoring/AuthoredItemLoader.cs)
+- Matched files: any `*.yaml` file whose containing directory is named `items` (case-insensitive).
+  All other YAML files are skipped. (src/Tapestry.Scripting/Authoring/AuthoredItemLoader.cs)
+- Each file is loaded via `YamlContentLoader.LoadItem(yaml, propertyRegistry)` - the
+  `PropertyRegistry` is REQUIRED so that the nested `ac` map coerces to `Dictionary<string,int>`;
+  passing null returns a raw object map and worn armor reads 0 AC silently. Mirror how
+  `PackLoader.LoadItems` always passes `_propertyRegistry`.
+  (src/Tapestry.Scripting/Authoring/AuthoredItemLoader.cs; src/Tapestry.Scripting/YamlContentLoader.cs)
+- The `ItemDefinition` is mapped to `ItemTemplate` identically to `PackLoader.LoadItems`:
+  `Id`, `Name`, `Type`, `Tags`, `Keywords`, `Properties` (with `(object?)` cast). The item's own
+  `id:` field is the registration key; no path-segment derivation is needed (unlike oracle tables).
+  (src/Tapestry.Scripting/Authoring/AuthoredItemLoader.cs)
+- `AuthoredItemLoader` is registered as a singleton in `Tapestry.Scripting/ServiceCollectionExtensions.cs`
+  (same pattern as `AuthoredOracleLoader`), wired to the same `config.Persistence.RoomsPath` root.
+  `ContentLoadingModule.Configure` calls `.Load()` right after `_authoredOracleLoader.Load()`.
+  (src/Tapestry.Scripting/ServiceCollectionExtensions.cs; src/Tapestry.Server/Modules/ContentLoadingModule.cs)
+- Missing root: if the authoring root does not exist, `Load()` returns immediately with no error.
+- Bad file: a file that fails to parse is logged as a warning and skipped; the rest of the scan
+  continues. (src/Tapestry.Scripting/Authoring/AuthoredItemLoader.cs)
+
 ### Script loading and init.js priority
 
 - The `content.scripts` glob is resolved via `Microsoft.Extensions.FileSystemGlobbing.Matcher`

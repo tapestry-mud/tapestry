@@ -24,6 +24,7 @@ public class ContentLoadingModule : IGameModule
     private readonly AuthoredRoomLoader _authoredRoomLoader;
     private readonly AuthoredAreaLoader _authoredAreaLoader;
     private readonly AuthoredOracleLoader _authoredOracleLoader;
+    private readonly AuthoredItemLoader _authoredItemLoader;
     private readonly TagRegistry _tagRegistry;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
@@ -42,6 +43,7 @@ public class ContentLoadingModule : IGameModule
         AuthoredRoomLoader authoredRoomLoader,
         AuthoredAreaLoader authoredAreaLoader,
         AuthoredOracleLoader authoredOracleLoader,
+        AuthoredItemLoader authoredItemLoader,
         TagRegistry tagRegistry,
         PropertyRegistry propertyRegistry,
         PackDependencyGraph dependencyGraph,
@@ -57,6 +59,7 @@ public class ContentLoadingModule : IGameModule
         _authoredRoomLoader = authoredRoomLoader;
         _authoredAreaLoader = authoredAreaLoader;
         _authoredOracleLoader = authoredOracleLoader;
+        _authoredItemLoader = authoredItemLoader;
         _tagRegistry = tagRegistry;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
@@ -86,6 +89,7 @@ public class ContentLoadingModule : IGameModule
         _authoredAreaLoader.Load();
         _authoredRoomLoader.Load();
         _authoredOracleLoader.Load();
+        _authoredItemLoader.Load();   // re-register frozen item side-cars (mirrors the oracle loader)
         _connectionLoader.Load();
         var motd = !string.IsNullOrWhiteSpace(_config.Server.Motd)
             ? _config.Server.Motd

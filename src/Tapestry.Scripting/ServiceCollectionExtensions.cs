@@ -8,6 +8,7 @@ using Tapestry.Data;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Flow;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Mapping;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Quests;
@@ -187,6 +188,18 @@ public static class ServiceCollectionExtensions
                 logger);
         });
 
+        services.AddSingleton<AuthoredItemLoader>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            var areasRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory); // same data/areas root
+            var logger = sp.GetRequiredService<ILogger<AuthoredItemLoader>>();
+            return new AuthoredItemLoader(
+                areasRoot,
+                sp.GetRequiredService<ItemRegistry>(),
+                sp.GetRequiredService<PropertyRegistry>(),
+                logger);
+        });
+
         services.AddSingleton<WorldAuthoringModule>(sp =>
         {
             var config = sp.GetRequiredService<ServerConfig>();
@@ -205,7 +218,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<GameLoop>(),
                 sp.GetRequiredService<ILogger<WorldAuthoringModule>>(),
                 sp.GetRequiredService<TapestryMetrics>(),
-                config.ResolvedPacksDirectory);
+                config.ResolvedPacksDirectory,
+                sp.GetRequiredService<ItemRegistry>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 
