@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-21
+last-updated: 2026-06-23
 ---
 
 # Scripting Runtime
@@ -232,7 +232,8 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
-- 2026-06-23 solo-oracle-v2 T3 - `tapestry.oracle.table(id)` read-only binding; `OracleModule` registered as `IJintApiModule`; rolling stays in pack JS
+- 2026-06-23 [solo-oracle-v2-seams](changes/2026-06-23-solo-oracle-v2-seams.md) - T3: `tapestry.oracle.table(id)` read-only binding via `OracleModule`; rolling stays in pack JS
+- 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E2 pack recommend context: headless `authoring.recommend` callable without a builder session; engine-projected room context via `RoomProjector`/`PackRoomContext`; ASCII-fold sanitization
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md) - `authoring.recommend(options, callback)` non-blocking headless LLM binding; engine-projected context + pack-owned template; ASCII-fold sanitization
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `tapestry.combat.registerWindow` validator seam and `pace` marshalling in `commands.register`
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Native ESM loader, `@tapestry/engine` import, lexical GetActivePack attribution; legacy shared-global realm, PackScope, InvokeAsPack, packs.export/require/call/has, RequireProxy, PackExportRegistry, InteropCallSiteScanner deleted

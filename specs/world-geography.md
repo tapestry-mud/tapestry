@@ -1,6 +1,6 @@
 ---
 capability: world-geography
-last-updated: 2026-06-12
+last-updated: 2026-06-22
 ---
 
 # World Geography
@@ -155,3 +155,5 @@ command-dispatch.md.
 - None on record.
 
 ## Change Log
+
+- 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E3 stub exits + lazy-mint movement: `Exit.IsStub`, `StubExitResolver` delegate registry, `World.MoveEntity` resolver overloads, `ExitData` POCO + YAML converter, `setStubExit`/`registerStubResolver` JS bindings

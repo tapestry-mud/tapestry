@@ -239,5 +239,6 @@ reading game clock state from scripts.
 
 ## Change Log
 
+- 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E4: `AreaTickState.RepopDisabled`; `SpawnManager.Tick` skips respawn for oracle-owned areas
 - 2026-06-22 [solo-oracle-slice-1](changes/2026-06-22-solo-oracle-slice-1.md) - repop-off guard: `reset_interval <= 0` disables recurring area reset (solo/oracle areas populate once at boot, never repop)
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - `SwellClockPulse` (Cadence 1, Priority 90) drives the per-fight swell clock

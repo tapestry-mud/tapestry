@@ -1,6 +1,6 @@
 ---
 capability: mob-lifecycle
-last-updated: 2026-06-12
+last-updated: 2026-06-22
 ---
 
 # Mob Lifecycle

@@ -11,12 +11,12 @@ known constraints, and change history.
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-25 |
-| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-21 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-23 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-25 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-06-12 |
-| Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-06-12 |
+| Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-06-22 |
 | Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-06-21 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-06-12 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
@@ -28,7 +28,7 @@ known constraints, and change history.
 | Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-19 |
 | Events | [events.md](events.md) | 2026-06-19 |
 | World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-06-12 |
-| World Geography | [world-geography.md](world-geography.md) | 2026-06-12 |
+| World Geography | [world-geography.md](world-geography.md) | 2026-06-22 |
 | Items and Containers | [items-and-containers.md](items-and-containers.md) | 2026-06-12 |
 | Equipment and Modifiers | [equipment-and-modifiers.md](equipment-and-modifiers.md) | 2026-06-12 |
 | Quests | [quests.md](quests.md) | 2026-06-12 |

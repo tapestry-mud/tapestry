@@ -235,6 +235,5 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
 ## Change Log
 
 - 2026-06-25 [solo-oracle-v2-completion](changes/2026-06-25-solo-oracle-v2-completion.md) - AuthoredItemLoader boot/reload scan for frozen item side-cars; mirrors AuthoredOracleLoader; PropertyRegistry required for ac map coercion
-- 2026-06-23 authored-oracle-loader - AuthoredOracleLoader scans data/areas/** for *-oracle-table.yaml and places-oracle.yaml at boot; registered alongside AuthoredAreaLoader/AuthoredRoomLoader; ContentLoadingModule wired; boot reload completes the T4/T6 dual-path design
-- 2026-06-23 oracle-pack-loading - Added `oracle:` content glob; PackLoader.LoadOracleData mirrors LoadAreaDefinitions; canonical id is `<area-folder>:<kind>` via OracleTable.OracleTableId; OracleTableRegistry injected via DI ctor param
+- 2026-06-23 [solo-oracle-v2-seams](changes/2026-06-23-solo-oracle-v2-seams.md) - T1: `OracleTableRegistry` DI singleton sealed with other registries; T2: `oracle:` content glob routes to `LoadOracleData` (`<areaFolder>:<kind>` id); T6: `AuthoredOracleLoader` boot scanner for `*-oracle-table.yaml` in the authoring root
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Script loading now imports each file as a native ES module via ImportModule; attribution is lexical (no __currentPack globals); PackValidator no longer validates interop call sites (deleted)
