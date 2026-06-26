@@ -32,8 +32,8 @@ public class ConsequenceModule : IJintApiModule
                 .ToArray()),
             has = new Func<string, string, bool>((roomId, kind) => _overlay.Has(roomId, kind)),
             clear = new Func<string, bool>(roomId => _overlay.ClearRoom(roomId)),
-            collapseExit = new Func<string, string, bool>((roomId, direction) =>
-                _overlay.CollapseExit(roomId, direction)),
+            collapseExit = new Func<string, string, string, string, bool>((roomId, direction, kind, lifespan) =>
+                _overlay.CollapseExit(roomId, direction, kind, lifespan)),
         };
     }
 }

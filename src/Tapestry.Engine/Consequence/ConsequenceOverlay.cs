@@ -64,10 +64,11 @@ public sealed class ConsequenceOverlay
     }
 
     /// <summary>Runtime-only graph mutation: removes a directional exit from the live
-    /// World graph WITHOUT writing a sidecar, and records the collapse as a succession-seed
-    /// consequence. Never persisted - on reboot the sidecar reload restores the exit and the
-    /// overlay is empty, so the collapse cleanly evaporates.</summary>
-    public bool CollapseExit(string roomId, string direction)
+    /// World graph WITHOUT writing a sidecar, and records it as a consequence under the
+    /// caller-supplied opaque kind and lifespan (the engine never names the content). Never
+    /// persisted - on reboot the sidecar reload restores the exit and the overlay is empty,
+    /// so the mutation cleanly evaporates. An empty kind removes the exit without recording.</summary>
+    public bool CollapseExit(string roomId, string direction, string kind, string lifespan)
     {
         var room = _world.GetRoom(roomId);
         if (room == null)
@@ -79,7 +80,10 @@ public sealed class ConsequenceOverlay
             return false;
         }
         room.RemoveExit(dir);
-        Stamp(roomId, "collapsed", "succession-seed");
+        if (!string.IsNullOrEmpty(kind))
+        {
+            Stamp(roomId, kind, string.IsNullOrEmpty(lifespan) ? "ephemeral" : lifespan);
+        }
         return true;
     }
 

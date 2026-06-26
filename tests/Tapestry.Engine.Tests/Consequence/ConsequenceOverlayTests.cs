@@ -98,7 +98,7 @@ public class ConsequenceOverlayTests
         room.SetExit(Direction.North, new Exit("u:area-0_1_0"));
         Assert.NotNull(room.GetExit(Direction.North));
 
-        var ok = overlay.CollapseExit("u:area-0_0_0", "north");
+        var ok = overlay.CollapseExit("u:area-0_0_0", "north", "collapsed", "succession-seed");
 
         Assert.True(ok);
         Assert.Null(room.GetExit(Direction.North));                  // exit gone from the live graph
@@ -108,12 +108,30 @@ public class ConsequenceOverlayTests
     }
 
     [Fact]
+    public void CollapseExit_records_the_caller_supplied_kind_not_a_hardcoded_one()
+    {
+        // The engine must stay content-agnostic: CollapseExit records whatever opaque
+        // kind/lifespan the caller passes, never a baked-in content string.
+        var (world, _, overlay) = Build();
+        var room = AddRoom(world, "u:area-0_0_0", "u:area");
+        room.SetExit(Direction.North, new Exit("u:area-0_1_0"));
+
+        var ok = overlay.CollapseExit("u:area-0_0_0", "north", "sealed", "persistent");
+
+        Assert.True(ok);
+        Assert.Null(room.GetExit(Direction.North));
+        Assert.True(overlay.Has("u:area-0_0_0", "sealed"));
+        Assert.False(overlay.Has("u:area-0_0_0", "collapsed"));   // no baked-in kind
+        Assert.Equal("persistent", overlay.List("u:area-0_0_0").Single(e => e.Kind == "sealed").Lifespan);
+    }
+
+    [Fact]
     public void CollapseExit_returns_false_for_a_bad_room_or_direction()
     {
         var (world, _, overlay) = Build();
         AddRoom(world, "u:area-0_0_0", "u:area");
-        Assert.False(overlay.CollapseExit("u:nope-9_9_9", "north"));
-        Assert.False(overlay.CollapseExit("u:area-0_0_0", "sideways"));
+        Assert.False(overlay.CollapseExit("u:nope-9_9_9", "north", "collapsed", "succession-seed"));
+        Assert.False(overlay.CollapseExit("u:area-0_0_0", "sideways", "collapsed", "succession-seed"));
     }
 
     [Fact]
@@ -123,7 +141,7 @@ public class ConsequenceOverlayTests
         var (world, bus, overlay) = Build();
         var room = AddRoom(world, "u:area-0_0_0", "u:area");
         room.SetExit(Direction.North, new Exit("u:area-0_1_0"));
-        overlay.CollapseExit("u:area-0_0_0", "north");
+        overlay.CollapseExit("u:area-0_0_0", "north", "collapsed", "succession-seed");
 
         bus.Publish(new GameEvent { Type = "area.tick", Data = new Dictionary<string, object?> { ["areaId"] = "u:area" } });
         Assert.True(overlay.Has("u:area-0_0_0", "collapsed")); // succession-seed survives the repop tick

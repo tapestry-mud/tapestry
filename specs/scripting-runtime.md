@@ -217,6 +217,10 @@ Notes on two commonly misspelled names:
   the room. (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
 - `tapestry.consequence.clear(roomId)` removes all consequences for the room; returns `true`
   if anything was removed. (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+- `tapestry.consequence.collapseExit(roomId, direction, kind, lifespan)` removes a directional
+  exit from the live graph (memory only, never a sidecar) and records it under the
+  caller-supplied opaque `kind`/`lifespan`; see world-geography.md "Runtime exit collapse".
+  (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
 - Backing store is `ConsequenceOverlay` (src/Tapestry.Engine/Consequence/ConsequenceOverlay.cs),
   a memory-only singleton. Ephemeral entries are evicted on the `area.tick` event (the repop
   cadence); persistent and succession-seed entries survive until reboot. The overlay resets
