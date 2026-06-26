@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-23
+last-updated: 2026-06-26
 ---
 
 # Scripting Runtime
@@ -203,6 +203,24 @@ Notes on two commonly misspelled names:
   src/Tapestry.Engine/Recommend/PackRoomContext.cs;
   src/Tapestry.Authoring/RoomPromptBuilder.cs;
   src/Tapestry.Authoring/LlmRecommendProvider.cs)
+
+### tapestry.consequence -- in-memory room consequence overlay
+
+- `tapestry.consequence.stamp(roomId, kind, lifespan)` records a consequence on a room;
+  idempotent on (roomId, kind), last lifespan wins; returns `true` on success. Kind and
+  lifespan are opaque strings defined by pack content (e.g. `"looted"`, `"ephemeral"`).
+  (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+- `tapestry.consequence.list(roomId)` returns an array of `{ kind, lifespan }` objects for
+  all consequences stamped on the room; empty array if none.
+  (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+- `tapestry.consequence.has(roomId, kind)` returns `true` if the given kind is stamped on
+  the room. (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+- `tapestry.consequence.clear(roomId)` removes all consequences for the room; returns `true`
+  if anything was removed. (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+- Backing store is `ConsequenceOverlay` (src/Tapestry.Engine/Consequence/ConsequenceOverlay.cs),
+  a memory-only singleton. Ephemeral entries are evicted on the `area.tick` event (the repop
+  cadence); persistent and succession-seed entries survive until reboot. The overlay resets
+  on engine restart by construction - no disk state.
 
 ### tapestry.oracle -- read-only oracle table binding
 

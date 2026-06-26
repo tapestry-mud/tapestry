@@ -155,6 +155,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DoorService>();
         services.AddSingleton<AreaRegistry>();
         services.AddSingleton<OracleTableRegistry>();
+        services.AddSingleton<Consequence.ConsequenceOverlay>();
         services.AddSingleton<WeatherZoneRegistry>();
         services.AddSingleton<GameClock>();
         services.AddSingleton<WeatherService>();
