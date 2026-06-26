@@ -2,8 +2,9 @@ using Tapestry.Shared;
 
 namespace Tapestry.Engine.Consequence;
 
-/// <summary>In-memory overlay of what happened to minted rooms (looted, scorched,
-/// collapsed, boss-slain). A collapsed delta-map keyed (roomId, kind), idempotent on
+/// <summary>In-memory overlay of what happened to minted rooms. The kind and lifespan are
+/// opaque content-defined strings; the engine never reasons about their meaning. A collapsed
+/// delta-map keyed (roomId, kind), idempotent on
 /// re-stamp. Memory-only by design: it resets on reboot (the mint reloads from its
 /// sidecar; consequences evaporate), so connection/runtime deltas can never leak into a
 /// harvest. Eviction is routed by lifespan: ephemeral entries clear on the area repop
