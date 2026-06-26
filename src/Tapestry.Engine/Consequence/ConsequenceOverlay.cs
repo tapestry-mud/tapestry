@@ -63,6 +63,26 @@ public sealed class ConsequenceOverlay
         }
     }
 
+    /// <summary>Runtime-only graph mutation: removes a directional exit from the live
+    /// World graph WITHOUT writing a sidecar, and records the collapse as a succession-seed
+    /// consequence. Never persisted - on reboot the sidecar reload restores the exit and the
+    /// overlay is empty, so the collapse cleanly evaporates.</summary>
+    public bool CollapseExit(string roomId, string direction)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null)
+        {
+            return false;
+        }
+        if (!DirectionExtensions.TryParse(direction ?? "", out var dir))
+        {
+            return false;
+        }
+        room.RemoveExit(dir);
+        Stamp(roomId, "collapsed", "succession-seed");
+        return true;
+    }
+
     private void OnAreaTick(GameEvent evt)
     {
         if (evt.Data == null || !evt.Data.TryGetValue("areaId", out var areaIdObj) || areaIdObj is not string areaId)

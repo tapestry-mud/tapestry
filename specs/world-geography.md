@@ -75,6 +75,23 @@ command-dispatch.md.
   by RekeyRoom.
   (src/Tapestry.Engine/Room.cs:92-112)
 
+### Runtime exit collapse (ConsequenceOverlay.CollapseExit)
+
+- `ConsequenceOverlay.CollapseExit(roomId, direction)` removes a directional
+  exit from the live World graph in memory only. It calls `Room.RemoveExit`
+  directly and never writes a sidecar. On reboot the overlay is empty and the
+  sidecar reload restores the original exit, so the collapse cleanly evaporates.
+  This upholds the "connection exits never persist" invariant by construction.
+  (src/Tapestry.Engine/Consequence/ConsequenceOverlay.cs)
+- Distinct from `tapestry.authoring.setRoomExit`/`removeRoomExit`, which both
+  call `WriteSideCar` and persist the change across reboots.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs)
+- Returns false when the room id is unknown or the direction string cannot be
+  parsed; returns true and records a `("collapsed", "succession-seed")`
+  consequence entry otherwise.
+- Exposed as the JS binding `tapestry.consequence.collapseExit(roomId, direction)`.
+  (src/Tapestry.Scripting/Modules/ConsequenceModule.cs)
+
 ### Door system
 
 - DoorState carries Name, IsClosed, IsLocked, KeyId, IsPickable, PickDifficulty,

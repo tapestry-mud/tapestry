@@ -89,4 +89,46 @@ public class ConsequenceOverlayTests
         Assert.True(overlay.ClearRoom("u:area-0_0_0"));
         Assert.Empty(overlay.List("u:area-0_0_0"));
     }
+
+    [Fact]
+    public void CollapseExit_removes_the_exit_from_the_live_graph_and_records_it()
+    {
+        var (world, _, overlay) = Build();
+        var room = AddRoom(world, "u:area-0_0_0", "u:area");
+        room.SetExit(Direction.North, new Exit("u:area-0_1_0"));
+        Assert.NotNull(room.GetExit(Direction.North));
+
+        var ok = overlay.CollapseExit("u:area-0_0_0", "north");
+
+        Assert.True(ok);
+        Assert.Null(room.GetExit(Direction.North));                  // exit gone from the live graph
+        Assert.True(overlay.Has("u:area-0_0_0", "collapsed"));       // recorded
+        var entry = overlay.List("u:area-0_0_0").Single(e => e.Kind == "collapsed");
+        Assert.Equal("succession-seed", entry.Lifespan);             // succession-seed (survives repop, tag-only)
+    }
+
+    [Fact]
+    public void CollapseExit_returns_false_for_a_bad_room_or_direction()
+    {
+        var (world, _, overlay) = Build();
+        AddRoom(world, "u:area-0_0_0", "u:area");
+        Assert.False(overlay.CollapseExit("u:nope-9_9_9", "north"));
+        Assert.False(overlay.CollapseExit("u:area-0_0_0", "sideways"));
+    }
+
+    [Fact]
+    public void CollapseExit_survives_an_area_tick_then_clears_on_reboot()
+    {
+        // Reboot is modeled by a fresh overlay (in-memory, starts empty).
+        var (world, bus, overlay) = Build();
+        var room = AddRoom(world, "u:area-0_0_0", "u:area");
+        room.SetExit(Direction.North, new Exit("u:area-0_1_0"));
+        overlay.CollapseExit("u:area-0_0_0", "north");
+
+        bus.Publish(new GameEvent { Type = "area.tick", Data = new Dictionary<string, object?> { ["areaId"] = "u:area" } });
+        Assert.True(overlay.Has("u:area-0_0_0", "collapsed")); // succession-seed survives the repop tick
+
+        var rebooted = new ConsequenceOverlay(world, bus);
+        Assert.False(rebooted.Has("u:area-0_0_0", "collapsed")); // a fresh overlay is empty (reboot drops it)
+    }
 }
