@@ -45,6 +45,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly StubExitResolver _stubResolver;
     private readonly ILogger<WorldAuthoringModule> _logger;
     private readonly TapestryMetrics? _metrics;
+    private readonly RuntimeNamespaceStore? _runtimeNamespaces;
     private const int RecommendMaxInFlight = 2;
     private static int _recommendInFlight;
 
@@ -76,7 +77,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
         ILogger<WorldAuthoringModule>? logger = null,
         TapestryMetrics? metrics = null,
         string? packsRoot = null,
-        ItemRegistry? itemRegistry = null)
+        ItemRegistry? itemRegistry = null,
+        RuntimeNamespaceStore? runtimeNamespaces = null)
     {
         _world = world;
         _projector = projector;
@@ -92,6 +94,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _gameLoop = gameLoop;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<WorldAuthoringModule>.Instance;
         _metrics = metrics;
+        _runtimeNamespaces = runtimeNamespaces;
         _packsRoot = packsRoot;
     }
 
@@ -988,17 +991,38 @@ public sealed class WorldAuthoringModule : IJintApiModule
         {
             return ns;
         }
+        // Best-effort: write a pack scaffold so a binary-mode boot re-discovers the pack.
+        // In the docker deployment the packs dir is not writable by the engine uid, so this
+        // throws - that is fine: the namespace is persisted to the writable data marker below
+        // (RuntimeNamespaceStore) and re-registered at boot, and the generated content lives
+        // in data side-cars loaded by the Authored*Loaders independently of this scaffold.
         if (!string.IsNullOrEmpty(_packsRoot))
         {
-            var dir = DestinationPackDir(_packsRoot, packName);
-            Directory.CreateDirectory(dir);
-            var manifestPath = Path.Combine(dir, "pack.yaml");
-            if (!File.Exists(manifestPath))
+            try
             {
-                File.WriteAllText(manifestPath, BuildDestinationManifest(packName));
+                var dir = DestinationPackDir(_packsRoot, packName);
+                Directory.CreateDirectory(dir);
+                var manifestPath = Path.Combine(dir, "pack.yaml");
+                if (!File.Exists(manifestPath))
+                {
+                    File.WriteAllText(manifestPath, BuildDestinationManifest(packName));
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning("CreatePack: scaffold write for {Pack} to {Root} failed ({Msg}); relying on the runtime-namespace marker.", packName, _packsRoot, ex.Message);
             }
         }
-        _loadedPackNamespaces.Add(ns);
+        // Register + persist the namespace via the writable data marker (docker-safe).
+        // Falls back to the in-memory set when the store is absent (e.g. unit tests).
+        if (_runtimeNamespaces != null)
+        {
+            _runtimeNamespaces.Register(ns);
+        }
+        else
+        {
+            _loadedPackNamespaces.Add(ns);
+        }
         return ns;
     }
 

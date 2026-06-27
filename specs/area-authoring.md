@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-06-25
+last-updated: 2026-06-27
 ---
 
 # Area Authoring
@@ -128,11 +128,18 @@ files (written under the game data root at runtime).
 - `createPack(packName)` creates a runtime destination pack so generated content can be
   authored into a brand-new namespace: it registers the pack namespace into the live
   loaded-namespaces set (so a subsequent `createRoom` in that namespace is accepted) and
-  writes a minimal `type: world` `pack.yaml` under the packs root (so the namespace
-  re-registers on reboot and harvest has a real pack to fold). Idempotent - if the
-  namespace is already loaded it returns it without writing. Returns the registered
-  namespace (scoped `@scope/name` maps to `scope-name`), or null for an empty name.
-  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:CreatePack)
+  persists it via `RuntimeNamespaceStore` to a `runtime-namespaces.txt` marker under the
+  writable data directory, which `ContentLoadingModule` re-reads at boot so the namespace
+  re-registers on reboot. It ALSO best-effort writes a minimal `type: world` `pack.yaml`
+  scaffold under the packs root (so harvest has a real pack to fold in binary/local mode);
+  that write is wrapped in try/catch because in the docker deployment the engine runs as a
+  non-root uid and the packs dir is not writable by it - the data marker, owned by the
+  engine, is the docker-safe reboot mechanism, and the generated content already persists
+  as data side-cars loaded independently of the scaffold. Idempotent - if the namespace is
+  already loaded it returns it without writing. Returns the registered namespace (scoped
+  `@scope/name` maps to `scope-name`), or null for an empty name.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:CreatePack,
+  src/Tapestry.Scripting/RuntimeNamespaceStore.cs)
 
 - Area mutators (`setAreaName`, `setAreaShort`, `setAreaDescription`, `setAreaTheme`,
   `setAreaLore`, `setAreaAttribute`) all update the live registry and rewrite the area

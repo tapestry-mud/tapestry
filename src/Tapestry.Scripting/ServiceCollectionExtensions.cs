@@ -155,6 +155,20 @@ public static class ServiceCollectionExtensions
         // WorldAuthoringModule holds the SAME HashSet so a post-boot createRoom sees it.
         services.AddSingleton<LoadedPackNamespaces>();
 
+        // Persists runtime-created namespaces (solo-oracle dest packs) to a marker under the
+        // writable data dir and re-registers them at boot - the docker-safe replacement for
+        // writing a pack scaffold into the (engine-read-only) packs dir. See RuntimeNamespaceStore.
+        services.AddSingleton<RuntimeNamespaceStore>(sp =>
+        {
+            var config = sp.GetRequiredService<ServerConfig>();
+            var roomsRoot = ResolveDataPath(config.Persistence.RoomsPath, config.ConfigDirectory);
+            var dataRoot = Path.GetDirectoryName(roomsRoot) ?? roomsRoot;
+            return new RuntimeNamespaceStore(
+                dataRoot,
+                sp.GetRequiredService<LoadedPackNamespaces>(),
+                sp.GetRequiredService<ILogger<RuntimeNamespaceStore>>());
+        });
+
         services.AddSingleton<AuthoredRoomLoader>(sp =>
         {
             var world = sp.GetRequiredService<World>();
@@ -220,7 +234,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<ILogger<WorldAuthoringModule>>(),
                 sp.GetRequiredService<TapestryMetrics>(),
                 config.ResolvedPacksDirectory,
-                sp.GetRequiredService<ItemRegistry>());
+                sp.GetRequiredService<ItemRegistry>(),
+                sp.GetRequiredService<RuntimeNamespaceStore>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 

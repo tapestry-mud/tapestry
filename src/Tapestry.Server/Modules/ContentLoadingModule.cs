@@ -31,6 +31,7 @@ public class ContentLoadingModule : IGameModule
     private readonly TapestryModuleLoader _moduleLoader;
     private readonly ItemRegistry _itemRegistry;
     private readonly DistributionService _distributionService;
+    private readonly RuntimeNamespaceStore _runtimeNamespaces;
     private readonly ILogger<ContentLoadingModule> _logger;
 
     public string Name => "ContentLoading";
@@ -50,6 +51,7 @@ public class ContentLoadingModule : IGameModule
         TapestryModuleLoader moduleLoader,
         ItemRegistry itemRegistry,
         DistributionService distributionService,
+        RuntimeNamespaceStore runtimeNamespaces,
         ILogger<ContentLoadingModule> logger)
     {
         _config = config;
@@ -66,12 +68,17 @@ public class ContentLoadingModule : IGameModule
         _moduleLoader = moduleLoader;
         _itemRegistry = itemRegistry;
         _distributionService = distributionService;
+        _runtimeNamespaces = runtimeNamespaces;
         _logger = logger;
     }
 
     public void Configure()
     {
         LoadPacks();
+        // Re-register namespaces created at runtime (solo-oracle dest packs) from the writable
+        // data marker, after pack namespaces load and BEFORE the authored side-car loaders +
+        // any movement, so post-reboot lazy-mint (createRoom) accepts those namespaces.
+        _runtimeNamespaces.LoadAtBoot();
         // AbilityCommandBridge.WireAll and PackValidator.Validate moved to
         // GameLoopService.StartAsync, AFTER RegistrationPolicy.Resolve(): abilities (and
         // commands) only commit to their registries at the seal barrier — running them
