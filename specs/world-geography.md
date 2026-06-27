@@ -1,6 +1,6 @@
 ---
 capability: world-geography
-last-updated: 2026-06-22
+last-updated: 2026-06-27
 ---
 
 # World Geography
@@ -176,4 +176,5 @@ command-dispatch.md.
 
 ## Change Log
 
+- 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - runtime-only `ConsequenceOverlay.CollapseExit(roomId, direction, kind, lifespan)`: memory-only graph mutation via `Room.RemoveExit`, never persisted; kind/lifespan parameterized (content-agnostic)
 - 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E3 stub exits + lazy-mint movement: `Exit.IsStub`, `StubExitResolver` delegate registry, `World.MoveEntity` resolver overloads, `ExitData` POCO + YAML converter, `setStubExit`/`registerStubResolver` JS bindings

@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-26
+last-updated: 2026-06-27
 ---
 
 # Scripting Runtime
@@ -254,6 +254,7 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - in-memory consequence overlay + `tapestry.consequence` binding (`stamp`/`list`/`has`/`clear`, lifespan-routed eviction on `area.tick`); `collapseExit` records under a caller-supplied opaque kind
 - 2026-06-23 [solo-oracle-v2-seams](changes/2026-06-23-solo-oracle-v2-seams.md) - T3: `tapestry.oracle.table(id)` read-only binding via `OracleModule`; rolling stays in pack JS
 - 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E2 pack recommend context: headless `authoring.recommend` callable without a builder session; engine-projected room context via `RoomProjector`/`PackRoomContext`; ASCII-fold sanitization
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md) - `authoring.recommend(options, callback)` non-blocking headless LLM binding; engine-projected context + pack-owned template; ASCII-fold sanitization

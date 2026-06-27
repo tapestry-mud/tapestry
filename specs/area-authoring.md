@@ -350,6 +350,7 @@ files (written under the game data root at runtime).
 
 ## Change Log
 
+- 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - `createPack` docker-safe: `RuntimeNamespaceStore` persists runtime namespaces to a writable `data/` marker + re-registers at boot; packs-dir scaffold write is now best-effort (try/catch)
 - 2026-06-25 [solo-oracle-v2-completion](changes/2026-06-25-solo-oracle-v2-completion.md) - authoring.writeItemTemplate freeze seam; AuthoredRoomLoader scan hardened to rooms/ dir + skip oracle-table files
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md)
 - 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)
