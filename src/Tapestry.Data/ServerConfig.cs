@@ -122,6 +122,10 @@ public class LlmSection
     public bool Enabled { get; set; } = false;
     /// <summary>Dev/demo only: bind the static stub when enabled:false.</summary>
     public bool UseStub { get; set; } = false;
+    /// <summary>Opt-in: request structured JSON (response_format json_schema) when a pack supplies
+    /// a schema. Default off so nothing changes without opt-in; a json_schema-capable provider
+    /// (gpt-4o) sets this true. Providers that ignore it degrade to the pack's baked fallback.</summary>
+    public bool StructuredOutput { get; set; } = false;
     public string BaseUrl { get; set; } = "http://localhost:11434/v1";
     public string Model { get; set; } = "qwen2.5:7b";
     /// <summary>Name of the env var holding the API key. The key itself never lives in YAML.</summary>

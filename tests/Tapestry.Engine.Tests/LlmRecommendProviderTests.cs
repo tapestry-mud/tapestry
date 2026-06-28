@@ -40,21 +40,24 @@ public class LlmRecommendProviderTests
 
     private static RecommendLlmConfig Config(
         bool enabled = true, string baseUrl = "http://localhost:11434/v1", string model = "qwen2.5:7b",
-        string apiKey = "", bool requiresKey = false, int candidates = 3) =>
+        string apiKey = "", bool requiresKey = false, int candidates = 3, bool structured = false) =>
         new(Enabled: enabled, UseStub: false, BaseUrl: baseUrl, Model: model, ApiKey: apiKey,
-            RequiresKey: requiresKey, Temperature: 0.8, MaxSentences: 2, Candidates: candidates, TimeoutSeconds: 30);
+            RequiresKey: requiresKey, Temperature: 0.8, MaxSentences: 2, Candidates: candidates, TimeoutSeconds: 30,
+            StructuredOutput: structured);
 
     // Records the last user prompt so tests can assert which builder path was taken.
     private sealed class CapturingLlmClient : ILlmClient
     {
         private readonly string _response;
         public string? LastUser { get; private set; }
+        public string? LastSchema { get; private set; }
 
         public CapturingLlmClient(string response = "ok") { _response = response; }
 
         public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             LastUser = user;
+            LastSchema = responseSchema;
             return Task.FromResult(_response);
         }
     }
@@ -173,6 +176,46 @@ public class LlmRecommendProviderTests
 
         // AreaPromptBuilder always emits "Area: <Name>." — RoomPromptBuilder never would.
         Assert.Contains("Road to Tar Valon", captured.LastUser);
+    }
+
+    [Fact]
+    public async Task Structured_pack_context_returns_raw_json_and_passes_schema()
+    {
+        var client = new CapturingLlmClient("{\"mobs\":[{\"name\":\"Imp\",\"desc\":\"small\"}]}");
+        var provider = new LlmRecommendProvider(
+            client, new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default), Config(structured: true));
+        var ctx = new PackRoomContext
+        {
+            Room = new RoomData(), Template = "t", System = "s",
+            Vars = new System.Collections.Generic.Dictionary<string, string>(),
+        };
+        var schema = "{\"type\":\"object\"}";
+
+        var result = await provider.RecommendAsync(new RecommendRequest("fill_mobs", ctx, ResponseSchema: schema));
+
+        Assert.Equal(schema, client.LastSchema);
+        Assert.Single(result.Suggestions);
+        Assert.Equal("{\"mobs\":[{\"name\":\"Imp\",\"desc\":\"small\"}]}", result.Suggestions[0]); // raw, not normalized
+    }
+
+    [Fact]
+    public async Task Structured_off_falls_back_to_free_text_normalization()
+    {
+        var client = new CapturingLlmClient("  a   line  ");
+        var provider = new LlmRecommendProvider(
+            client, new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default), Config(structured: false));
+        var ctx = new PackRoomContext
+        {
+            Room = new RoomData(), Template = "t", System = "s",
+            Vars = new System.Collections.Generic.Dictionary<string, string>(),
+        };
+
+        var result = await provider.RecommendAsync(new RecommendRequest("fill_mobs", ctx, ResponseSchema: "{}"));
+
+        Assert.Null(client.LastSchema); // schema not passed when the flag is off
+        Assert.Equal("a line", result.Suggestions[0]); // free-text normalized
     }
 }
 

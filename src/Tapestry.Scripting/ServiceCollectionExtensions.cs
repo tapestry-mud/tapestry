@@ -266,7 +266,8 @@ public static class ServiceCollectionExtensions
             Temperature: llm.Temperature,
             MaxSentences: llm.MaxSentences,
             Candidates: llm.Candidates,
-            TimeoutSeconds: llm.TimeoutSeconds);
+            TimeoutSeconds: llm.TimeoutSeconds,
+            StructuredOutput: llm.StructuredOutput);
 
         var promptConfig = new RecommendPromptConfig(
             SystemPrompt: string.IsNullOrWhiteSpace(llm.SystemPrompt)

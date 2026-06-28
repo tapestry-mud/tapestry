@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Tapestry.Engine.Recommend;
 
-public sealed record RecommendRequest(string Field, IRecommendContext Context, string? Hint = null);
+public sealed record RecommendRequest(string Field, IRecommendContext Context, string? Hint = null, string? ResponseSchema = null);
 
 public sealed record RecommendResult(IReadOnlyList<string> Suggestions)
 {

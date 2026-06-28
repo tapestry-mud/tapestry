@@ -33,6 +33,15 @@ public class RecommendCompositionTests
     }
 
     [Fact]
+    public void StructuredOutput_flag_maps_through_without_breaking_composition()
+    {
+        var llm = new LlmSection { Enabled = true, StructuredOutput = true };
+        var provider = ServiceCollectionExtensions.BuildRecommendProvider(llm, _ => null);
+        provider.Should().BeOfType<LlmRecommendProvider>();
+        provider!.IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
     public void Requires_key_provider_is_disabled_when_env_key_missing_but_enabled_when_present()
     {
         var llm = new LlmSection { Enabled = true, RequiresKey = true, ApiKeyEnv = "MY_KEY" };

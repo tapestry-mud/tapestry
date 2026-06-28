@@ -11,7 +11,8 @@ namespace Tapestry.Authoring;
 /// resolved from the environment by the composition layer; empty is fine for keyless local Ollama.</summary>
 public sealed record RecommendLlmConfig(
     bool Enabled, bool UseStub, string BaseUrl, string Model, string ApiKey,
-    bool RequiresKey, double Temperature, int MaxSentences, int Candidates, int TimeoutSeconds);
+    bool RequiresKey, double Temperature, int MaxSentences, int Candidates, int TimeoutSeconds,
+    bool StructuredOutput = false);
 
 /// <summary>Author-intent-seeded recommendation. Name/description go to the LLM; exits stay
 /// structural (rooms only). Never throws into the caller - all client failures degrade to Empty.</summary>
@@ -49,10 +50,17 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         if (request.Context is PackRoomContext pack)
         {
             var (sys, usr) = _roomBuilder.Build(field, pack.Room, pack.Template, pack.System, pack.Vars);
+            var structured = _config.StructuredOutput && !string.IsNullOrEmpty(request.ResponseSchema);
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
-                var text = await _client.CompleteAsync(sys, usr, _opts, null, cts.Token);
+                var text = await _client.CompleteAsync(sys, usr, _opts, structured ? request.ResponseSchema : null, cts.Token);
+                if (structured)
+                {
+                    // Structured DRESSING: return the raw JSON string. The pack JSON.parses + ASCII-folds
+                    // values. NormalizeSuggestion (whitespace-collapse + surrounding-quote-strip) corrupts JSON.
+                    return string.IsNullOrWhiteSpace(text) ? RecommendResult.Empty : new RecommendResult(new[] { text });
+                }
                 var clean = NormalizeSuggestion(text);
                 return string.IsNullOrWhiteSpace(clean) ? RecommendResult.Empty : new RecommendResult(new[] { clean });
             }
