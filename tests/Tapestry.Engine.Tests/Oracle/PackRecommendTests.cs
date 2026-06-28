@@ -13,11 +13,11 @@ public class PackRecommendTests
     private sealed class FakeLlm : ILlmClient
     {
         public string LastSystem = "", LastUser = "";
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
+        public Task<LlmResult> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             LastSystem = system;
             LastUser = user;
-            return Task.FromResult("  the “Hollow” Stag  "); // smart quotes + padding
+            return Task.FromResult(new LlmResult("  the “Hollow” Stag  ", 0, 0)); // smart quotes + padding
         }
     }
 

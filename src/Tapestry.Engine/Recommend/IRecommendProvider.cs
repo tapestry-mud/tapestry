@@ -5,7 +5,7 @@ namespace Tapestry.Engine.Recommend;
 
 public sealed record RecommendRequest(string Field, IRecommendContext Context, string? Hint = null, string? ResponseSchema = null);
 
-public sealed record RecommendResult(IReadOnlyList<string> Suggestions)
+public sealed record RecommendResult(IReadOnlyList<string> Suggestions, int PromptTokens = 0, int CompletionTokens = 0)
 {
     public static readonly RecommendResult Empty = new(new List<string>());
 }

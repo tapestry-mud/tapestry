@@ -30,6 +30,7 @@ public class TapestryMetrics
     public Histogram<double> RecommendDuration { get; }
     public UpDownCounter<long> RecommendInFlight { get; }
     public Counter<long> RecommendTotal { get; }
+    public Histogram<long> RecommendTokens { get; }
 
     public TapestryMetrics()
     {
@@ -129,6 +130,11 @@ public class TapestryMetrics
         RecommendTotal = _meter.CreateCounter<long>(
             "tapestry.recommend.calls",
             description: "Recommend calls, tagged by field and outcome");
+
+        RecommendTokens = _meter.CreateHistogram<long>(
+            "tapestry.recommend.tokens",
+            unit: "{token}",
+            description: "Recommend tokens (prompt+completion) per call, tagged by field and outcome");
     }
 
     /// <summary>

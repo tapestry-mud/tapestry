@@ -20,7 +20,7 @@ public sealed class OpenAiCompatibleLlmClient : ILlmClient
         _http = http;
     }
 
-    public async Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
+    public async Task<LlmResult> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
     {
         var url = $"{opts.BaseUrl.TrimEnd('/')}/chat/completions";
         var messages = new[]
@@ -80,6 +80,13 @@ public sealed class OpenAiCompatibleLlmClient : ILlmClient
             .GetProperty("content")
             .GetString();
 
-        return OutputSanitizer.Clean(content);
+        int promptTokens = 0, completionTokens = 0;
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            if (usage.TryGetProperty("prompt_tokens", out var p) && p.ValueKind == JsonValueKind.Number) { promptTokens = p.GetInt32(); }
+            if (usage.TryGetProperty("completion_tokens", out var c) && c.ValueKind == JsonValueKind.Number) { completionTokens = c.GetInt32(); }
+        }
+
+        return new LlmResult(OutputSanitizer.Clean(content), promptTokens, completionTokens);
     }
 }

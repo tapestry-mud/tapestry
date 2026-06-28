@@ -27,14 +27,14 @@ public class LlmRecommendProviderTests
             _throw = shouldThrow;
         }
 
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
+        public Task<LlmResult> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             Calls++;
             if (_throw)
             {
                 throw new InvalidOperationException("boom");
             }
-            return Task.FromResult(_response);
+            return Task.FromResult(new LlmResult(_response, 0, 0));
         }
     }
 
@@ -54,11 +54,11 @@ public class LlmRecommendProviderTests
 
         public CapturingLlmClient(string response = "ok") { _response = response; }
 
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
+        public Task<LlmResult> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             LastUser = user;
             LastSchema = responseSchema;
-            return Task.FromResult(_response);
+            return Task.FromResult(new LlmResult(_response, 0, 0));
         }
     }
 
@@ -263,7 +263,8 @@ public class OpenAiCompatibleLlmClientTests
         {
             _responseContent = JsonSerializer.Serialize(new
             {
-                choices = new[] { new { message = new { role = "assistant", content = assistantText } } }
+                choices = new[] { new { message = new { role = "assistant", content = assistantText } } },
+                usage = new { prompt_tokens = 11, completion_tokens = 7, total_tokens = 18 }
             });
         }
 
@@ -286,9 +287,11 @@ public class OpenAiCompatibleLlmClientTests
         var client = new OpenAiCompatibleLlmClient(new HttpClient(handler));
         var opts = new LlmOptions("qwen2.5:7b", 0.8, 30, "http://localhost:11434/v1", "sk-test");
 
-        var text = await client.CompleteAsync("sys", "usr", opts);
+        var result = await client.CompleteAsync("sys", "usr", opts);
 
-        Assert.Equal("A still, vaulted hall.", text); // sanitized + trimmed
+        Assert.Equal("A still, vaulted hall.", result.Content); // sanitized + trimmed
+        Assert.Equal(11, result.PromptTokens); // usage block parsed
+        Assert.Equal(7, result.CompletionTokens);
         Assert.Equal("http://localhost:11434/v1/chat/completions", handler.LastRequest!.RequestUri!.ToString());
         Assert.Equal("Bearer", handler.LastRequest.Headers.Authorization!.Scheme);
         Assert.Equal("sk-test", handler.LastRequest.Headers.Authorization.Parameter);
@@ -312,6 +315,7 @@ public class OpenAiCompatibleLlmClientTests
         Assert.Contains("\"json_schema\"", handler.LastBody);
         Assert.Contains("\"strict\":true", handler.LastBody);
         Assert.Contains("\"mobs\"", handler.LastBody); // schema embedded as an object, not a quoted string
-        Assert.Equal(json, result); // raw JSON returned, not free-text normalized
+        Assert.Equal(json, result.Content); // raw JSON returned, not free-text normalized
+        Assert.Equal(18, result.PromptTokens + result.CompletionTokens); // token usage captured
     }
 }

@@ -54,15 +54,20 @@ public sealed class LlmRecommendProvider : IRecommendProvider
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
-                var text = await _client.CompleteAsync(sys, usr, _opts, structured ? request.ResponseSchema : null, cts.Token);
+                var result = await _client.CompleteAsync(sys, usr, _opts, structured ? request.ResponseSchema : null, cts.Token);
+                var text = result.Content;
                 if (structured)
                 {
                     // Structured DRESSING: return the raw JSON string. The pack JSON.parses + ASCII-folds
                     // values. NormalizeSuggestion (whitespace-collapse + surrounding-quote-strip) corrupts JSON.
-                    return string.IsNullOrWhiteSpace(text) ? RecommendResult.Empty : new RecommendResult(new[] { text });
+                    return string.IsNullOrWhiteSpace(text)
+                        ? new RecommendResult(System.Array.Empty<string>(), result.PromptTokens, result.CompletionTokens)
+                        : new RecommendResult(new[] { text }, result.PromptTokens, result.CompletionTokens);
                 }
                 var clean = NormalizeSuggestion(text);
-                return string.IsNullOrWhiteSpace(clean) ? RecommendResult.Empty : new RecommendResult(new[] { clean });
+                return string.IsNullOrWhiteSpace(clean)
+                    ? new RecommendResult(System.Array.Empty<string>(), result.PromptTokens, result.CompletionTokens)
+                    : new RecommendResult(new[] { clean }, result.PromptTokens, result.CompletionTokens);
             }
             catch
             {
@@ -88,15 +93,18 @@ public sealed class LlmRecommendProvider : IRecommendProvider
 
         var n = field == "description" ? _config.Candidates : 1;
         var picks = new List<string>();
+        int promptTokens = 0, completionTokens = 0;
         for (var i = 0; i < n; i++)
         {
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
-                var text = await _client.CompleteAsync(system, user, _opts, null, cts.Token);
-                if (!string.IsNullOrWhiteSpace(text))
+                var result = await _client.CompleteAsync(system, user, _opts, null, cts.Token);
+                promptTokens += result.PromptTokens;
+                completionTokens += result.CompletionTokens;
+                if (!string.IsNullOrWhiteSpace(result.Content))
                 {
-                    picks.Add(NormalizeSuggestion(text));
+                    picks.Add(NormalizeSuggestion(result.Content));
                 }
             }
             catch (Exception)
@@ -105,7 +113,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
             }
         }
 
-        return picks.Count > 0 ? new RecommendResult(picks) : RecommendResult.Empty;
+        return new RecommendResult(picks, promptTokens, completionTokens);
     }
 
     // Normalize a raw LLM suggestion for MUD use:

@@ -222,19 +222,17 @@ public sealed class WorldAuthoringModule : IJintApiModule
                         var elapsed = (long)sw.Elapsed.TotalMilliseconds;
                         var remaining = System.Threading.Interlocked.Decrement(ref _recommendInFlight);
                         string outcome;
+                        long tokens = 0;
                         if (t.IsFaulted || t.IsCanceled)
                         {
                             outcome = "fault";
                         }
-                        else if (t.Result.Suggestions.Count > 0)
-                        {
-                            outcome = "ok";
-                        }
                         else
                         {
-                            outcome = "empty";
+                            tokens = t.Result.PromptTokens + t.Result.CompletionTokens;
+                            outcome = t.Result.Suggestions.Count > 0 ? "ok" : "empty";
                         }
-                        _logger.LogInformation("recommend[{Field}] {Outcome} {Ms}ms inflight={Inflight}", field, outcome, elapsed, remaining);
+                        _logger.LogInformation("recommend[{Field}] {Outcome} {Ms}ms {Tokens}tok inflight={Inflight}", field, outcome, elapsed, tokens, remaining);
                         if (_metrics != null)
                         {
                             var tags = new System.Diagnostics.TagList
@@ -244,6 +242,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
                             };
                             _metrics.RecommendDuration.Record(elapsed, tags);
                             _metrics.RecommendTotal.Add(1, tags);
+                            _metrics.RecommendTokens.Record(tokens, tags);
                             _metrics.RecommendInFlight.Add(-1);
                         }
                         var text = outcome == "ok" ? t.Result.Suggestions[0] : null;
