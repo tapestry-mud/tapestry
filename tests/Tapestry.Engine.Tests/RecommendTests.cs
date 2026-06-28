@@ -128,4 +128,23 @@ public class RecommendTests
         Assert.Empty(result.Suggestions);
         Assert.Equal(0, provider.Calls);
     }
+
+    [Fact]
+    public async Task Stub_returns_schema_json_when_schema_present()
+    {
+        var provider = new StaticStubRecommendProvider(delayMs: 0);
+        var ctx = new PackRoomContext
+        {
+            Room = new RoomData(), Template = "t", System = "s",
+            Vars = new Dictionary<string, string>(),
+        };
+        var schema = "{\"type\":\"object\",\"properties\":{\"lines\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}," +
+            "\"required\":[\"lines\"],\"additionalProperties\":false}";
+
+        var result = await provider.RecommendAsync(new RecommendRequest("fill_prose_openers", ctx, ResponseSchema: schema));
+
+        Assert.Single(result.Suggestions);
+        using var doc = System.Text.Json.JsonDocument.Parse(result.Suggestions[0]); // valid JSON for the pack to parse
+        Assert.True(doc.RootElement.GetProperty("lines").GetArrayLength() >= 1);
+    }
 }

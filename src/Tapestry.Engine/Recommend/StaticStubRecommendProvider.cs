@@ -26,6 +26,13 @@ public sealed class StaticStubRecommendProvider : IRecommendProvider
             await Task.Delay(_delayMs);
         }
 
+        // Structured-output path: a schema means the caller wants JSON. Generate a valid instance
+        // so the structured recommend path runs locally with no real LLM (the local-playtest mock).
+        if (!string.IsNullOrEmpty(request.ResponseSchema))
+        {
+            return new RecommendResult(new[] { StubJson.FromSchema(request.ResponseSchema) });
+        }
+
         var field = request.Field?.ToLowerInvariant() ?? "";
         switch (field)
         {

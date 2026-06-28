@@ -21,7 +21,9 @@ public static class LlmProviderFactory
         }
         if (config.UseStub)
         {
-            return new StaticStubRecommendProvider();
+            // Snappy delay: the stub is a local-playtest mock + test fixture, not a latency sim.
+            // A solo runs ~7 sequenced fill calls, so the default 2000ms would block ~10s.
+            return new StaticStubRecommendProvider(delayMs: 400);
         }
         return null;
     }
