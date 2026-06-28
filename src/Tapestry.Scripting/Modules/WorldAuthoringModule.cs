@@ -168,6 +168,11 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 var template = templateVal.Type == Types.String ? templateVal.ToString() : "";
                 var systemVal = opt.Get("system");
                 var system = systemVal.Type == Types.String ? systemVal.ToString() : null;
+                // Optional stringified JSON Schema: when present (and the deployment opts into
+                // structured output), the provider requests response_format json_schema and returns
+                // raw JSON. Crosses as a string only - no object marshalling over the Jint boundary.
+                var schemaVal = opt.Get("schema");
+                var schema = schemaVal.Type == Types.String ? schemaVal.ToString() : null;
 
                 // Engine projects the room context (neighbors/area/biome). Empty RoomData when
                 // no roomId (e.g. area-creation dressing before any room exists).
@@ -210,7 +215,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 _metrics?.RecommendInFlight.Add(1);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _logger.LogInformation("recommend[{Field}] dispatch inflight={Inflight}", field, inflight);
-                _ = _recommend.RecommendAsync(new RecommendRequest(field, ctx))
+                _ = _recommend.RecommendAsync(new RecommendRequest(field, ctx, ResponseSchema: schema))
                     .ContinueWith(t =>
                     {
                         sw.Stop();
