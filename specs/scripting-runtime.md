@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-27
+last-updated: 2026-06-28
 ---
 
 # Scripting Runtime
@@ -178,13 +178,20 @@ Notes on two commonly misspelled names:
   delivers the result via `callback(result)` on the game loop thread. Fire-and-forget;
   returns nothing. The callback receives a sanitized ASCII string or `null` on
   disabled/timeout/failure.
-- `options` shape: `{ field: string, roomId?: string, template: string, system?: string, vars?: { [k]: string } }`.
+- `options` shape: `{ field: string, roomId?: string, template: string, system?: string, vars?: { [k]: string }, schema?: string }`.
   - `field`: the recommend field (e.g. `"description"`, `"name"`).
   - `roomId`: when set, the engine projects that room's context (neighbors, area, biome)
     as structural grounding for the prompt. Omit when no room exists yet.
   - `template`: pack-owned task line with `{varName}` placeholders (vars substituted before sending).
   - `system`: optional pack-owned system voice; falls back to the engine default when omitted.
   - `vars`: optional key-value map substituted into `template`.
+  - `schema`: optional stringified JSON Schema. When supplied (and the deployment opts into
+    `llm.structured_output`), the provider requests `response_format json_schema` and the callback
+    receives the model's raw JSON string instead of a free-text line; the pack parses it. The
+    schema crosses the boundary as a string only - no object marshalling - so the engine never
+    learns the pack's data shapes. See area-authoring.md "Structured LLM output".
+    (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:174-175,218;
+    src/Tapestry.Engine/Recommend/IRecommendProvider.cs:6)
 - The engine projects neighbor-aware context via `RoomProjector` + `RoomPromptBuilder`
   (same 1-hop neighbor name/biome/description stitching used by the interactive builder
   recommend flow). The pack supplies the task line and system voice; engine code is touched
@@ -254,6 +261,7 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - `authoring.recommend` options bag gained an optional stringified-JSON-Schema `schema` field, threaded as `RecommendRequest.ResponseSchema`; only strings cross the Jint boundary; string-return contract unchanged in shape
 - 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - in-memory consequence overlay + `tapestry.consequence` binding (`stamp`/`list`/`has`/`clear`, lifespan-routed eviction on `area.tick`); `collapseExit` records under a caller-supplied opaque kind
 - 2026-06-23 [solo-oracle-v2-seams](changes/2026-06-23-solo-oracle-v2-seams.md) - T3: `tapestry.oracle.table(id)` read-only binding via `OracleModule`; rolling stays in pack JS
 - 2026-06-22 [solo-oracle-engine-seams](changes/2026-06-22-solo-oracle-engine-seams.md) - E2 pack recommend context: headless `authoring.recommend` callable without a builder session; engine-projected room context via `RoomProjector`/`PackRoomContext`; ASCII-fold sanitization

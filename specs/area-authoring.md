@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-06-27
+last-updated: 2026-06-28
 ---
 
 # Area Authoring
@@ -218,6 +218,62 @@ files (written under the game data root at runtime).
   src/Tapestry.Authoring/RoomPromptBuilder.cs;
   src/Tapestry.Authoring/LlmRecommendProvider.cs)
 
+### Structured LLM output
+
+- The recommend call can return validated JSON instead of free text. When the caller
+  supplies a stringified JSON Schema AND the server flag `llm.structured_output` is true,
+  `OpenAiCompatibleLlmClient.CompleteAsync` attaches OpenAI structured outputs
+  (`response_format: { type: "json_schema", json_schema: { name, schema, strict: true } }`)
+  to the chat request and returns the raw JSON content string. The free-text
+  `NormalizeSuggestion` step (whitespace-collapse + surrounding-quote-strip) is bypassed on
+  this path because it corrupts JSON; ASCII folding happens pack-side on the parsed values.
+  (src/Tapestry.Authoring/OpenAiCompatibleLlmClient.cs:23-60;
+  src/Tapestry.Authoring/ILlmClient.cs:23;
+  src/Tapestry.Authoring/LlmRecommendProvider.cs:53-70)
+
+- `llm.structured_output` (C# `LlmSection.StructuredOutput` on `ServerConfig`) defaults to
+  false and is mapped onto `RecommendLlmConfig.StructuredOutput` in the provider builder.
+  Default-off means no deployment changes behavior without opt-in. With the flag off, or with
+  no schema supplied, the provider runs the unchanged free-text path. A provider that ignores
+  the schema (or the flag off) degrades safely to the caller's baked fallback - the pack-side
+  JSON parse fails and the pack uses its own value.
+  (src/Tapestry.Data/ServerConfig.cs:128;
+  src/Tapestry.Scripting/ServiceCollectionExtensions.cs:259-270;
+  src/Tapestry.Authoring/LlmRecommendProvider.cs:12-15)
+
+- Only strings cross the engine boundary on this seam: the pack passes a JSON-stringified
+  schema in and the engine returns the model's content string (now JSON when a schema was
+  supplied) out. The engine never learns the pack's data shapes.
+  (src/Tapestry.Authoring/LlmRecommendProvider.cs:50-66)
+
+### LLM token usage capture
+
+- `ILlmClient.CompleteAsync` returns an `LlmResult` record (sanitized content + prompt and
+  completion token counts) instead of a bare string. The provider parses the response `usage`
+  block (counts are 0 when the provider reports no usage), and `RecommendResult` carries the
+  token totals back to the binding. (src/Tapestry.Authoring/ILlmClient.cs:13,23;
+  src/Tapestry.Authoring/OpenAiCompatibleLlmClient.cs:83-90;
+  src/Tapestry.Engine/Recommend/IRecommendProvider.cs:8;
+  src/Tapestry.Authoring/LlmRecommendProvider.cs:96-116)
+
+- The recommend INFO log line carries a token field (e.g.
+  `recommend[fill_mobs] ok 1731ms 293tok`), and a new histogram metric
+  `tapestry.recommend.tokens` records prompt+completion tokens per call, tagged by field and
+  outcome, alongside the existing recommend duration/calls metrics.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:235,245;
+  src/Tapestry.Engine/TapestryMetrics.cs:134-137)
+
+### Schema-aware stub provider
+
+- When a recommend request carries a `ResponseSchema`, `StaticStubRecommendProvider` returns a
+  valid JSON instance generated from the schema via `StubJson.FromSchema` (a minimal generator
+  for object/array/string/number/integer/boolean + enum), so the structured-output path runs
+  locally with no real LLM. The factory stub delay was lowered to 400ms (a solo fill run
+  sequences several recommend calls, so the old 2000ms default blocked too long).
+  (src/Tapestry.Engine/Recommend/StaticStubRecommendProvider.cs:31-34;
+  src/Tapestry.Engine/Recommend/StubJson.cs:16-89;
+  src/Tapestry.Authoring/LlmProviderFactory.cs:22-26)
+
 ### Oracle-frozen spawn sidecar
 
 - A room side-car can carry a `spawns:` block: a list of entries with `base:` (mob template
@@ -350,6 +406,7 @@ files (written under the game data root at runtime).
 
 ## Change Log
 
+- 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - recommend can return validated JSON via `response_format json_schema` (opt-in `llm.structured_output`, default off, degrades to baked fallback); `ILlmClient` returns `LlmResult` with token counts surfaced on the log line + new `tapestry.recommend.tokens` histogram; schema-aware `StaticStubRecommendProvider` via `StubJson.FromSchema`, stub delay lowered to 400ms
 - 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - `createPack` docker-safe: `RuntimeNamespaceStore` persists runtime namespaces to a writable `data/` marker + re-registers at boot; packs-dir scaffold write is now best-effort (try/catch)
 - 2026-06-25 [solo-oracle-v2-completion](changes/2026-06-25-solo-oracle-v2-completion.md) - authoring.writeItemTemplate freeze seam; AuthoredRoomLoader scan hardened to rooms/ dir + skip oracle-table files
 - 2026-06-22 [solo-oracle-e2-headless-recommend](changes/2026-06-22-solo-oracle-e2-headless-recommend.md)

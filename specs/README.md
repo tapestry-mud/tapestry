@@ -11,8 +11,8 @@ known constraints, and change history.
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-25 |
-| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-27 |
-| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-27 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-28 |
+| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-28 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-06-18 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-06-12 |
