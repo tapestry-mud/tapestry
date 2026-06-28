@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,19 +20,44 @@ public sealed class OpenAiCompatibleLlmClient : ILlmClient
         _http = http;
     }
 
-    public async Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default)
+    public async Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
     {
         var url = $"{opts.BaseUrl.TrimEnd('/')}/chat/completions";
-        var payload = new
+        var messages = new[]
         {
-            model = opts.Model,
-            temperature = opts.Temperature,
-            messages = new[]
-            {
-                new { role = "system", content = system },
-                new { role = "user", content = user },
-            },
+            new { role = "system", content = system },
+            new { role = "user", content = user },
         };
+
+        object payload;
+        if (!string.IsNullOrEmpty(responseSchema))
+        {
+            payload = new
+            {
+                model = opts.Model,
+                temperature = opts.Temperature,
+                messages,
+                response_format = new
+                {
+                    type = "json_schema",
+                    json_schema = new
+                    {
+                        name = "oracle_table",
+                        schema = JsonNode.Parse(responseSchema),
+                        strict = true,
+                    },
+                },
+            };
+        }
+        else
+        {
+            payload = new
+            {
+                model = opts.Model,
+                temperature = opts.Temperature,
+                messages,
+            };
+        }
 
         using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {

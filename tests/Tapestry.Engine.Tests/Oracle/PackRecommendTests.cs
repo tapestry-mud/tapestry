@@ -13,7 +13,7 @@ public class PackRecommendTests
     private sealed class FakeLlm : ILlmClient
     {
         public string LastSystem = "", LastUser = "";
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default)
+        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             LastSystem = system;
             LastUser = user;

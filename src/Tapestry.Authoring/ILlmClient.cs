@@ -12,6 +12,9 @@ public sealed record LlmOptions(
 /// Anthropic's OpenAI-compatible endpoint by config alone.</summary>
 public interface ILlmClient
 {
-    /// <summary>One chat completion. Returns sanitized assistant text (see OutputSanitizer).</summary>
-    Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default);
+    /// <summary>One chat completion. Returns sanitized assistant text (see OutputSanitizer).
+    /// When <paramref name="responseSchema"/> is a non-empty stringified JSON Schema, the request
+    /// uses OpenAI structured outputs (response_format json_schema) and the raw JSON content is
+    /// returned (the caller parses it; no free-text normalization).</summary>
+    Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default);
 }

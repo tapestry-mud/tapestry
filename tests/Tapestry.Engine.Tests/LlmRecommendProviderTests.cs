@@ -27,7 +27,7 @@ public class LlmRecommendProviderTests
             _throw = shouldThrow;
         }
 
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default)
+        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             Calls++;
             if (_throw)
@@ -52,7 +52,7 @@ public class LlmRecommendProviderTests
 
         public CapturingLlmClient(string response = "ok") { _response = response; }
 
-        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, CancellationToken ct = default)
+        public Task<string> CompleteAsync(string system, string user, LlmOptions opts, string? responseSchema = null, CancellationToken ct = default)
         {
             LastUser = user;
             return Task.FromResult(_response);
@@ -252,5 +252,23 @@ public class OpenAiCompatibleLlmClientTests
         Assert.Contains("\"model\":\"qwen2.5:7b\"", handler.LastBody);
         Assert.Contains("\"sys\"", handler.LastBody);
         Assert.Contains("\"usr\"", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task Structured_request_carries_response_format_and_returns_raw_json()
+    {
+        var json = "{\"mobs\":[{\"name\":\"A\",\"desc\":\"b\"}]}";
+        var handler = new CapturingHandler(json);
+        var client = new OpenAiCompatibleLlmClient(new HttpClient(handler));
+        var opts = new LlmOptions("m", 0.5, 30, "http://x/v1", "");
+        var schema = "{\"type\":\"object\",\"properties\":{\"mobs\":{\"type\":\"array\"}},\"required\":[\"mobs\"],\"additionalProperties\":false}";
+
+        var result = await client.CompleteAsync("sys", "usr", opts, schema);
+
+        Assert.Contains("\"response_format\"", handler.LastBody);
+        Assert.Contains("\"json_schema\"", handler.LastBody);
+        Assert.Contains("\"strict\":true", handler.LastBody);
+        Assert.Contains("\"mobs\"", handler.LastBody); // schema embedded as an object, not a quoted string
+        Assert.Equal(json, result); // raw JSON returned, not free-text normalized
     }
 }

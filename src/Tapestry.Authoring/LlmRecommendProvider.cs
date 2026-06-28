@@ -52,7 +52,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
-                var text = await _client.CompleteAsync(sys, usr, _opts, cts.Token);
+                var text = await _client.CompleteAsync(sys, usr, _opts, null, cts.Token);
                 var clean = NormalizeSuggestion(text);
                 return string.IsNullOrWhiteSpace(clean) ? RecommendResult.Empty : new RecommendResult(new[] { clean });
             }
@@ -85,7 +85,7 @@ public sealed class LlmRecommendProvider : IRecommendProvider
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
-                var text = await _client.CompleteAsync(system, user, _opts, cts.Token);
+                var text = await _client.CompleteAsync(system, user, _opts, null, cts.Token);
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     picks.Add(NormalizeSuggestion(text));
