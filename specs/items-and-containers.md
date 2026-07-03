@@ -93,7 +93,8 @@ covered in equipment-and-modifiers.md.
   (returns all matching X), or a bare keyword (returns all matching).
   (src/Tapestry.Engine/Inventory/KeywordMatcher.cs:31-53)
 
-- `getAll` (script) blocks items tagged `no_get` even when doing bulk pickup.
+- `getAll` (script) blocks items tagged `no_get` or `fixture` even when doing bulk
+  pickup.
   (src/Tapestry.Scripting/Modules/InventoryModule.cs:333)
 
 - Keyword lookup searches inventory, then equipped slots, then the room floor

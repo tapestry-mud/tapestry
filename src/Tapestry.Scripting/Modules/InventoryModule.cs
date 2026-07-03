@@ -330,7 +330,7 @@ public class InventoryModule : IJintApiModule
                 }
 
                 var floorItems = room.Entities
-                    .Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null && !e.HasTag("no_get"))
+                    .Where(e => (e.Type == EntityTypes.Item || e.Type == EntityTypes.Container) && e.Container == null && !e.HasTag("no_get") && !e.HasTag("fixture"))
                     .ToList();
                 var matches = KeywordMatcher.FindAllByKeyword(floorItems, keyword);
 
