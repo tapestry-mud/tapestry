@@ -12,5 +12,6 @@ public static class CurrencyProperties
     public static void Register(PropertyRegistry registry)
     {
         registry.RegisterEngineProperty(Gold, "Currency held by this entity", PropertyValueType.Int);
+        registry.RegisterEngineProperty(Value, "Currency value of this item", PropertyValueType.Int, appliesTo: new[] { EntityTypes.Item });
     }
 }
