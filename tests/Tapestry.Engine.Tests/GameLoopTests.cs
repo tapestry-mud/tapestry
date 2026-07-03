@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
+using Tapestry.Engine.Combat;
 using Tapestry.Engine.Registration;
 using Tapestry.Engine.Tests.Registration;
 using Tapestry.Engine.Stats;
@@ -87,7 +88,7 @@ public class GameLoopTests
         entity.SetProperty("regen_resource", 3);
         entity.SetProperty("regen_movement", 4);
 
-        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -100,6 +101,53 @@ public class GameLoopTests
         entity.Stats.Hp.Should().Be(55);
         entity.Stats.Resource.Should().Be(23);
         entity.Stats.Movement.Should().Be(44);
+    }
+
+    [Fact]
+    public void Tick_DoesNotRegenEntitiesInCombat()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
+        var combat = new CombatManager(world, eventBus);
+        var gameLoop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus, new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(), new TickTimer(10), new NotificationQueue(), policy);
+
+        var player = new Entity("player", "Test");
+        player.AddTag("player");
+        player.Stats.BaseMaxHp = 100;
+        player.Stats.Hp = 50;
+        player.Stats.BaseStrength = 10;
+        player.Stats.BaseDexterity = 10;
+        player.SetProperty("regen_hp", 5);
+
+        var mob = new Entity("npc", "Foe");
+        mob.AddTag("npc");
+        mob.Stats.BaseMaxHp = 100;
+        mob.Stats.Hp = 50;
+        mob.Stats.BaseStrength = 8;
+        mob.Stats.BaseDexterity = 10;
+        mob.SetProperty("level", 3);
+        mob.SetProperty("regen_hp", 5);
+
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: combat);
+        policy.Resolve();
+
+        var room = new Room("test", "Test", "Test room");
+        room.AddEntity(player);
+        room.AddEntity(mob);
+        world.AddRoom(room);
+        world.TrackEntity(player);
+        world.TrackEntity(mob);
+
+        combat.Engage(player, mob);
+
+        gameLoop.Tick();
+
+        // No regen while fighting (ROM "no heal in combat") - the boss's chunk must stick.
+        player.Stats.Hp.Should().Be(50);
+        mob.Stats.Hp.Should().Be(50);
     }
 
     [Fact]
@@ -117,7 +165,7 @@ public class GameLoopTests
         entity.Stats.Hp = 98;
         entity.SetProperty("regen_hp", 5);
 
-        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -358,7 +406,7 @@ public class GameLoopTests
         entity.Stats.Movement = 50;
         entity.SetProperty("regen_movement", 10);
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -399,7 +447,7 @@ public class GameLoopTests
         entity.Stats.Movement = 50;
         entity.SetProperty("regen_movement", 10);
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -439,7 +487,7 @@ public class GameLoopTests
         entity.SetProperty("regen_hp", 5);
         entity.SetProperty("sustenance", 0); // famished — would have suppressed regen before
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");

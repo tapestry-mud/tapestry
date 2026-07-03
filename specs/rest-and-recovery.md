@@ -71,13 +71,15 @@ rates are applied together each regen tick.
 ### Regen tick
 
 - **[Regen.Registration]** `TickHandlerModule.Configure` calls
-  `GameLoop.RegisterRegenHandler(_world, _eventBus, regenIntervalTicks: 30, restConfig: _restConfig)`.
+  `GameLoop.RegisterRegenHandler(_world, _eventBus, regenIntervalTicks: 30, restConfig: _restConfig, combatManager: _combatManager)`.
   The handler is registered under the name `"regen"` with a 30-tick interval (3 seconds
   at 100 ms/tick).
   (src/Tapestry.Server/Modules/TickHandlerModule.cs:90-92)
 
 - **[Regen.Candidates]** Each regen tick collects all `player` and `npc` entities that do
-  not have the `no_regen` tag. For each candidate the handler computes a `finalMultiplier`
+  not have the `no_regen` tag and are not currently in combat (`CombatManager.IsInCombat`).
+  Entities in combat do not regenerate any vital - ROM-style "no heal while fighting" - so
+  combat damage sticks for the duration of the fight. For each candidate the handler computes a `finalMultiplier`
   by summing the state multiplier, the furniture `rest_bonus`, and the room `healing_rate`.
   A `finalMultiplier` of exactly 0.0 causes the entity to be skipped entirely.
   (src/Tapestry.Engine/GameLoop.cs:450-482)

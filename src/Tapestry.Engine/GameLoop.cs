@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine.Combat;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Registration;
 using Tapestry.Engine.Stats;
@@ -442,14 +443,14 @@ public class GameLoop
         });
     }
 
-    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks = 10, RestConfig? restConfig = null)
+    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks, RestConfig? restConfig, CombatManager combatManager)
     {
         var regenData = new Dictionary<string, object?>(2);
         RegisterTickHandler("regen", regenIntervalTicks, () =>
         {
             var regenCandidates = world.GetEntitiesByType("player")
                 .Concat(world.GetEntitiesByType("npc"))
-                .Where(e => !e.HasTag("no_regen"));
+                .Where(e => !e.HasTag("no_regen") && !combatManager.IsInCombat(e.Id));
             foreach (var entity in regenCandidates)
             {
                 var restMultiplier = 1.0;
