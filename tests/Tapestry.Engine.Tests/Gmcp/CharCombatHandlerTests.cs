@@ -1,4 +1,5 @@
 using FluentAssertions;
+using System.Collections.Generic;
 using System.Text.Json;
 using Tapestry.Shared;
 using Tapestry.Engine;
@@ -79,6 +80,44 @@ public class CharCombatHandlerTests
         var json = JsonSerializer.Serialize(sent.Payload);
         var doc = JsonDocument.Parse(json);
         doc.RootElement.GetProperty("active").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public void SwellResolveEvent_RefreshesPlayerCombatTarget()
+    {
+        var h = Build();
+
+        var room = new Room("test:arena", "Arena", "A test arena.");
+        h.World.AddRoom(room);
+        h.Player.Stats.BaseMaxHp = 100;
+        h.Player.Stats.Hp = 100;
+        room.AddEntity(h.Player);
+
+        var boss = new Entity("npc", "Boss");
+        boss.AddTag("npc");
+        boss.Stats.BaseMaxHp = 100;
+        boss.Stats.Hp = 100;
+        boss.SetProperty("level", 5);
+        room.AddEntity(boss);
+        h.World.TrackEntity(boss);
+
+        h.Combat.Engage(h.Player, boss);
+        h.ConnectionManager.Sent.Clear(); // discard the engage refresh; we want the swell refresh
+
+        // The swell resolve event carries the player id in Data["targetId"]; the boss took the chunk.
+        h.EventBus.Publish(new GameEvent
+        {
+            Type = "combat.swell.resolve",
+            SourceEntityId = boss.Id,
+            Data = new Dictionary<string, object?>
+            {
+                ["targetId"] = h.Player.Id.ToString(),
+                ["text"] = "You counter the blow."
+            }
+        });
+
+        h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Combat.Target");
+        h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Combat.Targets");
     }
 
     [Fact]

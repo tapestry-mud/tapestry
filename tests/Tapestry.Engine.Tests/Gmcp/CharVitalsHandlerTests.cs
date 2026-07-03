@@ -1,4 +1,5 @@
 using FluentAssertions;
+using System.Collections.Generic;
 using System.Text.Json;
 using Tapestry.Shared;
 using Tapestry.Engine;
@@ -80,6 +81,27 @@ public class CharVitalsHandlerTests
         {
             Type = "ability.used",
             SourceEntityId = h.Player.Id
+        });
+        h.Batcher.FlushDirtyVitals();
+
+        h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Vitals");
+    }
+
+    [Fact]
+    public void SwellResolveEvent_MarksTargetVitalsDirty_FlushSendsVitals()
+    {
+        var h = Build();
+
+        // The swell resolve event carries the player id in Data["targetId"] (the boss is the source).
+        h.EventBus.Publish(new GameEvent
+        {
+            Type = "combat.swell.resolve",
+            SourceEntityId = Guid.NewGuid(),
+            Data = new Dictionary<string, object?>
+            {
+                ["targetId"] = h.Player.Id.ToString(),
+                ["text"] = "Your counter misses and the blow lands."
+            }
         });
         h.Batcher.FlushDirtyVitals();
 

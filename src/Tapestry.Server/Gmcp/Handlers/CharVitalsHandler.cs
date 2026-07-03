@@ -51,6 +51,18 @@ public class CharVitalsHandler : IGmcpPackageHandler
             if (!evt.SourceEntityId.HasValue) { return; }
             _batcher.MarkDirty(evt.SourceEntityId.Value);
         }, priority: -10);
+
+        // A swell resolve mutates the player's HP directly (whiff/weather) without firing the
+        // events above, so the web vitals bar would only catch up on the next regen tick. The
+        // player id rides in Data["targetId"] (the boss is the event source).
+        _eventBus.Subscribe("combat.swell.resolve", evt =>
+        {
+            if (evt.Data.TryGetValue("targetId", out var targetIdObj)
+                && Guid.TryParse(targetIdObj?.ToString(), out var playerId))
+            {
+                _batcher.MarkDirty(playerId);
+            }
+        });
     }
 
     public void SendBurst(string connectionId, object entity)

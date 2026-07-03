@@ -67,6 +67,19 @@ public class CharCombatHandler : IGmcpPackageHandler
             SendCombatTarget(evt.SourceEntityId.Value);
             SendCombatTargets(evt.SourceEntityId.Value);
         });
+
+        // A swell resolve chunks the boss's HP directly (countered) without firing combat.hit, so
+        // the target bar would lag until the next auto-attack swing. The player id rides in
+        // Data["targetId"]; refreshing their target view re-reads the boss's health tier.
+        _eventBus.Subscribe("combat.swell.resolve", evt =>
+        {
+            if (evt.Data.TryGetValue("targetId", out var targetIdObj)
+                && Guid.TryParse(targetIdObj?.ToString(), out var playerId))
+            {
+                SendCombatTarget(playerId);
+                SendCombatTargets(playerId);
+            }
+        });
     }
 
     public void SendBurst(string connectionId, object entity) { }
