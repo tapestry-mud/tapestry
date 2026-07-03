@@ -117,4 +117,18 @@ public class RoomHandlerTests
         north.GetProperty("id").GetString().Should().Be("test:room2");
         north.GetProperty("name").GetString().Should().Be("North Room");
     }
+
+    [Fact]
+    public void RoomInfo_EnvironmentDefaultsToOutdoorsWhenNoTerrainProperty()
+    {
+        var h = Build();
+
+        h.Handler.SendBurst(h.ConnectionId, h.Player);
+
+        var infoMsg = h.ConnectionManager.Sent.First(x => x.Package == "Room.Info");
+        var json = System.Text.Json.JsonSerializer.Serialize(infoMsg.Payload);
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+        var environment = doc.RootElement.GetProperty("environment").GetString();
+        environment.Should().Be("outdoors");
+    }
 }

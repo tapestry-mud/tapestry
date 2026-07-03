@@ -118,7 +118,7 @@ public class RoomHandler : IGmcpPackageHandler
             name = room.Name,
             area = room.Area ?? "",
             description = room.Description,
-            environment = room.GetProperty<string?>("terrain") ?? "",
+            environment = room.GetProperty<string?>("terrain") ?? "outdoors",
             weatherExposed = room.WeatherExposed,
             timeExposed = room.TimeExposed,
             exits,
