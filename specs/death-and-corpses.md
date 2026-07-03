@@ -89,8 +89,15 @@ safety guard. (packs/@tapestry/core/scripts/mobs/death.js:2)
    - `corpse_created_tick` -- current game tick at time of death.
    - `template_id` -- the mob's template ID (may be null for dynamically
      spawned mobs with no template).
-   - `mob_level` -- from `entity.properties.mob_level`; defaults to 1.
-   (death.js:20)
+   - `mob_level` -- a live mob no longer carries a scalar `mob_level` property (see
+     mob-lifecycle.md; its combat level lives at `entity.properties.level.combat`).
+     Death reads `entity.properties.level.combat` off the dying mob (defaults to 1 if
+     the map or the `combat` key is absent) and stamps that value onto the corpse as
+     `mob_level`. This is deliberate corpse-only authored metadata -- corpses are
+     `container` entities outside `mob_level`'s normal `appliesTo`, and need a stable
+     primitive for post-death display (`sac`, `admin-inspect`) long after the mob
+     entity is gone.
+   (death.ts:26-28)
 
 2. **Loot transfer.** `tapestry.inventory.transferAll(mobId, corpseId)` moves
    all inventory items. `tapestry.equipment.transferAll(mobId, corpseId)` moves

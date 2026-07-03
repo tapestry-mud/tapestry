@@ -209,18 +209,26 @@ disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
 ### Wimpy / Automatic Flee
 
 - `CheckWimpyPhase` (priority 400) runs after auto-attacks and status effects
-  each pulse. (CheckWimpyPhase.cs:7)
+  each pulse; it delegates its per-combatant decision to
+  `CombatManager.ShouldFlee`. (CheckWimpyPhase.cs:16; CombatManager.cs:ShouldFlee)
 
-- An entity flees automatically if: `wimpy_threshold` property is set to a
-  positive integer, current HP% <= threshold, and entity is not in a flee
-  cooldown. (CheckWimpyPhase.cs:20)
+- `ShouldFlee` is the single flee predicate shared by `CheckWimpyPhase` (players
+  and NPCs, pulse-driven) and `MobAIManager.TryFlee` (mob AI tick), so both
+  trigger points agree on one decision instead of duplicating threshold math.
+  (CombatManager.cs:ShouldFlee; MobAIManager.cs:345-367)
+
+- An entity flees automatically if: `wimpy_pct` property is set to a positive
+  integer (0-100 scale), current HP% <= that value, entity HP and max HP are
+  both positive, and entity is not in a flee cooldown. The legacy
+  `wimpy_threshold` and `flee_threshold` keys are retired and never consulted.
+  (CombatManager.cs:ShouldFlee)
 
 - Players set their wimpy threshold (0-50%) via the `wimpy` command.
-  (packs/@tapestry/core/scripts/combat/commands.js:47)
+  (packs/@tapestry/core/scripts/combat/commands.ts:47)
 
 - The flee cooldown gate prevents chain-fleeing: an entity that just fled will
   not auto-flee again until the cooldown expires, even if HP remains below
-  threshold. (CheckWimpyPhase.cs:36; commit 600b00f)
+  threshold. (CombatManager.cs:ShouldFlee; commit 600b00f)
 
 ### Flee Mechanics
 
@@ -322,7 +330,7 @@ Registered engine properties on items and NPCs:
 | `damage_dice`     | String  | Dice expression (e.g. `2d6+4`)                       |
 | `hit_bonus`       | Int     | Bonus to hit roll                                    |
 | `combat_name`     | String  | Verb in combat messages                              |
-| `wimpy_threshold` | Int     | HP% at which entity auto-flees                       |
+| `wimpy_pct`       | Int     | HP% (0-100) at which entity auto-flees                |
 | `attack_speed`    | Int     | Attack speed modifier (unused in current auto-attack code) |
 | `ac`              | MapInt  | Armor class per damage type                          |
 

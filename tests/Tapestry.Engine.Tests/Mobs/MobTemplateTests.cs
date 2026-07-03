@@ -100,4 +100,16 @@ public class MobTemplateTests
         Assert.Equal("core:goblin", entity.GetProperty<string>("template_id"));
         Assert.Equal("wander", entity.GetProperty<string>("behavior"));
     }
+
+    [Fact]
+    public void MobLevelProperty_DesugarsToLevelCombatMap_IndependentOfClass()
+    {
+        var template = new MobTemplate { Type = "npc", Name = "m" };
+        template.Properties["mob_level"] = 5; // authored under properties:, no class
+        var entity = template.CreateEntity();
+        var level = entity.GetProperty<Dictionary<string, int>>("level");
+        Assert.NotNull(level);
+        Assert.Equal(5, level["combat"]);
+        Assert.Null(entity.GetProperty<object>("mob_level"));
+    }
 }

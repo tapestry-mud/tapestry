@@ -36,7 +36,10 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
     constitution, luck, max_hp, max_resource, max_movement).
     (src/Tapestry.Engine/Mobs/MobTemplate.cs:55)
   - `Properties` / `properties` -- arbitrary key/value pairs written to entity properties
-    at spawn (e.g., mob_level, flee_threshold, wander_interval).
+    at spawn (e.g., wimpy_pct, wander_interval). `mob_level` is the one exception: it is
+    still authored under `properties:`, but `CreateEntity()` intercepts it and desugars
+    it into a `level` map (`{ combat: N }`) instead of writing a bare scalar -- see the
+    `CreateEntity()` bullet below.
   - `Equipment` / `equipment` -- list of item template IDs to instantiate and equip on
     spawn; stat modifiers on equipped items are applied to entity stats.
     (src/Tapestry.Engine/Mobs/SpawnManager.cs:135-161)
@@ -62,6 +65,17 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
   `behavior`, and optional patrol_route / idle / battle / disposition data, then returns
   the entity before it has been placed in the world.
   (src/Tapestry.Engine/Mobs/MobTemplate.cs:77-173)
+- While copying the `Properties` dict, `CreateEntity()` intercepts the `mob_level` key
+  (`MobProperties.MobLevel`) and desugars it: instead of setting a bare scalar
+  `mob_level` on the entity, it writes a `level` map property with a `combat` key
+  (`{ combat: mob_level }`). This runs regardless of whether the template has a
+  `class:` -- it is the class-independent path and is live for every corpus mob. A
+  spawned mob therefore never carries a scalar `mob_level` property; its combat level
+  lives at `level.combat`. `mob_level` stays a registered authoring property (YAML
+  content keeps authoring it under `properties:`) but is never set on the runtime
+  entity. See MobStatDerivation below for the classed-mob case, and death-and-corpses.md
+  for the corpse-metadata exception where `mob_level` reappears as a stamped scalar.
+  (src/Tapestry.Engine/Mobs/MobTemplate.cs:109-116)
 
 ### SpawnManager and area reset spawning
 
@@ -140,7 +154,11 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
   is `N * (X + 1) / 2 + M` (integer math). The result times `template.Level` is added
   to the entity's base stat. After all stat growth is applied, current vitals are
   restored to the new maximums (Hp = MaxHp, Resource = MaxResource, Movement = MaxMovement).
-  The `class` and `level` properties are written to the entity.
+  The `class` property is written to the entity, and the `level` map property is written
+  (or overwritten) as `{ combat: template.Level }` -- the same map shape `CreateEntity()`
+  produces from `mob_level`, so a classed mob's level lands at `level.combat` either way.
+  For a classed mob with a top-level `level:`, this runs after `CreateEntity()` and
+  overwrites whatever `CreateEntity()` set, which is intended.
   (src/Tapestry.Engine/Mobs/MobStatDerivation.cs:17-37)
 - If `template.Race` is set, racial flags from `RaceDefinition.RacialFlags` are added
   as entity tags and the `race` property is written to the entity.

@@ -108,6 +108,11 @@ public class MobTemplate
 
         foreach (var kvp in Properties)
         {
+            if (kvp.Key == MobProperties.MobLevel)
+            {
+                entity.SetProperty("level", new Dictionary<string, int> { ["combat"] = Convert.ToInt32(kvp.Value) });
+                continue;
+            }
             entity.SetProperty(kvp.Key, kvp.Value);
         }
 

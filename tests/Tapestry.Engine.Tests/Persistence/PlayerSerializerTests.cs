@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Tapestry.Engine.Combat;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Stats;
 
@@ -13,6 +14,7 @@ public class PlayerSerializerTests
     {
         _registry = new PropertyRegistry();
         CommonProperties.Register(_registry);
+        CombatProperties.Register(_registry);
         _serializer = new PlayerSerializer(_registry);
     }
 
@@ -229,6 +231,29 @@ public class PlayerSerializerTests
         var result = _serializer.FromSaveData(dto);
         result.Entity.Name.Should().Be("TestPlayer");
         result.Entity.LocationRoomId.Should().Be("limbo:recall");
+    }
+
+    [Fact]
+    public void FromSaveData_MigratesLegacyWimpyThresholdKeyToWimpyPct()
+    {
+        // A save written before the wimpy_pct rename still carries the old key.
+        // Loading it must rewrite the value onto the new key, not reset it.
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["wimpy_threshold"] = 30
+            }
+        };
+
+        var result = _serializer.FromSaveData(dto);
+
+        result.Entity.GetProperty<int>(CombatProperties.WimpyPct).Should().Be(30);
+        result.Entity.TryGetProperty<object>("wimpy_threshold", out _).Should().BeFalse();
     }
 
     [Fact]

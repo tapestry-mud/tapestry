@@ -28,7 +28,7 @@ public static class MobStatDerivation
                     AddToBase(entity, kv.Key, total);
                 }
                 entity.SetProperty("class", template.Class);
-                entity.SetProperty("level", template.Level);
+                entity.SetProperty("level", new Dictionary<string, int> { ["combat"] = template.Level });
                 // Restore current vitals to new max
                 entity.Stats.Hp = entity.Stats.MaxHp;
                 entity.Stats.Resource = entity.Stats.MaxResource;

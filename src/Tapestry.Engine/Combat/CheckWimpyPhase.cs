@@ -13,28 +13,7 @@ public class CheckWimpyPhase : ICombatPhase
 
         foreach (var entity in combatants)
         {
-            if (entity.Stats.Hp <= 0)
-            {
-                continue;
-            }
-
-            var wimpyProp = entity.GetProperty<object>(CombatProperties.WimpyThreshold);
-            if (wimpyProp == null)
-            {
-                continue;
-            }
-
-            var threshold = Convert.ToInt32(wimpyProp);
-            if (threshold <= 0)
-            {
-                continue;
-            }
-
-            var hpPercent = (int)((double)entity.Stats.Hp / entity.Stats.MaxHp * 100);
-            // Gate on the flee cooldown so a mob that just fled stands and fights
-            // when caught, rather than chain-fleeing every pulse.
-            if (hpPercent <= threshold
-                && !context.CombatManager.HasFleeCooldown(entity.Id, context.CurrentTick))
+            if (context.CombatManager.ShouldFlee(entity, context.CurrentTick))
             {
                 context.CombatManager.AttemptFlee(entity, context);
             }
