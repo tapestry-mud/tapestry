@@ -455,7 +455,8 @@ public class PackLoaderTests
         var weatherZoneRegistry = new WeatherZoneRegistry();
         var areaTickService = new AreaTickService(world, eventBus, areaRegistry, serverConfig);
         var gameClock = new GameClock(eventBus, serverConfig);
-        var weatherService = new WeatherService(areaRegistry, weatherZoneRegistry, world, sessions, eventBus, serverConfig);
+        tagRegistry ??= new TagRegistry();
+        var weatherService = new WeatherService(areaRegistry, weatherZoneRegistry, world, sessions, eventBus, serverConfig, tagRegistry);
         var returnAddressService = new ReturnAddressService(eventBus);
         var temporaryExitService = new TemporaryExitService(world, eventBus, areaTickService);
         var consumableService = new ConsumableService(world, eventBus);
@@ -514,7 +515,6 @@ public class PackLoaderTests
 
         var runtime = new JintRuntime(modules, NullLogger<JintRuntime>.Instance);
         var helpService = new Tapestry.Engine.Help.HelpService();
-        tagRegistry ??= new TagRegistry();
         var propertyRegistry = new Tapestry.Engine.Persistence.PropertyRegistry();
         var questRegistry = new QuestRegistry();
         var scheduleModule = new ScheduleModule(gameLoop, world);

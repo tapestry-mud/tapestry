@@ -37,7 +37,7 @@ known constraints, and change history.
 | Character Progression | [character-progression.md](character-progression.md) | 2026-06-12 |
 | Alignment | [alignment.md](alignment.md) | 2026-06-12 |
 | Economy and Shops | [economy-and-shops.md](economy-and-shops.md) | 2026-06-12 |
-| World Simulation | [world-simulation.md](world-simulation.md) | 2026-06-12 |
+| World Simulation | [world-simulation.md](world-simulation.md) | 2026-07-03 |
 | Admin Commands | [admin-commands.md](admin-commands.md) | 2026-06-12 |
 | Help System | [help-system.md](help-system.md) | 2026-06-18 |
 | Telemetry | [telemetry.md](telemetry.md) | 2026-06-12 |

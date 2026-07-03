@@ -2,6 +2,7 @@ using FluentAssertions;
 using Tapestry.Data;
 using Tapestry.Shared;
 using Tapestry.Engine;
+using Tapestry.Engine.Tags;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
 
@@ -40,7 +41,7 @@ public class WorldHandlerTests
         var eb = new EventBus();
         var areas = new AreaRegistry();
         var clock = new GameClock(eb, new ServerConfig());
-        var weather = new WeatherService(areas, new WeatherZoneRegistry(), world, sessions, eb, new ServerConfig());
+        var weather = new WeatherService(areas, new WeatherZoneRegistry(), world, sessions, eb, new ServerConfig(), new TagRegistry());
 
         var handler = new WorldHandler(cm, sessions, world, eb, clock, weather);
 

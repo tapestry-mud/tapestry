@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Tapestry.Data;
 using Tapestry.Engine;
+using Tapestry.Engine.Tags;
 using Tapestry.Shared;
 using Xunit;
 
@@ -13,6 +14,7 @@ public class WeatherServiceTests
     private readonly AreaRegistry _areaRegistry;
     private readonly WeatherZoneRegistry _zoneRegistry;
     private readonly SessionManager _sessions;
+    private readonly TagRegistry _tagRegistry;
     private readonly WeatherService _service;
 
     private static WeatherZoneDefinition MakeZone(string id = "temperate")
@@ -33,6 +35,17 @@ public class WeatherServiceTests
                 {
                     ["rain"] = new WeatherMessages("Rain begins to fall.", null, "The rain stops."),
                     ["storm"] = new WeatherMessages("A storm rolls in.", null, "The storm passes.")
+                },
+                ["indoors"] = new()
+                {
+                    ["rain"] = new WeatherMessages("You hear rain pattering on the roof.", null, "The rain sound fades.")
+                },
+                ["forest"] = new()
+                {
+                    ["rain"] = new WeatherMessages(
+                        "Rain begins to drip through the canopy above.",
+                        "A steady rain filters through the leaves.",
+                        "The rain tapers off, leaving the forest dripping.")
                 }
             },
             TerrainTransitions = new Dictionary<string, Dictionary<string, string>>
@@ -43,6 +56,10 @@ public class WeatherServiceTests
                     ["day"] = "The sun climbs overhead.",
                     ["dusk"] = "The light fades.",
                     ["night"] = "Darkness falls."
+                },
+                ["forest"] = new()
+                {
+                    ["dawn"] = "Pale light filters through the trees as the forest stirs to life."
                 }
             }
         };
@@ -55,6 +72,8 @@ public class WeatherServiceTests
         _areaRegistry = new AreaRegistry();
         _zoneRegistry = new WeatherZoneRegistry();
         _sessions = new SessionManager();
+        _tagRegistry = new TagRegistry();
+        _tagRegistry.RegisterEngineTag("forest", "Forested terrain.", new[] { "room" }, kind: "biome");
 
         var zone = MakeZone();
         _zoneRegistry.Register(zone);
@@ -68,7 +87,7 @@ public class WeatherServiceTests
 
         var config = new ServerConfig();
         config.Game.WeatherRollIntervalHours = 1;
-        _service = new WeatherService(_areaRegistry, _zoneRegistry, _world, _sessions, _eventBus, config);
+        _service = new WeatherService(_areaRegistry, _zoneRegistry, _world, _sessions, _eventBus, config, _tagRegistry);
     }
 
     private Room AddRoom(string id, string area = "test-area", string? terrain = null)
@@ -295,6 +314,64 @@ public class WeatherServiceTests
         var msg = _service.ResolveWeatherMessage(room, area, zone, "clear", "start");
 
         msg.Should().BeNull();
+    }
+
+    // --- Biome-first message resolution (r1/r2 ruling: biome tried before terrain) ---
+
+    [Fact]
+    public void MessageResolution_BiomeFirst_ForestBiomeWithOutdoorsTerrain_ReturnsForestMessage()
+    {
+        var room = AddRoom("r-biome-forest", terrain: "outdoors");
+        room.AddTag("forest");
+        var area = _areaRegistry.Get("test-area")!;
+        var zone = _zoneRegistry.Get("temperate")!;
+
+        var msg = _service.ResolveWeatherMessage(room, area, zone, "rain", "start");
+
+        // The forest-keyed message, NOT the generic "outdoors" terrain message -- proves
+        // biome is tried before terrain even though the room's terrain is "outdoors".
+        msg.Should().Be("Rain begins to drip through the canopy above.");
+    }
+
+    [Fact]
+    public void MessageResolution_NoBiome_FallsBackToTerrain_IndoorsOnly()
+    {
+        var room = AddRoom("r-indoors-only", terrain: "indoors");
+        var area = _areaRegistry.Get("test-area")!;
+        var zone = _zoneRegistry.Get("temperate")!;
+
+        var msg = _service.ResolveWeatherMessage(room, area, zone, "rain", "start");
+
+        // No biome tag on the room -- the existing terrain-only fallback path must still work.
+        msg.Should().Be("You hear rain pattering on the roof.");
+    }
+
+    [Fact]
+    public void MessageResolution_RoomLevelMessage_WinsOverBiome()
+    {
+        var room = AddRoom("r-room-over-biome", terrain: "outdoors");
+        room.AddTag("forest");
+        room.WeatherMessages["rain"] = new WeatherMessages("Room-specific rain start.", null, null);
+        var area = _areaRegistry.Get("test-area")!;
+        var zone = _zoneRegistry.Get("temperate")!;
+
+        var msg = _service.ResolveWeatherMessage(room, area, zone, "rain", "start");
+
+        // Room -> area -> zone precedence unchanged: room-level beats the biome block.
+        msg.Should().Be("Room-specific rain start.");
+    }
+
+    [Fact]
+    public void ResolveTimeMessage_BiomeFirst_ForestBiomeWithOutdoorsTerrain_ReturnsForestMessage()
+    {
+        var room = AddRoom("r-time-biome-forest", terrain: "outdoors");
+        room.AddTag("forest");
+        var area = _areaRegistry.Get("test-area")!;
+        var zone = _zoneRegistry.Get("temperate")!;
+
+        var msg = _service.ResolveTimeMessage(room, area, zone, "dawn");
+
+        msg.Should().Be("Pale light filters through the trees as the forest stirs to life.");
     }
 
     // --- ResolveTimeMessage ---

@@ -1,4 +1,6 @@
+using System.Linq;
 using Tapestry.Data;
+using Tapestry.Engine.Tags;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine;
@@ -11,12 +13,19 @@ public class WeatherService
     private readonly SessionManager _sessions;
     private readonly EventBus _eventBus;
     private readonly ServerConfig _config;
+    private readonly TagRegistry _tagRegistry;
     private readonly Dictionary<string, string> _currentWeather =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Random _random = new();
 
+    // Lazily built the first time a biome lookup is needed. Tag registration happens at
+    // pack-load time, before this service resolves any message, so caching after boot
+    // is safe -- the registry's biome-kind entries are stable for the process lifetime.
+    private HashSet<string>? _biomeTagNames;
+
     public WeatherService(AreaRegistry areaRegistry, WeatherZoneRegistry zoneRegistry,
-        World world, SessionManager sessions, EventBus eventBus, ServerConfig config)
+        World world, SessionManager sessions, EventBus eventBus, ServerConfig config,
+        TagRegistry tagRegistry)
     {
         _areaRegistry = areaRegistry;
         _zoneRegistry = zoneRegistry;
@@ -24,6 +33,7 @@ public class WeatherService
         _sessions = sessions;
         _eventBus = eventBus;
         _config = config;
+        _tagRegistry = tagRegistry;
 
         _eventBus.Subscribe("time.hour.change", OnHourChange);
         _eventBus.Subscribe("time.period.change", OnPeriodChange);
@@ -185,6 +195,13 @@ public class WeatherService
             if (text != null) { return text; }
         }
 
+        var biome = ResolveBiome(room);
+        if (biome != null && zone.TerrainMessages.TryGetValue(biome, out var biomeStates) &&
+            biomeStates.TryGetValue(state, out var biomeMsg))
+        {
+            return GetMessageField(biomeMsg, messageType);
+        }
+
         var terrain = GetTerrain(room) ?? "outdoors";
         if (zone.TerrainMessages.TryGetValue(terrain, out var terrainStates) &&
             terrainStates.TryGetValue(state, out var terrainMsg))
@@ -201,6 +218,13 @@ public class WeatherService
         if (room.TimeMessages.TryGetValue(period, out var roomMsg)) { return roomMsg; }
         if (area.TimeMessages.TryGetValue(period, out var areaMsg)) { return areaMsg; }
 
+        var biome = ResolveBiome(room);
+        if (biome != null && zone?.TerrainTransitions.TryGetValue(biome, out var biomePeriods) == true &&
+            biomePeriods.TryGetValue(period, out var biomeMsg))
+        {
+            return biomeMsg;
+        }
+
         var terrain = GetTerrain(room) ?? "outdoors";
         if (zone?.TerrainTransitions.TryGetValue(terrain, out var terrainPeriods) == true &&
             terrainPeriods.TryGetValue(period, out var terrainMsg))
@@ -209,6 +233,31 @@ public class WeatherService
         }
 
         return null;
+    }
+
+    // The biome is a room tag whose registered kind is "biome" (desugared from the room's
+    // `biome:` YAML field at load time -- see YamlContentLoader.AddTag). Room storage does
+    // not distinguish it from any other tag, so recovering it means intersecting the room's
+    // tag set against every biome-kind entry in the TagRegistry. Same pattern as
+    // RoomProjector.Project and AreaMapProjector.CollectBiomeTagNames.
+    private string? ResolveBiome(Room room)
+    {
+        _biomeTagNames ??= CollectBiomeTagNames();
+        return room.Tags.FirstOrDefault(t => _biomeTagNames.Contains(t));
+    }
+
+    private HashSet<string> CollectBiomeTagNames()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in _tagRegistry.GetAll())
+        {
+            if (string.Equals(entry.Kind, "biome", StringComparison.OrdinalIgnoreCase))
+            {
+                names.Add(entry.Name);
+                names.Add(entry.FullName);
+            }
+        }
+        return names;
     }
 
     private static string? GetMessageField(WeatherMessages msg, string field)

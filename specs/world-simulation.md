@@ -1,6 +1,6 @@
 ---
 capability: world-simulation
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # World Simulation
@@ -62,20 +62,28 @@ dispatch mechanics that drive the clock; it does not duplicate clock behavior.
   and a random roll selects the next state; a weight of 0 makes a transition impossible.
   (src/Tapestry.Engine/WeatherService.cs:124-137; tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:24-29)
 
-- `TerrainMessages` is `Dictionary<terrain, Dictionary<state, WeatherMessages>>`.
-  `WeatherMessages` carries `Start`, `Ongoing`, and `End` string fields. Only `Start`
-  and `End` are used by `SendWeatherMessages`; `Ongoing` is stored but not dispatched
-  automatically. (src/Tapestry.Engine/WeatherService.cs:146-151; src/Tapestry.Engine/WeatherZoneDefinition.cs:8)
+- `TerrainMessages` is `Dictionary<key, Dictionary<state, WeatherMessages>>`. The key is
+  looked up twice per resolution -- once as a biome value, once as a terrain value (see
+  "Message resolution" below) -- so the same map backs both lookups; a zone author keys an
+  entry by whichever vocabulary it is meant to match. `WeatherMessages` carries `Start`,
+  `Ongoing`, and `End` string fields. Only `Start` and `End` are used by
+  `SendWeatherMessages`; `Ongoing` is stored but not dispatched automatically.
+  (src/Tapestry.Engine/WeatherService.cs:149-162; src/Tapestry.Engine/WeatherZoneDefinition.cs:8)
 
-- `TerrainTransitions` is `Dictionary<terrain, Dictionary<period, string>>`: a flat
-  string message per period per terrain, sent on `time.period.change`.
-  (src/Tapestry.Engine/WeatherZoneDefinition.cs:9; tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:38-47)
+- `TerrainTransitions` is `Dictionary<key, Dictionary<period, string>>`: a flat string
+  message per period per key (biome or terrain, same dual lookup as `TerrainMessages`),
+  sent on `time.period.change`.
+  (src/Tapestry.Engine/WeatherZoneDefinition.cs:9; tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:38-52)
 
 - Zones are held in `WeatherZoneRegistry` (case-insensitive key). Packs register zones
   by calling `WeatherZoneRegistry.Register(def)` from a script or YAML loader. The
   shipped `@tapestry/core` pack registers a `temperate` zone with states
-  `[clear, cloudy, rain, storm]` and terrain messages for `forest`, `city`, and `road`.
-  (src/Tapestry.Engine/WeatherZoneRegistry.cs; packs/@tapestry/core/areas/weather_zones.yaml:1-71)
+  `[clear, cloudy, rain, storm]` and a single `forest` terrain-message entry, matched
+  biome-first against any room tagged with a biome-kind tag named `forest` (see
+  `@tapestry/biomes`). There is no `city` or `road` entry, and no generic `outdoors`
+  entry -- that flavor now lives on the individual rooms that carry it (room-level
+  `weather_messages`/`time_messages`), not on the zone.
+  (src/Tapestry.Engine/WeatherZoneRegistry.cs; packs/@tapestry/core/areas/weather_zones.yaml:1-30)
 
 - An area opts in to weather by setting `WeatherZone` to a zone id in its area
   definition. Areas with no `WeatherZone` are silently skipped by the roll loop.
@@ -97,30 +105,52 @@ dispatch mechanics that drive the clock; it does not duplicate clock behavior.
 - If the new state differs from the current state, `weather.change` is published on the
   event bus with `areaId`, `state`, and `previousState`. No event is emitted when the
   state does not change.
-  (src/Tapestry.Engine/WeatherService.cs:85-94; tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:167-200)
+  (src/Tapestry.Engine/WeatherService.cs:95-104; tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:167-200)
 
 - Weather messages are sent only to occupied rooms (rooms containing at least one logged-
   in player). Unoccupied rooms receive the state update but no text.
-  (src/Tapestry.Engine/WeatherService.cs:45-60,96-99; commit 7d769c3)
+  (src/Tapestry.Engine/WeatherService.cs:55-70,106-109; commit 7d769c3)
 
 - On `time.period.change`: time-of-day messages are sent to all occupied rooms that pass
-  `ShouldReceiveTimeTransition`. (src/Tapestry.Engine/WeatherService.cs:103-121)
+  `ShouldReceiveTimeTransition`. (src/Tapestry.Engine/WeatherService.cs:113-132)
 
 - `ShouldReceiveWeather(room)` returns true when terrain is not `indoors` or
   `underground`, OR when `room.WeatherExposed == true` overrides the shield.
   `ShouldReceiveTimeTransition` follows the same logic using `room.TimeExposed`.
-  (src/Tapestry.Engine/WeatherService.cs:159-171;
+  (src/Tapestry.Engine/WeatherService.cs:169-181;
   tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:ShouldReceiveWeather_IndoorRoom_ReturnsFalse,
   tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:ShouldReceiveWeather_WeatherExposedIndoorRoom_ReturnsTrue)
 
-- Message resolution uses a three-level priority chain: room overrides area, area
-  overrides zone terrain. The first non-null result wins; null means no message.
-  For weather: `room.WeatherMessages[state]` -> `area.WeatherMessages[state]` ->
-  `zone.TerrainMessages[terrain][state]`. For time: `room.TimeMessages[period]` ->
-  `area.TimeMessages[period]` -> `zone.TerrainTransitions[terrain][period]`.
-  (src/Tapestry.Engine/WeatherService.cs:173-210;
+- Message resolution uses a four-level priority chain: room overrides area, area
+  overrides biome, biome overrides terrain. The first non-null result wins; null means
+  no message. For weather: `room.WeatherMessages[state]` -> `area.WeatherMessages[state]`
+  -> `zone.TerrainMessages[biome][state]` -> `zone.TerrainMessages[terrain][state]`. For
+  time: `room.TimeMessages[period]` -> `area.TimeMessages[period]` ->
+  `zone.TerrainTransitions[biome][period]` -> `zone.TerrainTransitions[terrain][period]`.
+  The biome step is skipped (falls straight through to terrain) when the room carries no
+  tag of kind `biome`; `terrain` always defaults to `"outdoors"` when the room declares
+  none. This is a deliberate ruling: forest flavor rides the biome tag rather than the
+  terrain value, so a room can be `terrain: outdoors` and still get forest-specific
+  weather/time text via `biome: forest`.
+  (src/Tapestry.Engine/WeatherService.cs:183-236;
   tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:MessageResolution_RoomOverridesArea,
+  tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:MessageResolution_BiomeFirst_ForestBiomeWithOutdoorsTerrain_ReturnsForestMessage,
+  tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:MessageResolution_RoomLevelMessage_WinsOverBiome,
+  tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:MessageResolution_NoBiome_FallsBackToTerrain_IndoorsOnly,
   tests/Tapestry.Engine.Tests/WeatherServiceTests.cs:MessageResolution_FallsBackToTerrain)
+
+- The biome value used in the chain above is recovered from the room's tag set: the
+  engine has no dedicated "room biome" field at runtime (`biome:` in room YAML just adds
+  a regular tag, see area-authoring.md), so `WeatherService.ResolveBiome` intersects
+  `room.Tags` against every `TagRegistry` entry whose `Kind == "biome"`, matching on
+  either the tag's bare `Name` or its scoped `FullName` (same pattern as
+  `RoomProjector.Project` and `AreaMapProjector.CollectBiomeTagNames`). The biome-kind
+  tag set is computed once and cached, since tag registration is complete before the
+  service resolves its first message. `WeatherService` takes a `TagRegistry` constructor
+  dependency for this lookup.
+  (src/Tapestry.Engine/WeatherService.cs:243-261;
+  src/Tapestry.Engine/Authoring/RoomProjector.cs:32-49;
+  src/Tapestry.Engine/Mapping/AreaMapProjector.cs:157-169)
 
 - `GetCurrentWeather(areaId)` returns the current state string, defaulting to `"clear"`
   for unknown areas. `SetWeather(areaId, state)` writes a state directly with no event
