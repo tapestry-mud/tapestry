@@ -84,6 +84,8 @@ When writing engine-side Jint bindings, accept a single `JsValue` and unpack it 
 
 `specs/` is the canonical source of truth for how every engine system behaves. `specs/README.md` lists all capability specs. Read specs before modifying engine behavior; update the relevant spec in the same commit.
 
+`CONTEXT.md` at the repo root is the domain glossary. Read it before working in an unfamiliar system and use its terms exactly -- several core words (heartbeat, pulse, persistent, seal, registry, oracle) are overloaded, and its Flagged Ambiguities section is the decoder. When a change coins or sharpens a domain term, update the glossary in the same commit.
+
 ## Security
 
 See [`SECURITY.md`](SECURITY.md). Do not report vulnerabilities in public issues or PRs.
