@@ -429,46 +429,20 @@ public class PackLoader : IPackManifestProvider
                 _logger.LogWarning("Mob {Id} has skill_trainer tag but no 'trains' block", template.Id);
             }
 
-            // Shop config: support nested dict (shop: { sells: [...] }) or flat key (shop.sells: [...])
+            // Shop config: flat top-level shop_sells field + flat shop_buy_modifier/shop_sell_modifier
+            // properties. Legacy dotted shop.sells key and nested shop: { ... } object are retired.
             if (template.Tags.Contains(ShopProperties.ShopTag))
             {
-                if (template.Properties.TryGetValue("shop", out var shopRaw)
-                    && shopRaw is Dictionary<string, object?> shopDict)
-                {
-                    var sells = new List<string>();
-                    if (shopDict.TryGetValue("sells", out var sellsRaw)
-                        && sellsRaw is List<object> sellsList)
-                    {
-                        sells = sellsList.Select(s => s.ToString()!).ToList();
-                    }
+                var buyModifier = template.Properties.TryGetValue(ShopProperties.BuyModifier, out var buyRaw)
+                    ? Convert.ToDouble(buyRaw)
+                    : 0.0;
+                var sellModifier = template.Properties.TryGetValue(ShopProperties.SellModifier, out var sellRaw)
+                    ? Convert.ToDouble(sellRaw)
+                    : 0.0;
 
-                    var buyMarkup = shopDict.TryGetValue("buy_markup", out var markupRaw)
-                        ? Convert.ToDouble(markupRaw)
-                        : 0.0;
-                    var sellDiscount = shopDict.TryGetValue("sell_discount", out var discountRaw)
-                        ? Convert.ToDouble(discountRaw)
-                        : 0.0;
-
-                    template.ShopConfig = new ShopConfig(sells, buyMarkup, sellDiscount);
-                    template.Properties.Remove("shop");
-                }
-                else if (template.ShopSells.Count > 0 || template.Properties.ContainsKey("shop.sells"))
-                {
-                    // Top-level shop_sells field or legacy shop.sells property key
-                    var sells = template.ShopSells.Count > 0
-                        ? template.ShopSells
-                        : new List<string>();
-
-                    if (sells.Count == 0
-                        && template.Properties.TryGetValue("shop.sells", out var flatSellsRaw)
-                        && flatSellsRaw is List<object> flatSellsList)
-                    {
-                        sells = flatSellsList.Select(s => s.ToString()!).ToList();
-                    }
-
-                    template.ShopConfig = new ShopConfig(sells, 0.0, 0.0);
-                    template.Properties.Remove("shop.sells");
-                }
+                template.ShopConfig = new ShopConfig(template.ShopSells, buyModifier, sellModifier);
+                template.Properties.Remove(ShopProperties.BuyModifier);
+                template.Properties.Remove(ShopProperties.SellModifier);
             }
 
             // Migrate patrol_route from properties to top-level field if present

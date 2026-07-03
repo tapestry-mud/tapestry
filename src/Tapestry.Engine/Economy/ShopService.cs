@@ -73,7 +73,7 @@ public class ShopService
     public long ComputeBuyPrice(Entity npc, int itemValue)
     {
         double markup;
-        var configMarkup = npc.ShopConfig?.BuyMarkup;
+        var configMarkup = npc.ShopConfig?.BuyModifier;
         markup = configMarkup.HasValue && configMarkup.Value > 0
             ? configMarkup.Value
             : _economyConfig.ShopBuyMarkup;
@@ -83,7 +83,7 @@ public class ShopService
     public long ComputeSellPrice(Entity npc, int itemValue)
     {
         double discount;
-        var configDiscount = npc.ShopConfig?.SellDiscount;
+        var configDiscount = npc.ShopConfig?.SellModifier;
         discount = configDiscount.HasValue && configDiscount.Value > 0
             ? configDiscount.Value
             : _economyConfig.ShopSellDiscount;

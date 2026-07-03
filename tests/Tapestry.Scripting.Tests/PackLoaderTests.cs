@@ -216,6 +216,92 @@ public class PackLoaderTests
     }
 
     [Fact]
+    public void LoadPack_BuildsShopConfig_FromFlatShopSellsAndModifierKeys()
+    {
+        var dir = WriteShopPack("""
+            id: "test:shopkeeper"
+            name: "a shopkeeper"
+            type: "npc"
+            tags: [shop]
+            properties:
+              shop_buy_modifier: 1.5
+              shop_sell_modifier: 0.4
+            shop_sells:
+              - "test:apple"
+            """);
+        try
+        {
+            var (_, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
+            loader.Load(dir);
+
+            var template = spawnManager.GetTemplate("test:shopkeeper");
+            template.Should().NotBeNull();
+            template!.ShopConfig.Should().NotBeNull();
+            template.ShopConfig!.Sells.Should().BeEquivalentTo(new[] { "test:apple" });
+            template.ShopConfig.BuyModifier.Should().Be(1.5);
+            template.ShopConfig.SellModifier.Should().Be(0.4);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void LoadPack_IgnoresLegacyDottedShopSellsKey()
+    {
+        var dir = WriteShopPack("""
+            id: "test:shopkeeper"
+            name: "a shopkeeper"
+            type: "npc"
+            tags: [shop]
+            properties:
+              "shop.sells":
+                - "test:apple"
+            """);
+        try
+        {
+            var (_, _, spawnManager, loader, _) = CreateLoaderDepsWithSpawn();
+            loader.Load(dir);
+
+            var template = spawnManager.GetTemplate("test:shopkeeper");
+            template.Should().NotBeNull();
+            // The legacy dotted "shop.sells" key is no longer honored -- only the flat
+            // top-level "shop_sells" field feeds ShopConfig now.
+            template!.ShopConfig!.Sells.Should().BeEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    private static string WriteShopPack(string mobYaml)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "tapestry-shop-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(dir, "areas", "test", "mobs"));
+        File.WriteAllText(Path.Combine(dir, "pack.yaml"), """
+            name: test
+            version: "1.0.0"
+            display_name: "Test"
+            description: ""
+            author: "Test"
+            load_order: 0
+            content:
+              area_definitions: "areas/**/area.yaml"
+              mobs: "areas/**/mobs/*.yaml"
+            """);
+        File.WriteAllText(Path.Combine(dir, "areas", "test", "area.yaml"), """
+            area:
+              id: test
+              name: Test
+              reset_interval: 300
+            """);
+        File.WriteAllText(Path.Combine(dir, "areas", "test", "mobs", "shopkeeper.yaml"), mobYaml);
+        return dir;
+    }
+
+    [Fact]
     public void LoadPack_ThemeYamlCollision_ThrowsAtSeal_NamingBothPacks()
     {
         var policy = TestRegistrationPolicy.Create();

@@ -54,14 +54,15 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
   checks for this tag.
   (src/Tapestry.Engine/Economy/ShopProperties.cs; src/Tapestry.Engine/Economy/ShopService.cs)
 
-- **[ShopConfig.YAML]** Shop configuration is declared in a mob YAML file in three
-  supported forms; all three are parsed only when the entity carries the `shop` tag:
-  1. Nested block -- `shop: { sells: [...], buy_markup: 1.4, sell_discount: 0.3 }`
-  2. Flat top-level field -- `shop_sells: [...]` (markup/discount fall back to server
-     defaults when omitted or 0).
-  3. Legacy dotted property -- a `shop.sells` key in the `properties` map (only parsed
-     when `shop_sells` is empty). Markup/discount fall back to server defaults.
-  (src/Tapestry.Scripting/PackLoader.cs:421-460)
+- **[ShopConfig.YAML]** Shop configuration is declared in a mob YAML file via a single
+  flat form, parsed only when the entity carries the `shop` tag:
+  - `shop_sells: [...]` -- top-level field listing item template IDs.
+  - `shop_buy_modifier` / `shop_sell_modifier` -- optional per-entity properties (in the
+    `properties` map) overriding the server-wide buy/sell multipliers; fall back to
+    server defaults when omitted or 0.
+  The legacy nested `shop: { sells, buy_markup, sell_discount }` block and the legacy
+  dotted `shop.sells` property key are retired and no longer parsed.
+  (src/Tapestry.Scripting/PackLoader.cs:432-444)
 
 - **[ShopConfig.Validation]** The pack validator emits a warning (not an error) when a
   mob has the `shop` tag but its `ShopConfig` is null or its sells list is empty.
@@ -74,12 +75,13 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
   (src/Tapestry.Engine/Economy/ShopService.cs:63-66)
 
 - **[ShopPricing.Buy]** Buy price = `round(itemValue * markup)`, minimum 1. The markup
-  applied is the per-shop `BuyMarkup` when > 0, otherwise the server-wide
+  applied is the per-shop `ShopConfig.BuyModifier` when > 0, otherwise the server-wide
   `EconomyConfig.ShopBuyMarkup` (default 1.2).
   (src/Tapestry.Engine/Economy/ShopService.cs; src/Tapestry.Engine/Economy/EconomyConfig.cs)
 
 - **[ShopPricing.Sell]** Sell price = `round(itemValue * discount)`, minimum 1. Discount
-  source selection mirrors the buy-markup logic; server default is 0.5.
+  source selection mirrors the buy-markup logic (`ShopConfig.SellModifier` when > 0,
+  otherwise `EconomyConfig.ShopSellDiscount`); server default is 0.5.
   (src/Tapestry.Engine/Economy/ShopService.cs)
 
 - **[ShopBuy.Flow]** `Buy` checks player gold, publishes a cancellable `shop.buy` event,
@@ -152,3 +154,12 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
 ---
 
 ## Change Log
+
+- 2026-07-03: Shop key vocabulary consolidation (Slice 3, Task 3.2). Collapsed the
+  three-spelling shop config shim in `PackLoader.cs` to the flat `shop_sells` form
+  only; retired the legacy dotted `shop.sells` property key and the nested
+  `shop: { sells, buy_markup, sell_discount }` block. Renamed the per-entity
+  markup/discount override keys from `shop.buy_markup` / `shop.sell_discount` to
+  `shop_buy_modifier` / `shop_sell_modifier`, and the `ShopConfig` record fields from
+  `BuyMarkup` / `SellDiscount` to `BuyModifier` / `SellModifier` to match. No content
+  used the retired forms.
