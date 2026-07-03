@@ -130,10 +130,16 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
   (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:MigratePropertyKey)
 
 - Current pairs: `wimpy_threshold` -> `wimpy_pct` (combat's wimpy/flee-threshold
-  unification; see combat-resolution.md). Extend the list for future renames -- no
-  other code change is required.
+  unification; see combat-resolution.md); and the ROM negation trio `notell` ->
+  `no_tell`, `nochannels` -> `no_channels`, `noemote` -> `no_emote` (vocabulary
+  consolidation Decision 1 -- the content-side property/command renames land
+  separately in the `@tapestry/core` pack). `no_follow` was already snake_case and
+  needed no entry. Extend the list for future renames -- no other code change is
+  required.
   (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:PropertyKeyMigrations,
-  tests/Tapestry.Engine.Tests/Persistence/PlayerSerializerTests.cs:FromSaveData_MigratesLegacyWimpyThresholdKeyToWimpyPct)
+  tests/Tapestry.Engine.Tests/Persistence/PlayerSerializerTests.cs:FromSaveData_MigratesLegacyWimpyThresholdKeyToWimpyPct,
+  FromSaveData_MigratesLegacyNotellKeyToNoTell, FromSaveData_MigratesLegacyNochannelsKeyToNoChannels,
+  FromSaveData_MigratesLegacyNoemoteKeyToNoEmote, RoundTrip_ReSavingAfterLoad_WritesOnlyMigratedNegationKeys)
 
 ### File-backed store layout
 

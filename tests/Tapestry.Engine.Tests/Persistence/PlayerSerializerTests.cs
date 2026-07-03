@@ -257,6 +257,100 @@ public class PlayerSerializerTests
     }
 
     [Fact]
+    public void FromSaveData_MigratesLegacyNotellKeyToNoTell()
+    {
+        // A save written before the ROM-trio rename still carries the old key.
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["notell"] = true
+            }
+        };
+
+        var result = _serializer.FromSaveData(dto);
+
+        result.Entity.GetProperty<bool>("no_tell").Should().BeTrue();
+        result.Entity.TryGetProperty<object>("notell", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void FromSaveData_MigratesLegacyNochannelsKeyToNoChannels()
+    {
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["nochannels"] = true
+            }
+        };
+
+        var result = _serializer.FromSaveData(dto);
+
+        result.Entity.GetProperty<bool>("no_channels").Should().BeTrue();
+        result.Entity.TryGetProperty<object>("nochannels", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void FromSaveData_MigratesLegacyNoemoteKeyToNoEmote()
+    {
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["noemote"] = true
+            }
+        };
+
+        var result = _serializer.FromSaveData(dto);
+
+        result.Entity.GetProperty<bool>("no_emote").Should().BeTrue();
+        result.Entity.TryGetProperty<object>("noemote", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void RoundTrip_ReSavingAfterLoad_WritesOnlyMigratedNegationKeys()
+    {
+        // Once a legacy-keyed save has been loaded (and thus migrated in memory),
+        // re-saving must write only the new keys -- the old keys never round-trip back in.
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["notell"] = true,
+                ["nochannels"] = true,
+                ["noemote"] = true
+            }
+        };
+
+        var loaded = _serializer.FromSaveData(dto);
+        var resaved = _serializer.ToSaveData(loaded.Entity, Guid.Empty, new List<Entity>());
+
+        resaved.Properties.Should().ContainKey("no_tell");
+        resaved.Properties.Should().ContainKey("no_channels");
+        resaved.Properties.Should().ContainKey("no_emote");
+        resaved.Properties.Should().NotContainKey("notell");
+        resaved.Properties.Should().NotContainKey("nochannels");
+        resaved.Properties.Should().NotContainKey("noemote");
+    }
+
+    [Fact]
     public void FromSaveData_AdminTagIsNotPromotedToRole()
     {
         var dto = new PlayerSaveData

@@ -287,10 +287,14 @@ public class PlayerSerializer
     // materializes on load. A pair here rewrites a legacy persisted key to its current
     // name so existing player saves don't silently lose the value when an engine
     // property is renamed. Slice 2 introduces this with the wimpy_pct pair; Slice 7
-    // extends it with the ROM trio -- add one tuple per rename, no other change needed.
+    // extends it with the ROM negation trio -- add one tuple per rename, no other
+    // change needed. no_follow is already snake_case and needs no entry.
     private static readonly (string OldKey, string NewKey)[] PropertyKeyMigrations =
     {
         ("wimpy_threshold", "wimpy_pct"),
+        ("notell", "no_tell"),
+        ("nochannels", "no_channels"),
+        ("noemote", "no_emote"),
     };
 
     private void DeserializeProperties(Entity entity, Dictionary<string, object?> properties)
