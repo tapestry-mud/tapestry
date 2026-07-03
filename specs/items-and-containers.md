@@ -1,6 +1,6 @@
 ---
 capability: items-and-containers
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Items and Containers
@@ -216,3 +216,4 @@ covered in equipment-and-modifiers.md.
 - None on record.
 
 ## Change Log
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - fill liquid read from the fill_type property (water hardcode removed); fill_source property retired to a source-marker tag; fixture implies no_get

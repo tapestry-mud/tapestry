@@ -1,6 +1,6 @@
 ---
 capability: mob-ai
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Mob AI
@@ -213,3 +213,4 @@ combat-resolution.md).
   53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - the mob-AI flee path routes through CombatManager.ShouldFlee reading wimpy_pct

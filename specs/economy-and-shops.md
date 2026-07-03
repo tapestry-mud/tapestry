@@ -1,6 +1,6 @@
 ---
 capability: economy-and-shops
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Economy and Shops
@@ -155,6 +155,7 @@ is hardcoded in the engine. Rest and regeneration are covered in rest-and-recove
 
 ## Change Log
 
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - value moved to an engine-registered property; flat shop_sells plus shop_buy_modifier/shop_sell_modifier replace the dotted shop keys and the three-spelling loader shim
 - 2026-07-03: Shop key vocabulary consolidation (Slice 3, Task 3.2). Collapsed the
   three-spelling shop config shim in `PackLoader.cs` to the flat `shop_sells` form
   only; retired the legacy dotted `shop.sells` property key and the nested

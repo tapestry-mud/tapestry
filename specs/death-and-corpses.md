@@ -1,6 +1,6 @@
 ---
 capability: death-and-corpses
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Death and Corpses
@@ -203,3 +203,4 @@ default 300, player fixed 600).
 ---
 
 ## Change Log
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - mob_level survives as explicit corpse metadata, stamped from the dead mob level.combat

@@ -1,6 +1,6 @@
 ---
 capability: mob-lifecycle
-last-updated: 2026-06-22
+last-updated: 2026-07-03
 ---
 
 # Mob Lifecycle
@@ -203,4 +203,5 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 
 ## Change Log
 
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - mob_level desugars to a level.combat map at MobTemplate.CreateEntity; the scalar no longer rides the live entity
 - 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)

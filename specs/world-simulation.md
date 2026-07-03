@@ -191,3 +191,4 @@ dispatch mechanics that drive the clock; it does not duplicate clock behavior.
 - None on record.
 
 ## Change Log
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - terrain closed to indoors/outdoors/underground defaulting to outdoors; weather and time message lookup resolves biome-first then falls back to terrain

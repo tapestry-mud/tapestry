@@ -1,6 +1,6 @@
 ---
 capability: world-entity-store
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # World Entity Store
@@ -186,3 +186,4 @@ a diagnostic snapshot sampled on demand.
 - None on record.
 
 ## Change Log
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - engine-read tags gain a single declaration site so a mistyped tag fails resolution instead of silently never matching

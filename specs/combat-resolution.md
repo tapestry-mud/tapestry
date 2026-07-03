@@ -1,6 +1,6 @@
 ---
 capability: combat-resolution
-last-updated: 2026-06-21
+last-updated: 2026-07-03
 ---
 
 # Combat Resolution
@@ -398,4 +398,5 @@ all timing, content, and magnitude levers are read off the mob's properties.
 
 ## Change Log
 
+- 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - flee unified onto one wimpy_pct property read by a single CombatManager.ShouldFlee predicate; flee_threshold/wimpy_threshold retired
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - the embedded swell loop: per-fight swell clock, the combat-action gate (auto-attack AND ability resolution suspended during a swell), the validate/resolve seam, resolve as the single HP mutator reusing the existing death event
