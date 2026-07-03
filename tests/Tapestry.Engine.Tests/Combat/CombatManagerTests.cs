@@ -36,11 +36,11 @@ public class CombatManagerTests
         return entity;
     }
 
-    private Entity CreateMob(string name = "a goblin", int hp = 40)
+    private Entity CreateMob(string name = "a goblin", int hp = 40, int? maxHp = null)
     {
         var entity = new Entity("npc", name);
         entity.AddTag("npc");
-        entity.Stats.BaseMaxHp = hp;
+        entity.Stats.BaseMaxHp = maxHp ?? hp;
         entity.Stats.Hp = hp;
         entity.Stats.BaseStrength = 8;
         entity.Stats.BaseDexterity = 10;
@@ -346,6 +346,35 @@ public class CombatManagerTests
     }
 
     // Tick_ExecutesPhasesInOrder — removed: CombatManager.Tick() removed (dead code, heartbeat handles combat pulse).
+
+    [Fact]
+    public void ShouldFlee_WhenHpPercentAtOrBelowWimpyPct()
+    {
+        Setup();
+        var mob = CreateMob(hp: 15, maxHp: 100);
+        mob.SetProperty(CombatProperties.WimpyPct, 20);
+        Assert.True(_combat.ShouldFlee(mob, currentTick: 0));
+    }
+
+    [Fact]
+    public void ShouldFlee_False_AboveWimpyPct()
+    {
+        Setup();
+        var mob = CreateMob(hp: 25, maxHp: 100);
+        mob.SetProperty(CombatProperties.WimpyPct, 20);
+        Assert.False(_combat.ShouldFlee(mob, currentTick: 0));
+    }
+
+    [Fact]
+    public void ShouldFlee_False_WhenOnlyLegacyFleeThresholdSet()
+    {
+        // Proves the retired flee_threshold key is dead -- a mob carrying only the old
+        // key (no wimpy_pct) must never auto-flee, no matter how low its HP is.
+        Setup();
+        var mob = CreateMob(hp: 15, maxHp: 100);
+        mob.SetProperty("flee_threshold", 0.9);
+        Assert.False(_combat.ShouldFlee(mob, currentTick: 0));
+    }
 
     [Fact]
     public void HandleEntityDeath_PublishesKillEventWithRoomId()

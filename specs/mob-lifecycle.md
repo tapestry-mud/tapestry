@@ -36,7 +36,7 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
     constitution, luck, max_hp, max_resource, max_movement).
     (src/Tapestry.Engine/Mobs/MobTemplate.cs:55)
   - `Properties` / `properties` -- arbitrary key/value pairs written to entity properties
-    at spawn (e.g., mob_level, flee_threshold, wander_interval).
+    at spawn (e.g., mob_level, wimpy_pct, wander_interval).
   - `Equipment` / `equipment` -- list of item template IDs to instantiate and equip on
     spawn; stat modifiers on equipped items are applied to entity stats.
     (src/Tapestry.Engine/Mobs/SpawnManager.cs:135-161)

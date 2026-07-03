@@ -297,9 +297,9 @@ public class MobAIManagerTests
         var mob = new Entity("npc", "a goblin") { LocationRoomId = "zone:room1" };
         mob.AddTag("npc");
         mob.Stats.BaseMaxHp = 40;
-        mob.Stats.Hp = 10; // 25% -- below the 0.5 flee threshold
+        mob.Stats.Hp = 10; // 25% -- below the 50% wimpy threshold
         mob.SetProperty(MobProperties.Behavior, "stationary");
-        mob.SetProperty("flee_threshold", 0.5);
+        mob.SetProperty(CombatProperties.WimpyPct, 50);
         room1.AddEntity(mob);
         world.TrackEntity(mob);
         world.SwapTagBuffers();

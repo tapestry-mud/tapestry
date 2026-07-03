@@ -19,7 +19,6 @@ public static class MobProperties
     public const string WanderBoundary = "wander_boundary";
     public const string WanderChance = "wander_chance";
     public const string PatrolChance = "patrol_chance";
-    public const string FleeThreshold = "flee_threshold";
     public const string GoldMin = "gold_min";
     public const string GoldMax = "gold_max";
     public const string MobLevel = "mob_level";
@@ -57,8 +56,6 @@ public static class MobProperties
         registry.RegisterEngineProperty(WanderChance, "Probability of moving each wander tick (0.0-1.0)",
             PropertyValueType.Double, appliesTo: new[] { EntityTypes.Npc });
         registry.RegisterEngineProperty(PatrolChance, "Probability of advancing patrol each tick (0.0-1.0)",
-            PropertyValueType.Double, appliesTo: new[] { EntityTypes.Npc });
-        registry.RegisterEngineProperty(FleeThreshold, "HP percentage threshold below which mob flees (0.0-1.0)",
             PropertyValueType.Double, appliesTo: new[] { EntityTypes.Npc });
         registry.RegisterEngineProperty(GoldMin, "Minimum gold dropped on death",
             PropertyValueType.Int, appliesTo: new[] { EntityTypes.Npc });

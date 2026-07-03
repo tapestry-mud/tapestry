@@ -187,10 +187,13 @@ combat-resolution.md).
 
 ### Flee
 
-- A mob with `flee_threshold` > 0 that is in combat below that HP% attempts to flee on
-  its AI tick turn via `CombatManager.AttemptFlee`. A flee cooldown prevents chain-
-  fleeing; on cooldown the mob stands and fights.
-  (src/Tapestry.Engine/Mobs/MobAIManager.cs:345-388;
+- A mob with `wimpy_pct` > 0 (0-100 scale) that is in combat at or below that HP%
+  attempts to flee on its AI tick turn via `CombatManager.ShouldFlee` then
+  `CombatManager.AttemptFlee`. This is the same predicate `CheckWimpyPhase` uses for
+  players, so mob and player auto-flee share one decision. A flee cooldown prevents
+  chain-fleeing; on cooldown the mob stands and fights.
+  (src/Tapestry.Engine/Mobs/MobAIManager.cs:345-367;
+  src/Tapestry.Engine/Combat/CombatManager.cs:ShouldFlee;
   tests/Tapestry.Engine.Tests/Mobs/MobAIManagerTests.cs:Tick_WimpyMobOnFleeCooldown_StandsAndFights)
 - When a mob succeeds in fleeing (`TryFlee` returns true), the entire behavior dispatch
   block is skipped for that tick, including the `mob.ai.tick` publish. The posture gate

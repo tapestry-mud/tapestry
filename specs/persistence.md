@@ -114,6 +114,27 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
 - Map properties (`MapInt`, `MapString`) round-trip correctly through the serializer.
   (tests/Tapestry.Engine.Tests/Persistence/MapPropertyTests.cs:88)
 
+### Property key migrations (read-old-write-new)
+
+- `PlayerSerializer` keeps a static list of (old key, new key) pairs and rewrites a
+  legacy persisted property key to its current name as the property bag materializes
+  on load. This is separate from `SaveMigrations` (whole-save version bumps, below):
+  it runs per-property on every load, independent of save version, so a rename lands
+  without needing a version bump or a corrective migration entry.
+  (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:PropertyKeyMigrations,
+  DeserializeProperties)
+
+- If a save carries both the old and new key for the same property, the old entry is
+  dropped and the new key's value is kept. Once a migrated save is re-saved, only the
+  new key is written -- the old key does not round-trip back in.
+  (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:MigratePropertyKey)
+
+- Current pairs: `wimpy_threshold` -> `wimpy_pct` (combat's wimpy/flee-threshold
+  unification; see combat-resolution.md). Extend the list for future renames -- no
+  other code change is required.
+  (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:PropertyKeyMigrations,
+  tests/Tapestry.Engine.Tests/Persistence/PlayerSerializerTests.cs:FromSaveData_MigratesLegacyWimpyThresholdKeyToWimpyPct)
+
 ### File-backed store layout
 
 Both stores are configured from `server.yaml` `persistence.save_path` (default

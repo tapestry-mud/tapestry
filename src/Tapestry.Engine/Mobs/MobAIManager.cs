@@ -344,34 +344,12 @@ public class MobAIManager
 
     private bool TryFlee(Entity entity)
     {
-        var raw = entity.GetProperty<object>("flee_threshold");
-        if (raw == null)
-        {
-            return false;
-        }
-
-        if (!double.TryParse(raw.ToString(), out var threshold) || threshold <= 0)
-        {
-            return false;
-        }
-
         if (!_combat.IsInCombat(entity.Id))
         {
             return false;
         }
 
-        var hpPercent = entity.Stats.MaxHp > 0
-            ? (double)entity.Stats.Hp / entity.Stats.MaxHp
-            : 0;
-
-        if (hpPercent >= threshold)
-        {
-            return false;
-        }
-
-        // A mob that just fled is on cooldown -- it stands and fights rather than
-        // chain-fleeing every tick, which makes a fleeing mob catchable.
-        if (_combat.HasFleeCooldown(entity.Id, _currentTick))
+        if (!_combat.ShouldFlee(entity, _currentTick))
         {
             return false;
         }

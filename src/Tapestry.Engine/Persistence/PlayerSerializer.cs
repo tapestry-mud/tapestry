@@ -283,13 +283,43 @@ public class PlayerSerializer
         stats.Movement = data.Vitals.Movement;
     }
 
+    // Read-old-write-new property key migrations, applied as a save's property bag
+    // materializes on load. A pair here rewrites a legacy persisted key to its current
+    // name so existing player saves don't silently lose the value when an engine
+    // property is renamed. Slice 2 introduces this with the wimpy_pct pair; Slice 7
+    // extends it with the ROM trio -- add one tuple per rename, no other change needed.
+    private static readonly (string OldKey, string NewKey)[] PropertyKeyMigrations =
+    {
+        ("wimpy_threshold", "wimpy_pct"),
+    };
+
     private void DeserializeProperties(Entity entity, Dictionary<string, object?> properties)
     {
         foreach (var (key, value) in properties)
         {
-            var deserializedValue = DeserializePropertyValue(key, value);
-            entity.SetProperty(key, deserializedValue);
+            var migratedKey = MigratePropertyKey(key, properties);
+            if (migratedKey == null)
+            {
+                // Superseded: the save already carries the current key too, so the
+                // legacy entry is dropped rather than overwriting it.
+                continue;
+            }
+            var deserializedValue = DeserializePropertyValue(migratedKey, value);
+            entity.SetProperty(migratedKey, deserializedValue);
         }
+    }
+
+    private static string? MigratePropertyKey(string key, Dictionary<string, object?> properties)
+    {
+        foreach (var (oldKey, newKey) in PropertyKeyMigrations)
+        {
+            if (key != oldKey)
+            {
+                continue;
+            }
+            return properties.ContainsKey(newKey) ? null : newKey;
+        }
+        return key;
     }
 
     private object? DeserializePropertyValue(string key, object? value)

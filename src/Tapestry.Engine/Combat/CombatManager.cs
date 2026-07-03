@@ -275,6 +275,37 @@ public class CombatManager
         return false;
     }
 
+    // Single flee decision shared by CheckWimpyPhase (players + NPCs on the pulse) and
+    // MobAIManager.TryFlee (mob AI tick). Reads wimpy_pct on the 0-100 scale; the legacy
+    // wimpy_threshold and flee_threshold keys are retired and never consulted here.
+    public bool ShouldFlee(Entity entity, long currentTick)
+    {
+        if (entity.Stats.Hp <= 0)
+        {
+            return false;
+        }
+        var raw = entity.GetProperty<object>(CombatProperties.WimpyPct);
+        if (raw == null)
+        {
+            return false;
+        }
+        var threshold = Convert.ToInt32(raw);
+        if (threshold <= 0)
+        {
+            return false;
+        }
+        if (entity.Stats.MaxHp <= 0)
+        {
+            return false;
+        }
+        var hpPercent = (int)((double)entity.Stats.Hp / entity.Stats.MaxHp * 100);
+        if (hpPercent > threshold)
+        {
+            return false;
+        }
+        return !HasFleeCooldown(entity.Id, currentTick);
+    }
+
     public void HandleEntityDeath(Guid entityId, Guid? killerId)
     {
         var victim = _world.GetEntity(entityId);
