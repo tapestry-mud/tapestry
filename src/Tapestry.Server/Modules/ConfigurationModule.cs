@@ -13,6 +13,7 @@ using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Progression;
 using Tapestry.Engine.Prompt;
 using Tapestry.Engine.Rest;
+using Tapestry.Engine.Tags;
 using Tapestry.Engine.Training;
 
 namespace Tapestry.Server.Modules;
@@ -23,6 +24,7 @@ public class ConfigurationModule : IGameModule
     private readonly TrainingConfig _trainingConfig;
     private readonly EconomyConfig _economyConfig;
     private readonly PropertyRegistry _propertyRegistry;
+    private readonly TagRegistry _tagRegistry;
 
     public string Name => "Configuration";
 
@@ -30,12 +32,14 @@ public class ConfigurationModule : IGameModule
         ServerConfig config,
         TrainingConfig trainingConfig,
         EconomyConfig economyConfig,
-        PropertyRegistry propertyRegistry)
+        PropertyRegistry propertyRegistry,
+        TagRegistry tagRegistry)
     {
         _config = config;
         _trainingConfig = trainingConfig;
         _economyConfig = economyConfig;
         _propertyRegistry = propertyRegistry;
+        _tagRegistry = tagRegistry;
     }
 
     public void Configure()
@@ -63,5 +67,7 @@ public class ConfigurationModule : IGameModule
         ConsumableProperties.Register(_propertyRegistry);
         ContainerProperties.Register(_propertyRegistry);
         RestProperties.Register(_propertyRegistry);
+
+        EngineTags.Register(_tagRegistry);
     }
 }

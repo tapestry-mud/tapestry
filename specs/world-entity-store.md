@@ -158,6 +158,16 @@ a diagnostic snapshot sampled on demand.
 - `TagRegistryEntry` carries Name, Scope, Description, AppliesTo, Kind, and
   FullName (engine tags: bare name; pack tags: `scope:name`).
   (src/Tapestry.Engine/Tags/TagRegistryEntry.cs:1-15)
+- `EngineTags` is the canonical declaration site for every tag the engine
+  itself reads via `HasTag(...)` string literals (e.g. `no_kill`, `safe`,
+  `fixture`, `corpse`); it mirrors the `*Properties.Register(PropertyRegistry)`
+  pattern used for engine properties. `ConfigurationModule.Configure()` calls
+  `EngineTags.Register` alongside the property registrations, before pack
+  content loads, so a colliding declaration in a pack's `tags.yml` (which
+  routes through `RegisterEngineTag` when the pack is `tapestry-core`) throws
+  at boot instead of silently shadowing.
+  (src/Tapestry.Engine/Tags/EngineTags.cs;
+  src/Tapestry.Server/Modules/ConfigurationModule.cs)
 
 ### WorldCensus
 
