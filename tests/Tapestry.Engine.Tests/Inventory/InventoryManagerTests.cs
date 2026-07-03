@@ -1,6 +1,8 @@
 // tests/Tapestry.Engine.Tests/Inventory/InventoryManagerTests.cs
 using FluentAssertions;
 using Tapestry.Engine;
+using Tapestry.Engine.Consumables;
+using Tapestry.Engine.Containers;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Inventory;
 using Tapestry.Shared;
@@ -143,5 +145,55 @@ public class InventoryManagerTests
 
         mgr.PickUp(player, corpse).Should().BeTrue();
         player.Contents.Should().Contain(corpse);
+    }
+
+    [Fact]
+    public void FillItem_ReadsLiquidFromFillType_NotHardcodedWater()
+    {
+        var (mgr, _, _) = Setup();
+        var source = MakeEntity(tags: new[] { "fill_source" });
+        source.SetProperty(ContainerProperties.FillType, "water");
+        source.SetProperty(ContainerProperties.FillSupply, 10);
+        var flask = MakeFillable(maxCharges: 5);
+        var actor = new Entity("player", "Test actor");
+
+        var (ok, _) = mgr.FillItem(actor, flask, source);
+        ok.Should().BeTrue();
+        flask.GetProperty<string?>(ContainerProperties.FillType).Should().Be("water");
+    }
+
+    [Fact]
+    public void FillItem_SourceWithoutFillType_Fails()
+    {
+        var (mgr, _, _) = Setup();
+        var source = MakeEntity(tags: new[] { "fill_source" });
+        source.SetProperty(ContainerProperties.FillSupply, 10);
+        var flask = MakeFillable(maxCharges: 5);
+        var actor = new Entity("player", "Test actor");
+
+        var (ok, reason) = mgr.FillItem(actor, flask, source);
+        ok.Should().BeFalse();
+        reason.Should().Be("no_fill_source");
+    }
+
+    private Entity MakeEntity(string[]? tags = null)
+    {
+        var entity = new Entity("test:entity", "test entity");
+        if (tags != null)
+        {
+            foreach (var tag in tags)
+            {
+                entity.AddTag(tag);
+            }
+        }
+        return entity;
+    }
+
+    private Entity MakeFillable(int maxCharges)
+    {
+        var entity = new Entity("item:fillable", "test flask");
+        entity.AddTag("item");
+        entity.SetProperty(ConsumableProperties.MaxCharges, maxCharges);
+        return entity;
     }
 }

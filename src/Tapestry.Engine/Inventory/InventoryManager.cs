@@ -211,13 +211,8 @@ public class InventoryManager : IQuestInventoryService
         }
         var maxCharges = Convert.ToInt32(rawMaxCharges);
 
-        var fillSource = source.GetProperty<string?>(ContainerProperties.FillSource);
-        if (string.IsNullOrEmpty(fillSource))
-        {
-            // Fall back to tag-based source type if property missing
-            fillSource = source.HasTag("fill_source") ? "water" : null;
-        }
-        if (fillSource == null)
+        var fillLiquid = source.GetProperty<string?>(ContainerProperties.FillType);
+        if (string.IsNullOrEmpty(fillLiquid))
         {
             return (false, "no_fill_source");
         }
@@ -232,7 +227,7 @@ public class InventoryManager : IQuestInventoryService
         var existingFillType = target.GetProperty<string?>(ContainerProperties.FillType);
         var existingCharges = ReadInt(target, ConsumableProperties.Charges);
         if (existingFillType != null
-            && existingFillType != fillSource
+            && existingFillType != fillLiquid
             && existingCharges > 0)
         {
             return (false, "mixed_liquids");
@@ -240,7 +235,7 @@ public class InventoryManager : IQuestInventoryService
 
         // Fill to max
         target.SetProperty(ConsumableProperties.Charges, maxCharges);
-        target.SetProperty(ContainerProperties.FillType, fillSource);
+        target.SetProperty(ContainerProperties.FillType, fillLiquid);
 
         if (fillSupply.HasValue)
         {
@@ -255,7 +250,7 @@ public class InventoryManager : IQuestInventoryService
             {
                 ["sourceId"] = source.Id.ToString(),
                 ["targetId"] = target.Id.ToString(),
-                ["fillType"] = fillSource
+                ["fillType"] = fillLiquid
             }
         });
 
