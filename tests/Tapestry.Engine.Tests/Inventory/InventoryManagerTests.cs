@@ -157,8 +157,9 @@ public class InventoryManagerTests
         var flask = MakeFillable(maxCharges: 5);
         var actor = new Entity("player", "Test actor");
 
-        var (ok, _) = mgr.FillItem(actor, flask, source);
+        var (ok, reason) = mgr.FillItem(actor, flask, source);
         ok.Should().BeTrue();
+        reason.Should().BeNull();
         flask.GetProperty<string?>(ContainerProperties.FillType).Should().Be("water");
     }
 

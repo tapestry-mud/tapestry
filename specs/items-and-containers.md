@@ -106,8 +106,8 @@ covered in equipment-and-modifiers.md.
 - Container entities have type `container`. Engine-registered properties:
   `public` (Bool), `container_capacity` (Int, max item count),
   `container_weight_limit` (Int, max total weight), `fill_type` (String),
-  `fill_source` (String), `fill_supply` (Int).
-  (src/Tapestry.Engine/Containers/ContainerProperties.cs:7-23)
+  `fill_supply` (Int).
+  (src/Tapestry.Engine/Containers/ContainerProperties.cs:8-20)
 
 - `PutInContainer` refuses if the container is not accessible (must be in the
   actor's inventory, in the same room floor, or flagged `public`).
@@ -130,12 +130,13 @@ covered in equipment-and-modifiers.md.
   (src/Tapestry.Scripting/Modules/InventoryModule.cs:704-721)
 
 - `FillItem` fills a liquid-bearing item (must have `max_charges`) from a source
-  entity. The source entity's `fill_source` property determines the liquid type;
-  if the property is absent or empty, the engine falls back to checking whether
-  the source entity has a `fill_source` tag, defaulting to "water" when that
-  tag is present. Refuses if liquid types would be mixed with existing charges.
-  Decrements `fill_supply` on the source if set.
-  (src/Tapestry.Engine/Inventory/InventoryManager.cs:205-263, especially 214-219)
+  entity. The source entity's `fill_type` property determines the liquid type;
+  there is no tag-based fallback. Fails with reason `no_fill_source` if the
+  source's `fill_type` is absent or empty. Refuses if liquid types would be
+  mixed with existing charges. Decrements `fill_supply` on the source if set.
+  The `fill_source` tag still gates source lookup (which entities are
+  eligible fill sources) but no longer carries the liquid type.
+  (src/Tapestry.Engine/Inventory/InventoryManager.cs:205-258, especially 214-218)
 
 ### Stacking
 
