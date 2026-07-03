@@ -1,6 +1,6 @@
 ---
 capability: rest-and-recovery
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Rest and Recovery
@@ -9,12 +9,12 @@ last-updated: 2026-06-12
 
 The rest system tracks a per-entity rest state (standing, resting, or sleeping) and uses
 that state as a multiplier on HP, resource, and movement regeneration. All configuration
-is data-driven: packs set room healing rates in YAML, and pack scripts call into the `rest`
-JS module. No rest or regen values are hardcoded in the engine.
+is data-driven: packs set a `rest_bonus` on furniture and/or rooms in YAML, and pack
+scripts call into the `rest` JS module. No rest or regen values are hardcoded in the engine.
 
 The regen tick fires every 30 game-loop ticks (3 seconds at the default 100 ms/tick rate)
-and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and room healing
-rates are applied together each regen tick.
+and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and room
+`rest_bonus` values are applied together each regen tick.
 
 ---
 
@@ -48,9 +48,11 @@ rates are applied together each regen tick.
   The resting and sleeping values are configurable via `RestConfig.Configure`.
   (src/Tapestry.Engine/Rest/RestConfig.cs)
 
-- **[RestConfig.RoomBonus]** If an entity has a location, the room's `healing_rate`
-  property (int, registered for `EntityTypes.Room`) is added to the final multiplier.
-  This stacks additively with the state multiplier and any furniture bonus.
+- **[RestConfig.RoomBonus]** If an entity has a location, the room's `rest_bonus`
+  property (int) is added to the final multiplier. This is the same property name and
+  type used for the furniture bonus -- `rest_bonus` is registered once, with no
+  `appliesTo` restriction, so it is settable on any entity type (furniture, room, or
+  otherwise). It stacks additively with the state multiplier and any furniture bonus.
   (src/Tapestry.Engine/GameLoop.cs:476; src/Tapestry.Engine/Rest/RestProperties.cs)
 
 - **[RestConfig.MinSleep]** `RestConfig` stores `MinSleepTicksForWellRested` (default 120,
@@ -79,9 +81,10 @@ rates are applied together each regen tick.
 - **[Regen.Candidates]** Each regen tick collects all `player` and `npc` entities that do
   not have the `no_regen` tag and are not currently in combat (`CombatManager.IsInCombat`).
   Entities in combat do not regenerate any vital - ROM-style "no heal while fighting" - so
-  combat damage sticks for the duration of the fight. For each candidate the handler computes a `finalMultiplier`
-  by summing the state multiplier, the furniture `rest_bonus`, and the room `healing_rate`.
-  A `finalMultiplier` of exactly 0.0 causes the entity to be skipped entirely.
+  combat damage sticks for the duration of the fight. For each candidate the handler computes
+  a `finalMultiplier` by summing the state multiplier, the resting-target furniture's
+  `rest_bonus`, and the current room's `rest_bonus`. A `finalMultiplier` of exactly 0.0
+  causes the entity to be skipped entirely.
   (src/Tapestry.Engine/GameLoop.cs:450-482)
 
 - **[Regen.Event]** For each vital below max whose computed regen amount is positive,

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Registration;
+using Tapestry.Engine.Rest;
 using Tapestry.Engine.Tests.Registration;
 using Tapestry.Engine.Stats;
 using Tapestry.Shared;
@@ -498,6 +499,41 @@ public class GameLoopTests
         loop.Tick();
 
         entity.Stats.Hp.Should().Be(55); // full regen regardless of sustenance
+    }
+
+    [Fact]
+    public void RegisterRegenHandler_RoomRestBonus_ContributesToRegenMultiplier()
+    {
+        var registry = new CommandRegistry();
+        var sessions = new SessionManager();
+        var world = new World();
+        var eventBus = new EventBus();
+        var policy = TestRegistrationPolicy.Create();
+        var loop = new GameLoop(new CommandRouter(registry, sessions, world), sessions, eventBus,
+            new SystemEventQueue(), NullLogger<GameLoop>.Instance, new TapestryMetrics(),
+            new TickTimer(10), new NotificationQueue(), policy);
+
+        var entity = new Entity("player", "Test");
+        entity.Stats.BaseMaxHp = 100;
+        entity.Stats.Hp = 50;
+        entity.SetProperty("regen_hp", 5);
+        entity.SetProperty(RestProperties.RestState, RestProperties.StateResting);
+
+        var restConfig = new RestConfig();
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: restConfig, combatManager: new CombatManager(world, eventBus));
+        policy.Resolve();
+
+        var room = new Room("test", "Test", "Test room");
+        room.SetProperty(RestProperties.RestBonus, 1);
+        room.AddEntity(entity);
+        world.AddRoom(room);
+        world.TrackEntity(entity);
+
+        loop.Tick();
+
+        // restMultiplier = RestingMultiplier (2.0) + room rest_bonus (1) = 3.0
+        // regen_hp 5 * 3.0 = 15 -> Hp = 50 + 15 = 65
+        entity.Stats.Hp.Should().Be(65);
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

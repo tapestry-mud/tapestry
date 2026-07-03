@@ -474,7 +474,7 @@ public class GameLoop
                         var room = world.GetRoom(entity.LocationRoomId);
                         if (room != null)
                         {
-                            restMultiplier += room.GetProperty<int>(RestProperties.RoomHealingRate);
+                            restMultiplier += room.GetProperty<int>(RestProperties.RestBonus);
                         }
                     }
                 }
