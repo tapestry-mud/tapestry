@@ -125,3 +125,4 @@ and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and ro
 ---
 
 ## Change Log
+- 2026-07-03 [regen-and-vitals-fixes](changes/2026-07-03-regen-and-vitals-fixes.md) - regen pauses for entities in combat (#126); room regen bonus renamed healing_rate -> rest_bonus (vocab slice 6); swell HP pushed to the client via an interim combat.swell.resolve subscription (#17)

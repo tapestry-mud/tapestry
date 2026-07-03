@@ -20,7 +20,7 @@ known constraints, and change history.
 | Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-03 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-07-03 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
-| Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-06-12 |
+| Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-03 |
 | Persistence | [persistence.md](persistence.md) | 2026-07-03 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
 | Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
