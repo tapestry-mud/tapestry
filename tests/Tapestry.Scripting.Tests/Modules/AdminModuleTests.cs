@@ -300,6 +300,37 @@ public class AdminModuleTests
     }
 
     [Fact]
+    public void SetEntityHp_PublishesVitalChanged_WithAdminReason()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        services.AddTapestryScripting();
+        var provider = services.BuildServiceProvider();
+        var rt = provider.GetRequiredService<JintRuntime>();
+        rt.Initialize();
+        var world = provider.GetRequiredService<World>();
+        var eventBus = provider.GetRequiredService<EventBus>();
+
+        var mob = new Entity("npc", "goblin guard");
+        mob.AddTag("npc");
+        world.TrackEntity(mob);
+        mob.Stats.BaseMaxHp = 100;
+        mob.Stats.Invalidate();
+        mob.Stats.Hp = 50;
+
+        var seen = new List<GameEvent>();
+        eventBus.Subscribe("entity.vital.changed", seen.Add);
+
+        EsmTest.Load(rt, "test-pack", $"tapestry.admin.setEntityHp('{mob.Id}', 8000)");
+
+        Assert.Equal(8000, mob.Stats.Hp);
+        var evt = Assert.Single(seen);
+        Assert.Equal("hp", evt.Data["vital"]);
+        Assert.Equal("admin", evt.Data["reason"]);
+    }
+
+    [Fact]
     public void InspectCommand_NoOrdinal_FindsFirstGoblin()
     {
         var (rt, world, registry, sessions) = BuildInspectRuntime();

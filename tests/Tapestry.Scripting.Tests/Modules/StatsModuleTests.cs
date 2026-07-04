@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
 using Tapestry.Scripting;
+using Tapestry.Scripting.Services;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests.Modules;
 
@@ -132,5 +134,32 @@ public class StatsModuleTests
         var unknownId = Guid.NewGuid().ToString();
         var ex = Record.Exception(() => EsmTest.Load(rt, "test-pack", $"tapestry.stats.restoreVitals('{unknownId}')"));
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public void SetEntityHp_PublishesVitalChanged_WithScriptSetReason()
+    {
+        var world = new World();
+        var statDisplayNames = new Tapestry.Engine.Stats.StatDisplayNames();
+        var eventBus = new EventBus();
+        var vitalsService = new VitalsService(eventBus);
+        var stats = new ApiStats(world, statDisplayNames, vitalsService);
+
+        var mob = new Entity("npc", "goblin guard");
+        mob.AddTag("npc");
+        world.TrackEntity(mob);
+        mob.Stats.BaseMaxHp = 100;
+        mob.Stats.Invalidate();
+        mob.Stats.Hp = 40;
+
+        var seen = new List<GameEvent>();
+        eventBus.Subscribe("entity.vital.changed", seen.Add);
+
+        stats.SetEntityHp(mob.Id.ToString(), 75);
+
+        Assert.Equal(75, mob.Stats.Hp);
+        var evt = Assert.Single(seen);
+        Assert.Equal("hp", evt.Data["vital"]);
+        Assert.Equal("script.set", evt.Data["reason"]);
     }
 }

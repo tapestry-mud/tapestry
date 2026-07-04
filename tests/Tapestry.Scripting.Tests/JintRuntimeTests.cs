@@ -259,7 +259,7 @@ public class JintRuntimeTests
         var doorService = new DoorService(world, eventBus);
         var spawnManager = new SpawnManager(world, eventBus, new LootTableResolver(), itemRegistry);
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter(), spawnManager, itemRegistry, new StubExitResolver());
-        var stats = new ApiStats(world, statDisplayNames);
+        var stats = new ApiStats(world, statDisplayNames, new VitalsService(eventBus));
         var mobs = new ApiMobs(world, mobAIManager, spawnManager);
         var transfer = new ApiTransfer(world, inventoryManager, equipmentManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);

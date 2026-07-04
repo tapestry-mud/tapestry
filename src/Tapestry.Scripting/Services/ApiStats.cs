@@ -7,11 +7,13 @@ public class ApiStats
 {
     private readonly World _world;
     private readonly StatDisplayNames _statDisplayNames;
+    private readonly VitalsService _vitalsService;
 
-    public ApiStats(World world, StatDisplayNames statDisplayNames)
+    public ApiStats(World world, StatDisplayNames statDisplayNames, VitalsService vitalsService)
     {
         _world = world;
         _statDisplayNames = statDisplayNames;
+        _vitalsService = vitalsService;
     }
 
     public object? GetEntityStats(string entityIdStr)
@@ -57,7 +59,7 @@ public class ApiStats
             var entity = _world.GetEntity(entityId);
             if (entity != null)
             {
-                entity.Stats.Hp = value;
+                _vitalsService.Set(entity, VitalKind.Hp, value, "script.set");
             }
         }
     }
@@ -69,7 +71,7 @@ public class ApiStats
             var entity = _world.GetEntity(entityId);
             if (entity != null)
             {
-                entity.Stats.Resource = value;
+                _vitalsService.Set(entity, VitalKind.Resource, value, "script.set");
             }
         }
     }
@@ -81,7 +83,7 @@ public class ApiStats
             var entity = _world.GetEntity(entityId);
             if (entity != null)
             {
-                entity.Stats.Movement = value;
+                _vitalsService.Set(entity, VitalKind.Movement, value, "script.set");
             }
         }
     }
@@ -179,9 +181,7 @@ public class ApiStats
             var entity = _world.GetEntity(entityId);
             if (entity != null)
             {
-                entity.Stats.Hp = entity.Stats.MaxHp;
-                entity.Stats.Resource = entity.Stats.MaxResource;
-                entity.Stats.Movement = entity.Stats.MaxMovement;
+                _vitalsService.RestoreToMax(entity, "script.restore");
             }
         }
     }
@@ -202,15 +202,15 @@ public class ApiStats
         switch (vital.ToLowerInvariant())
         {
             case "hp":
-                entity.Stats.Hp = Math.Clamp(entity.Stats.Hp + amount, 0, entity.Stats.MaxHp);
+                _vitalsService.Apply(entity, VitalKind.Hp, amount, "script.add");
                 break;
             case "mana":
             case "resource":
-                entity.Stats.Resource = Math.Clamp(entity.Stats.Resource + amount, 0, entity.Stats.MaxResource);
+                _vitalsService.Apply(entity, VitalKind.Resource, amount, "script.add");
                 break;
             case "mv":
             case "movement":
-                entity.Stats.Movement = Math.Clamp(entity.Stats.Movement + amount, 0, entity.Stats.MaxMovement);
+                _vitalsService.Apply(entity, VitalKind.Movement, amount, "script.add");
                 break;
         }
     }

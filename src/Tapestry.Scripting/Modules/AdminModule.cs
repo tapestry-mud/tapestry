@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
+using Tapestry.Engine.Stats;
 using Tapestry.Engine.Tags;
 using Tapestry.Engine.Ui;
 using Tapestry.Scripting.Services;
@@ -32,6 +33,7 @@ public class AdminModule : IJintApiModule
     private readonly AttributeWriter _attributeWriter;
     private readonly CommandRouter _router;
     private readonly WizlockState _wizlock;
+    private readonly VitalsService _vitalsService;
 
     private readonly Dictionary<(string Kind, string Type), GrantKindRegistration> _grantKinds = new();
 
@@ -47,7 +49,8 @@ public class AdminModule : IJintApiModule
         PropertyRegistry propertyRegistry,
         TagRegistry tagRegistry,
         CommandRouter router,
-        WizlockState wizlock)
+        WizlockState wizlock,
+        VitalsService vitalsService)
     {
         _world = world;
         _messaging = messaging;
@@ -59,6 +62,7 @@ public class AdminModule : IJintApiModule
         _attributeWriter = new AttributeWriter(propertyRegistry, tagRegistry);
         _router = router;
         _wizlock = wizlock;
+        _vitalsService = vitalsService;
     }
 
     public string Namespace => "admin";
@@ -98,7 +102,7 @@ public class AdminModule : IJintApiModule
                 if (entity == null) { return; }
                 entity.Stats.BaseMaxHp = value;
                 entity.Stats.Invalidate();
-                entity.Stats.Hp = entity.Stats.MaxHp;
+                _vitalsService.Set(entity, VitalKind.Hp, entity.Stats.MaxHp, "admin");
             }),
             // executeAs: synchronously dispatch a command line AS the target entity, through
             // the SAME parse + CommandRouter.Route path that queued session input takes

@@ -437,7 +437,7 @@ public class PackLoaderTests
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var doorService = new DoorService(world, eventBus);
         var worldOps = new ApiWorld(world, eventBus, sessions, mobAIManager, alignmentManager, messaging, doorService, new VisibilityFilter(), spawnManager, itemRegistry, new StubExitResolver());
-        var stats = new ApiStats(world, statDisplayNames);
+        var stats = new ApiStats(world, statDisplayNames, new VitalsService(eventBus));
         var mobsApi = new ApiMobs(world, mobAIManager, spawnManager);
         var mobCommandRegistry = new MobCommandRegistry(world, eventBus, NullLogger<MobCommandRegistry>.Instance);
         var tickTimer = new TickTimer(10);
@@ -494,7 +494,7 @@ public class PackLoaderTests
             new AlignmentModule(alignmentManager, alignmentConfig, world),
             new UiModule(panelRenderer, world, new Tapestry.Engine.Text.OutputWidthService(new Tapestry.Data.ServerConfig())),
             new TrainingModule(trainingManager, proficiencyManager, trainingConfig),
-            new AdminModule(world, messaging, sessions, panelRenderer, NullLogger<AdminModule>.Instance, new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Tags.TagRegistry(), commandRouter, new Tapestry.Engine.Login.WizlockState()),
+            new AdminModule(world, messaging, sessions, panelRenderer, NullLogger<AdminModule>.Instance, new Tapestry.Engine.Persistence.PropertyRegistry(), new Tapestry.Engine.Tags.TagRegistry(), commandRouter, new Tapestry.Engine.Login.WizlockState(), new VitalsService(eventBus)),
             new CurrencyModule(world, currencyService),
             new ShopModule(world, shopService),
             new ConsumablesModule(consumableService),

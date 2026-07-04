@@ -33,7 +33,8 @@ public class AdminModuleSetRoomTests
             props,
             tags,
             new CommandRouter(new CommandRegistry(), sessions, world),
-            new Tapestry.Engine.Login.WizlockState());
+            new Tapestry.Engine.Login.WizlockState(),
+            new VitalsService(new EventBus()));
     }
 
     [Fact]
