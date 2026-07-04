@@ -1,6 +1,6 @@
 ---
 capability: persistence
-last-updated: 2026-07-03
+last-updated: 2026-07-04
 ---
 
 # Persistence
@@ -279,5 +279,6 @@ persistence mechanism and has no connection to the save/load system described ab
 
 ## Change Log
 
+- 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - PropertyRegistry gains an independent observable-topic map (RegisterObservable/TryGetObservableTopic) with changeTopic validation; sustenance and alignment marked observable on the status topic
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - player serializer read-old-write-new key map upgrades wimpy_threshold and the ROM negation trio on load
 - 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

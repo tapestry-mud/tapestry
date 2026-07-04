@@ -1,6 +1,6 @@
 ---
 capability: gmcp
-last-updated: 2026-07-03
+last-updated: 2026-07-04
 ---
 
 # GMCP
@@ -158,4 +158,5 @@ printed to the screen is available as structured data (README.md:162).
 
 ## Change Log
 
+- 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - CharVitalsHandler and CharCombatHandler subscribe to entity.vital.changed alone (dropping the ability.used/entity.regen/entity.vital.depleted and interim combat.swell.resolve subscriptions); CharStatusHandler subscribes to entity.status.changed to resend Char.Status
 - 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)

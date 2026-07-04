@@ -13,26 +13,26 @@ known constraints, and change history.
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-25 |
 | Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-28 |
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-28 |
-| GMCP | [gmcp.md](gmcp.md) | 2026-07-03 |
+| GMCP | [gmcp.md](gmcp.md) | 2026-07-04 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-03 |
 | Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-07-03 |
-| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-03 |
+| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-04 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-07-03 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
-| Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-03 |
-| Persistence | [persistence.md](persistence.md) | 2026-07-03 |
+| Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-04 |
+| Persistence | [persistence.md](persistence.md) | 2026-07-04 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
 | Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
 | Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
 | Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-19 |
-| Events | [events.md](events.md) | 2026-07-03 |
+| Events | [events.md](events.md) | 2026-07-04 |
 | World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-07-03 |
 | World Geography | [world-geography.md](world-geography.md) | 2026-06-27 |
 | Items and Containers | [items-and-containers.md](items-and-containers.md) | 2026-07-03 |
 | Equipment and Modifiers | [equipment-and-modifiers.md](equipment-and-modifiers.md) | 2026-06-12 |
 | Quests | [quests.md](quests.md) | 2026-06-12 |
-| Abilities | [abilities.md](abilities.md) | 2026-07-03 |
+| Abilities | [abilities.md](abilities.md) | 2026-07-04 |
 | Effects and Modifiers | [effects-and-modifiers.md](effects-and-modifiers.md) | 2026-06-12 |
 | Character Progression | [character-progression.md](character-progression.md) | 2026-06-12 |
 | Alignment | [alignment.md](alignment.md) | 2026-06-12 |

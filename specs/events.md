@@ -1,6 +1,6 @@
 ---
 capability: events
-last-updated: 2026-07-03
+last-updated: 2026-07-04
 ---
 
 # Events
@@ -196,6 +196,7 @@ once per game-loop tick, not on the publishing thread.
 
 ## Change Log
 
+- 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - two new engine topics: entity.vital.changed (VitalsService is the sole publisher) and entity.status.changed (EntityStatusBroadcaster on observable property writes)
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - events.on callback attribution is now lexical via GetActivePack (no __currentPack capture at registration)
 
 ---

@@ -1,6 +1,6 @@
 ---
 capability: abilities
-last-updated: 2026-07-03
+last-updated: 2026-07-04
 ---
 
 # Abilities
@@ -252,3 +252,5 @@ levelling (character-progression.md), the effect lifecycle after
 ---
 
 ## Change Log
+
+- 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - ability resource cost is deducted through VitalsService.Apply (reason "ability.cost"), publishing entity.vital.changed instead of a direct stat write

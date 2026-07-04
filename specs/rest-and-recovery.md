@@ -1,6 +1,6 @@
 ---
 capability: rest-and-recovery
-last-updated: 2026-07-03
+last-updated: 2026-07-04
 ---
 
 # Rest and Recovery
@@ -128,4 +128,5 @@ and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and ro
 ---
 
 ## Change Log
+- 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - regen application routes through VitalsService.Apply (reason "regen") instead of a direct stat add, publishing entity.vital.changed when the clamped value changes; entity.regen still fires first per vital
 - 2026-07-03 [regen-and-vitals-fixes](changes/2026-07-03-regen-and-vitals-fixes.md) - regen pauses for entities in combat (#126); room regen bonus renamed healing_rate -> rest_bonus (vocab slice 6); swell HP pushed to the client via an interim combat.swell.resolve subscription (#17)
