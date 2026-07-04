@@ -1,6 +1,6 @@
 ---
 capability: scripting-runtime
-last-updated: 2026-06-28
+last-updated: 2026-07-04
 ---
 
 # Scripting Runtime
@@ -57,6 +57,26 @@ The following namespaces are available as named exports on `@tapestry/engine`:
 Notes on two commonly misspelled names:
 - `quests` (not `quest`) -- QuestModule.Namespace (src/Tapestry.Scripting/Modules/QuestModule.cs:20)
 - `returnaddress` (not `returnAddress`) -- ReturnAddressModule.Namespace (src/Tapestry.Scripting/Modules/ReturnAddressModule.cs:11)
+
+### world.sendRoomDescription -- room render binding (brief flag)
+
+- `tapestry.world.sendRoomDescription(entityId[, brief])` renders the room the entity
+  stands in -- blank line, `<highlight>` name, description body, `<direction>[Exits: ...]`
+  line, then item/NPC/corpse/player "is here." lines. The optional second arg (brief
+  mode, tapestry#42) suppresses ONLY the description body when `true`; name, exits, and
+  entity lines are byte-identical in both modes. Omitted or non-boolean keeps the full
+  render. (src/Tapestry.Scripting/Services/ApiMessaging.cs:SendRoomDescription;
+  src/Tapestry.Scripting/Modules/WorldModule.cs:66-71;
+  tests/Tapestry.Scripting.Tests/ApiMessagingTests.cs)
+- Cross-version compatibility is pinned by tests: Jint invokes a two-arg CLR delegate
+  from a one-arg JS call by padding the missing arg with CLR null (NOT Undefined), so
+  the binding's null check keeps published one-arg callers on the full render; extra JS
+  args on a smaller delegate are ignored, so a two-arg caller against an older engine's
+  one-arg binding degrades to a full render instead of throwing.
+  (tests/Tapestry.Scripting.Tests/JintDelegateArityTests.cs)
+- GMCP room data is never brief: `Room.Info`/`Room.Nearby` are built by RoomHandler off
+  the `player.moved` event and `Response.Look` is pack-built -- separate paths from this
+  binding. (src/Tapestry.Server/Gmcp/Handlers/RoomHandler.cs:37-44)
 
 ### ESM loading -- pack scripts as native ES modules
 

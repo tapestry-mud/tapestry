@@ -3,6 +3,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using Tapestry.Scripting.Modules;
 using Tapestry.Scripting.Services;
+using Tapestry.Shared;
 
 namespace Tapestry.Scripting.Tests;
 
@@ -71,6 +72,71 @@ public class ApiMessagingTests
 
         // entity1 is excluded, and it's the only player, so nobody gets the message
         conn1.SentText.Should().BeEmpty();
+    }
+
+    // --- SendRoomDescription brief flag (brief mode v1, tapestry#42 engine half) ---
+
+    private static (ApiMessaging Messaging, FakeConnection Conn, Entity Player) BriefFixture()
+    {
+        var world = new World();
+        var sessions = new SessionManager();
+        var messaging = CreateMessaging(world, sessions);
+
+        var room = new Room("core:larder", "Quiet Larder", "Flour dusts every surface like fresh snow.");
+        room.SetExit(Direction.North, new Exit("core:cellar"));
+        world.AddRoom(room);
+
+        var conn = new FakeConnection();
+        var player = new Entity("player", "Rocky");
+        room.AddEntity(player);
+        world.TrackEntity(player);
+        sessions.Add(new PlayerSession(conn, player));
+
+        var npc = new Entity("npc", "angry cook");
+        room.AddEntity(npc);
+        world.TrackEntity(npc);
+
+        return (messaging, conn, player);
+    }
+
+    [Fact]
+    public void SendRoomDescription_Brief_SuppressesBodyKeepsNameExitsEntities()
+    {
+        var (messaging, conn, player) = BriefFixture();
+
+        messaging.SendRoomDescription(player.Id.ToString(), brief: true);
+
+        var text = string.Join("", conn.SentText);
+        text.Should().Contain("Quiet Larder");          // room name stays
+        text.Should().NotContain("Flour dusts");        // description body suppressed
+        text.Should().Contain("[Exits:");               // exits line stays
+        text.Should().Contain("angry cook is here.");   // entity lines stay
+    }
+
+    [Fact]
+    public void SendRoomDescription_DefaultCall_IsFullRender()
+    {
+        var (messaging, conn, player) = BriefFixture();
+
+        messaging.SendRoomDescription(player.Id.ToString());
+
+        var text = string.Join("", conn.SentText);
+        text.Should().Contain("Quiet Larder");
+        text.Should().Contain("Flour dusts every surface like fresh snow.");
+        text.Should().Contain("[Exits:");
+        text.Should().Contain("angry cook is here.");
+    }
+
+    [Fact]
+    public void SendRoomDescription_BriefFalse_IsByteIdenticalToDefaultCall()
+    {
+        var (messagingA, connA, playerA) = BriefFixture();
+        messagingA.SendRoomDescription(playerA.Id.ToString());
+
+        var (messagingB, connB, playerB) = BriefFixture();
+        messagingB.SendRoomDescription(playerB.Id.ToString(), brief: false);
+
+        string.Join("", connB.SentText).Should().Be(string.Join("", connA.SentText));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Jint;
 using Jint.Native;
 using Jint.Native.Object;
 using Jint.Runtime;
@@ -63,7 +64,12 @@ public class WorldModule : IJintApiModule
         {
             moveEntity = new Func<string, string, bool>(_worldOps.MoveEntity),
             teleportEntity = new Func<string, string, bool>(_worldOps.TeleportEntity),
-            sendRoomDescription = new Action<string>(_messaging.SendRoomDescription),
+            // Optional second arg (brief mode, tapestry#42): true suppresses the description
+            // body; omitted keeps the full render, so published packs calling with one arg
+            // are untouched. NOTE: Jint pads a missing delegate arg with CLR null (pinned by
+            // JintDelegateArityTests), so the null check is load-bearing back-compat.
+            sendRoomDescription = new Action<string, JsValue?>((entityId, brief) =>
+                _messaging.SendRoomDescription(entityId, brief is not null && brief.IsBoolean() && brief.AsBoolean())),
             sendToRoomExcept = new Action<string, string, string>(_messaging.SendToRoomExcept),
             sendToRoomExceptMany = new Action<string, object[], string>((roomId, excludeArray, text) =>
             {

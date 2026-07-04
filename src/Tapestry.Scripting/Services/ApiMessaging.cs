@@ -147,7 +147,13 @@ public class ApiMessaging
         }
     }
 
-    public void SendRoomDescription(string entityIdStr)
+    /// <summary>Renders the room the entity stands in: name, description body, exits line,
+    /// entity lines. <paramref name="brief"/> (brief mode, tapestry#42) suppresses ONLY the
+    /// description body - name, exits, and entity lines are byte-identical in both modes.
+    /// Movement passes the player's brief preference; explicit `look` always renders full
+    /// (default). GMCP room data (Room.Info / Room.Nearby / Response.Look) is built by
+    /// separate paths and never brief.</summary>
+    public void SendRoomDescription(string entityIdStr, bool brief = false)
     {
         if (!Guid.TryParse(entityIdStr, out var entityId))
         {
@@ -169,9 +175,12 @@ public class ApiMessaging
         var lines = new List<string>
         {
             "",
-            $"<highlight>{room.Name}</highlight>",
-            room.Description.TrimEnd()
+            $"<highlight>{room.Name}</highlight>"
         };
+        if (!brief)
+        {
+            lines.Add(room.Description.TrimEnd());
+        }
 
         var exits = room.AvailableExits().Select(d => d.ToShortString()).ToList();
         if (exits.Count > 0)
