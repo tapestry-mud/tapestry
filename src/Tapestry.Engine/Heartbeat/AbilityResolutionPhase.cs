@@ -244,7 +244,8 @@ public class AbilityResolutionPhase : IPulseHandler
         if (deductCost > 0)
         {
             var resourceStat = GetResourceForAbility(definition);
-            DeductResource(entity, resourceStat, deductCost);
+            var deductKind = resourceStat == "movement" ? VitalKind.Movement : VitalKind.Resource;
+            context.VitalsService.Apply(entity, deductKind, -deductCost, "ability.cost");
         }
 
         // Set last_ability_used
@@ -461,18 +462,6 @@ public class AbilityResolutionPhase : IPulseHandler
             return entity.Stats.Movement;
         }
         return entity.Stats.Resource;
-    }
-
-    private static void DeductResource(Entity entity, string resourceType, int cost)
-    {
-        if (resourceType == "movement")
-        {
-            entity.Stats.Movement -= cost;
-        }
-        else
-        {
-            entity.Stats.Resource -= cost;
-        }
     }
 
     private static void PublishFizzle(Entity entity, string abilityId, string reason, PulseContext context)

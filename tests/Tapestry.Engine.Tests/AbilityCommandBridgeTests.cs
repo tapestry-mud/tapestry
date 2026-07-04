@@ -14,7 +14,7 @@ public class AbilityCommandBridgeTests
         var commands = new CommandRegistry();
         var sessions = new SessionManager();
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
 
         var gameLoop = new GameLoop(null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var bridge = new AbilityCommandBridge(abilities, proficiency, commands, world, combat, sessions, gameLoop);
@@ -123,7 +123,7 @@ public class AbilityCommandBridgeTests
         var commands = new CommandRegistry();
         var sessions = new SessionManager();
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
 
         abilities.Register(new AbilityDefinition
         {

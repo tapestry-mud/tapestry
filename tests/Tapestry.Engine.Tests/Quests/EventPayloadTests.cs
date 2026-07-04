@@ -25,7 +25,7 @@ public class EventPayloadTests
     {
         var bus = new EventBus();
         var world = new World();
-        var combat = new CombatManager(world, bus);
+        var combat = new CombatManager(world, bus, vitalsService: new VitalsService(bus));
         var room = new Room("test:arena", "Arena", "A test arena.");
         world.AddRoom(room);
         return (combat, bus, world, room);

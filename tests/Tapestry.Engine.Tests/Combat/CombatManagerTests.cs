@@ -18,7 +18,7 @@ public class CombatManagerTests
     {
         _world = new World();
         _eventBus = new EventBus();
-        _combat = new CombatManager(_world, _eventBus);
+        _combat = new CombatManager(_world, _eventBus, vitalsService: new VitalsService(_eventBus));
         _room = new Room("core:arena", "Arena", "A test arena.");
         _world.AddRoom(_room);
     }
@@ -290,7 +290,7 @@ public class CombatManagerTests
         _eventBus = new EventBus();
         var config = new ServerConfig();
         config.Combat.FleeMoveCost = 15;
-        _combat = new CombatManager(_world, _eventBus, config: config);
+        _combat = new CombatManager(_world, _eventBus, vitalsService: new VitalsService(_eventBus), config: config);
         _room = new Room("core:arena", "Arena", "A test arena.");
         _world.AddRoom(_room);
         var exitRoom = new Room("core:hallway", "Hallway", "A hallway.");
@@ -313,9 +313,13 @@ public class CombatManagerTests
             Random = new Random(42)
         };
 
+        var seen = new List<GameEvent>();
+        _eventBus.Subscribe("entity.vital.changed", seen.Add);
+
         var result = _combat.AttemptFlee(player, context);
         Assert.True(result);
         Assert.Equal(35, player.Stats.Movement); // 50 - 15 flee cost
+        Assert.Contains(seen, e => (string)e.Data["vital"]! == "movement" && (string)e.Data["reason"]! == "flee");
     }
 
     [Fact]

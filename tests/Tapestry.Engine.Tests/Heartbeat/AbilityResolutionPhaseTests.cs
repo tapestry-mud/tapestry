@@ -30,7 +30,7 @@ public class AbilityResolutionPhaseTests
         _sessionManager = new SessionManager();
         _room = new Room("test-room", "Test Room", "A test room.");
         _world.AddRoom(_room);
-        _combatManager = new CombatManager(_world, _eventBus);
+        _combatManager = new CombatManager(_world, _eventBus, vitalsService: new VitalsService(_eventBus));
         _phase = new AbilityResolutionPhase();
         _events = new List<GameEvent>();
         _eventBus.Subscribe("*", e => { _events.Add(e); });
@@ -68,6 +68,7 @@ public class AbilityResolutionPhaseTests
             CurrentPulse = pulse,
             World = _world,
             EventBus = _eventBus,
+            VitalsService = new VitalsService(_eventBus),
             CombatManager = _combatManager,
             AbilityRegistry = _abilityRegistry,
             ProficiencyManager = _proficiencyManager,
@@ -125,6 +126,9 @@ public class AbilityResolutionPhaseTests
         Assert.Equal(40, player.Stats.Movement);
         var usedOrMissed = _events.Any(e => e.Type == "ability.used" || e.Type == "ability.missed");
         Assert.True(usedOrMissed);
+        Assert.Contains(_events, e => e.Type == "entity.vital.changed"
+            && (string)e.Data["vital"]! == "movement"
+            && (string)e.Data["reason"]! == "ability.cost");
     }
 
     [Fact]
@@ -642,6 +646,7 @@ public class AbilityResolutionPhaseTests
             CurrentPulse = 1,
             World = _world,
             EventBus = _eventBus,
+            VitalsService = new VitalsService(_eventBus),
             CombatManager = _combatManager,
             AbilityRegistry = _abilityRegistry,
             ProficiencyManager = _proficiencyManager,

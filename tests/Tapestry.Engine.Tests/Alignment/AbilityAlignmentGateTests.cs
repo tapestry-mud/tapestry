@@ -19,7 +19,7 @@ public class AbilityAlignmentGateTests
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
         var effectManager = new EffectManager(world, eventBus);
         var sessionManager = new SessionManager();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
 

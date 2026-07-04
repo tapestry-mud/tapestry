@@ -239,7 +239,7 @@ public class JintRuntimeTests
         var currencyService = new CurrencyService(world, eventBus);
         var inventoryManager = new InventoryManager(eventBus, world, currencyService);
         var itemRegistry = new ItemRegistry();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);

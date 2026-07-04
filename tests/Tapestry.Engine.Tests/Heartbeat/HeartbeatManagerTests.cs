@@ -31,7 +31,7 @@ public class HeartbeatManager_TickTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var abilityRegistry = new AbilityRegistry();
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
         var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);
@@ -127,7 +127,7 @@ public class HeartbeatManager_TickTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var abilityRegistry = new AbilityRegistry();
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
         var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);
@@ -154,7 +154,7 @@ public class HeartbeatManager_TickTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var abilityRegistry = new AbilityRegistry();
         var proficiencyManager = new ProficiencyManager(world, abilityRegistry);
         var passiveAbilityProcessor = new PassiveAbilityProcessor(abilityRegistry, proficiencyManager);

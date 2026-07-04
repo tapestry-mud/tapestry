@@ -17,7 +17,7 @@ public class SwellClockManagerTests
     {
         _world = new World();
         _eventBus = new EventBus();
-        _combat = new CombatManager(_world, _eventBus);
+        _combat = new CombatManager(_world, _eventBus, vitalsService: new VitalsService(_eventBus));
         _validators = new WindowValidatorRegistry();
         _vitalsService = new VitalsService(_eventBus);
         _room = new Room("core:arena", "Arena", "A test arena.");

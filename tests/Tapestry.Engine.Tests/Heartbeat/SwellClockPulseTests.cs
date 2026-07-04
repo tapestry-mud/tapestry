@@ -11,7 +11,7 @@ public class SwellClockPulseTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var validators = new WindowValidatorRegistry();
         var manager = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
 
@@ -26,7 +26,7 @@ public class SwellClockPulseTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var validators = new WindowValidatorRegistry();
         var manager = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var pulse = new SwellClockPulse(manager);

@@ -26,7 +26,7 @@ public class MobAIManagerTests
     private static MobAIManager BuildManager(World world)
     {
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -39,7 +39,7 @@ public class MobAIManagerTests
         TimeProvider time)
     {
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -217,7 +217,7 @@ public class MobAIManagerTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -280,7 +280,7 @@ public class MobAIManagerTests
         room2.SetExit(Direction.South, new Exit("zone:room1"));
 
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var disposition = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combat, disposition,
@@ -344,7 +344,7 @@ public class MobAIManagerTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -382,7 +382,7 @@ public class MobAIManagerTests
         var room = new Room("zone:room1", "Room", "Test.");
         world.AddRoom(room);
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -413,7 +413,7 @@ public class MobAIManagerTests
         var room = new Room("zone:room1", "Room", "Test.");
         world.AddRoom(room);
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -444,7 +444,7 @@ public class MobAIManagerTests
         var room = new Room("zone:room1", "Room", "Test.");
         world.AddRoom(room);
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -476,7 +476,7 @@ public class MobAIManagerTests
         var room = new Room("zone:room1", "Room", "Test.");
         world.AddRoom(room);
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
@@ -508,7 +508,7 @@ public class MobAIManagerTests
         var metrics = new TapestryMetrics();
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var disposition = new DispositionEvaluator(world, eventBus, alignmentManager);
         var mobAI = new MobAIManager(world, eventBus, combat, disposition,
             NullLogger<MobAIManager>.Instance, metrics, vitalsService: new VitalsService(eventBus));
@@ -707,7 +707,7 @@ public class MobAIManagerTests
         // publish assertion. Subscribe signature matches WeatherService.cs:28.
         var time = new FakeTime();
         var eventBus = new EventBus();
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var alignmentConfig = new AlignmentConfig();
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);

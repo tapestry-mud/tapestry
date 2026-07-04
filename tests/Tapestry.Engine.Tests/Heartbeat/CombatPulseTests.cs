@@ -43,7 +43,7 @@ public class CombatPulseTests
             CurrentPulse = 1,
             World = world,
             EventBus = eventBus,
-            CombatManager = new CombatManager(world, eventBus, effectManager: effectManager),
+            CombatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus), effectManager: effectManager),
             AbilityRegistry = registry,
             ProficiencyManager = new ProficiencyManager(world, registry),
             EffectManager = effectManager,

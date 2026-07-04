@@ -419,7 +419,7 @@ public class PackLoaderTests
         var alignmentConfig = new AlignmentConfig();
         var alignmentManagerForAI = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManagerForAI);
-        var combatManager = new CombatManager(world, eventBus);
+        var combatManager = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
             NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
         var statDisplayNames = new StatDisplayNames();

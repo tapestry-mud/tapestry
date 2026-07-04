@@ -193,7 +193,7 @@ public class ConnectionHandlerLoginPhaseTests
             TestRegistrationPolicy.Create());
 
         var mobAI = new MobAIManager(world, eventBus,
-            new CombatManager(world, eventBus),
+            new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus)),
             new DispositionEvaluator(world, eventBus, new AlignmentManager(world, eventBus, alignmentConfig)),
             NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 

@@ -27,7 +27,7 @@ public class CharCombatHandlerTests
         var sessions = new SessionManager();
         var world = new World();
         var eb = new EventBus();
-        var combat = new CombatManager(world, eb);
+        var combat = new CombatManager(world, eb, vitalsService: new VitalsService(eb));
 
         var handler = new CharCombatHandler(cm, sessions, world, eb, combat);
 

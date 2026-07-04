@@ -184,7 +184,7 @@ public class CommandRouterTests
     {
         var world = new World();
         var eventBus = new EventBus();
-        var combat = new CombatManager(world, eventBus);
+        var combat = new CombatManager(world, eventBus, vitalsService: new VitalsService(eventBus));
         var validators = new WindowValidatorRegistry();
         var room = new Room("core:arena", "Arena", "A test arena.");
         world.AddRoom(room);

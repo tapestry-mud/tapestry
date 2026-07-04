@@ -4,6 +4,7 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Combat;
@@ -12,6 +13,7 @@ public class CombatManager
 {
     private readonly World _world;
     private readonly EventBus _eventBus;
+    private readonly VitalsService _vitalsService;
     private readonly List<ICombatPhase> _phases;
     private readonly Random _random;
     private readonly AbilityRegistry? _abilityRegistry;
@@ -23,7 +25,7 @@ public class CombatManager
     private readonly Dictionary<Guid, long> _fleeCooldowns = new();
     private readonly Tapestry.Data.CombatSection _combatConfig;
 
-    public CombatManager(World world, EventBus eventBus, List<ICombatPhase>? phases = null,
+    public CombatManager(World world, EventBus eventBus, VitalsService vitalsService, List<ICombatPhase>? phases = null,
         Random? random = null, AbilityRegistry? abilityRegistry = null,
         ProficiencyManager? proficiencyManager = null, SessionManager? sessionManager = null,
         EffectManager? effectManager = null, AlignmentManager? alignmentManager = null,
@@ -31,6 +33,7 @@ public class CombatManager
     {
         _world = world;
         _eventBus = eventBus;
+        _vitalsService = vitalsService;
         _combatConfig = config?.Combat ?? new Tapestry.Data.CombatSection();
         _random = random ?? new Random();
         _abilityRegistry = abilityRegistry;
@@ -245,8 +248,8 @@ public class CombatManager
         _world.MoveEntity(entity, direction);
         _fleeCooldowns[entity.Id] = context.CurrentTick + _combatConfig.FleeCooldownTicks;
 
-        // Fleeing burns movement (ROM-style); floor at zero.
-        entity.Stats.Movement = Math.Max(0, entity.Stats.Movement - _combatConfig.FleeMoveCost);
+        // Fleeing burns movement (ROM-style); the mutator clamps at zero.
+        _vitalsService.Apply(entity, VitalKind.Movement, -_combatConfig.FleeMoveCost, "flee");
 
         context.EventBus.Publish(new GameEvent
         {
