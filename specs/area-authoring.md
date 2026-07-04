@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-06-28
+last-updated: 2026-07-04
 ---
 
 # Area Authoring
@@ -140,6 +140,17 @@ files (written under the game data root at runtime).
   `@scope/name` maps to `scope-name`), or null for an empty name.
   (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:CreatePack,
   src/Tapestry.Scripting/RuntimeNamespaceStore.cs)
+
+- Runtime namespaces validate LENIENT, in-session and after reboot. The scaffold's
+  `validation: lenient` never takes effect (docker cannot write it; `server.yaml packs:`
+  whitelists it out even when written), so `RuntimeNamespaceStore` tracks the runtime set
+  (`IsRuntimeNamespace`) across both `Register` and the boot `LoadAtBoot` restore, and
+  `PackValidator` treats those namespaces as lenient for tag and property validation.
+  Before this, restored generated content defaulted to strict and any pack-declared
+  property riding a generated room crashed the boot ("unregistered property
+  oracle_populated" was the witnessed case).
+  (src/Tapestry.Scripting/RuntimeNamespaceStore.cs; src/Tapestry.Scripting/PackValidator.cs;
+  tests/Tapestry.Scripting.Tests/PackValidatorRuntimeNamespaceTests.cs)
 
 - Area mutators (`setAreaName`, `setAreaShort`, `setAreaDescription`, `setAreaTheme`,
   `setAreaLore`, `setAreaAttribute`) all update the live registry and rewrite the area

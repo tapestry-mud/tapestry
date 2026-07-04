@@ -1,6 +1,6 @@
 ---
 capability: pack-loading
-last-updated: 2026-06-25
+last-updated: 2026-07-04
 ---
 
 # Pack Loading
@@ -221,6 +221,14 @@ The `tapestry.*` API surface exposed to scripts is covered in scripting-runtime.
   (src/Tapestry.Scripting/PackValidator.cs:345-359)
 - Unknown tags/properties on entities owned by a lenient pack are logged as warnings; on
   strict packs they throw. (src/Tapestry.Scripting/PackValidator.cs:271-302; src/Tapestry.Scripting/PackValidator.cs:320-345)
+- The strict/lenient decision is keyed off the owning pack's loaded manifest
+  (`validation:` key), with two manifest-less fallbacks: a namespace registered or
+  boot-restored by `RuntimeNamespaceStore` (a runtime-created destination pack; its
+  content is engine-written side-cars reloaded by the Authored*Loaders) validates
+  LENIENT; any other manifest-less namespace (e.g. side-cars lingering from a pack
+  removed from `server.yaml`) logs a warning and validates strict.
+  (src/Tapestry.Scripting/PackValidator.cs; src/Tapestry.Scripting/RuntimeNamespaceStore.cs;
+  tests/Tapestry.Scripting.Tests/PackValidatorRuntimeNamespaceTests.cs)
 
 ## Rejected and Reverted
 

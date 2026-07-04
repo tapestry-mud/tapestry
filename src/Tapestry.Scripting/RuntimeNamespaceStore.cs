@@ -27,6 +27,7 @@ public sealed class RuntimeNamespaceStore
     private readonly string _markerPath;
     private readonly LoadedPackNamespaces _namespaces;
     private readonly ILogger<RuntimeNamespaceStore> _logger;
+    private readonly HashSet<string> _runtime = new(StringComparer.OrdinalIgnoreCase);
 
     public RuntimeNamespaceStore(string dataRoot, LoadedPackNamespaces namespaces, ILogger<RuntimeNamespaceStore> logger)
     {
@@ -43,6 +44,7 @@ public sealed class RuntimeNamespaceStore
         {
             return;
         }
+        _runtime.Add(ns);
         if (!_namespaces.Namespaces.Add(ns))
         {
             return; // already known - already in the marker, nothing to persist
@@ -80,6 +82,7 @@ public sealed class RuntimeNamespaceStore
             {
                 continue;
             }
+            _runtime.Add(ns);
             if (_namespaces.Namespaces.Add(ns))
             {
                 added++;
@@ -90,4 +93,12 @@ public sealed class RuntimeNamespaceStore
             _logger.LogInformation("Re-registered {Count} runtime namespace(s) from {Path}", added, _markerPath);
         }
     }
+
+    /// <summary>True when the namespace was created at runtime (this session) or restored
+    /// from the marker at boot. PackValidator treats these as LENIENT: a runtime namespace
+    /// has no manifest to carry <c>validation:</c> (docker cannot write the packs-dir
+    /// scaffold, and `server.yaml packs:` whitelists it out even when written), and its
+    /// content is engine-written side-cars, so strict validation would crash the boot on
+    /// any pack-declared property riding a generated room.</summary>
+    public bool IsRuntimeNamespace(string ns) => _runtime.Contains(ns);
 }

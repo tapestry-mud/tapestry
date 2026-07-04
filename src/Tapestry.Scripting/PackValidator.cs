@@ -24,6 +24,7 @@ public class PackValidator
     private readonly IPackManifestProvider _manifestProvider;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly PackDependencyGraph _dependencyGraph;
+    private readonly RuntimeNamespaceStore? _runtimeNamespaces;
 
     public PackValidator(
         SpawnManager spawnManager,
@@ -35,7 +36,8 @@ public class PackValidator
         TagRegistry tagRegistry,
         IPackManifestProvider manifestProvider,
         PropertyRegistry propertyRegistry,
-        PackDependencyGraph dependencyGraph)
+        PackDependencyGraph dependencyGraph,
+        RuntimeNamespaceStore? runtimeNamespaces = null)
     {
         _spawnManager = spawnManager;
         _itemRegistry = itemRegistry;
@@ -47,7 +49,15 @@ public class PackValidator
         _manifestProvider = manifestProvider;
         _propertyRegistry = propertyRegistry;
         _dependencyGraph = dependencyGraph;
+        _runtimeNamespaces = runtimeNamespaces;
     }
+
+    /// <summary>Runtime-created namespaces (solo-oracle destination packs restored by
+    /// RuntimeNamespaceStore) have no manifest to carry <c>validation: lenient</c>, so
+    /// without this check they would default to strict and crash the boot on any
+    /// pack-declared property riding a generated room.</summary>
+    private bool IsRuntimeNamespace(string? packName) =>
+        packName != null && _runtimeNamespaces != null && _runtimeNamespaces.IsRuntimeNamespace(packName);
 
     public void Validate()
     {
@@ -254,17 +264,19 @@ public class PackValidator
         Dictionary<string, PackManifest> manifestsByName)
     {
         var packName = entityId.Contains(':') ? entityId.Split(':', 2)[0] : null;
+        var isRuntime = IsRuntimeNamespace(packName);
 
-        if (packName != null && !manifestsByName.ContainsKey(packName))
+        if (packName != null && !manifestsByName.ContainsKey(packName) && !isRuntime)
         {
             _logger.LogWarning(
                 "Entity '{EntityId}' belongs to pack '{PackName}' which has no loaded manifest; defaulting to strict validation",
                 entityId, packName);
         }
 
-        var lenient = packName != null
-            && manifestsByName.TryGetValue(packName, out var manifest)
-            && manifest.Validation == "lenient";
+        var lenient = isRuntime
+            || (packName != null
+                && manifestsByName.TryGetValue(packName, out var manifest)
+                && manifest.Validation == "lenient");
         var count = 0;
 
         foreach (var tag in tags)
@@ -368,6 +380,16 @@ public class PackValidator
             .FirstOrDefault(m => PackLoader.PackNamespace(m.Name) == packName);
         if (manifest == null)
         {
+            if (IsRuntimeNamespace(packName))
+            {
+                if (_loggedManifestWarnings.Add(packName))
+                {
+                    _logger.LogInformation(
+                        "Pack '{PackName}' is a runtime-created namespace (no manifest); validating lenient",
+                        packName);
+                }
+                return true;
+            }
             if (_loggedManifestWarnings.Add(packName))
             {
                 var loaded = string.Join(", ", _manifestProvider.LoadedPacks.Select(m => $"'{m.Name}' → '{PackLoader.PackNamespace(m.Name)}'"));
