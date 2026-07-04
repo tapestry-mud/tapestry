@@ -1,3 +1,4 @@
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Combat;
@@ -13,6 +14,7 @@ public class SwellClockManager
     private readonly EventBus _eventBus;
     private readonly CombatManager _combat;
     private readonly WindowValidatorRegistry _validators;
+    private readonly VitalsService _vitalsService;
     private readonly Random _random;
     private readonly Dictionary<Guid, SwellState> _fights = new();
 
@@ -21,12 +23,14 @@ public class SwellClockManager
         EventBus eventBus,
         CombatManager combat,
         WindowValidatorRegistry validators,
+        VitalsService vitalsService,
         Random? random = null)
     {
         _world = world;
         _eventBus = eventBus;
         _combat = combat;
         _validators = validators;
+        _vitalsService = vitalsService;
         _random = random ?? new Random();
     }
 
@@ -340,7 +344,7 @@ public class SwellClockManager
 
     private void ApplyDamage(Entity victim, int amount, Entity? killer)
     {
-        victim.Stats.Hp -= amount;
+        _vitalsService.Apply(victim, VitalKind.Hp, -amount, "combat.swell");
         if (victim.Stats.Hp <= 0)
         {
             _eventBus.Publish(new GameEvent

@@ -9,6 +9,7 @@ public class SwellClockManagerTests
     private EventBus _eventBus = null!;
     private CombatManager _combat = null!;
     private WindowValidatorRegistry _validators = null!;
+    private VitalsService _vitalsService = null!;
     private Room _room = null!;
     private List<GameEvent> _events = null!;
 
@@ -18,13 +19,14 @@ public class SwellClockManagerTests
         _eventBus = new EventBus();
         _combat = new CombatManager(_world, _eventBus);
         _validators = new WindowValidatorRegistry();
+        _vitalsService = new VitalsService(_eventBus);
         _room = new Room("core:arena", "Arena", "A test arena.");
         _world.AddRoom(_room);
         _events = new List<GameEvent>();
         _eventBus.Subscribe("combat.swell.telegraph", e => _events.Add(e));
         _eventBus.Subscribe("combat.swell.window", e => _events.Add(e));
         _eventBus.Subscribe("combat.swell.resolve", e => _events.Add(e));
-        return new SwellClockManager(_world, _eventBus, _combat, _validators);
+        return new SwellClockManager(_world, _eventBus, _combat, _validators, vitalsService: _vitalsService);
     }
 
     private Entity CreatePlayer(int hp = 100)
@@ -208,6 +210,31 @@ public class SwellClockManagerTests
 
         Assert.Equal(100 - 10, player.Stats.Hp);     // 10% of 100
         Assert.Equal(200, boss.Stats.Hp);
+    }
+
+    [Fact]
+    public void Whiffed_PublishesEntityVitalChanged()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer(hp: 100);
+        var boss = CreateBoss(hp: 200);
+        _combat.Engage(player, boss);
+
+        var vitalChanged = new List<GameEvent>();
+        _eventBus.Subscribe("entity.vital.changed", e => vitalChanged.Add(e));
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2);
+        clock.AdvanceAll(4);
+
+        var wrong = WrongCounterFromTelegraph();
+        clock.TryCommit(player.Id, wrong);
+        clock.AdvanceAll(5);
+
+        Assert.Contains(vitalChanged, e => e.SourceEntityId == player.Id
+            && (string)e.Data["vital"]! == "hp"
+            && (string)e.Data["reason"]! == "combat.swell");
     }
 
     [Fact]

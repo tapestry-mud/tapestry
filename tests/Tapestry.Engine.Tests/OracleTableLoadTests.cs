@@ -177,7 +177,7 @@ public class OracleTableLoadTests
             var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
             var combatManager = new CombatManager(world, eventBus);
             var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-                NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+                NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
             var statDisplayNames = new StatDisplayNames();
             var effectManager = new Engine.Effects.EffectManager(world, eventBus);
             var progressionManager = new Engine.Progression.ProgressionManager(world, eventBus);

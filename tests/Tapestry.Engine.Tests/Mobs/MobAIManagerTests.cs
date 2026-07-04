@@ -32,7 +32,7 @@ public class MobAIManagerTests
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var metrics = new TapestryMetrics();
         return new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, metrics);
+            NullLogger<MobAIManager>.Instance, metrics, vitalsService: new VitalsService(eventBus));
     }
 
     private static MobAIManager BuildManager(World world, Tapestry.Data.ServerConfig config,
@@ -45,7 +45,8 @@ public class MobAIManagerTests
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var metrics = new TapestryMetrics();
         return new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, metrics, gate: null, config: config, time: time);
+            NullLogger<MobAIManager>.Instance, metrics, vitalsService: new VitalsService(eventBus),
+            gate: null, config: config, time: time);
     }
 
     private static Entity AddMob(World world, Room room, string behavior, string name)
@@ -221,7 +222,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var room = new Room("core:town-square", "Town Square", "A square.");
         world.AddRoom(room);
@@ -283,7 +284,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var disposition = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combat, disposition,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
         ai.RegisterBehavior("stationary", _ => { });
         ai.ActivateArea("zone");
 
@@ -348,7 +349,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var room = new Room("core:town-square", "Town Square", "A square.");
         world.AddRoom(room);
@@ -386,7 +387,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var dispatched = new List<string>();
         ai.RegisterBehavior("patrol", ctx => { dispatched.Add(ctx.Name); });
@@ -417,7 +418,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var dispatched = new List<string>();
         ai.RegisterBehavior("patrol", ctx => { dispatched.Add(ctx.Name); });
@@ -448,7 +449,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var tickEvents = new List<GameEvent>();
         eventBus.Subscribe("mob.ai.tick", evt => { tickEvents.Add(evt); });
@@ -480,7 +481,7 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var ai = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
         var dispatched = new List<string>();
         ai.RegisterBehavior("patrol", ctx => { dispatched.Add(ctx.Name); });
@@ -510,7 +511,7 @@ public class MobAIManagerTests
         var combat = new CombatManager(world, eventBus);
         var disposition = new DispositionEvaluator(world, eventBus, alignmentManager);
         var mobAI = new MobAIManager(world, eventBus, combat, disposition,
-            NullLogger<MobAIManager>.Instance, metrics);
+            NullLogger<MobAIManager>.Instance, metrics, vitalsService: new VitalsService(eventBus));
 
         // A behavior that sleeps, so the "behavior" phase is clearly non-zero.
         mobAI.RegisterBehavior("slow", _ => Thread.Sleep(20));
@@ -711,8 +712,8 @@ public class MobAIManagerTests
         var alignmentManager = new AlignmentManager(world, eventBus, alignmentConfig);
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManager);
         var manager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), gate: null,
-            config: new Tapestry.Data.ServerConfig(), time: time);
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus),
+            gate: null, config: new Tapestry.Data.ServerConfig(), time: time);
 
         var publishes = 0;
         eventBus.Subscribe("mob.ai.tick", _ => publishes++);

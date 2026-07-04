@@ -253,7 +253,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         // Router constructed WITH the swell clock.
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
@@ -288,7 +288,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         var ran = false;
@@ -322,7 +322,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         registry.Register("sidestep", _ => { }, pace: Pace.Battle);
@@ -360,7 +360,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         var handlerRan = false;
@@ -393,7 +393,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         var handlerRan = false;
@@ -427,7 +427,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         var handlerRan = false;
@@ -467,7 +467,7 @@ public class CommandRouterTests
         var session = new PlayerSession(connection, player);
         sessions.Add(session);
 
-        var clock = new SwellClockManager(world, eventBus, combat, validators);
+        var clock = new SwellClockManager(world, eventBus, combat, validators, vitalsService: new VitalsService(eventBus));
         var router = new CommandRouter(registry, sessions, world, swellClock: clock);
 
         var handlerRan = false;

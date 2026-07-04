@@ -11,6 +11,7 @@ public class PulseContext
     public long CurrentPulse { get; set; }
     public World World { get; init; } = null!;
     public EventBus EventBus { get; init; } = null!;
+    public VitalsService VitalsService { get; init; } = null!;
     public CombatManager CombatManager { get; init; } = null!;
     public SwellClockManager? SwellClockManager { get; init; }
     public AbilityRegistry AbilityRegistry { get; init; } = null!;

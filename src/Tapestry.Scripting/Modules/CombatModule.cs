@@ -7,6 +7,7 @@ using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
 using Tapestry.Engine.Registration;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 using JintEngine = Jint.Engine;
 
@@ -23,6 +24,7 @@ public class CombatModule : IJintApiModule
     private readonly WindowValidatorRegistry _windowValidators;
     private readonly MobInvocationBudget _invocationBudget;
     private readonly ServerConfig _config;
+    private readonly VitalsService _vitalsService;
 
     public CombatModule(
         CombatManager combat,
@@ -33,7 +35,8 @@ public class CombatModule : IJintApiModule
         RegistrationPolicy registrationPolicy,
         WindowValidatorRegistry windowValidators,
         MobInvocationBudget invocationBudget,
-        ServerConfig config)
+        ServerConfig config,
+        VitalsService vitalsService)
     {
         _combat = combat;
         _world = world;
@@ -44,6 +47,7 @@ public class CombatModule : IJintApiModule
         _windowValidators = windowValidators;
         _invocationBudget = invocationBudget;
         _config = config;
+        _vitalsService = vitalsService;
     }
 
     public string Namespace => "combat";
@@ -121,6 +125,7 @@ public class CombatModule : IJintApiModule
                     EventBus = _eventBus,
                     CombatManager = _combat,
                     EffectManager = _effectManager,
+                    VitalsService = _vitalsService,
                     Random = new Random()
                 };
 
@@ -176,7 +181,7 @@ public class CombatModule : IJintApiModule
                     return;
                 }
 
-                entity.Stats.Hp -= amount;
+                _vitalsService.Apply(entity, VitalKind.Hp, -amount, "ability.damage");
 
                 // Death check is NOT done here — it happens after the ability handler
                 // returns so that the handler's output messages arrive before death messages.

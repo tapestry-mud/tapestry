@@ -26,6 +26,7 @@ public class MobAIManager
     private readonly DispositionEvaluator _dispositionEvaluator;
     private readonly ILogger<MobAIManager> _logger;
     private readonly TapestryMetrics _metrics;
+    private readonly VitalsService _vitalsService;
     private readonly HashSet<string> _activeAreas = new();
     private readonly Dictionary<string, int> _areaPlayerCounts = new();
     private readonly Dictionary<string, Action<MobContext>> _behaviors = new();
@@ -47,7 +48,7 @@ public class MobAIManager
 
     public MobAIManager(World world, EventBus eventBus, CombatManager combat,
         DispositionEvaluator dispositionEvaluator, ILogger<MobAIManager> logger,
-        TapestryMetrics metrics, RegistrationGate? gate = null,
+        TapestryMetrics metrics, VitalsService vitalsService, RegistrationGate? gate = null,
         ServerConfig? config = null, TimeProvider? time = null)
     {
         _world = world;
@@ -56,6 +57,7 @@ public class MobAIManager
         _dispositionEvaluator = dispositionEvaluator;
         _logger = logger;
         _metrics = metrics;
+        _vitalsService = vitalsService;
         _gate = gate;
         _budget = config?.MobAi ?? new MobAiSection();
         _time = time ?? TimeProvider.System;
@@ -360,6 +362,7 @@ public class MobAIManager
             World = _world,
             EventBus = _eventBus,
             CombatManager = _combat,
+            VitalsService = _vitalsService,
             Random = Random.Shared
         };
 

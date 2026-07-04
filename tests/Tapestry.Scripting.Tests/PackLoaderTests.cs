@@ -421,7 +421,7 @@ public class PackLoaderTests
         var dispositionEvaluator = new DispositionEvaluator(world, eventBus, alignmentManagerForAI);
         var combatManager = new CombatManager(world, eventBus);
         var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator,
-            NullLogger<MobAIManager>.Instance, new TapestryMetrics());
+            NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
         var statDisplayNames = new StatDisplayNames();
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
@@ -482,7 +482,7 @@ public class PackLoaderTests
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
-            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager, registrationPolicy, new Tapestry.Engine.Combat.WindowValidatorRegistry(), new MobInvocationBudget(), new ServerConfig()),
+            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager, registrationPolicy, new Tapestry.Engine.Combat.WindowValidatorRegistry(), new MobInvocationBudget(), new ServerConfig(), new VitalsService(eventBus)),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobsApi, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, new MobInvocationBudget(), new ServerConfig(), NullLogger<MobsModule>.Instance),
             new ThemeModule(themeRegistry, registrationPolicy),

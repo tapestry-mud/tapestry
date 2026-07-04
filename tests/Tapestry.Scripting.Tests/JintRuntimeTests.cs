@@ -240,7 +240,7 @@ public class JintRuntimeTests
         var inventoryManager = new InventoryManager(eventBus, world, currencyService);
         var itemRegistry = new ItemRegistry();
         var combatManager = new CombatManager(world, eventBus);
-        var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance, new TapestryMetrics());
+        var mobAIManager = new MobAIManager(world, eventBus, combatManager, dispositionEvaluator, Microsoft.Extensions.Logging.Abstractions.NullLogger<Tapestry.Engine.Mobs.MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
         var effectManager = new EffectManager(world, eventBus);
         var progressionManager = new ProgressionManager(world, eventBus);
         var commandRouter = new CommandRouter(commandRegistry, sessions, world);
@@ -277,7 +277,7 @@ public class JintRuntimeTests
             new InventoryModule(inventoryManager, world, eventBus, messaging, transfer, slotRegistry),
             new EquipmentModule(equipmentManager, slotRegistry, world, transfer, registrationPolicy),
             new ItemsModule(itemRegistry, world),
-            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager, registrationPolicy, new Tapestry.Engine.Combat.WindowValidatorRegistry(), new MobInvocationBudget(), new ServerConfig()),
+            new CombatModule(combatManager, world, eventBus, gameLoop, effectManager, registrationPolicy, new Tapestry.Engine.Combat.WindowValidatorRegistry(), new MobInvocationBudget(), new ServerConfig(), new VitalsService(eventBus)),
             new ProgressionModule(progressionManager, registrationPolicy, NullLogger<ProgressionModule>.Instance),
             new MobsModule(mobs, mobAIManager, mobCommandRegistry, mobCommandQueue, commandRegistry, registrationPolicy, new MobInvocationBudget(), new ServerConfig(), NullLogger<MobsModule>.Instance),
             new Tapestry.Scripting.Modules.ThemeModule(new Tapestry.Engine.Color.ThemeRegistry(), registrationPolicy),

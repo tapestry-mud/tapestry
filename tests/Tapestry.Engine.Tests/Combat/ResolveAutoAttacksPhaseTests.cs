@@ -33,7 +33,7 @@ public class ResolveAutoAttacksPhaseTests
             }
             return new ValidationResult { Outcome = WindowOutcome.Whiffed, NarrationKey = "whiffed" };
         });
-        return new SwellClockManager(_world, _eventBus, _combat, _validators);
+        return new SwellClockManager(_world, _eventBus, _combat, _validators, vitalsService: new VitalsService(_eventBus));
     }
 
     private Entity CreatePlayer(int hp = 100)
@@ -122,5 +122,57 @@ public class ResolveAutoAttacksPhaseTests
 
         // Both directions (player attacks boss, boss attacks player) must be suppressed.
         Assert.DoesNotContain(hitEvents, e => e.Type == "combat.hit");
+    }
+
+    [Fact]
+    public void Execute_Hit_PublishesEntityVitalChanged()
+    {
+        _world = new World();
+        _eventBus = new EventBus();
+        _combat = new CombatManager(_world, _eventBus);
+        _room = new Room("core:arena", "Arena", "A test arena.");
+        _world.AddRoom(_room);
+
+        var player = CreatePlayer();
+        var boss = CreateSwellBoss();
+        _combat.Engage(player, boss);
+
+        var abilityRegistry = new AbilityRegistry();
+        var proficiency = new ProficiencyManager(_world, abilityRegistry);
+        var passive = new PassiveAbilityProcessor(abilityRegistry, proficiency);
+        var context = new PulseContext
+        {
+            CurrentTick = 0,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combat,
+            AbilityRegistry = abilityRegistry,
+            ProficiencyManager = proficiency,
+            PassiveAbilityProcessor = passive,
+            SessionManager = new SessionManager(),
+            VitalsService = new VitalsService(_eventBus),
+            Random = new AlwaysHitRandom()
+        };
+
+        var vitalChanged = new List<GameEvent>();
+        _eventBus.Subscribe("entity.vital.changed", e => vitalChanged.Add(e));
+
+        var phase = new ResolveAutoAttacksPhase();
+        phase.Execute(context);
+
+        Assert.Contains(vitalChanged, e => e.SourceEntityId == boss.Id
+            && (string)e.Data["vital"]! == "hp"
+            && (string)e.Data["reason"]! == "combat.melee");
+    }
+
+    // Always rolls the maximum value for any Next(min, max) call, guaranteeing a critical
+    // hit on the d20 (natural 20) and a maximal damage-dice roll -- deterministic damage
+    // without depending on armor class or strength scaling.
+    private class AlwaysHitRandom : Random
+    {
+        public override int Next(int minValue, int maxValue)
+        {
+            return maxValue - 1;
+        }
     }
 }

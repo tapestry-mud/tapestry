@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Combat;
@@ -81,7 +82,7 @@ public class ResolveAutoAttacksPhase : ICombatPhase
                 {
                     var damageDice = HitResolver.GetWeaponDamageDice(weapon, attacker);
                     var damage = HitResolver.CalculateDamage(attacker, damageDice, context.Random);
-                    target.Stats.Hp -= damage;
+                    context.VitalsService.Apply(target, VitalKind.Hp, -damage, "combat.melee");
 
                     context.EventBus.Publish(new GameEvent
                     {

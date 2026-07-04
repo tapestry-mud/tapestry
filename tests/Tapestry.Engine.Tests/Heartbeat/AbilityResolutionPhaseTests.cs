@@ -567,7 +567,7 @@ public class AbilityResolutionPhaseTests
         validators.Register("telegraph-rung", ctx =>
             new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" });
 
-        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators);
+        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators, vitalsService: new VitalsService(_eventBus));
         swellClock.AdvanceAll(0);
         swellClock.AdvanceAll(2); // -> Telegraph (active swell)
 
@@ -629,7 +629,7 @@ public class AbilityResolutionPhaseTests
         validators.Register("telegraph-rung", ctx =>
             new ValidationResult { Outcome = WindowOutcome.Weathered, NarrationKey = "weathered" });
 
-        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators);
+        var swellClock = new SwellClockManager(_world, _eventBus, _combatManager, validators, vitalsService: new VitalsService(_eventBus));
         swellClock.AdvanceAll(0); // Baseline
 
         Assert.False(swellClock.IsActorInActiveSwell(player.Id)); // confirm baseline

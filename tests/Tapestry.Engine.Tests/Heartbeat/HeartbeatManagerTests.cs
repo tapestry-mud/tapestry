@@ -39,10 +39,11 @@ public class HeartbeatManager_TickTests
         var sessionManager = new SessionManager();
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var validatorRegistry = new WindowValidatorRegistry();
-        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry);
+        var vitalsService = new VitalsService(eventBus);
+        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry, vitalsService: vitalsService);
         return new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
             proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager,
-            swellClockManager, random);
+            swellClockManager, vitalsService, random);
     }
 
     private void Setup()
@@ -134,10 +135,11 @@ public class HeartbeatManager_TickTests
         var sessionManager = new SessionManager();
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var validatorRegistry = new WindowValidatorRegistry();
-        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry);
+        var vitalsService = new VitalsService(eventBus);
+        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry, vitalsService: vitalsService);
         var heartbeat = new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
             proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager,
-            swellClockManager);
+            swellClockManager, vitalsService);
 
         PulseContext? captured = null;
         heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
@@ -160,10 +162,11 @@ public class HeartbeatManager_TickTests
         var sessionManager = new SessionManager();
         var alignmentManager = new AlignmentManager(world, eventBus, new AlignmentConfig());
         var validatorRegistry = new WindowValidatorRegistry();
-        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry);
+        var vitalsService = new VitalsService(eventBus);
+        var swellClockManager = new SwellClockManager(world, eventBus, combatManager, validatorRegistry, vitalsService: vitalsService);
         var heartbeat = new HeartbeatManager(world, eventBus, combatManager, abilityRegistry,
             proficiencyManager, passiveAbilityProcessor, effectManager, sessionManager, alignmentManager,
-            swellClockManager);
+            swellClockManager, vitalsService);
 
         PulseContext? captured = null;
         heartbeat.Register(new TestPulseHandler(cadence: 1, onExecute: ctx => { captured = ctx; }));
