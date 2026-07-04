@@ -106,4 +106,32 @@ public class WorldTests
         creator.TrackEntity(entity);
         Assert.Equal(entity, world.GetEntity(entity.Id));
     }
+
+    private class SpyPropertyObserver : IPropertyObserver
+    {
+        public List<(Entity Entity, string Key, object? OldValue, object? NewValue)> Changes = new();
+
+        public void OnPropertyChanged(Entity entity, string key, object? oldValue, object? newValue)
+        {
+            Changes.Add((entity, key, oldValue, newValue));
+        }
+    }
+
+    [Fact]
+    public void TrackEntity_AttachesPropertyObserver_UntrackEntity_DetachesIt()
+    {
+        var spy = new SpyPropertyObserver();
+        var world = new World(propertyObserver: spy);
+        var entity = new Entity("player", "Rand");
+
+        world.TrackEntity(entity);
+        entity.SetProperty("mood", "happy");
+
+        spy.Changes.Should().ContainSingle(c => c.Entity == entity && c.Key == "mood" && Equals(c.NewValue, "happy"));
+
+        world.UntrackEntity(entity);
+        entity.SetProperty("mood", "sad");
+
+        spy.Changes.Should().ContainSingle();
+    }
 }

@@ -16,6 +16,8 @@ public class EntityStatusBroadcasterTests
         var broadcaster = new EntityStatusBroadcaster(registry, bus);
 
         var entity = new Entity("player", "Eater");
+        entity.LocationRoomId = "town:square";
+        entity.SetProperty("sustenance", 50);
         entity.RegisterPropertyObserver(broadcaster);
 
         var seen = new List<GameEvent>();
@@ -25,7 +27,10 @@ public class EntityStatusBroadcasterTests
 
         seen.Should().ContainSingle();
         seen[0].SourceEntityId.Should().Be(entity.Id);
+        seen[0].SourceEntityName.Should().Be("Eater");
+        seen[0].RoomId.Should().Be("town:square");
         seen[0].Data["key"].Should().Be("sustenance");
+        seen[0].Data["old"].Should().Be(50);
         seen[0].Data["new"].Should().Be(0);
     }
 
