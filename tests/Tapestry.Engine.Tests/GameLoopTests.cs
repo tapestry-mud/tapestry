@@ -82,9 +82,7 @@ public class GameLoopTests
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.BaseMaxResource = 50;
         entity.Stats.BaseMaxMovement = 80;
-        entity.Stats.Hp = 50;
-        entity.Stats.Resource = 20;
-        entity.Stats.Movement = 40;
+        entity.Stats.InitializeVitals(50, 20, 40);
         entity.SetProperty("regen_hp", 5);
         entity.SetProperty("regen_resource", 3);
         entity.SetProperty("regen_movement", 4);
@@ -123,7 +121,7 @@ public class GameLoopTests
         var player = new Entity("player", "Test");
         player.AddTag("player");
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 50;
+        player.Stats.SetVital(VitalKind.Hp, 50);
         player.Stats.BaseStrength = 10;
         player.Stats.BaseDexterity = 10;
         player.SetProperty("regen_hp", 5);
@@ -131,7 +129,7 @@ public class GameLoopTests
         var mob = new Entity("npc", "Foe");
         mob.AddTag("npc");
         mob.Stats.BaseMaxHp = 100;
-        mob.Stats.Hp = 50;
+        mob.Stats.SetVital(VitalKind.Hp, 50);
         mob.Stats.BaseStrength = 8;
         mob.Stats.BaseDexterity = 10;
         mob.SetProperty("level", 3);
@@ -169,7 +167,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 98;
+        entity.Stats.SetVital(VitalKind.Hp, 98);
         entity.SetProperty("regen_hp", 5);
 
         var vitals = new VitalsService(eventBus);
@@ -197,7 +195,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
 
         GameEvent? firedEvent = null;
         eventBus.Subscribe("entity.vital.depleted", evt =>
@@ -205,7 +203,7 @@ public class GameLoopTests
             firedEvent = evt;
         });
 
-        entity.Stats.Hp = 0;
+        entity.Stats.SetVital(VitalKind.Hp, 0);
         gameLoop.CheckVitalDepletion(entity, eventBus);
 
         firedEvent.Should().NotBeNull();
@@ -411,7 +409,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxMovement = 100;
-        entity.Stats.Movement = 50;
+        entity.Stats.SetVital(VitalKind.Movement, 50);
         entity.SetProperty("regen_movement", 10);
 
         var vitals = new VitalsService(eventBus);
@@ -453,7 +451,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxMovement = 100;
-        entity.Stats.Movement = 50;
+        entity.Stats.SetVital(VitalKind.Movement, 50);
         entity.SetProperty("regen_movement", 10);
 
         var vitals = new VitalsService(eventBus);
@@ -493,7 +491,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 50;
+        entity.Stats.SetVital(VitalKind.Hp, 50);
         entity.SetProperty("regen_hp", 5);
         entity.SetProperty("sustenance", 0); // famished — would have suppressed regen before
 
@@ -525,7 +523,7 @@ public class GameLoopTests
 
         var entity = new Entity("player", "Test");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 50;
+        entity.Stats.SetVital(VitalKind.Hp, 50);
         entity.SetProperty("regen_hp", 5);
         entity.SetProperty(RestProperties.RestState, RestProperties.StateResting);
 

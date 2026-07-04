@@ -78,19 +78,19 @@ public class StatBlock
     public int Hp
     {
         get => _hp;
-        set { _hp = Math.Clamp(value, 0, MaxHp); }
+        private set { _hp = Math.Clamp(value, 0, MaxHp); }
     }
 
     public int Resource
     {
         get => _resource;
-        set { _resource = Math.Clamp(value, 0, MaxResource); }
+        private set { _resource = Math.Clamp(value, 0, MaxResource); }
     }
 
     public int Movement
     {
         get => _movement;
-        set { _movement = Math.Clamp(value, 0, MaxMovement); }
+        private set { _movement = Math.Clamp(value, 0, MaxMovement); }
     }
 
     // The single internal write seam for a per-vital mutation. VitalsService is the only

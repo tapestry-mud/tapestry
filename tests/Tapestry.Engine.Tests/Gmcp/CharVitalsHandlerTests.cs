@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Tapestry.Shared;
 using Tapestry.Engine;
+using Tapestry.Engine.Stats;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
 
@@ -32,11 +33,11 @@ public class CharVitalsHandlerTests
 
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 80;
+        entity.Stats.SetVital(VitalKind.Hp, 80);
         entity.Stats.BaseMaxResource = 50;
-        entity.Stats.Resource = 40;
+        entity.Stats.SetVital(VitalKind.Resource, 40);
         entity.Stats.BaseMaxMovement = 100;
-        entity.Stats.Movement = 90;
+        entity.Stats.SetVital(VitalKind.Movement, 90);
         world.TrackEntity(entity);
 
         var conn = new FakeConnection();

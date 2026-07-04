@@ -3,6 +3,7 @@ using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Heartbeat;
@@ -40,11 +41,11 @@ public class AbilityResolutionPhaseTests
     {
         var entity = new Entity("player", name);
         entity.Stats.BaseMaxResource = resource;
-        entity.Stats.Resource = resource;
+        entity.Stats.SetVital(VitalKind.Resource, resource);
         entity.Stats.BaseMaxMovement = movement;
-        entity.Stats.Movement = movement;
+        entity.Stats.SetVital(VitalKind.Movement, movement);
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         _room.AddEntity(entity);
         _world.TrackEntity(entity);
         return entity;
@@ -54,7 +55,7 @@ public class AbilityResolutionPhaseTests
     {
         var entity = new Entity("npc", name);
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         _room.AddEntity(entity);
         _world.TrackEntity(entity);
         return entity;

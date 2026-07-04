@@ -4,6 +4,7 @@ using System.Text.Json;
 using Tapestry.Shared;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Stats;
 using Tapestry.Server.Gmcp;
 using Tapestry.Server.Gmcp.Handlers;
 
@@ -90,13 +91,13 @@ public class CharCombatHandlerTests
         var room = new Room("test:arena", "Arena", "A test arena.");
         h.World.AddRoom(room);
         h.Player.Stats.BaseMaxHp = 100;
-        h.Player.Stats.Hp = 100;
+        h.Player.Stats.SetVital(VitalKind.Hp, 100);
         room.AddEntity(h.Player);
 
         var boss = new Entity("npc", "Boss");
         boss.AddTag("npc");
         boss.Stats.BaseMaxHp = 100;
-        boss.Stats.Hp = 100;
+        boss.Stats.SetVital(VitalKind.Hp, 100);
         boss.SetProperty("level", 5);
         room.AddEntity(boss);
         h.World.TrackEntity(boss);

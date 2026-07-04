@@ -1,4 +1,5 @@
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Combat;
@@ -34,7 +35,7 @@ public class SwellClockManagerTests
         var entity = new Entity("player", "Travis");
         entity.AddTag("player");
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         _room.AddEntity(entity);
         _world.TrackEntity(entity);
         return entity;
@@ -45,7 +46,7 @@ public class SwellClockManagerTests
         var entity = new Entity("npc", "the swell-warden");
         entity.AddTag("npc");
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         // Dials: fast baseline (gap 2 ticks, no jitter for determinism), short telegraph + window.
         entity.SetProperty("swell_window", "telegraph-rung");
         entity.SetProperty("swell_tell", "full");
@@ -274,7 +275,7 @@ public class SwellClockManagerTests
         RegisterDefaultValidator();
         var player = CreatePlayer(hp: 100);
         var boss = CreateBoss(hp: 25); // 15% of MaxHp = 3; boss is near death so chunk is lethal
-        boss.Stats.Hp = 1;             // already near death; the chunk finishes it
+        boss.Stats.SetVital(VitalKind.Hp, 1); // already near death; the chunk finishes it
         _combat.Engage(player, boss);
         var depleted = new List<GameEvent>();
         _eventBus.Subscribe("entity.vital.depleted", e => depleted.Add(e));

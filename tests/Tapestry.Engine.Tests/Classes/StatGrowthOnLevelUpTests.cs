@@ -38,7 +38,7 @@ public class StatGrowthOnLevelUpTests
         var e = new Entity("player", "Tester");
         e.AddTag("player");
         e.Stats.BaseMaxHp = 100;
-        e.Stats.Hp = 100;
+        e.Stats.SetVital(VitalKind.Hp, 100);
         e.SetProperty("class", classId);
         _world.TrackEntity(e);
         return e;

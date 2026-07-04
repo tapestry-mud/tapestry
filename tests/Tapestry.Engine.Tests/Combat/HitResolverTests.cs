@@ -1,5 +1,6 @@
 // tests/Tapestry.Engine.Tests/Combat/HitResolverTests.cs
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Stats;
 
 namespace Tapestry.Engine.Tests.Combat;
 
@@ -11,7 +12,7 @@ public class HitResolverTests
         entity.Stats.BaseDexterity = dex;
         entity.Stats.BaseStrength = 10;
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         return entity;
     }
 
@@ -20,7 +21,7 @@ public class HitResolverTests
         var entity = new Entity("npc", "TestDefender");
         entity.Stats.BaseDexterity = dex;
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         entity.SetProperty(CombatProperties.ArmorClass, new Dictionary<string, int>
         {
             ["slash"] = 0,

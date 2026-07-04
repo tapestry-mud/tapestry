@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Stats;
 using Tapestry.Scripting;
 using Tapestry.Shared;
 
@@ -282,7 +283,7 @@ public class AdminModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxHp = 100;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 50;
+        mob.Stats.SetVital(VitalKind.Hp, 50);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.admin.setEntityHp('{mob.Id}', 8000)");
 
@@ -317,7 +318,7 @@ public class AdminModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxHp = 100;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 50;
+        mob.Stats.SetVital(VitalKind.Hp, 50);
 
         var seen = new List<GameEvent>();
         eventBus.Subscribe("entity.vital.changed", seen.Add);

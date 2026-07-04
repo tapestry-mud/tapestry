@@ -75,7 +75,7 @@ public class JintRuntimeTests
         var connection = new FakeConnection();
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         var session = new PlayerSession(connection, entity);
         ctx.Sessions.Add(session);
         ctx.World.TrackEntity(entity);
@@ -106,7 +106,7 @@ public class JintRuntimeTests
         var connection = new FakeConnection();
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         var session = new PlayerSession(connection, entity);
         ctx.Sessions.Add(session);
         ctx.World.TrackEntity(entity);
@@ -173,7 +173,7 @@ public class JintRuntimeTests
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseStrength = 20;
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         var session = new PlayerSession(connection, entity);
         ctx.Sessions.Add(session);
         ctx.World.TrackEntity(entity);

@@ -12,11 +12,11 @@ public class PromptRendererTests
         var renderer = new PromptRenderer();
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 85;
+        entity.Stats.SetVital(VitalKind.Hp, 85);
         entity.Stats.BaseMaxResource = 50;
-        entity.Stats.Resource = 50;
+        entity.Stats.SetVital(VitalKind.Resource, 50);
         entity.Stats.BaseMaxMovement = 80;
-        entity.Stats.Movement = 70;
+        entity.Stats.SetVital(VitalKind.Movement, 70);
 
         var template = "<hp>{hp}/{maxhp}</hp> | <mana>{mana}/{maxmana}</mana> | <mv>{mv}/{maxmv}</mv>>";
         var result = renderer.Render(template, entity);
@@ -52,7 +52,7 @@ public class PromptRendererTests
         var renderer = new PromptRenderer();
         var entity = new Entity("player", "TestPlayer");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 85;
+        entity.Stats.SetVital(VitalKind.Hp, 85);
         entity.Stats.AddModifier(new StatModifier("test", StatType.MaxHp, 20));
 
         var result = renderer.Render("{hp}/{maxhp}>", entity);

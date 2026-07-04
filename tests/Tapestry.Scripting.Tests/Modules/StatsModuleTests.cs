@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tapestry.Engine;
+using Tapestry.Engine.Stats;
 using Tapestry.Scripting;
 using Tapestry.Scripting.Services;
 using Tapestry.Shared;
@@ -31,9 +32,7 @@ public class StatsModuleTests
         mob.Stats.BaseMaxResource = 80;
         mob.Stats.BaseMaxMovement = 120;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 10;
-        mob.Stats.Resource = 5;
-        mob.Stats.Movement = 20;
+        mob.Stats.InitializeVitals(10, 5, 20);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.restoreVitals('{mob.Id}')");
 
@@ -51,7 +50,7 @@ public class StatsModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxHp = 100;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 40;
+        mob.Stats.SetVital(VitalKind.Hp, 40);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_hp', 150)");
 
@@ -68,7 +67,7 @@ public class StatsModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxResource = 80;
         mob.Stats.Invalidate();
-        mob.Stats.Resource = 30;
+        mob.Stats.SetVital(VitalKind.Resource, 30);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_resource', 200)");
 
@@ -85,7 +84,7 @@ public class StatsModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxMovement = 120;
         mob.Stats.Invalidate();
-        mob.Stats.Movement = 50;
+        mob.Stats.SetVital(VitalKind.Movement, 50);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_movement', 300)");
 
@@ -107,14 +106,14 @@ public class StatsModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxHp = 100;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 40;
+        mob.Stats.SetVital(VitalKind.Hp, 40);
 
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_hp', {badValue})");
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_resource', {badValue})");
         EsmTest.Load(rt, "test-pack", $"tapestry.stats.setBase('{mob.Id}', 'max_movement', {badValue})");
 
         Assert.Equal(100, mob.Stats.MaxHp);
-        var ex = Record.Exception(() => { mob.Stats.Hp = 60; mob.Stats.Resource = 1; mob.Stats.Movement = 1; });
+        var ex = Record.Exception(() => mob.Stats.InitializeVitals(60, 1, 1));
         Assert.Null(ex);
         Assert.Equal(60, mob.Stats.Hp);
     }
@@ -150,7 +149,7 @@ public class StatsModuleTests
         world.TrackEntity(mob);
         mob.Stats.BaseMaxHp = 100;
         mob.Stats.Invalidate();
-        mob.Stats.Hp = 40;
+        mob.Stats.SetVital(VitalKind.Hp, 40);
 
         var seen = new List<GameEvent>();
         eventBus.Subscribe("entity.vital.changed", seen.Add);

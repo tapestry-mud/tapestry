@@ -4,6 +4,7 @@ using Tapestry.Engine;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Economy;
 using Tapestry.Engine.Inventory;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Quests;
@@ -36,7 +37,7 @@ public class EventPayloadTests
         var entity = new Entity("player", name);
         entity.AddTag("player");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         entity.Stats.BaseStrength = 10;
         entity.Stats.BaseDexterity = 10;
         room.AddEntity(entity);
@@ -49,7 +50,7 @@ public class EventPayloadTests
         var entity = new Entity("npc", name);
         entity.AddTag("npc");
         entity.Stats.BaseMaxHp = 40;
-        entity.Stats.Hp = 40;
+        entity.Stats.SetVital(VitalKind.Hp, 40);
         entity.Stats.BaseStrength = 8;
         entity.Stats.BaseDexterity = 10;
         entity.SetProperty(CommonProperties.TemplateId, templateId);

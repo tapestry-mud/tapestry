@@ -58,7 +58,7 @@ public class CastCostModifierTests
 
         var entity = new Entity("player", "T");
         entity.Stats.BaseMaxResource = 100;
-        entity.Stats.Resource = 100;
+        entity.Stats.SetVital(VitalKind.Resource, 100);
         entity.SetProperty("race", "elf");
         world.TrackEntity(entity);
 

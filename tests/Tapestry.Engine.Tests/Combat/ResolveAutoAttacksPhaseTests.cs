@@ -1,6 +1,7 @@
 using Tapestry.Engine.Abilities;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Combat;
@@ -41,7 +42,7 @@ public class ResolveAutoAttacksPhaseTests
         var entity = new Entity("player", "Travis");
         entity.AddTag("player");
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         entity.Stats.BaseStrength = 10;
         entity.Stats.BaseDexterity = 10;
         _room.AddEntity(entity);
@@ -54,7 +55,7 @@ public class ResolveAutoAttacksPhaseTests
         var entity = new Entity("npc", "the swell-warden");
         entity.AddTag("npc");
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         entity.Stats.BaseStrength = 8;
         entity.Stats.BaseDexterity = 10;
         // Dials: fast baseline (gap 2 ticks, no jitter for determinism), short telegraph + window.

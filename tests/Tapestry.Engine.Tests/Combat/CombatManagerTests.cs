@@ -3,6 +3,7 @@ using Tapestry.Data;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Effects;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Combat;
@@ -28,7 +29,7 @@ public class CombatManagerTests
         var entity = new Entity("player", name);
         entity.AddTag("player");
         entity.Stats.BaseMaxHp = hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         entity.Stats.BaseStrength = 10;
         entity.Stats.BaseDexterity = 10;
         _room.AddEntity(entity);
@@ -41,7 +42,7 @@ public class CombatManagerTests
         var entity = new Entity("npc", name);
         entity.AddTag("npc");
         entity.Stats.BaseMaxHp = maxHp ?? hp;
-        entity.Stats.Hp = hp;
+        entity.Stats.SetVital(VitalKind.Hp, hp);
         entity.Stats.BaseStrength = 8;
         entity.Stats.BaseDexterity = 10;
         entity.SetProperty("level", 3);
@@ -299,7 +300,7 @@ public class CombatManagerTests
 
         var player = CreatePlayer();
         player.Stats.BaseMaxMovement = 100;
-        player.Stats.Movement = 50;
+        player.Stats.SetVital(VitalKind.Movement, 50);
         var mob = CreateMob();
         _combat.Engage(player, mob);
         var context = new PulseContext

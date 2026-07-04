@@ -7,6 +7,7 @@ using Tapestry.Engine.Alignment;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Mobs;
 using Tapestry.Engine.Rest;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Mobs;
@@ -291,14 +292,14 @@ public class MobAIManagerTests
         var player = new Entity("player", "Hero") { LocationRoomId = "zone:room1" };
         player.AddTag("player");
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 100;
+        player.Stats.SetVital(VitalKind.Hp, 100);
         room1.AddEntity(player);
         world.TrackEntity(player);
 
         var mob = new Entity("npc", "a goblin") { LocationRoomId = "zone:room1" };
         mob.AddTag("npc");
         mob.Stats.BaseMaxHp = 40;
-        mob.Stats.Hp = 10; // 25% -- below the 50% wimpy threshold
+        mob.Stats.SetVital(VitalKind.Hp, 10); // 25% -- below the 50% wimpy threshold
         mob.SetProperty(MobProperties.Behavior, "stationary");
         mob.SetProperty(CombatProperties.WimpyPct, 50);
         room1.AddEntity(mob);

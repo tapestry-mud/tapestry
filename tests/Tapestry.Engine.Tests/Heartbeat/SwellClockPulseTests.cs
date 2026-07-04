@@ -1,5 +1,6 @@
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Heartbeat;
@@ -36,13 +37,13 @@ public class SwellClockPulseTests
 
         var player = new Entity("player", "Travis");
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 100;
+        player.Stats.SetVital(VitalKind.Hp, 100);
         room.AddEntity(player);
         world.TrackEntity(player);
 
         var boss = new Entity("npc", "the swell-warden");
         boss.Stats.BaseMaxHp = 200;
-        boss.Stats.Hp = 200;
+        boss.Stats.SetVital(VitalKind.Hp, 200);
         boss.SetProperty("swell_window", "telegraph-rung");
         boss.SetProperty("swell_baseline_gap_ticks", 1);
         boss.SetProperty("swell_jitter_ticks", 0);

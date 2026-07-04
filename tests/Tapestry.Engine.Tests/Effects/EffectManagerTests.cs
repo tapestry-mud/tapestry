@@ -18,7 +18,7 @@ public class EffectManagerTests
 
         _player = new Entity("player", "Travis");
         _player.Stats.BaseMaxHp = 100;
-        _player.Stats.Hp = 100;
+        _player.Stats.SetVital(VitalKind.Hp, 100);
         _player.Stats.BaseStrength = 10;
         _player.Stats.BaseDexterity = 10;
         _world.TrackEntity(_player);

@@ -1,5 +1,6 @@
 using Tapestry.Engine;
 using Tapestry.Engine.Progression;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests.Progression;
@@ -22,7 +23,7 @@ public class ProgressionManagerTests
         var entity = new Entity("player", name);
         entity.AddTag("player");
         entity.Stats.BaseMaxHp = 100;
-        entity.Stats.Hp = 100;
+        entity.Stats.SetVital(VitalKind.Hp, 100);
         _world.TrackEntity(entity);
         return entity;
     }

@@ -1,4 +1,5 @@
 using Tapestry.Engine.Abilities;
+using Tapestry.Engine.Stats;
 
 namespace Tapestry.Engine.Tests.Abilities;
 
@@ -20,7 +21,7 @@ public class PassiveAbilityProcessorTests
         _player.Stats.BaseStrength = 10;
         _player.Stats.BaseDexterity = 10;
         _player.Stats.BaseMaxHp = 100;
-        _player.Stats.Hp = 100;
+        _player.Stats.SetVital(VitalKind.Hp, 100);
         _world.TrackEntity(_player);
     }
 

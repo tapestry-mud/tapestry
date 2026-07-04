@@ -50,7 +50,7 @@ public class PlayerSerializerTests
         var player = CreateTestPlayer();
         player.Stats.BaseStrength = 18;
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 75;
+        player.Stats.SetVital(VitalKind.Hp, 75);
 
         var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
         var result = _serializer.FromSaveData(dto);
@@ -65,7 +65,7 @@ public class PlayerSerializerTests
     {
         var player = CreateTestPlayer();
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 100;
+        player.Stats.SetVital(VitalKind.Hp, 100);
         player.Stats.AddModifier(new StatModifier("ring_of_power", StatType.Strength, 5));
         player.Stats.AddModifier(new StatModifier("blessing", StatType.MaxHp, 20));
 

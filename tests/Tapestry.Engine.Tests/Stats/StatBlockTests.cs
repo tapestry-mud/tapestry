@@ -61,7 +61,7 @@ public class StatBlockTests
     {
         var stats = new StatBlock();
         stats.BaseMaxHp = 100;
-        stats.Hp = 150;
+        stats.SetVital(VitalKind.Hp, 150);
         stats.Hp.Should().Be(100);
     }
 
@@ -70,8 +70,8 @@ public class StatBlockTests
     {
         var stats = new StatBlock();
         stats.BaseMaxHp = 100;
-        stats.Hp = 100;
-        stats.Hp = 50;
+        stats.SetVital(VitalKind.Hp, 100);
+        stats.SetVital(VitalKind.Hp, 50);
         stats.Hp.Should().Be(50);
     }
 
@@ -104,9 +104,7 @@ public class StatBlockTests
         stats.BaseMaxResource = 80;
         stats.BaseMaxMovement = 120;
 
-        stats.Hp = 100;
-        stats.Resource = 80;
-        stats.Movement = 120;
+        stats.InitializeVitals(100, 80, 120);
 
         stats.AddModifier(new StatModifier("equipment:ring", StatType.MaxResource, 50));
 

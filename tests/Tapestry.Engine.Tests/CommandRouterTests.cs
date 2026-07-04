@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Tapestry.Engine;
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Stats;
 using Tapestry.Shared;
 
 namespace Tapestry.Engine.Tests;
@@ -192,14 +193,14 @@ public class CommandRouterTests
         var player = new Entity("player", "Travis");
         player.AddTag("player");
         player.Stats.BaseMaxHp = 100;
-        player.Stats.Hp = 100;
+        player.Stats.SetVital(VitalKind.Hp, 100);
         room.AddEntity(player);
         world.TrackEntity(player);
 
         var boss = new Entity("npc", "the swell-warden");
         boss.AddTag("npc");
         boss.Stats.BaseMaxHp = 200;
-        boss.Stats.Hp = 200;
+        boss.Stats.SetVital(VitalKind.Hp, 200);
         boss.SetProperty("swell_window", "telegraph-rung");
         boss.SetProperty("swell_tell", "full");
         boss.SetProperty("swell_baseline_gap_ticks", 2);
