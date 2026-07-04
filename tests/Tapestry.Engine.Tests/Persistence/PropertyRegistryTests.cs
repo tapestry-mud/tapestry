@@ -179,4 +179,26 @@ public class PropertyRegistryTests
         Assert.Null(resolution.Entry);
         Assert.Empty(resolution.Owners);
     }
+
+    [Fact]
+    public void RegisterObservable_MakesKeyResolveToTopic()
+    {
+        _registry.RegisterObservable("sustenance", "status");
+        Assert.True(_registry.TryGetObservableTopic("sustenance", out var topic));
+        Assert.Equal("status", topic);
+    }
+
+    [Fact]
+    public void TryGetObservableTopic_UnregisteredKey_ReturnsFalse()
+    {
+        Assert.False(_registry.TryGetObservableTopic("not_observable", out _));
+    }
+
+    [Fact]
+    public void RegisterEngineProperty_Observable_AlsoRegistersTopic()
+    {
+        _registry.RegisterEngineProperty("alignment", "Alignment", PropertyValueType.Int, observable: true, changeTopic: "status");
+        Assert.True(_registry.TryGetObservableTopic("alignment", out var topic));
+        Assert.Equal("status", topic);
+    }
 }

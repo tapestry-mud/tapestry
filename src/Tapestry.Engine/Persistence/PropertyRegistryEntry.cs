@@ -10,7 +10,9 @@ public sealed record PropertyRegistryEntry(
     double? Min = null,
     double? Max = null,
     IReadOnlySet<string>? EnumValues = null,
-    bool Settable = true
+    bool Settable = true,
+    bool Observable = false,
+    string? ChangeTopic = null
 )
 {
     public string FullName => Scope == "engine" ? Name : $"{Scope}:{Name}";

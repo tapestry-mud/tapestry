@@ -25,6 +25,7 @@ public sealed class PropertyRegistry
 {
     private static readonly Regex SnakeCasePattern = new(@"^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
     private readonly Dictionary<string, PropertyRegistryEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _observableTopics = new(StringComparer.OrdinalIgnoreCase);
     private Func<string, IEnumerable<string>>? _dependencyResolver;
 
     public void RegisterEngineProperty(
@@ -36,7 +37,9 @@ public sealed class PropertyRegistry
         double? min = null,
         double? max = null,
         IEnumerable<string>? enumValues = null,
-        bool settable = true)
+        bool settable = true,
+        bool observable = false,
+        string? changeTopic = null)
     {
         ValidateSnakeCase(name);
         var key = name.ToLowerInvariant();
@@ -46,9 +49,17 @@ public sealed class PropertyRegistry
         var enumSet = enumValues != null
             ? (IReadOnlySet<string>)new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase)
             : null;
-        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet, settable)))
+        if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet, settable, observable, changeTopic)))
         {
             throw new InvalidOperationException($"Engine property '{name}' is already registered.");
+        }
+        if (observable)
+        {
+            if (string.IsNullOrEmpty(changeTopic))
+            {
+                throw new ArgumentException($"Observable property '{name}' requires a changeTopic.", nameof(changeTopic));
+            }
+            RegisterObservable(name, changeTopic);
         }
     }
 
@@ -84,6 +95,16 @@ public sealed class PropertyRegistry
     public void SetDependencyResolver(Func<string, IEnumerable<string>> resolver)
     {
         _dependencyResolver = resolver;
+    }
+
+    public void RegisterObservable(string key, string topic)
+    {
+        _observableTopics[key] = topic;
+    }
+
+    public bool TryGetObservableTopic(string key, out string topic)
+    {
+        return _observableTopics.TryGetValue(key, out topic!);
     }
 
     public bool TryResolve(string name, string? currentPack, out PropertyRegistryEntry entry)
