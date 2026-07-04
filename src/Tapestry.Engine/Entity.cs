@@ -20,6 +20,7 @@ public class Entity : IAttributeTarget
     private readonly List<Entity> _contents = new();
     private readonly Dictionary<string, Entity> _equipment = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ITagObserver> _tagObservers = new();
+    private readonly List<IPropertyObserver> _propertyObservers = new();
 
     public IReadOnlyList<Entity> Contents => _contents.AsReadOnly();
     public IReadOnlySet<string> Tags => _tags;
@@ -41,6 +42,7 @@ public class Entity : IAttributeTarget
 
     public void SetProperty(string key, object? value)
     {
+        _properties.TryGetValue(key, out var oldValue);
         if (value == null)
         {
             _properties.Remove(key);
@@ -48,6 +50,14 @@ public class Entity : IAttributeTarget
         else
         {
             _properties[key] = value;
+        }
+
+        if (!Equals(oldValue, value) && _propertyObservers.Count > 0)
+        {
+            foreach (var obs in _propertyObservers)
+            {
+                obs.OnPropertyChanged(this, key, oldValue, value);
+            }
         }
     }
 
@@ -258,6 +268,16 @@ public class Entity : IAttributeTarget
     public void UnregisterTagObserver(ITagObserver observer)
     {
         _tagObservers.Remove(observer);
+    }
+
+    public void RegisterPropertyObserver(IPropertyObserver observer)
+    {
+        _propertyObservers.Add(observer);
+    }
+
+    public void UnregisterPropertyObserver(IPropertyObserver observer)
+    {
+        _propertyObservers.Remove(observer);
     }
 
     public void AddToContents(Entity entity)

@@ -41,7 +41,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PlayerSerializer>();
 
         // Core
-        services.AddSingleton<World>();
+        services.AddSingleton<IPropertyObserver, EntityStatusBroadcaster>();
+        services.AddSingleton<World>(sp => new World(
+            sp.GetService<PlayerCreator>(),
+            sp.GetService<IPropertyObserver>()));
         services.AddSingleton<StubExitResolver>();
         services.AddSingleton<EventBus>();
         services.AddSingleton<VitalsService>();

@@ -9,6 +9,7 @@ public class World : ITagObserver
     private readonly Dictionary<string, Room> _rooms = new();
     private readonly Dictionary<Guid, Entity> _entities = new();
     private readonly PlayerCreator? _playerCreator;
+    private readonly IPropertyObserver? _propertyObserver;
 
     private Dictionary<string, HashSet<Entity>> _readIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, HashSet<Entity>> _writeIndex = new(StringComparer.OrdinalIgnoreCase);
@@ -17,9 +18,10 @@ public class World : ITagObserver
     public int LastSwapDirtyCount { get; private set; }
     public int LastSwapTagCount { get; private set; }
 
-    public World(PlayerCreator? playerCreator = null)
+    public World(PlayerCreator? playerCreator = null, IPropertyObserver? propertyObserver = null)
     {
         _playerCreator = playerCreator;
+        _propertyObserver = propertyObserver;
     }
 
     public void AddRoom(Room room)
@@ -211,6 +213,10 @@ public class World : ITagObserver
     {
         _entities[entity.Id] = entity;
         entity.RegisterTagObserver(this);
+        if (_propertyObserver != null)
+        {
+            entity.RegisterPropertyObserver(_propertyObserver);
+        }
         foreach (var tag in entity.Tags)
         {
             AddToWriteIndex(entity, tag);
@@ -221,6 +227,10 @@ public class World : ITagObserver
     {
         _entities.Remove(entity.Id);
         entity.UnregisterTagObserver(this);
+        if (_propertyObserver != null)
+        {
+            entity.UnregisterPropertyObserver(_propertyObserver);
+        }
         foreach (var tag in entity.Tags)
         {
             RemoveFromWriteIndex(entity, tag);
