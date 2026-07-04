@@ -19,6 +19,7 @@ public class TickHandlerModule : IGameModule
     private readonly HeartbeatManager _heartbeat;
     private readonly CombatPulse _combatPulse;
     private readonly CombatManager _combatManager;
+    private readonly VitalsService _vitalsService;
     private readonly SwellClockPulse _swellClockPulse;
     private readonly MobAIManager _mobAI;
     private readonly MobCommandQueue _mobCommandQueue;
@@ -40,6 +41,7 @@ public class TickHandlerModule : IGameModule
         HeartbeatManager heartbeat,
         CombatPulse combatPulse,
         CombatManager combatManager,
+        VitalsService vitalsService,
         SwellClockPulse swellClockPulse,
         MobAIManager mobAI,
         MobCommandQueue mobCommandQueue,
@@ -58,6 +60,7 @@ public class TickHandlerModule : IGameModule
         _heartbeat = heartbeat;
         _combatPulse = combatPulse;
         _combatManager = combatManager;
+        _vitalsService = vitalsService;
         _swellClockPulse = swellClockPulse;
         _mobAI = mobAI;
         _mobCommandQueue = mobCommandQueue;
@@ -97,7 +100,8 @@ public class TickHandlerModule : IGameModule
         _gameLoop.RegisterRegenHandler(_world, _eventBus,
             regenIntervalTicks: 30,
             restConfig: _restConfig,
-            combatManager: _combatManager);
+            combatManager: _combatManager,
+            vitalsService: _vitalsService);
 
         _gameLoop.RegisterTickHandler("gmcp-vitals-flush", 1, () => _dirtyVitalsBatcher.FlushDirtyVitals());
 

@@ -443,7 +443,7 @@ public class GameLoop
         });
     }
 
-    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks, RestConfig? restConfig, CombatManager combatManager)
+    public void RegisterRegenHandler(World world, EventBus eventBus, int regenIntervalTicks, RestConfig? restConfig, CombatManager combatManager, VitalsService vitalsService)
     {
         var regenData = new Dictionary<string, object?>(2);
         RegisterTickHandler("regen", regenIntervalTicks, () =>
@@ -503,7 +503,7 @@ public class GameLoop
                     if (!regenEvent.Cancelled)
                     {
                         var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenHp;
-                        entity.Stats.Hp += amount;
+                        vitalsService.Apply(entity, VitalKind.Hp, amount, "regen");
                     }
                 }
 
@@ -524,7 +524,7 @@ public class GameLoop
                     if (!regenResourceEvent.Cancelled)
                     {
                         var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenResource;
-                        entity.Stats.Resource += amount;
+                        vitalsService.Apply(entity, VitalKind.Resource, amount, "regen");
                     }
                 }
 
@@ -545,7 +545,7 @@ public class GameLoop
                     if (!regenMovementEvent.Cancelled)
                     {
                         var amount = regenData.ContainsKey("amount") ? Convert.ToInt32(regenData["amount"]) : regenMovement;
-                        entity.Stats.Movement += amount;
+                        vitalsService.Apply(entity, VitalKind.Movement, amount, "regen");
                     }
                 }
             }

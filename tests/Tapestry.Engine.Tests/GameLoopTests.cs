@@ -89,7 +89,8 @@ public class GameLoopTests
         entity.SetProperty("regen_resource", 3);
         entity.SetProperty("regen_movement", 4);
 
-        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -97,11 +98,15 @@ public class GameLoopTests
         world.AddRoom(room);
         world.TrackEntity(entity);
 
+        var vitalChanges = new List<GameEvent>();
+        eventBus.Subscribe("entity.vital.changed", vitalChanges.Add);
+
         gameLoop.Tick();
 
         entity.Stats.Hp.Should().Be(55);
         entity.Stats.Resource.Should().Be(23);
         entity.Stats.Movement.Should().Be(44);
+        vitalChanges.Should().Contain(e => (string)e.Data["vital"]! == "hp" && (string)e.Data["reason"]! == "regen");
     }
 
     [Fact]
@@ -132,7 +137,8 @@ public class GameLoopTests
         mob.SetProperty("level", 3);
         mob.SetProperty("regen_hp", 5);
 
-        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: combat);
+        var vitals = new VitalsService(eventBus);
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: combat, vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -166,7 +172,8 @@ public class GameLoopTests
         entity.Stats.Hp = 98;
         entity.SetProperty("regen_hp", 5);
 
-        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        gameLoop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -407,7 +414,8 @@ public class GameLoopTests
         entity.Stats.Movement = 50;
         entity.SetProperty("regen_movement", 10);
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -448,7 +456,8 @@ public class GameLoopTests
         entity.Stats.Movement = 50;
         entity.SetProperty("regen_movement", 10);
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -488,7 +497,8 @@ public class GameLoopTests
         entity.SetProperty("regen_hp", 5);
         entity.SetProperty("sustenance", 0); // famished — would have suppressed regen before
 
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: null, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
@@ -520,7 +530,8 @@ public class GameLoopTests
         entity.SetProperty(RestProperties.RestState, RestProperties.StateResting);
 
         var restConfig = new RestConfig();
-        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: restConfig, combatManager: new CombatManager(world, eventBus));
+        var vitals = new VitalsService(eventBus);
+        loop.RegisterRegenHandler(world, eventBus, regenIntervalTicks: 1, restConfig: restConfig, combatManager: new CombatManager(world, eventBus), vitalsService: vitals);
         policy.Resolve();
 
         var room = new Room("test", "Test", "Test room");
