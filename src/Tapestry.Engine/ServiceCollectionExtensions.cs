@@ -44,6 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<World>();
         services.AddSingleton<StubExitResolver>();
         services.AddSingleton<EventBus>();
+        services.AddSingleton<VitalsService>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<EmoteRegistry>();
         services.AddSingleton<BadInputTracker>(sp =>
