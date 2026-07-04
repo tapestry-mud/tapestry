@@ -38,6 +38,7 @@ public class PlayerInitModuleTests
         var accountService = new AccountService(accountStore);
         return new PlayerInitModule(
             config, packLoader, persistence, accountService, raceRegistry ?? new RaceRegistry(),
+            new VitalsService(new EventBus()),
             NullLogger<PlayerInitModule>.Instance);
     }
 

@@ -27,6 +27,7 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
     private readonly AccountService _accountService;
     private readonly TapestryMetrics _metrics;
     private readonly ILogger<PlayerSpawner> _logger;
+    private readonly VitalsService _vitalsService;
 
     public PlayerSpawner(
         SessionManager sessions,
@@ -40,7 +41,8 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         EventBus eventBus,
         AccountService accountService,
         TapestryMetrics metrics,
-        ILogger<PlayerSpawner> logger)
+        ILogger<PlayerSpawner> logger,
+        VitalsService vitalsService)
     {
         _sessions = sessions;
         _world = world;
@@ -54,6 +56,7 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         _accountService = accountService;
         _metrics = metrics;
         _logger = logger;
+        _vitalsService = vitalsService;
     }
 
     private FloodContext BuildFloodContext()
@@ -199,7 +202,7 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         LoginContext preLogin,
         FlowEngine? flowEngine)
     {
-        var entity = LoginFlow.CreateNewPlayerEntity(name);
+        var entity = LoginFlow.CreateNewPlayerEntity(name, _vitalsService);
         if (connection.RemoteAddress != null)
         {
             entity.SetProperty("last_ip", connection.RemoteAddress);

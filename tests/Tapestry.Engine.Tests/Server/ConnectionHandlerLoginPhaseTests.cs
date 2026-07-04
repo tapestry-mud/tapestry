@@ -197,11 +197,14 @@ public class ConnectionHandlerLoginPhaseTests
             new DispositionEvaluator(world, eventBus, new AlignmentManager(world, eventBus, alignmentConfig)),
             NullLogger<MobAIManager>.Instance, new TapestryMetrics(), vitalsService: new VitalsService(eventBus));
 
+        var vitalsService = new VitalsService(eventBus);
+
         var spawner = new PlayerSpawner(
             sessions, world, gameLoop, new TickTimer(10), config, loginHandler,
             mobAI, new SystemEventQueue(), new EventBus(), accountService,
             new TapestryMetrics(),
-            NullLogger<PlayerSpawner>.Instance);
+            NullLogger<PlayerSpawner>.Instance,
+            vitalsService);
 
         var handler = new ConnectionHandler(
             sessions,
@@ -220,7 +223,8 @@ public class ConnectionHandlerLoginPhaseTests
             connectionManager,
             loginHandler,
             spawner,
-            new Tapestry.Engine.Watch.WatchRegistry());
+            new Tapestry.Engine.Watch.WatchRegistry(),
+            vitalsService);
 
         var conn = new FakeConnection();
         var gmcpHandler = new FakeGmcpHandler();

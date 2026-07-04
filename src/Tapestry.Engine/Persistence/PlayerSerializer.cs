@@ -278,9 +278,7 @@ public class PlayerSerializer
         }
 
         // Vitals (after base + modifiers so clamping works correctly)
-        stats.Hp = data.Vitals.Hp;
-        stats.Resource = data.Vitals.Resource;
-        stats.Movement = data.Vitals.Movement;
+        stats.InitializeVitals(data.Vitals.Hp, data.Vitals.Resource, data.Vitals.Movement);
     }
 
     // Read-old-write-new property key migrations, applied as a save's property bag

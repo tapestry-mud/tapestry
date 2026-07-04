@@ -17,6 +17,7 @@ public class PlayerInitModule : IGameModule
     private readonly PlayerPersistenceService _persistence;
     private readonly AccountService _accountService;
     private readonly RaceRegistry _raceRegistry;
+    private readonly VitalsService _vitalsService;
     private readonly ILogger<PlayerInitModule> _logger;
 
     public string Name => "PlayerInit";
@@ -27,6 +28,7 @@ public class PlayerInitModule : IGameModule
         PlayerPersistenceService persistence,
         AccountService accountService,
         RaceRegistry raceRegistry,
+        VitalsService vitalsService,
         ILogger<PlayerInitModule> logger)
     {
         _config = config;
@@ -34,6 +36,7 @@ public class PlayerInitModule : IGameModule
         _persistence = persistence;
         _accountService = accountService;
         _raceRegistry = raceRegistry;
+        _vitalsService = vitalsService;
         _logger = logger;
     }
 
@@ -101,9 +104,7 @@ public class PlayerInitModule : IGameModule
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.BaseMaxResource = 50;
         entity.Stats.BaseMaxMovement = 100;
-        entity.Stats.Hp = 100;
-        entity.Stats.Resource = 50;
-        entity.Stats.Movement = 100;
+        _vitalsService.Initialize(entity, 100, 50, 100);
         entity.SetProperty(CommonProperties.RegenHp, 2);
         entity.SetProperty(CommonProperties.RegenResource, 1);
         entity.SetProperty(CommonProperties.RegenMovement, 3);
@@ -181,9 +182,7 @@ public class PlayerInitModule : IGameModule
                 entity.Stats.BaseMaxHp = seed.Stats.MaxHp;
                 entity.Stats.BaseMaxResource = seed.Stats.MaxResource;
                 entity.Stats.BaseMaxMovement = seed.Stats.MaxMovement;
-                entity.Stats.Hp = seed.Stats.MaxHp;
-                entity.Stats.Resource = seed.Stats.MaxResource;
-                entity.Stats.Movement = seed.Stats.MaxMovement;
+                _vitalsService.Initialize(entity, seed.Stats.MaxHp, seed.Stats.MaxResource, seed.Stats.MaxMovement);
                 entity.SetProperty(CommonProperties.RegenHp, 2);
                 entity.SetProperty(CommonProperties.RegenResource, 1);
                 entity.SetProperty(CommonProperties.RegenMovement, 3);

@@ -101,6 +101,7 @@ public class LoginFlowWizlockTests
             NullLogger<LoginFlow>.Instance,
             metrics: null!,
             wizlock,
+            vitalsService: new VitalsService(new EventBus()),
             flowEngine: null);
 
         return new Harness(flow, conn, wizlock);

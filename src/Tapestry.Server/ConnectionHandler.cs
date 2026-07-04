@@ -33,6 +33,7 @@ public class ConnectionHandler
     private readonly LoginHandler _loginHandler;
     private readonly PlayerSpawner _spawner;
     private readonly WatchRegistry _watchRegistry;
+    private readonly VitalsService _vitalsService;
 
     public ConnectionHandler(
         SessionManager sessions,
@@ -51,7 +52,8 @@ public class ConnectionHandler
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
         PlayerSpawner spawner,
-        WatchRegistry watchRegistry)
+        WatchRegistry watchRegistry,
+        VitalsService vitalsService)
     {
         _sessions = sessions;
         _metrics = metrics;
@@ -70,7 +72,8 @@ public class ConnectionHandler
         _loginHandler = loginHandler;
         _spawner = spawner;
         _watchRegistry = watchRegistry;
-        _flowEngine.NewPlayerEntityFactory = LoginFlow.CreateNewPlayerEntity;
+        _vitalsService = vitalsService;
+        _flowEngine.NewPlayerEntityFactory = name => LoginFlow.CreateNewPlayerEntity(name, _vitalsService);
         _flowEngine.GmcpSend = (connectionId, package, payload) =>
         {
             _connectionManager.Send(connectionId, package, payload);
@@ -97,7 +100,7 @@ public class ConnectionHandler
 
         var flow = new LoginFlow(
             adapter, loginContext, _persistence, _accountService, _sessions, _loginGates, _loginHandler, _config,
-            _loginFlowLogger, _metrics, _wizlock, _flowEngine);
+            _loginFlowLogger, _metrics, _wizlock, _vitalsService, _flowEngine);
 
         _ = Task.Run(async () =>
         {

@@ -102,9 +102,7 @@ public class MobTemplate
         entity.Stats.BaseMaxHp = Stats.MaxHp;
         entity.Stats.BaseMaxResource = Stats.MaxResource;
         entity.Stats.BaseMaxMovement = Stats.MaxMovement;
-        entity.Stats.Hp = Stats.MaxHp;
-        entity.Stats.Resource = Stats.MaxResource;
-        entity.Stats.Movement = Stats.MaxMovement;
+        entity.Stats.InitializeVitals(Stats.MaxHp, Stats.MaxResource, Stats.MaxMovement);
 
         foreach (var kvp in Properties)
         {

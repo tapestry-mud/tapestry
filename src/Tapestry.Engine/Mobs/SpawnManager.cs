@@ -230,7 +230,7 @@ public class SpawnManager
         if (over.MaxHp is int hp)
         {
             entity.Stats.BaseMaxHp = hp;
-            entity.Stats.Hp = entity.Stats.MaxHp;
+            entity.Stats.SetVital(VitalKind.Hp, entity.Stats.MaxHp);
         }
         if (!string.IsNullOrWhiteSpace(over.Damage)) { entity.SetProperty(CombatProperties.DamageDice, over.Damage); }
         if (over.FromType != null) { entity.SetProperty("oracle_from_type", over.FromType); }

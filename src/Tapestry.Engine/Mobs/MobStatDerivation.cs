@@ -30,9 +30,7 @@ public static class MobStatDerivation
                 entity.SetProperty("class", template.Class);
                 entity.SetProperty("level", new Dictionary<string, int> { ["combat"] = template.Level });
                 // Restore current vitals to new max
-                entity.Stats.Hp = entity.Stats.MaxHp;
-                entity.Stats.Resource = entity.Stats.MaxResource;
-                entity.Stats.Movement = entity.Stats.MaxMovement;
+                entity.Stats.InitializeVitals(entity.Stats.MaxHp, entity.Stats.MaxResource, entity.Stats.MaxMovement);
             }
         }
 

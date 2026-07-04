@@ -43,6 +43,7 @@ public class LoginFlowNameValidationTests
             logger: NullLogger<LoginFlow>.Instance,
             metrics: null!,
             wizlock: new WizlockState(),
+            vitalsService: new VitalsService(new EventBus()),
             flowEngine: null);
     }
 

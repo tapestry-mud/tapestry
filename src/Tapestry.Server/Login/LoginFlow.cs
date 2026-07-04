@@ -25,6 +25,7 @@ public class LoginFlow
     private readonly TapestryMetrics _metrics;
     private readonly WizlockState _wizlock;
     private readonly FlowEngine? _flowEngine;
+    private readonly VitalsService _vitalsService;
     private readonly object _nameReservationLock = new();
 
     private const string NamePrompt = "Speak your name into the loom.";
@@ -43,6 +44,7 @@ public class LoginFlow
         ILogger<LoginFlow> logger,
         TapestryMetrics metrics,
         WizlockState wizlock,
+        VitalsService vitalsService,
         FlowEngine? flowEngine = null)
     {
         _adapter = adapter;
@@ -56,6 +58,7 @@ public class LoginFlow
         _logger = logger;
         _metrics = metrics;
         _wizlock = wizlock;
+        _vitalsService = vitalsService;
         _flowEngine = flowEngine;
     }
 
@@ -380,7 +383,7 @@ public class LoginFlow
             await _accountService.AddCharacterToAccount(accountId, name);
         }
 
-        var entity = CreateNewPlayerEntity(name);
+        var entity = CreateNewPlayerEntity(name, _vitalsService);
         if (_context.Connection.RemoteAddress != null)
         {
             entity.SetProperty("last_ip", _context.Connection.RemoteAddress);
@@ -469,7 +472,7 @@ public class LoginFlow
         _loginHandler?.SendLoginPhase(_context.ConnectionId, phase);
     }
 
-    public static Entity CreateNewPlayerEntity(string name)
+    public static Entity CreateNewPlayerEntity(string name, VitalsService vitals)
     {
         var entity = new Entity("player", name);
         entity.Stats.BaseStrength = 10;
@@ -481,9 +484,7 @@ public class LoginFlow
         entity.Stats.BaseMaxHp = 100;
         entity.Stats.BaseMaxResource = 50;
         entity.Stats.BaseMaxMovement = 100;
-        entity.Stats.Hp = 100;
-        entity.Stats.Resource = 50;
-        entity.Stats.Movement = 100;
+        vitals.Initialize(entity, 100, 50, 100);
         entity.SetProperty(CommonProperties.RegenHp, 2);
         entity.SetProperty(CommonProperties.RegenResource, 1);
         entity.SetProperty(CommonProperties.RegenMovement, 3);
