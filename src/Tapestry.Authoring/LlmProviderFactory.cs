@@ -1,5 +1,7 @@
 using System;
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
+using Tapestry.Engine;
 using Tapestry.Engine.Recommend;
 
 namespace Tapestry.Authoring;
@@ -10,14 +12,15 @@ namespace Tapestry.Authoring;
 public static class LlmProviderFactory
 {
     public static IRecommendProvider? Create(
-        RecommendLlmConfig config, RecommendPromptConfig promptConfig, Func<HttpClient> httpClientFactory)
+        RecommendLlmConfig config, RecommendPromptConfig promptConfig, Func<HttpClient> httpClientFactory,
+        ILogger? logger = null, TapestryMetrics? metrics = null)
     {
         if (config.Enabled)
         {
             var client = new OpenAiCompatibleLlmClient(httpClientFactory());
             var roomBuilder = new RoomPromptBuilder(promptConfig);
             var areaBuilder = new AreaPromptBuilder(promptConfig);
-            return new LlmRecommendProvider(client, roomBuilder, areaBuilder, config);
+            return new LlmRecommendProvider(client, roomBuilder, areaBuilder, config, logger, metrics);
         }
         if (config.UseStub)
         {

@@ -31,6 +31,7 @@ public class TapestryMetrics
     public UpDownCounter<long> RecommendInFlight { get; }
     public Counter<long> RecommendTotal { get; }
     public Histogram<long> RecommendTokens { get; }
+    public Counter<long> RecommendSchemaDropped { get; }
 
     public TapestryMetrics()
     {
@@ -135,6 +136,10 @@ public class TapestryMetrics
             "tapestry.recommend.tokens",
             unit: "{token}",
             description: "Recommend tokens (prompt+completion) per call, tagged by field and outcome");
+
+        RecommendSchemaDropped = _meter.CreateCounter<long>(
+            "tapestry.recommend.schema_dropped",
+            description: "Recommend calls that carried a response schema while llm.structured_output was disabled (schema not sent), tagged by field");
     }
 
     /// <summary>

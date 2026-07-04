@@ -217,6 +217,80 @@ public class LlmRecommendProviderTests
         Assert.Null(client.LastSchema); // schema not passed when the flag is off
         Assert.Equal("a line", result.Suggestions[0]); // free-text normalized
     }
+
+    // Captures warning messages so the schema-dropped warning can be asserted.
+    private sealed class ListLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        public List<string> Warnings { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId,
+            TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == Microsoft.Extensions.Logging.LogLevel.Warning)
+            {
+                Warnings.Add(formatter(state, exception));
+            }
+        }
+    }
+
+    private static PackRoomContext PackCtx() => new()
+    {
+        Room = new RoomData(), Template = "t", System = "s",
+        Vars = new System.Collections.Generic.Dictionary<string, string>(),
+    };
+
+    [Fact]
+    public async Task Schema_with_flag_off_warns_once_per_burst_naming_the_flag()
+    {
+        var client = new CapturingLlmClient("free text");
+        var log = new ListLogger();
+        var provider = new LlmRecommendProvider(
+            client, new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default), Config(structured: false),
+            logger: log);
+        var request = new RecommendRequest("fill_mobs", PackCtx(), ResponseSchema: "{\"type\":\"object\"}");
+
+        await provider.RecommendAsync(request);
+        await provider.RecommendAsync(request);
+        await provider.RecommendAsync(request); // burst of 3 within the throttle window
+
+        Assert.Single(log.Warnings);                              // once per burst, not per call
+        Assert.Contains("llm.structured_output", log.Warnings[0]); // names the flag
+        Assert.Null(client.LastSchema);                            // schema genuinely dropped
+    }
+
+    [Fact]
+    public async Task Schema_with_flag_on_does_not_warn()
+    {
+        var client = new CapturingLlmClient("{\"ok\":true}");
+        var log = new ListLogger();
+        var provider = new LlmRecommendProvider(
+            client, new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default), Config(structured: true),
+            logger: log);
+
+        await provider.RecommendAsync(new RecommendRequest("fill_mobs", PackCtx(), ResponseSchema: "{}"));
+
+        Assert.Empty(log.Warnings);
+    }
+
+    [Fact]
+    public async Task No_schema_with_flag_off_does_not_warn()
+    {
+        var client = new CapturingLlmClient("free text");
+        var log = new ListLogger();
+        var provider = new LlmRecommendProvider(
+            client, new RoomPromptBuilder(RecommendPromptConfig.Default),
+            new AreaPromptBuilder(RecommendPromptConfig.Default), Config(structured: false),
+            logger: log);
+
+        await provider.RecommendAsync(new RecommendRequest("fill_mobs", PackCtx()));
+
+        Assert.Empty(log.Warnings);
+    }
 }
 
 public class LlmProviderFactoryTests

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
 using Tapestry.Engine.Recommend;
 
@@ -23,15 +25,26 @@ public sealed class LlmRecommendProvider : IRecommendProvider
     private readonly AreaPromptBuilder _areaBuilder;
     private readonly RecommendLlmConfig _config;
     private readonly LlmOptions _opts;
+    private readonly ILogger? _logger;
+    private readonly TapestryMetrics? _metrics;
+
+    // Schema-dropped warning throttle: a solo fill run bursts many calls in minutes, so
+    // one WARN per interval names the misconfiguration without flooding the log. The
+    // counter metric still increments on EVERY dropped call.
+    private const long SchemaWarnIntervalMs = 60_000;
+    private long _lastSchemaWarnAt;
 
     public LlmRecommendProvider(ILlmClient client, RoomPromptBuilder roomBuilder,
-        AreaPromptBuilder areaBuilder, RecommendLlmConfig config)
+        AreaPromptBuilder areaBuilder, RecommendLlmConfig config,
+        ILogger? logger = null, TapestryMetrics? metrics = null)
     {
         _client = client;
         _roomBuilder = roomBuilder;
         _areaBuilder = areaBuilder;
         _config = config;
         _opts = new LlmOptions(config.Model, config.Temperature, config.TimeoutSeconds, config.BaseUrl, config.ApiKey);
+        _logger = logger;
+        _metrics = metrics;
     }
 
     public bool IsEnabled =>
@@ -51,6 +64,10 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         {
             var (sys, usr) = _roomBuilder.Build(field, pack.Room, pack.Template, pack.System, pack.Vars);
             var structured = _config.StructuredOutput && !string.IsNullOrEmpty(request.ResponseSchema);
+            if (!structured && !string.IsNullOrEmpty(request.ResponseSchema))
+            {
+                WarnSchemaDropped(field);
+            }
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.TimeoutSeconds));
@@ -114,6 +131,33 @@ public sealed class LlmRecommendProvider : IRecommendProvider
         }
 
         return new RecommendResult(picks, promptTokens, completionTokens);
+    }
+
+    // The deployment passed a response schema while llm.structured_output is off: the
+    // schema is NOT sent, the model returns free text, the pack's JSON.parse fails, and
+    // every mapper silently falls back to placeholder dressing. Loud, not silent - but
+    // do NOT auto-enable: the flag is a deployment capability gate for providers that
+    // cannot do json_schema.
+    private void WarnSchemaDropped(string field)
+    {
+        _metrics?.RecommendSchemaDropped.Add(1, new KeyValuePair<string, object?>("field", field));
+        var now = Environment.TickCount64;
+        var last = Interlocked.Read(ref _lastSchemaWarnAt);
+        if (last != 0 && now - last < SchemaWarnIntervalMs)
+        {
+            return;
+        }
+        if (Interlocked.CompareExchange(ref _lastSchemaWarnAt, now, last) != last)
+        {
+            return; // another call in the same burst won the warn
+        }
+        _logger?.LogWarning(
+            "recommend[{Field}]: request carried a response schema but llm.structured_output is " +
+            "disabled — schema NOT sent; the model returns free text and pack mappers fall back " +
+            "to placeholder content. Set llm.structured_output: true in server.yaml if the " +
+            "provider supports json_schema. (Warning throttled to one per {IntervalSeconds}s; " +
+            "see the tapestry.recommend.schema_dropped counter for the full count.)",
+            field, SchemaWarnIntervalMs / 1000);
     }
 
     // Normalize a raw LLM suggestion for MUD use:

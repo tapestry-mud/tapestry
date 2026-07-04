@@ -131,7 +131,11 @@ public static class ServiceCollectionExtensions
         {
             var broker = new RecommendBroker();
             var llm = sp.GetRequiredService<ServerConfig>().Llm;
-            var provider = BuildRecommendProvider(llm, Environment.GetEnvironmentVariable);
+            var provider = BuildRecommendProvider(
+                llm,
+                Environment.GetEnvironmentVariable,
+                sp.GetRequiredService<ILoggerFactory>().CreateLogger("Tapestry.Authoring.LlmRecommendProvider"),
+                sp.GetRequiredService<TapestryMetrics>());
             if (provider != null)
             {
                 broker.Register(provider);
@@ -252,7 +256,9 @@ public static class ServiceCollectionExtensions
     /// <summary>Maps the server's llm: config to the Authoring provider config (resolving the
     /// API key from the environment, never YAML) and returns the config-gated provider, or null
     /// when nothing should be bound. <paramref name="getEnv"/> is injectable for tests.</summary>
-    internal static IRecommendProvider? BuildRecommendProvider(LlmSection llm, Func<string, string?> getEnv)
+    internal static IRecommendProvider? BuildRecommendProvider(
+        LlmSection llm, Func<string, string?> getEnv,
+        ILogger? providerLogger = null, TapestryMetrics? metrics = null)
     {
         var apiKey = string.IsNullOrEmpty(llm.ApiKeyEnv) ? "" : (getEnv(llm.ApiKeyEnv) ?? "");
 
@@ -286,7 +292,7 @@ public static class ServiceCollectionExtensions
                 : llm.AreaSystemPrompt
         };
 
-        return LlmProviderFactory.Create(llmConfig, promptConfig, () => new HttpClient());
+        return LlmProviderFactory.Create(llmConfig, promptConfig, () => new HttpClient(), providerLogger, metrics);
     }
 
     private static string ResolveDataPath(string configuredPath, string configDirectory)

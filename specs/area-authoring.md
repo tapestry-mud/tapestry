@@ -252,6 +252,19 @@ files (written under the game data root at runtime).
   src/Tapestry.Scripting/ServiceCollectionExtensions.cs:259-270;
   src/Tapestry.Authoring/LlmRecommendProvider.cs:12-15)
 
+- The schema-while-disabled fallback is loud, not silent. When a request carries a
+  response schema while `llm.structured_output` is false, `LlmRecommendProvider` logs a
+  WARN naming the flag (throttled to one per 60s so a multi-call solo fill burst warns
+  once) and increments the `tapestry.recommend.schema_dropped` counter (tagged by field)
+  on EVERY dropped call. The behavior itself is unchanged: the schema is not sent and
+  free text comes back. Deliberately NOT auto-enabled per call - the flag is a deployment
+  capability gate for providers that cannot do json_schema. The logger and metrics reach
+  the provider from the composition layer through `LlmProviderFactory.Create` optional
+  parameters. (src/Tapestry.Authoring/LlmRecommendProvider.cs:WarnSchemaDropped;
+  src/Tapestry.Engine/TapestryMetrics.cs; src/Tapestry.Authoring/LlmProviderFactory.cs;
+  src/Tapestry.Scripting/ServiceCollectionExtensions.cs;
+  tests/Tapestry.Engine.Tests/LlmRecommendProviderTests.cs)
+
 - Only strings cross the engine boundary on this seam: the pack passes a JSON-stringified
   schema in and the engine returns the model's content string (now JSON when a schema was
   supplied) out. The engine never learns the pack's data shapes.
