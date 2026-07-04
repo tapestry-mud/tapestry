@@ -116,3 +116,5 @@ registries-and-seal.md and is out of scope here.
   registry or bundled with the engine. (commit bf45105)
 
 ## Change Log
+
+- 2026-07-04 [oracle-v3-engine-gaps](changes/2026-07-04-oracle-v3-engine-gaps.md) - ScriptTimeoutConstraint replaces the built-in TimeoutInterval; a budget violation now throws ScriptTimeoutException naming the budget and elapsed time (derives from TimeoutException; generic catch paths unchanged)

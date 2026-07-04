@@ -430,6 +430,7 @@ files (written under the game data root at runtime).
 
 ## Change Log
 
+- 2026-07-04 [oracle-v3-engine-gaps](changes/2026-07-04-oracle-v3-engine-gaps.md) - runtime destination packs validate lenient on reboot (createPack scaffold gap closed engine-side); schema-while-`llm.structured_output`-off recommend calls WARN once per 60s burst + increment `tapestry.recommend.schema_dropped`
 - 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - recommend can return validated JSON via `response_format json_schema` (opt-in `llm.structured_output`, default off, degrades to baked fallback); `ILlmClient` returns `LlmResult` with token counts surfaced on the log line + new `tapestry.recommend.tokens` histogram; schema-aware `StaticStubRecommendProvider` via `StubJson.FromSchema`, stub delay lowered to 400ms
 - 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - `createPack` docker-safe: `RuntimeNamespaceStore` persists runtime namespaces to a writable `data/` marker + re-registers at boot; packs-dir scaffold write is now best-effort (try/catch)
 - 2026-06-25 [solo-oracle-v2-completion](changes/2026-06-25-solo-oracle-v2-completion.md) - authoring.writeItemTemplate freeze seam; AuthoredRoomLoader scan hardened to rooms/ dir + skip oracle-table files

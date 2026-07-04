@@ -9,10 +9,10 @@ known constraints, and change history.
 |------------|------|--------------|
 | Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-21 |
 | Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
-| Pack Security | [pack-security.md](pack-security.md) | 2026-06-12 |
-| Pack Loading | [pack-loading.md](pack-loading.md) | 2026-06-25 |
-| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-06-28 |
-| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-06-28 |
+| Pack Security | [pack-security.md](pack-security.md) | 2026-07-04 |
+| Pack Loading | [pack-loading.md](pack-loading.md) | 2026-07-04 |
+| Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-07-04 |
+| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-07-04 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-07-04 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-03 |

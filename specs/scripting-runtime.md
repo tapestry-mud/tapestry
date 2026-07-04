@@ -281,6 +281,7 @@ Notes on two commonly misspelled names:
 
 ## Change Log
 
+- 2026-07-04 [brief-render-flag](changes/2026-07-04-brief-render-flag.md) - `sendRoomDescription` optional `brief` flag suppresses only the description body (brief mode v1 engine half, tapestry#42); Jint delegate arity padding/ignoring pinned by tests; GMCP room paths untouched
 - 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - `authoring.recommend` options bag gained an optional stringified-JSON-Schema `schema` field, threaded as `RecommendRequest.ResponseSchema`; only strings cross the Jint boundary; string-return contract unchanged in shape
 - 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - in-memory consequence overlay + `tapestry.consequence` binding (`stamp`/`list`/`has`/`clear`, lifespan-routed eviction on `area.tick`); `collapseExit` records under a caller-supplied opaque kind
 - 2026-06-23 [solo-oracle-v2-seams](changes/2026-06-23-solo-oracle-v2-seams.md) - T3: `tapestry.oracle.table(id)` read-only binding via `OracleModule`; rolling stays in pack JS
