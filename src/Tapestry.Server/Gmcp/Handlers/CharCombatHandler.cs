@@ -47,13 +47,6 @@ public class CharCombatHandler : IGmcpPackageHandler
             }
         });
 
-        _eventBus.Subscribe("combat.hit", evt =>
-        {
-            if (!evt.SourceEntityId.HasValue) { return; }
-            SendCombatTarget(evt.SourceEntityId.Value);
-            SendCombatTargets(evt.SourceEntityId.Value);
-        });
-
         _eventBus.Subscribe("combat.end", evt =>
         {
             if (!evt.SourceEntityId.HasValue) { return; }
@@ -68,16 +61,17 @@ public class CharCombatHandler : IGmcpPackageHandler
             SendCombatTargets(evt.SourceEntityId.Value);
         });
 
-        // A swell resolve chunks the boss's HP directly (countered) without firing combat.hit, so
-        // the target bar would lag until the next auto-attack swing. The player id rides in
-        // Data["targetId"]; refreshing their target view re-reads the boss's health tier.
-        _eventBus.Subscribe("combat.swell.resolve", evt =>
+        // When an entity's vital changes, refresh every viewer whose target bar shows it.
+        // The combat list is bidirectional (Engage adds both directions), so the changed
+        // entity's own combat list IS the set of entities currently fighting it.
+        _eventBus.Subscribe("entity.vital.changed", evt =>
         {
-            if (evt.Data.TryGetValue("targetId", out var targetIdObj)
-                && Guid.TryParse(targetIdObj?.ToString(), out var playerId))
+            if (!evt.SourceEntityId.HasValue) { return; }
+            var changedId = evt.SourceEntityId.Value;
+            foreach (var viewerId in _combatManager.GetCombatList(changedId))
             {
-                SendCombatTarget(playerId);
-                SendCombatTargets(playerId);
+                SendCombatTarget(viewerId);
+                SendCombatTargets(viewerId);
             }
         });
     }

@@ -84,37 +84,33 @@ public class CharCombatHandlerTests
     }
 
     [Fact]
-    public void SwellResolveEvent_RefreshesPlayerCombatTarget()
+    public void VitalChangedOnTarget_RefreshesViewerCombatTarget()
     {
         var h = Build();
 
         var room = new Room("test:arena", "Arena", "A test arena.");
         h.World.AddRoom(room);
         h.Player.Stats.BaseMaxHp = 100;
-        h.Player.Stats.SetVital(VitalKind.Hp, 100);
+        h.Player.Stats.InitializeVitals(100, 0, 0);
         room.AddEntity(h.Player);
 
         var boss = new Entity("npc", "Boss");
         boss.AddTag("npc");
         boss.Stats.BaseMaxHp = 100;
-        boss.Stats.SetVital(VitalKind.Hp, 100);
+        boss.Stats.InitializeVitals(100, 0, 0);
         boss.SetProperty("level", 5);
         room.AddEntity(boss);
         h.World.TrackEntity(boss);
 
         h.Combat.Engage(h.Player, boss);
-        h.ConnectionManager.Sent.Clear(); // discard the engage refresh; we want the swell refresh
+        h.ConnectionManager.Sent.Clear();
 
-        // The swell resolve event carries the player id in Data["targetId"]; the boss took the chunk.
+        // The boss took a chunk: its vital changed. The player (fighting the boss) must see it.
         h.EventBus.Publish(new GameEvent
         {
-            Type = "combat.swell.resolve",
+            Type = "entity.vital.changed",
             SourceEntityId = boss.Id,
-            Data = new Dictionary<string, object?>
-            {
-                ["targetId"] = h.Player.Id.ToString(),
-                ["text"] = "You counter the blow."
-            }
+            Data = new Dictionary<string, object?> { ["vital"] = "hp", ["old"] = 100, ["new"] = 70, ["delta"] = -30, ["reason"] = "combat.melee" }
         });
 
         h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Combat.Target");

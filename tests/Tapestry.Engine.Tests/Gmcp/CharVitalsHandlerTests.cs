@@ -74,35 +74,15 @@ public class CharVitalsHandlerTests
     }
 
     [Fact]
-    public void AbilityUsedEvent_MarksVitalsDirty_FlushSendsVitals()
+    public void VitalChangedEvent_MarksVitalsDirty_FlushSendsVitals()
     {
         var h = Build();
 
         h.EventBus.Publish(new GameEvent
         {
-            Type = "ability.used",
-            SourceEntityId = h.Player.Id
-        });
-        h.Batcher.FlushDirtyVitals();
-
-        h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Vitals");
-    }
-
-    [Fact]
-    public void SwellResolveEvent_MarksTargetVitalsDirty_FlushSendsVitals()
-    {
-        var h = Build();
-
-        // The swell resolve event carries the player id in Data["targetId"] (the boss is the source).
-        h.EventBus.Publish(new GameEvent
-        {
-            Type = "combat.swell.resolve",
-            SourceEntityId = Guid.NewGuid(),
-            Data = new Dictionary<string, object?>
-            {
-                ["targetId"] = h.Player.Id.ToString(),
-                ["text"] = "Your counter misses and the blow lands."
-            }
+            Type = "entity.vital.changed",
+            SourceEntityId = h.Player.Id,
+            Data = new Dictionary<string, object?> { ["vital"] = "hp", ["old"] = 80, ["new"] = 50, ["delta"] = -30, ["reason"] = "combat.melee" }
         });
         h.Batcher.FlushDirtyVitals();
 

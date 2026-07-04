@@ -34,34 +34,15 @@ public class CharVitalsHandler : IGmcpPackageHandler
     {
         _batcher.SetFlushCallback(SendVitals);
 
-        _eventBus.Subscribe("ability.used", evt =>
+        // Any vital mutation flows through VitalsService, which publishes this one topic.
+        // The batcher coalesces N changes in a tick into one Char.Vitals send. The old
+        // entity.vital.depleted subscription used priority: -10; dropped deliberately here -
+        // the batcher defers all sends to the per-tick flush, so subscription order does not
+        // affect what the client sees.
+        _eventBus.Subscribe("entity.vital.changed", evt =>
         {
             if (!evt.SourceEntityId.HasValue) { return; }
             _batcher.MarkDirty(evt.SourceEntityId.Value);
-        });
-
-        _eventBus.Subscribe("entity.regen", evt =>
-        {
-            if (!evt.SourceEntityId.HasValue) { return; }
-            _batcher.MarkDirty(evt.SourceEntityId.Value);
-        });
-
-        _eventBus.Subscribe("entity.vital.depleted", evt =>
-        {
-            if (!evt.SourceEntityId.HasValue) { return; }
-            _batcher.MarkDirty(evt.SourceEntityId.Value);
-        }, priority: -10);
-
-        // A swell resolve mutates the player's HP directly (whiff/weather) without firing the
-        // events above, so the web vitals bar would only catch up on the next regen tick. The
-        // player id rides in Data["targetId"] (the boss is the event source).
-        _eventBus.Subscribe("combat.swell.resolve", evt =>
-        {
-            if (evt.Data.TryGetValue("targetId", out var targetIdObj)
-                && Guid.TryParse(targetIdObj?.ToString(), out var playerId))
-            {
-                _batcher.MarkDirty(playerId);
-            }
         });
     }
 

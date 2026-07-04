@@ -1,6 +1,6 @@
 ---
 capability: gmcp
-last-updated: 2026-06-18
+last-updated: 2026-07-03
 ---
 
 # GMCP
@@ -85,12 +85,18 @@ printed to the screen is available as structured data (README.md:162).
   (Program.cs:159-160). Package set and ordering are asserted end-to-end by
   tests/scenarios/gmcp/gmcp-post-login-burst.md.
 
-- **Vitals batching:** Vitals-changing events (`ability.used`, `entity.regen`,
-  `entity.vital.depleted`) mark the entity dirty rather than sending immediately
-  (Handlers/CharVitalsHandler.cs:37-53); the `gmcp-vitals-flush` tick handler flushes the
-  dirty set once per game tick, one `Char.Vitals` send per dirty entity
-  (src/Tapestry.Server/Gmcp/DirtyVitalsBatcher.cs:21-32,
-  src/Tapestry.Server/Modules/TickHandlerModule.cs:94).
+- **Vitals batching:** Every gameplay vital write flows through `VitalsService`, which
+  publishes a single `entity.vital.changed` topic; `CharVitalsHandler` marks the entity dirty
+  on that one subscription rather than sending immediately (Handlers/CharVitalsHandler.cs:33-47).
+  The `gmcp-vitals-flush` tick handler flushes the dirty set once per game tick, one
+  `Char.Vitals` send per dirty entity (src/Tapestry.Server/Gmcp/DirtyVitalsBatcher.cs:21-32,
+  src/Tapestry.Server/Modules/TickHandlerModule.cs:94). `CharCombatHandler` refreshes target
+  bars the same way: it subscribes to `entity.vital.changed` and, for the changed entity,
+  refreshes every viewer whose combat list contains it via `CombatManager.GetCombatList`
+  (Handlers/CharCombatHandler.cs:64-76) -- the combat list is bidirectional, so the changed
+  entity's own list is exactly the set of entities fighting it. `combat.engage`, `combat.end`,
+  and `combat.kill` remain separately subscribed for combat-list membership changes
+  (Handlers/CharCombatHandler.cs:36-62).
 
 - **Login-phase signaling:** The login flow emits `Char.Login.Phase` and `Login.Prompt` so a
   structured client can drive login without scraping text
