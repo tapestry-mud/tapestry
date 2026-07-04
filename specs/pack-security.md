@@ -1,6 +1,6 @@
 ---
 capability: pack-security
-last-updated: 2026-06-12
+last-updated: 2026-07-04
 ---
 
 # Pack Security
@@ -19,10 +19,18 @@ registries-and-seal.md and is out of scope here.
 
 ### Jint sandbox limits
 
-- The Jint engine is constructed with a 5-second execution timeout per top-level call,
+- The Jint engine is constructed with a 5-second execution budget per top-level call,
   a recursion limit of 100 frames, and a memory cap of 50 MB per engine instance.
-  (src/Tapestry.Scripting/JintRuntime.cs:27-36)
-- Strict mode is enabled for all scripts. (src/Tapestry.Scripting/JintRuntime.cs:32)
+  The budget is enforced by ScriptTimeoutConstraint, a named replacement for Jint's
+  built-in TimeoutInterval with identical budget/reset-per-entry semantics: a violation
+  throws ScriptTimeoutException whose message names the budget and the elapsed time.
+  The exception derives from TimeoutException, so pre-existing generic catch paths are
+  behavior-identical -- only the type and message sharpen. (The bare TimeoutException
+  historically surfaced as misleading downstream ReferenceErrors when a module import
+  died mid-evaluation.) (src/Tapestry.Scripting/JintRuntime.cs:30-39;
+  src/Tapestry.Scripting/ScriptTimeoutConstraint.cs;
+  tests/Tapestry.Scripting.Tests/ScriptTimeoutConstraintTests.cs)
+- Strict mode is enabled for all scripts. (src/Tapestry.Scripting/JintRuntime.cs:38)
 - Mob behavior scripts carry an additional armable per-invocation wall-clock budget
   (MobInvocationBudget). The budget is disarmed by default (zero overhead for non-mob
   scripts) and armed around each mob AI invocation. A violation throws

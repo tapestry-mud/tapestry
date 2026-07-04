@@ -29,7 +29,10 @@ public class JintRuntime
         _loader = loader;
         _engine = new JintEngine(options =>
         {
-            options.TimeoutInterval(TimeSpan.FromSeconds(5));
+            // Named replacement for options.TimeoutInterval(5s): identical budget/reset
+            // semantics, but a violation throws ScriptTimeoutException (names the budget
+            // and elapsed time) instead of a bare TimeoutException.
+            options.Constraints.Constraints.Add(new ScriptTimeoutConstraint(TimeSpan.FromSeconds(5)));
             options.LimitRecursion(100);
             options.LimitMemory(50_000_000);
             options.Strict();
