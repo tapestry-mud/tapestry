@@ -104,6 +104,22 @@ subscribe to this one topic instead of the pre-migration scatter of `ability.use
 `entity.vital.depleted`, which still fires separately when a vital reaches zero and feeds
 the death pipeline.
 
+## Property observability
+
+**Observable property**:
+A property-bag key declared reachable by an external consumer via
+`PropertyRegistry.RegisterObservable(key, topic)`. Independent of the type registry, so it
+can mark a pack-owned key the kernel never type-registered (e.g. `sustenance`).
+`TryGetObservableTopic` is the read side; `EntityStatusBroadcaster` consults it from
+`Entity.SetProperty` to publish `entity.<topic>.changed`.
+
+**entity.status.changed**:
+The event `EntityStatusBroadcaster` publishes when an observable property changes on the
+`status` topic, carrying `{ key, old, new }`. `CommonProperties` declares `sustenance` and
+`alignment` observable on this topic; `CharStatusHandler` subscribes and resends
+`Char.Status`. Sibling to `entity.vital.changed` but covers the general property bag, not
+the typed vitals store.
+
 ## Packs and the seal
 
 **Pack**:

@@ -49,6 +49,14 @@ public class CharStatusHandler : IGmcpPackageHandler
             SendCharStatus(evt.SourceEntityId.Value, entity);
             _batcher.MarkDirty(evt.SourceEntityId.Value);
         });
+
+        _eventBus.Subscribe("entity.status.changed", evt =>
+        {
+            if (!evt.SourceEntityId.HasValue) { return; }
+            var entity = _world.GetEntity(evt.SourceEntityId.Value);
+            if (entity == null) { return; }
+            SendCharStatus(evt.SourceEntityId.Value, entity);
+        });
     }
 
     public void SendBurst(string connectionId, object entity)

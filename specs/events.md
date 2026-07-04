@@ -176,6 +176,20 @@ once per game-loop tick, not on the publishing thread.
   through it and the handlers that subscribe to it.
   (src/Tapestry.Engine/VitalsService.cs:22-67)
 
+### Status mutation event
+
+- `EntityStatusBroadcaster` (an `IPropertyObserver` registered on every tracked entity via
+  `World`) publishes `entity.<topic>.changed` when `Entity.SetProperty` changes a key that
+  `PropertyRegistry.TryGetObservableTopic` resolves to a topic. Data shape: `{ key, old,
+  new }`. `CommonProperties.Register` declares `sustenance` and `alignment` observable on
+  the `status` topic, so a change to either publishes `entity.status.changed`;
+  `CharStatusHandler` subscribes to it and resends `Char.Status`. Distinct from
+  `entity.vital.changed` above -- vitals are a dedicated typed store (hp/resource/movement)
+  written through `VitalsService`, while this seam covers the general dynamic property bag.
+  See persistence.md for `RegisterObservable`/`TryGetObservableTopic` and gmcp.md for the
+  GMCP consumer. (src/Tapestry.Engine/EntityStatusBroadcaster.cs,
+  src/Tapestry.Engine/CommonProperties.cs:52-56, Handlers/CharStatusHandler.cs:53-59)
+
 ## Rejected and Reverted
 
 - None on record.

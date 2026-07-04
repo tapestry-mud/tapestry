@@ -111,6 +111,25 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
   (`Dictionary<string,int>`), MapString (`Dictionary<string,string>`), ListString
   (`List<string>`). (src/Tapestry.Engine/Persistence/PropertyValueType.cs:1)
 
+- `PropertyRegistryEntry` carries `Observable` (bool, default false) and `ChangeTopic`
+  (nullable string), but the read path for observability is a separate case-insensitive
+  `_observableTopics` map, not the entry itself. `PropertyRegistry.RegisterObservable(key,
+  topic)` marks any key observable on a topic -- engine-registered, pack-registered, or a
+  bare key with no registry entry at all, since the map is independent of the type registry.
+  `TryGetObservableTopic(key, out topic)` is the read side, consulted by
+  `EntityStatusBroadcaster.OnPropertyChanged`, which `Entity.SetProperty` invokes only when
+  a write actually changes the value. `RegisterEngineProperty(...,
+  observable: true, changeTopic: "...")` is a convenience path that also calls
+  `RegisterObservable` and throws if `observable` is true with no `changeTopic`.
+  (src/Tapestry.Engine/Persistence/PropertyRegistry.cs:31-64,100-108,
+  PropertyRegistryEntry.cs:14-15)
+
+- `CommonProperties.Register` declares `sustenance` (a pack-owned key from
+  `@tapestry/survival` that the kernel already reads by name for `Char.Status`) and
+  `alignment` observable on the `status` topic. This is what lets a property write on
+  either key reach the GMCP client via `entity.status.changed` -- see events.md and
+  gmcp.md. (src/Tapestry.Engine/CommonProperties.cs:52-56)
+
 - Map properties (`MapInt`, `MapString`) round-trip correctly through the serializer.
   (tests/Tapestry.Engine.Tests/Persistence/MapPropertyTests.cs:88)
 

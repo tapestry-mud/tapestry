@@ -98,6 +98,18 @@ printed to the screen is available as structured data (README.md:162).
   and `combat.kill` remain separately subscribed for combat-list membership changes
   (Handlers/CharCombatHandler.cs:36-62).
 
+- **Status refresh on observable property change:** `EntityStatusBroadcaster` (an
+  `IPropertyObserver` attached to every tracked entity via `World`) publishes
+  `entity.<topic>.changed` when `Entity.SetProperty` changes a key that
+  `PropertyRegistry.TryGetObservableTopic` resolves to a topic. `CommonProperties.Register`
+  marks `sustenance` and `alignment` observable on the `status` topic, so `CharStatusHandler`
+  subscribes to `entity.status.changed` (alongside its existing `progression.level.up`
+  subscription) and resends `Char.Status` for the changed entity -- this is what makes
+  eating or drinking out of famished update `hungerValue` on the client without a manual
+  re-look. See events.md for the event shape and persistence.md for the observability map.
+  (Handlers/CharStatusHandler.cs:42-60, src/Tapestry.Engine/EntityStatusBroadcaster.cs,
+  src/Tapestry.Engine/CommonProperties.cs:52-56)
+
 - **Login-phase signaling:** The login flow emits `Char.Login.Phase` and `Login.Prompt` so a
   structured client can drive login without scraping text
   (src/Tapestry.Server/Login/LoginFlow.cs:463-468,

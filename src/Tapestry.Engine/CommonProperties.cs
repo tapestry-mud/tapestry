@@ -48,5 +48,11 @@ public static class CommonProperties
         // Room properties (terrain, entry_point_*) are registered by RoomProperties.Register,
         // invoked from ConfigurationModule.Configure — do NOT also declare them here (duplicate
         // RegisterEngineProperty throws "already registered" at strict boot).
+
+        // Observability: which bag keys reach the client and on which topic. sustenance is a
+        // pack-owned key (@tapestry/survival) but the kernel already reads it by name for
+        // Char.Status, so its observability is a kernel concern declared here.
+        registry.RegisterObservable("sustenance", "status");
+        registry.RegisterObservable(Alignment, "status");
     }
 }

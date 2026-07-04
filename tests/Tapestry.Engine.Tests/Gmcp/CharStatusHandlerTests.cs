@@ -85,6 +85,21 @@ public class CharStatusHandlerTests
     }
 
     [Fact]
+    public void StatusChangedEvent_SendsCharStatus()
+    {
+        var h = Build();
+
+        h.EventBus.Publish(new GameEvent
+        {
+            Type = "entity.status.changed",
+            SourceEntityId = h.Player.Id,
+            Data = new Dictionary<string, object?> { ["key"] = "sustenance", ["old"] = 50, ["new"] = 0 }
+        });
+
+        h.ConnectionManager.Sent.Should().Contain(x => x.Package == "Char.Status");
+    }
+
+    [Fact]
     public void PackageNames_ContainsBothPackages()
     {
         var h = Build();
