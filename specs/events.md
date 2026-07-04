@@ -1,6 +1,6 @@
 ---
 capability: events
-last-updated: 2026-06-19
+last-updated: 2026-07-03
 ---
 
 # Events
@@ -163,6 +163,18 @@ once per game-loop tick, not on the publishing thread.
   `CombatEventModule`, `WorldEventModule`, `TickHandlerModule`,
   `PersistenceModule`, `PlayerInitModule`, `BadInputModule`.
   (src/Tapestry.Server/Program.cs:164-176)
+
+### Vitals mutation event
+
+- `VitalsService` is the sole publisher of `entity.vital.changed`: `Apply`, `Set`, and
+  `RestoreToMax` clamp an entity's hp/resource/movement write and publish this event only
+  when the clamped value actually changes. Data shape: `{ vital, old, new, delta, reason }`.
+  It is a separate signal from `entity.regen`, `entity.vital.depleted`, and `combat.hit`,
+  which still fire for their own original purposes; GMCP's vitals batching and combat
+  target-bar refresh subscribe to `entity.vital.changed` alone. See combat-resolution.md,
+  rest-and-recovery.md, abilities.md, and gmcp.md for the subsystems that write vitals
+  through it and the handlers that subscribe to it.
+  (src/Tapestry.Engine/VitalsService.cs:22-67)
 
 ## Rejected and Reverted
 

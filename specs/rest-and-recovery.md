@@ -95,10 +95,13 @@ and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and ro
   dictionary after all subscribers run.
   (src/Tapestry.Engine/GameLoop.cs:493-549)
 
-- **[Regen.Application]** If the event is not cancelled the engine adds the (possibly
-  mutated) `amount` value directly to the entity stat. Separate `entity.regen` events are
-  fired for each of the three vitals; each may be independently cancelled or mutated.
-  (src/Tapestry.Engine/GameLoop.cs:502-549)
+- **[Regen.Application]** If the event is not cancelled the engine applies the (possibly
+  mutated) `amount` value via `VitalsService.Apply(entity, VitalKind.<Hp|Resource|Movement>,
+  amount, "regen")` -- no longer a direct add to the entity stat. This publishes
+  `entity.vital.changed` (see events.md) when the clamped value actually changes. Separate
+  `entity.regen` events are still fired first, one per vital; each may be independently
+  cancelled or mutated before the `VitalsService` write.
+  (src/Tapestry.Engine/GameLoop.cs:506, 527, 548)
 
 ### Player commands
 

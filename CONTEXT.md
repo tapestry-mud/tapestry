@@ -88,6 +88,22 @@ A cross-area exit stored under `connections/` and applied after rooms load. Crea
 A room or area's origin classification: `[pack]`, `[authored]`, `[pack +edits]`, plus
 `(orphaned)` for a dangling authored boundary.
 
+## Vitals
+
+**VitalsService**:
+The single publishing write path for an entity's typed vitals (hp, resource, movement).
+`Apply`/`Set`/`RestoreToMax` clamp the stat and publish `entity.vital.changed` when the
+value actually changes; `Initialize` sets a spawn/load baseline without publishing.
+`StatBlock`'s vital setters are private, so every gameplay write must go through it.
+
+**entity.vital.changed**:
+The event `VitalsService` publishes on every vital write that changes the value, carrying
+`{ vital, old, new, delta, reason }`. GMCP's vitals batching and combat target-bar refresh
+subscribe to this one topic instead of the pre-migration scatter of `ability.used`,
+`entity.regen`, `entity.vital.depleted`, and `combat.hit`. Distinct from
+`entity.vital.depleted`, which still fires separately when a vital reaches zero and feeds
+the death pipeline.
+
 ## Packs and the seal
 
 **Pack**:

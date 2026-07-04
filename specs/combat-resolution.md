@@ -121,8 +121,11 @@ disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
 - Hit resolution delegates to `HitResolver.ResolveHit`.
   (ResolveAutoAttacksPhase.cs:73)
 
-- On hit: damage is calculated, applied to `target.Stats.Hp`, and `combat.hit`
-  is published. (ResolveAutoAttacksPhase.cs:78)
+- On hit: damage is calculated and applied via
+  `VitalsService.Apply(target, VitalKind.Hp, -damage, "combat.melee")` -- the `Stats.Hp`
+  write is no longer direct. This publishes `entity.vital.changed` (see events.md) when the
+  clamped value changes; `combat.hit` is published separately for combat text/output.
+  (ResolveAutoAttacksPhase.cs:85-103)
 
 - On miss: `combat.miss` is published with `isFumble` flag.
   (ResolveAutoAttacksPhase.cs:116)

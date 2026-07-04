@@ -1,6 +1,6 @@
 ---
 capability: abilities
-last-updated: 2026-06-12
+last-updated: 2026-07-03
 ---
 
 # Abilities
@@ -217,9 +217,12 @@ levelling (character-progression.md), the effect lifecycle after
   has no `Effect` block AND carries `damage_dice` in metadata. A Spell with
   `heal_dice` is never offensive. (AbilityResolutionPhase.cs:386)
 
-- On success: deduct resource (race modifier applied), set `last_ability_used`,
-  record `nextReadyPulse = currentPulse + PulseDelay + 1`.
-  (AbilityResolutionPhase.cs:233)
+- On success: deduct resource (race modifier applied) via
+  `context.VitalsService.Apply(entity, deductKind, -deductCost, "ability.cost")` -- no
+  longer a direct stat write; this publishes `entity.vital.changed` (see events.md) when
+  the deduction changes the vital. Also sets `last_ability_used` and records
+  `nextReadyPulse = currentPulse + PulseDelay + 1`.
+  (AbilityResolutionPhase.cs:241-262)
 
 - Hit roll: if `Variance == 0`, always hit. Otherwise:
   `hitChance = (proficiency * (Variance/100.0)) + (luck * luckScale)`,
