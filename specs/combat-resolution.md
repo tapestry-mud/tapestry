@@ -300,9 +300,11 @@ Combat between two entities ends when either:
 - `getCombatants(entityIdStr)` -- returns array of opponent ID strings in
   combat-list order. (CombatModule.cs:128)
 
-- `applyDamage(entityIdStr, amount, damageType)` -- subtracts HP directly.
-  Death check is deferred to `AbilityResolutionPhase` and
-  `ResolveAutoAttacksPhase`. (CombatModule.cs:144)
+- `applyDamage(entityIdStr, amount, damageType)` -- applies damage via
+  `VitalsService.Apply(entity, VitalKind.Hp, -amount, "ability.damage")`; the
+  `Stats.Hp` write is no longer direct. Death check is deferred to
+  `AbilityResolutionPhase` and `ResolveAutoAttacksPhase`.
+  (CombatModule.cs:171-184)
 
 - `applyAC(entityIdStr, rawDamage, damageType)` -- reduces raw damage by
   `(AC - 10)`, minimum 1. (CombatModule.cs:164)
@@ -373,9 +375,10 @@ all timing, content, and magnitude levers are read off the mob's properties.
 - `resolve` is the single mutator. It maps the outcome to a clamped HP change
   read from the boss dials - countered chunks the boss by `swell_chunk_pct`,
   whiffed/weathered hit the player by `swell_whiff_pct` / `swell_weather_pct` -
-  applies it through the existing stat path, and publishes the existing
-  `entity.vital.depleted` on a lethal result, reusing the death pipeline.
-  (SwellClockManager.cs:269; SwellClockManager.cs:314; SwellClockManager.cs:348)
+  applies it via `VitalsService.Apply(victim, VitalKind.Hp, -amount, "combat.swell")`,
+  and publishes the existing `entity.vital.depleted` on a lethal result, reusing
+  the death pipeline.
+  (SwellClockManager.cs:269; SwellClockManager.cs:314; SwellClockManager.cs:345-361)
 
 - Swell beats render to the player through a
   `combat.swell.telegraph` / `combat.swell.window` / `combat.swell.resolve`
