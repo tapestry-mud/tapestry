@@ -49,17 +49,17 @@ public sealed class PropertyRegistry
         var enumSet = enumValues != null
             ? (IReadOnlySet<string>)new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase)
             : null;
+        if (observable && string.IsNullOrEmpty(changeTopic))
+        {
+            throw new ArgumentException($"Observable property '{name}' requires a changeTopic.", nameof(changeTopic));
+        }
         if (!_entries.TryAdd(key, new PropertyRegistryEntry(name, "engine", description, valueType, appliesSet, transient, min, max, enumSet, settable, observable, changeTopic)))
         {
             throw new InvalidOperationException($"Engine property '{name}' is already registered.");
         }
         if (observable)
         {
-            if (string.IsNullOrEmpty(changeTopic))
-            {
-                throw new ArgumentException($"Observable property '{name}' requires a changeTopic.", nameof(changeTopic));
-            }
-            RegisterObservable(name, changeTopic);
+            RegisterObservable(name, changeTopic!);
         }
     }
 

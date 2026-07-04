@@ -201,4 +201,21 @@ public class PropertyRegistryTests
         Assert.True(_registry.TryGetObservableTopic("alignment", out var topic));
         Assert.Equal("status", topic);
     }
+
+    [Fact]
+    public void RegisterEngineProperty_ObservableWithoutChangeTopic_ThrowsAndLeavesRegistryUnchanged()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            _registry.RegisterEngineProperty("alignment", "Alignment", PropertyValueType.Int, observable: true, changeTopic: null));
+        Assert.False(_registry.TryResolve("alignment", null, out _));
+        Assert.False(_registry.TryGetObservableTopic("alignment", out _));
+    }
+
+    [Fact]
+    public void RegisterObservable_LookupIsCaseInsensitive()
+    {
+        _registry.RegisterObservable("Sustenance", "status");
+        Assert.True(_registry.TryGetObservableTopic("SUSTENANCE", out var topic));
+        Assert.Equal("status", topic);
+    }
 }
