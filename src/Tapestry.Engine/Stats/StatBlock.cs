@@ -93,6 +93,35 @@ public class StatBlock
         set { _movement = Math.Clamp(value, 0, MaxMovement); }
     }
 
+    // The single internal write seam for a per-vital mutation. VitalsService is the only
+    // intended caller for gameplay changes; init/load paths use InitializeVitals. The public
+    // setters go private in the enforcement task so these are the sole vital write paths.
+    internal int SetVital(VitalKind kind, int value)
+    {
+        switch (kind)
+        {
+            case VitalKind.Hp:
+                Hp = value;
+                return _hp;
+            case VitalKind.Resource:
+                Resource = value;
+                return _resource;
+            case VitalKind.Movement:
+                Movement = value;
+                return _movement;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown vital kind.");
+        }
+    }
+
+    // Establishes a baseline (spawn/login/load). No event - there is no observer yet.
+    internal void InitializeVitals(int hp, int resource, int movement)
+    {
+        Hp = hp;
+        Resource = resource;
+        Movement = movement;
+    }
+
     // --- Effective values (base + modifiers, cached) ---
     private int _cachedStrength;
     private int _cachedIntelligence;
