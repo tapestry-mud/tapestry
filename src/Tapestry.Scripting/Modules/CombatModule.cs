@@ -328,27 +328,35 @@ public class CombatModule : IJintApiModule
 
     private record DamageVerbEntry(int MinDamage, string Verb, string LeftDecor, string RightDecor, string Theme);
 
+    // Design intent (2026-07-04 low-level combat-feel retune, agreed with Travis):
+    // verbs key on ABSOLUTE damage - the verb ladder IS the progression channel.
+    // A geared level-1 hit (~6-7 damage) reads "grazes"/"hits", a good early roll
+    // reads "injures"; the decorated top tiers stay gear/spell territory so
+    // late-game power keeps its own vocabulary. The RELATIVE state of the target
+    // is a different channel (the condition line in @tapestry/core combat output)
+    // - do not fold %-of-target into this table. Boundaries are pinned by
+    // DamageVerbLadderTests; retune both together.
     private static readonly DamageVerbEntry[] DamageVerbs =
     {
         new(421, "VAPORIZES",       "<<<---<<<===<<< ", " >>>===>>>--->>>", "dmg_extreme"),
-        new(341, "ERADICATES",      "<<--<<--=<<=<<= ", " =>>=>>=>>==-->>-->>", "dmg_extreme"),
-        new(281, "PULVERIZES",      "<-<-<-=<=<=<=< ", " >=>=>=>=>->->->-", "dmg_extreme"),
-        new(231, "DESTROYS",        "<---=<=<=<=<=<= ", " =>=>=>=>=>==>--->", "dmg_extreme"),
-        new(191, "OBLITERATES",     "<---======== ", " ========--->", "dmg_high"),
-        new(156, "ANNIHILATES",     "<<-===--===- ", " -===--===->>", "dmg_high"),
-        new(126, "MASSACRES",       "<-==-==-== ", " ==-==-==->", "dmg_high"),
-        new(101, "DISMEMBERS",      "<=~-~-~-~ ", " ~-~-~-~=>", "dmg_high"),
-        new(85, "MUTILATES",        "<~-~-~-~ ", " ~-~-~-~>", "dmg_mid"),
-        new(69, "MAIMS",            "~-~-~ ", " ~-~-~", "dmg_mid"),
-        new(55, "devastates",       "-=<< ", " >>=-", "dmg_mid"),
-        new(43, "decimates",        "-== ", " ==-", "dmg_mid"),
-        new(33, "mauls",            "", "", "dmg_low"),
-        new(25, "wounds",           "", "", "dmg_low"),
-        new(18, "injures",          "", "", "dmg_low"),
-        new(13, "hits",             "", "", "dmg_low"),
-        new(9, "grazes",            "", "", "dmg_low"),
-        new(6, "scratches",         "", "", "dmg_low"),
-        new(3, "barely scratches",  "", "", "dmg_low"),
+        new(301, "ERADICATES",      "<<--<<--=<<=<<= ", " =>>=>>=>>==-->>-->>", "dmg_extreme"),
+        new(241, "PULVERIZES",      "<-<-<-=<=<=<=< ", " >=>=>=>=>->->->-", "dmg_extreme"),
+        new(191, "DESTROYS",        "<---=<=<=<=<=<= ", " =>=>=>=>=>==>--->", "dmg_extreme"),
+        new(146, "OBLITERATES",     "<---======== ", " ========--->", "dmg_high"),
+        new(116, "ANNIHILATES",     "<<-===--===- ", " -===--===->>", "dmg_high"),
+        new(91, "MASSACRES",        "<-==-==-== ", " ==-==-==->", "dmg_high"),
+        new(73, "DISMEMBERS",       "<=~-~-~-~ ", " ~-~-~-~=>", "dmg_high"),
+        new(59, "MUTILATES",        "<~-~-~-~ ", " ~-~-~-~>", "dmg_mid"),
+        new(47, "MAIMS",            "~-~-~ ", " ~-~-~", "dmg_mid"),
+        new(37, "devastates",       "-=<< ", " >>=-", "dmg_mid"),
+        new(29, "decimates",        "-== ", " ==-", "dmg_mid"),
+        new(22, "mauls",            "", "", "dmg_low"),
+        new(17, "wounds",           "", "", "dmg_low"),
+        new(13, "injures",          "", "", "dmg_low"),
+        new(9, "hits",              "", "", "dmg_low"),
+        new(6, "grazes",            "", "", "dmg_low"),
+        new(4, "scratches",         "", "", "dmg_low"),
+        new(2, "barely scratches",  "", "", "dmg_low"),
         new(0, "tickles",           "", "", "dmg_low")
     };
 

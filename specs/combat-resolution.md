@@ -173,29 +173,34 @@ disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
 - Damage verb for output is looked up by damage amount against a 20-tier
   table in `CombatModule.DamageVerbs`, exposed to pack scripts as
   `tapestry.combat.formatDamageVerb(damage)`, from "tickles" (0+) to
-  "VAPORIZES" (421+). (src/Tapestry.Scripting/Modules/CombatModule.cs:241)
+  "VAPORIZES" (421+). Design intent (2026-07-04 retune): verbs key on
+  ABSOLUTE damage - the progression channel. A geared level-1 hit (~6-7)
+  reads "grazes"/"hits"; the decorated top tiers stay gear/spell territory.
+  Relative target state is a separate channel (the condition line in
+  @tapestry/core combat output). Boundaries are pinned by
+  DamageVerbLadderTests. (src/Tapestry.Scripting/Modules/CombatModule.cs:339)
 
   | Min Damage | Verb             |
   |------------|------------------|
   | 421        | VAPORIZES        |
-  | 341        | ERADICATES       |
-  | 281        | PULVERIZES       |
-  | 231        | DESTROYS         |
-  | 191        | OBLITERATES      |
-  | 156        | ANNIHILATES      |
-  | 126        | MASSACRES        |
-  | 101        | DISMEMBERS       |
-  | 85         | MUTILATES        |
-  | 69         | MAIMS            |
-  | 55         | devastates       |
-  | 43         | decimates        |
-  | 33         | mauls            |
-  | 25         | wounds           |
-  | 18         | injures          |
-  | 13         | hits             |
-  | 9          | grazes           |
-  | 6          | scratches        |
-  | 3          | barely scratches |
+  | 301        | ERADICATES       |
+  | 241        | PULVERIZES       |
+  | 191        | DESTROYS         |
+  | 146        | OBLITERATES      |
+  | 116        | ANNIHILATES      |
+  | 91         | MASSACRES        |
+  | 73         | DISMEMBERS       |
+  | 59         | MUTILATES        |
+  | 47         | MAIMS            |
+  | 37         | devastates       |
+  | 29         | decimates        |
+  | 22         | mauls            |
+  | 17         | wounds           |
+  | 13         | injures          |
+  | 9          | hits             |
+  | 6          | grazes           |
+  | 4          | scratches        |
+  | 2          | barely scratches |
   | 0          | tickles          |
 
 ### Health Tiers
@@ -404,6 +409,7 @@ all timing, content, and magnitude levers are read off the mob's properties.
 
 ## Change Log
 
+- 2026-07-04 [damage-verb-ladder-retune](changes/2026-07-04-damage-verb-ladder-retune.md) - DamageVerbs MinDamage boundaries retuned for the low-level damage economy (geared level-1 hits read grazes/hits, good rolls injures); verbs key on absolute damage as the progression channel; boundaries pinned by DamageVerbLadderTests
 - 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - auto-attack, swell resolve, and pack applyDamage HP writes route through VitalsService (publishing entity.vital.changed); combat.hit still fires separately for combat text
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - flee unified onto one wimpy_pct property read by a single CombatManager.ShouldFlee predicate; flee_threshold/wimpy_threshold retired
 - 2026-06-21 [boss-combat-slice-1](changes/2026-06-21-boss-combat-slice-1.md) - the embedded swell loop: per-fight swell clock, the combat-action gate (auto-attack AND ability resolution suspended during a swell), the validate/resolve seam, resolve as the single HP mutator reusing the existing death event
