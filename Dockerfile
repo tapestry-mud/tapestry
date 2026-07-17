@@ -1,7 +1,7 @@
 # SDK single-source policy: this pin MUST satisfy global.json (the source of
 # truth - CI consumes it via setup-dotnet global-json-file). Bump global.json
 # and this digest together.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.301@sha256:548d93f8a18a1acbe6cc127bc4f47281430d34a9e35c18afa80a8d6741c2adc3 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.302@sha256:ed034a8bf0b24ded0cbbac07e17825d8e9ebfe21e308191d0f7421eaf5ad4664 AS build
 WORKDIR /app
 COPY . .
 RUN dotnet publish src/Tapestry.Server -c Release -o /out
