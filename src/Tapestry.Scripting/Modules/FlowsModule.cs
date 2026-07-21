@@ -124,12 +124,24 @@ public class FlowsModule : IJintApiModule
                     Line: 0));
             }),
 
-            trigger = new Action<string, string>((entityIdStr, triggerName) =>
+            trigger = new Action<string, string, JsValue>((entityIdStr, triggerName, seedVal) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }
                 var session = _sessions.GetByEntityId(entityId);
                 if (session == null) { return; }
-                _engine.Trigger(session, triggerName);
+
+                IReadOnlyDictionary<string, object?>? seed = null;
+                if (seedVal.Type != Types.Undefined && seedVal.Type != Types.Null && seedVal is ObjectInstance seedObj)
+                {
+                    var dict = new Dictionary<string, object?>();
+                    foreach (var prop in seedObj.GetOwnProperties())
+                    {
+                        dict[prop.Key.ToString()] = prop.Value.Value.ToObject();
+                    }
+                    seed = dict;
+                }
+
+                _engine.Trigger(session, triggerName, seed);
             })
         };
     }

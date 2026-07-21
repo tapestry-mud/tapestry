@@ -67,7 +67,7 @@ public class FlowEngine
         _areaProjector = areaProjector;
     }
 
-    public void Start(PlayerSession session, string flowId)
+    public void Start(PlayerSession session, string flowId, IReadOnlyDictionary<string, object?>? scratchSeed = null)
     {
         var definition = _registry.Get(flowId);
         if (definition == null) { return; }
@@ -80,7 +80,7 @@ public class FlowEngine
             _roomProjector, _areaRegistry, _areaProjector);
 
         var instance = new FlowInstance(
-            definition, session.PlayerEntity, _panelRenderer, _recommendBroker, recommendContext);
+            definition, session.PlayerEntity, _panelRenderer, _recommendBroker, recommendContext, scratchSeed);
         instance.OnCompleted = () => Complete(session);
         instance.OnAborted = reason => Abort(session, reason);
         instance.GmcpSend = GmcpSend;
@@ -90,7 +90,7 @@ public class FlowEngine
         instance.Start(session);
     }
 
-    public void Trigger(PlayerSession session, string triggerName)
+    public void Trigger(PlayerSession session, string triggerName, IReadOnlyDictionary<string, object?>? scratchSeed = null)
     {
         var flows = _registry.GetByTrigger(triggerName);
         var flow = flows.LastOrDefault();
@@ -104,7 +104,7 @@ public class FlowEngine
             return;
         }
 
-        Start(session, flow.Id);
+        Start(session, flow.Id, scratchSeed);
     }
 
     public void Complete(PlayerSession session)
