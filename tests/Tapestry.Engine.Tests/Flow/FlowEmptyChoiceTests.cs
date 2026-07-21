@@ -30,9 +30,9 @@ public class FlowEmptyChoiceTests
                 {
                     Id = "class",
                     HelpHint = helpHint,
-                    Prompt = _ => "Choose your class:",
-                    Options = _ => Array.Empty<ChoiceOption>(),
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Choose your class:",
+                    Options = (_, _) => Array.Empty<ChoiceOption>(),
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)
@@ -101,9 +101,9 @@ public class FlowEmptyChoiceTests
                 new ChoiceStep
                 {
                     Id = "pick",
-                    Prompt = _ => "Pick:",
-                    Options = _ => new[] { new ChoiceOption("Alpha", "a") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Pick:",
+                    Options = (_, _) => new[] { new ChoiceOption("Alpha", "a") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)

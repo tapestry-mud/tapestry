@@ -38,9 +38,9 @@ public class SessionFlowTests
                 new ChoiceStep
                 {
                     Id = "c",
-                    Prompt = _ => "Pick:",
-                    Options = _ => new[] { new ChoiceOption("X", "x") },
-                    OnSelect = (_, opt) => { received.Add(opt.Value?.ToString() ?? ""); }
+                    Prompt = (_, _) => "Pick:",
+                    Options = (_, _) => new[] { new ChoiceOption("X", "x") },
+                    OnSelect = (_, _, opt) => { received.Add(opt.Value?.ToString() ?? ""); }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)

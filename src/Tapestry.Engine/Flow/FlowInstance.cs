@@ -13,6 +13,7 @@ public class FlowInstance
     private readonly PanelRenderer _panelRenderer;
     private readonly RecommendBroker? _recommend;
     private readonly Func<Entity, IRecommendContext>? _recommendContext;
+    private readonly FlowScratch _scratch;
     private PlayerSession? _session;
     private int _currentStepIndex;
     private bool _awaitingEmptyAck;
@@ -26,6 +27,7 @@ public class FlowInstance
     public Action<string>? CommandFallback { get; set; }
     public FlowDefinition Definition => _definition;
     public Entity Entity => _entity;
+    public IFlowScratch Scratch => _scratch;
     public int CurrentStepIndex => _currentStepIndex;
 
     public FlowInstance(
@@ -33,13 +35,15 @@ public class FlowInstance
         Entity entity,
         PanelRenderer? panelRenderer = null,
         RecommendBroker? recommend = null,
-        Func<Entity, IRecommendContext>? recommendContext = null)
+        Func<Entity, IRecommendContext>? recommendContext = null,
+        IReadOnlyDictionary<string, object?>? scratchSeed = null)
     {
         _definition = definition;
         _entity = entity;
         _panelRenderer = panelRenderer ?? new PanelRenderer();
         _recommend = recommend;
         _recommendContext = recommendContext;
+        _scratch = new FlowScratch(scratchSeed);
         _currentStepIndex = -1;
     }
 
@@ -141,7 +145,7 @@ public class FlowInstance
     {
         var trimmed = input.Trim();
         var lower = trimmed.ToLowerInvariant();
-        var options = step.Options(_entity);
+        var options = step.Options(_entity, _scratch);
         ChoiceOption? chosen = null;
 
         if (int.TryParse(trimmed, out var num) && num >= 1 && num <= options.Count)
@@ -160,7 +164,7 @@ public class FlowInstance
             return;
         }
 
-        step.OnSelect(_entity, chosen);
+        step.OnSelect(_entity, _scratch, chosen);
         Advance();
     }
 
@@ -175,7 +179,7 @@ public class FlowInstance
             {
                 var chosen = _pendingSuggestions[pick - 1];
                 _pendingSuggestions = null;
-                step.OnInput(_entity, chosen);
+                step.OnInput(_entity, _scratch, chosen);
                 Advance();
                 return;
             }
@@ -195,7 +199,7 @@ public class FlowInstance
                 _session?.SendLine("Recommendation is currently unavailable. Enter a value:");
                 return;
             }
-            var field = step.RecommendField(_entity);
+            var field = step.RecommendField(_entity, _scratch);
             if (string.IsNullOrEmpty(field))
             {
                 // The step opted into recommend, but not for THIS field (edit-room only
@@ -227,11 +231,11 @@ public class FlowInstance
             {
                 _session!.Connection.SuppressEcho();
             }
-            _session!.SendLine(step.Prompt(_entity));
+            _session!.SendLine(step.Prompt(_entity, _scratch));
             return;
         }
 
-        step.OnInput(_entity, input);
+        step.OnInput(_entity, _scratch, input);
         Advance();
     }
 
@@ -262,12 +266,12 @@ public class FlowInstance
 
         if (lower == "y" || lower == "yes")
         {
-            step.OnYes?.Invoke(_entity);
+            step.OnYes?.Invoke(_entity, _scratch);
             Advance();
         }
         else if (lower == "n" || lower == "no")
         {
-            step.OnNo?.Invoke(_entity);
+            step.OnNo?.Invoke(_entity, _scratch);
             Advance();
         }
         else
@@ -288,13 +292,13 @@ public class FlowInstance
                 return;
             }
         }
-        while (_definition.Steps[_currentStepIndex].SkipIf?.Invoke(_entity) == true);
+        while (_definition.Steps[_currentStepIndex].SkipIf?.Invoke(_entity, _scratch) == true);
 
         // #20: a required choice with zero eligible options is a content misconfiguration,
         // not a valid state (legitimately-skippable steps use SkipIf). Surface it loudly
         // and abort rather than render an impossible prompt the player can never satisfy.
         if (_definition.Steps[_currentStepIndex] is ChoiceStep emptyCheck
-            && emptyCheck.Options(_entity).Count == 0)
+            && emptyCheck.Options(_entity, _scratch).Count == 0)
         {
             var message = emptyCheck.HelpHint != null
                 ? $"There are no {emptyCheck.HelpHint} to choose from."
@@ -322,7 +326,7 @@ public class FlowInstance
         {
             case InfoStep info:
             {
-                var infoText = info.Text(_entity);
+                var infoText = info.Text(_entity, _scratch);
                 _session!.SendLine(infoText);
                 GmcpSend?.Invoke(_session.Connection.Id, "Flow.Step", new { type = "info", prompt = infoText });
                 break;
@@ -335,8 +339,8 @@ public class FlowInstance
                 }
                 else
                 {
-                    _session!.SendLine(choice.Prompt(_entity));
-                    var options = choice.Options(_entity);
+                    _session!.SendLine(choice.Prompt(_entity, _scratch));
+                    var options = choice.Options(_entity, _scratch);
                     for (var i = 0; i < options.Count; i++)
                     {
                         _session!.SendLine($"  {i + 1}. {options[i].Label}");
@@ -344,11 +348,11 @@ public class FlowInstance
                     var hint = choice.HelpHint != null ? $"help {choice.HelpHint}" : "help [topic]";
                     _session!.SendLine($"  Type {hint} for details");
                 }
-                var choiceOptions = choice.Options(_entity);
+                var choiceOptions = choice.Options(_entity, _scratch);
                 var choicePayload = choiceOptions.Select(o => o.TagLine != null
                     ? (object)new { label = o.Label, tagLine = o.TagLine }
                     : (object)new { label = o.Label }).ToArray();
-                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "choice", prompt = choice.Prompt(_entity), options = choicePayload });
+                GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "choice", prompt = choice.Prompt(_entity, _scratch), options = choicePayload });
                 break;
             }
             case TextStep text:
@@ -357,14 +361,14 @@ public class FlowInstance
                 {
                     _session!.Connection.SuppressEcho();
                 }
-                var textPrompt = text.Prompt(_entity);
+                var textPrompt = text.Prompt(_entity, _scratch);
                 _session!.SendLine(textPrompt);
                 GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "text", prompt = textPrompt });
                 break;
             }
             case ConfirmStep confirm:
             {
-                var confirmPrompt = confirm.Prompt(_entity);
+                var confirmPrompt = confirm.Prompt(_entity, _scratch);
                 _session!.SendLine($"{confirmPrompt} (y/n)");
                 GmcpSend?.Invoke(_session!.Connection.Id, "Flow.Step", new { type = "confirm", prompt = confirmPrompt });
                 break;
@@ -442,11 +446,11 @@ public class FlowInstance
         var choiceRows = new List<Row>
         {
             new EmptyRow(),
-            new TextRow { Content = " " + step.Prompt(_entity) },
+            new TextRow { Content = " " + step.Prompt(_entity, _scratch) },
             new EmptyRow()
         };
 
-        var options = step.Options(_entity);
+        var options = step.Options(_entity, _scratch);
         {
             for (var i = 0; i < options.Count; i++)
             {

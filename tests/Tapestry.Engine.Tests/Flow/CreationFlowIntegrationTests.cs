@@ -52,40 +52,40 @@ public class CreationFlowIntegrationTests
                 new InfoStep
                 {
                     Id = "welcome",
-                    Text = _ => "The Wheel of Time turns."
+                    Text = (_, _) => "The Wheel of Time turns."
                 },
                 new ChoiceStep
                 {
                     Id = "race",
-                    Prompt = _ => "Choose your race:",
-                    Options = _ => new[]
+                    Prompt = (_, _) => "Choose your race:",
+                    Options = (_, _) => new[]
                     {
                         new ChoiceOption("Human", "human"),
                         new ChoiceOption("Human", "human")
                     },
-                    OnSelect = (entity, opt) => entity.SetProperty("race", opt.Value)
+                    OnSelect = (entity, _, opt) => entity.SetProperty("race", opt.Value)
                 },
                 new ChoiceStep
                 {
                     Id = "class",
-                    Prompt = _ => "Choose your class:",
-                    Options = _ => new[]
+                    Prompt = (_, _) => "Choose your class:",
+                    Options = (_, _) => new[]
                     {
                         new ChoiceOption("Warrior", "warrior"),
                         new ChoiceOption("Mage", "mage")
                     },
-                    OnSelect = (entity, opt) => entity.SetProperty("class", opt.Value)
+                    OnSelect = (entity, _, opt) => entity.SetProperty("class", opt.Value)
                 },
                 new ChoiceStep
                 {
                     Id = "alignment",
-                    Prompt = _ => "Choose your alignment:",
-                    Options = _ => new[]
+                    Prompt = (_, _) => "Choose your alignment:",
+                    Options = (_, _) => new[]
                     {
                         new ChoiceOption("Light", (object)100),
                         new ChoiceOption("Shadow", (object)(-100))
                     },
-                    OnSelect = (entity, opt) => entity.SetProperty("alignment", opt.Value)
+                    OnSelect = (entity, _, opt) => entity.SetProperty("alignment", opt.Value)
                 }
             },
             OnComplete = entity =>

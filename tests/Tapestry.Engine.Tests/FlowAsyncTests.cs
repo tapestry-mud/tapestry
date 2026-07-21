@@ -19,9 +19,9 @@ public class FlowAsyncTests
                 new ChoiceStep
                 {
                     Id = "c",
-                    Prompt = _ => "Choose:",
-                    Options = _ => new[] { new ChoiceOption("Alpha", "a") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Choose:",
+                    Options = (_, _) => new[] { new ChoiceOption("Alpha", "a") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)

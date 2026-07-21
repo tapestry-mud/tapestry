@@ -33,13 +33,13 @@ public class FlowInstanceTests
     public void InfoStep_auto_advances_and_sends_text()
     {
         var (instance, session, conn) = Setup(
-            new InfoStep { Id = "info", Text = _ => "Hello traveler." },
+            new InfoStep { Id = "info", Text = (_, _) => "Hello traveler." },
             new ChoiceStep
             {
                 Id = "choice",
-                Prompt = _ => "Pick one:",
-                Options = _ => new[] { new ChoiceOption("Alpha", "a") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Pick one:",
+                Options = (_, _) => new[] { new ChoiceOption("Alpha", "a") },
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -54,8 +54,8 @@ public class FlowInstanceTests
     public void ChoiceOption_description_delegate_returns_text_for_entity()
     {
         var entity = MakeEntity();
-        var opt = new ChoiceOption("Human", "human", _ => "Adaptable and ambitious.");
-        opt.Description!(entity).Should().Be("Adaptable and ambitious.");
+        var opt = new ChoiceOption("Human", "human", (_, _) => "Adaptable and ambitious.");
+        opt.Description!(entity, new FlowScratch()).Should().Be("Adaptable and ambitious.");
     }
 
     [Fact]
@@ -66,13 +66,13 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[]
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[]
                 {
                     new ChoiceOption("Human", "human"),
                     new ChoiceOption("Human", "human")
                 },
-                OnSelect = (_, opt) => { selected = opt.Value; }
+                OnSelect = (_, _, opt) => { selected = opt.Value; }
             });
 
         instance.Start(session);
@@ -89,9 +89,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human"), new ChoiceOption("Human", "human") },
-                OnSelect = (_, opt) => { selected = opt.Value; }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human"), new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, opt) => { selected = opt.Value; }
             });
 
         instance.Start(session);
@@ -108,9 +108,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { selectCount++; }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { selectCount++; }
             });
 
         instance.Start(session);
@@ -130,9 +130,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("A", "a") },
-                OnSelect = (_, _) => { selectCount++; }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("A", "a") },
+                OnSelect = (_, _, _) => { selectCount++; }
             });
 
         instance.Start(session);
@@ -151,8 +151,8 @@ public class FlowInstanceTests
             new TextStep
             {
                 Id = "t",
-                Prompt = _ => "Enter something:",
-                OnInput = (_, val) => { received = val; }
+                Prompt = (_, _) => "Enter something:",
+                OnInput = (_, _, val) => { received = val; }
             });
 
         instance.Start(session);
@@ -168,10 +168,10 @@ public class FlowInstanceTests
             new TextStep
             {
                 Id = "t",
-                Prompt = _ => "Enter:",
+                Prompt = (_, _) => "Enter:",
                 Validate = s => s.Length >= 3,
                 InvalidMessage = "Too short.",
-                OnInput = (_, _) => { }
+                OnInput = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -192,8 +192,8 @@ public class FlowInstanceTests
             new ConfirmStep
             {
                 Id = "q",
-                Prompt = _ => "Continue?",
-                OnYes = _ => { yesCalled = true; }
+                Prompt = (_, _) => "Continue?",
+                OnYes = (_, _) => { yesCalled = true; }
             });
         instance.OnCompleted = () => { completed = true; };
 
@@ -212,8 +212,8 @@ public class FlowInstanceTests
             new ConfirmStep
             {
                 Id = "q",
-                Prompt = _ => "Continue?",
-                OnNo = _ => { noCalled = true; }
+                Prompt = (_, _) => "Continue?",
+                OnNo = (_, _) => { noCalled = true; }
             });
 
         instance.Start(session);
@@ -226,7 +226,7 @@ public class FlowInstanceTests
     public void ConfirmStep_invalid_input_reprompts()
     {
         var (instance, session, conn) = Setup(
-            new ConfirmStep { Id = "q", Prompt = _ => "Continue?" });
+            new ConfirmStep { Id = "q", Prompt = (_, _) => "Continue?" });
 
         instance.Start(session);
         var countBefore = conn.SentText.Count;
@@ -244,9 +244,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 
@@ -265,9 +265,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 
@@ -286,9 +286,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 
@@ -306,9 +306,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -323,9 +323,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { },
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { },
                 HelpHint = "races"
             });
 
@@ -342,9 +342,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 
@@ -363,9 +363,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 
@@ -374,6 +374,30 @@ public class FlowInstanceTests
 
         routed.Should().Be("help races");
         instance.CurrentStepIndex.Should().Be(0);
+    }
+
+    // --- Scratch ---
+
+    [Fact]
+    public void Step_delegates_receive_the_instance_scratch_store()
+    {
+        IFlowScratch? seenInOptions = null;
+        IFlowScratch? seenInSelect = null;
+        var (instance, session, conn) = Setup(
+            new ChoiceStep
+            {
+                Id = "c",
+                Prompt = (_, _) => "Choose:",
+                Options = (_, scratch) => { seenInOptions = scratch; return new[] { new ChoiceOption("A", "a") }; },
+                OnSelect = (_, scratch, _) => { seenInSelect = scratch; scratch.Set("picked", true); }
+            });
+
+        instance.Start(session);
+        instance.HandleInput("1");
+
+        seenInOptions.Should().BeSameAs(instance.Scratch);
+        seenInSelect.Should().BeSameAs(instance.Scratch);
+        instance.Scratch.Get("picked").Should().Be(true);
     }
 
     // --- SkipIf ---
@@ -387,24 +411,24 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "first",
-                Prompt = _ => "First:",
-                Options = _ => new[] { new ChoiceOption("A", "a") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "First:",
+                Options = (_, _) => new[] { new ChoiceOption("A", "a") },
+                OnSelect = (_, _, _) => { }
             },
             new ChoiceStep
             {
                 Id = "skipped",
-                SkipIf = _ => true,
-                Prompt = _ => "Skipped:",
-                Options = _ => new[] { new ChoiceOption("B", "b") },
-                OnSelect = (_, _) => { skippedCalled = true; }
+                SkipIf = (_, _) => true,
+                Prompt = (_, _) => "Skipped:",
+                Options = (_, _) => new[] { new ChoiceOption("B", "b") },
+                OnSelect = (_, _, _) => { skippedCalled = true; }
             },
             new ChoiceStep
             {
                 Id = "reached",
-                Prompt = _ => "Reached:",
-                Options = _ => new[] { new ChoiceOption("C", "c") },
-                OnSelect = (_, _) => { reachedCalled = true; }
+                Prompt = (_, _) => "Reached:",
+                Options = (_, _) => new[] { new ChoiceOption("C", "c") },
+                OnSelect = (_, _, _) => { reachedCalled = true; }
             });
 
         instance.Start(session);
@@ -425,9 +449,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Pick:",
-                Options = _ => new[] { new ChoiceOption("A", "a") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Pick:",
+                Options = (_, _) => new[] { new ChoiceOption("A", "a") },
+                OnSelect = (_, _, _) => { }
             });
         instance.OnCompleted = () => { completed = true; };
 
@@ -484,9 +508,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -507,23 +531,23 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "race",
-                Prompt = _ => "Choose race:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose race:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             },
             new ChoiceStep
             {
                 Id = "cls",
-                Prompt = _ => "Choose class:",
-                Options = _ => new[] { new ChoiceOption("Warrior", "warrior") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose class:",
+                Options = (_, _) => new[] { new ChoiceOption("Warrior", "warrior") },
+                OnSelect = (_, _, _) => { }
             },
             new ChoiceStep
             {
                 Id = "align",
-                Prompt = _ => "Choose alignment:",
-                Options = _ => new[] { new ChoiceOption("Light", 100) },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose alignment:",
+                Options = (_, _) => new[] { new ChoiceOption("Light", 100) },
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -544,13 +568,13 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[]
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[]
                 {
                     new ChoiceOption("Human", "human", null, "Iron warriors"),
                     new ChoiceOption("Andoran", "folk")
                 },
-                OnSelect = (_, _) => { }
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -574,9 +598,9 @@ public class FlowInstanceTests
                 new ChoiceStep
                 {
                     Id = "c",
-                    Prompt = _ => "Choose:",
-                    Options = _ => new[] { new ChoiceOption("Human", "human") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Choose:",
+                    Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true),
@@ -598,9 +622,9 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[] { new ChoiceOption("Human", "human") },
-                OnSelect = (_, _) => { }
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                OnSelect = (_, _, _) => { }
             });
 
         instance.Start(session);
@@ -624,9 +648,9 @@ public class FlowInstanceTests
         var steps = wizardSteps.Select(ws => (FlowStepDefinition)new ChoiceStep
         {
             Id = ws.StepId,
-            Prompt = _ => $"Choose {ws.Label}:",
-            Options = _ => new[] { new ChoiceOption("Option", "opt") },
-            OnSelect = (_, _) => { }
+            Prompt = (_, _) => $"Choose {ws.Label}:",
+            Options = (_, _) => new[] { new ChoiceOption("Option", "opt") },
+            OnSelect = (_, _, _) => { }
         }).ToArray();
 
         var entity = MakeEntity();
@@ -661,12 +685,12 @@ public class FlowInstanceTests
             new ChoiceStep
             {
                 Id = "c",
-                Prompt = _ => "Choose:",
-                Options = _ => new[]
+                Prompt = (_, _) => "Choose:",
+                Options = (_, _) => new[]
                 {
-                    new ChoiceOption("Human", "human", _ => "Adaptable and ambitious.", "Iron warriors")
+                    new ChoiceOption("Human", "human", (_, _) => "Adaptable and ambitious.", "Iron warriors")
                 },
-                OnSelect = (_, _) => { }
+                OnSelect = (_, _, _) => { }
             });
         instance.CommandFallback = cmd => { routed = cmd; };
 

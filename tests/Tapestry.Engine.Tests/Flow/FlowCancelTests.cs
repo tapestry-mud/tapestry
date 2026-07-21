@@ -19,9 +19,9 @@ public class FlowCancelTests
                 new ChoiceStep
                 {
                     Id = "pick",
-                    Prompt = _ => "Pick:",
-                    Options = _ => new[] { new ChoiceOption("A", "a") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Pick:",
+                    Options = (_, _) => new[] { new ChoiceOption("A", "a") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)

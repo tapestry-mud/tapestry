@@ -139,7 +139,7 @@ public class FlowsModuleTests
 
         var def = registry.Get("skip_flow")!;
         var entity = new Entity("player", "Test");
-        def.Steps[0].SkipIf!(entity).Should().BeTrue();
+        def.Steps[0].SkipIf!(entity, new FlowScratch()).Should().BeTrue();
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class FlowsModuleTests
         var def = registry.Get("dyn_flow")!;
         var step = (ChoiceStep)def.Steps[0];
         var entity = new Entity("player", "Test");
-        var options = step.Options(entity);
+        var options = step.Options(entity, new FlowScratch());
 
         options.Should().HaveCount(1);
         options[0].Label.Should().Be("Dynamic");
@@ -251,7 +251,7 @@ public class FlowsModuleTests
         var def = registry.Get("desc_flow")!;
         var step = (ChoiceStep)def.Steps[0];
         var entity = new Entity("player", "Test");
-        step.Options(entity)[0].Description!.Invoke(entity).Should().Be("Warriors of the Waste.");
+        step.Options(entity, new FlowScratch())[0].Description!.Invoke(entity, new FlowScratch()).Should().Be("Warriors of the Waste.");
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public class FlowsModuleTests
         var def = registry.Get("tagline_flow")!;
         var step = (ChoiceStep)def.Steps[0];
         var entity = new Entity("player", "Test");
-        step.Options(entity)[0].TagLine.Should().Be("Iron warriors");
+        step.Options(entity, new FlowScratch())[0].TagLine.Should().Be("Iron warriors");
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public class FlowsModuleTests
         var def = registry.Get("fn_desc_flow")!;
         var step = (ChoiceStep)def.Steps[0];
         var entity = new Entity("player", "Rand");
-        step.Options(entity)[0].Description!.Invoke(entity).Should().Be("Hello Rand.");
+        step.Options(entity, new FlowScratch())[0].Description!.Invoke(entity, new FlowScratch()).Should().Be("Hello Rand.");
     }
 
     [Fact]

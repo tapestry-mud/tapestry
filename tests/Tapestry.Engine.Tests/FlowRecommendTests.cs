@@ -17,7 +17,7 @@ public class FlowRecommendTests
         "Moss carpets the stones underfoot, and the air hangs cool and still.";
 
     private static (FlowInstance instance, PlayerSession session, FakeConnection conn) Setup(
-        RecommendBroker broker, out List<string> captured, Func<Entity, string?>? recommendField = null)
+        RecommendBroker broker, out List<string> captured, Func<Entity, IFlowScratch, string?>? recommendField = null)
     {
         var capturedList = new List<string>();
         captured = capturedList;
@@ -35,9 +35,9 @@ public class FlowRecommendTests
                 new TextStep
                 {
                     Id = "desc",
-                    RecommendField = recommendField ?? (_ => "description"),
-                    Prompt = _ => "Enter the room description:",
-                    OnInput = (_, val) => { capturedList.Add(val); }
+                    RecommendField = recommendField ?? ((_, _) => "description"),
+                    Prompt = (_, _) => "Enter the room description:",
+                    OnInput = (_, _, val) => { capturedList.Add(val); }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)
@@ -93,7 +93,7 @@ public class FlowRecommendTests
         broker.Register(new StaticStubRecommendProvider(delayMs: 0));
         // "name" yields exactly one suggestion. It must still go through the picker (shown
         // before commit, rejectable) -- not be silently auto-applied.
-        var (instance, session, conn) = Setup(broker, out var captured, recommendField: _ => "name");
+        var (instance, session, conn) = Setup(broker, out var captured, recommendField: (_, _) => "name");
 
         instance.Start(session);
         instance.HandleInput("~");
@@ -227,7 +227,7 @@ public class FlowRecommendTests
         broker.Register(new CapturingProvider(isEnabled: true));
         // This step opted into recommend, but resolves no field for the current selection
         // (mirrors edit-room.js returning null for anything but name/description).
-        var (instance, session, conn) = Setup(broker, out var captured, recommendField: _ => null);
+        var (instance, session, conn) = Setup(broker, out var captured, recommendField: (_, _) => null);
 
         instance.Start(session);
         instance.HandleInput("~ desert");

@@ -81,7 +81,8 @@ public class FlowsModule : IJintApiModule
                     {
                         return new FlowCompletionResult(true);
                     }
-                    var entityProxy = BuildEntityProxy(jint, entity);
+                    // TODO(Task 3): pass the flow instance scratch, not a throwaway.
+                    var entityProxy = BuildEntityProxy(jint, entity, new FlowScratch());
                     var result = jint.Invoke(onCompleteJs, null, new object[] { entityProxy });
 
                     if (result is ObjectInstance resultObj)
@@ -145,14 +146,14 @@ public class FlowsModule : IJintApiModule
             var stepId = stepObj.Get("id").ToString();
             var stepType = stepObj.Get("type").ToString();
 
-            Func<Entity, bool>? skipIf = null;
+            Func<Entity, IFlowScratch, bool>? skipIf = null;
             var skipIfVal = stepObj.Get("skip_if");
             if (skipIfVal.Type != Types.Undefined && skipIfVal.Type != Types.Null)
             {
                 var captured = skipIfVal;
-                skipIf = entity =>
+                skipIf = (entity, scratch) =>
                 {
-                    var entityProxy = BuildEntityProxy(jint, entity);
+                    var entityProxy = BuildEntityProxy(jint, entity, scratch);
                     var res = jint.Invoke(captured, null, new object[] { entityProxy });
                     return res.Type == Types.Boolean && (bool)res.ToObject()!;
                 };
@@ -173,58 +174,58 @@ public class FlowsModule : IJintApiModule
         return result;
     }
 
-    private InfoStep ParseInfoStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
+    private InfoStep ParseInfoStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, IFlowScratch, bool>? skipIf)
     {
         var textVal = obj.Get("text");
-        Func<Entity, string> text;
+        Func<Entity, IFlowScratch, string> text;
 
         if (textVal.Type != Types.String)
         {
             var captured = textVal;
-            text = entity =>
+            text = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
         {
             var literal = textVal.ToString();
-            text = _ => literal;
+            text = (_, _) => literal;
         }
 
         return new InfoStep { Id = id, SkipIf = skipIf, Text = text };
     }
 
-    private ChoiceStep ParseChoiceStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
+    private ChoiceStep ParseChoiceStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, IFlowScratch, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
-        Func<Entity, string> prompt;
+        Func<Entity, IFlowScratch, string> prompt;
 
         if (promptVal.Type != Types.String)
         {
             var captured = promptVal;
-            prompt = entity =>
+            prompt = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
         {
             var literal = promptVal.ToString();
-            prompt = _ => literal;
+            prompt = (_, _) => literal;
         }
 
         var optionsVal = obj.Get("options");
-        Func<Entity, IReadOnlyList<ChoiceOption>> options;
+        Func<Entity, IFlowScratch, IReadOnlyList<ChoiceOption>> options;
 
         if (optionsVal is not JsArray)
         {
             var captured = optionsVal;
-            options = entity =>
+            options = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 var res = jint.Invoke(captured, null, new object[] { entityProxy });
                 return ParseOptionsArray(jint, res);
             };
@@ -232,13 +233,13 @@ public class FlowsModule : IJintApiModule
         else
         {
             var staticOptions = ParseOptionsArray(jint, optionsVal);
-            options = _ => staticOptions;
+            options = (_, _) => staticOptions;
         }
 
         var onSelectJs = obj.Get("on_select");
-        Action<Entity, ChoiceOption> onSelect = (entity, option) =>
+        Action<Entity, IFlowScratch, ChoiceOption> onSelect = (entity, scratch, option) =>
         {
-            var entityProxy = BuildEntityProxy(jint, entity);
+            var entityProxy = BuildEntityProxy(jint, entity, scratch);
             var optionProxy = new { label = option.Label, value = option.Value };
             jint.Invoke(onSelectJs, null, new object[] { entityProxy, optionProxy });
         };
@@ -249,24 +250,24 @@ public class FlowsModule : IJintApiModule
         return new ChoiceStep { Id = id, SkipIf = skipIf, Prompt = prompt, Options = options, OnSelect = onSelect, HelpHint = helpHint };
     }
 
-    private TextStep ParseTextStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
+    private TextStep ParseTextStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, IFlowScratch, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
-        Func<Entity, string> prompt;
+        Func<Entity, IFlowScratch, string> prompt;
 
         if (promptVal.Type != Types.String)
         {
             var captured = promptVal;
-            prompt = entity =>
+            prompt = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
         {
             var literal = promptVal.ToString();
-            prompt = _ => literal;
+            prompt = (_, _) => literal;
         }
 
         Func<string, bool>? validate = null;
@@ -292,27 +293,27 @@ public class FlowsModule : IJintApiModule
         // recommend_field may be a literal string OR a function (entity) => fieldName, so a
         // generic field-picker flow can recommend the field the player just selected.
         var recommendFieldVal = obj.Get("recommend_field");
-        Func<Entity, string?>? recommendField = null;
+        Func<Entity, IFlowScratch, string?>? recommendField = null;
         if (recommendFieldVal.Type == Types.String)
         {
             var fieldName = recommendFieldVal.ToString();
-            recommendField = _ => fieldName;
+            recommendField = (_, _) => fieldName;
         }
         else if (recommendFieldVal.Type != Types.Undefined && recommendFieldVal.Type != Types.Null)
         {
             var captured = recommendFieldVal;
-            recommendField = entity =>
+            recommendField = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 var res = jint.Invoke(captured, null, new object[] { entityProxy });
                 return res.Type == Types.String ? res.ToString() : null;
             };
         }
 
         var onInputJs = obj.Get("on_input");
-        Action<Entity, string> onInput = (entity, value) =>
+        Action<Entity, IFlowScratch, string> onInput = (entity, scratch, value) =>
         {
-            var entityProxy = BuildEntityProxy(jint, entity);
+            var entityProxy = BuildEntityProxy(jint, entity, scratch);
             jint.Invoke(onInputJs, null, new object[] { entityProxy, value });
         };
 
@@ -329,46 +330,46 @@ public class FlowsModule : IJintApiModule
         };
     }
 
-    private ConfirmStep ParseConfirmStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, bool>? skipIf)
+    private ConfirmStep ParseConfirmStep(JintEngine jint, string id, ObjectInstance obj, Func<Entity, IFlowScratch, bool>? skipIf)
     {
         var promptVal = obj.Get("prompt");
-        Func<Entity, string> prompt;
+        Func<Entity, IFlowScratch, string> prompt;
 
         if (promptVal.Type != Types.String)
         {
             var captured = promptVal;
-            prompt = entity =>
+            prompt = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
             };
         }
         else
         {
             var literal = promptVal.ToString();
-            prompt = _ => literal;
+            prompt = (_, _) => literal;
         }
 
-        Action<Entity>? onYes = null;
+        Action<Entity, IFlowScratch>? onYes = null;
         var onYesVal = obj.Get("on_yes");
         if (onYesVal.Type != Types.Undefined && onYesVal.Type != Types.Null)
         {
             var captured = onYesVal;
-            onYes = entity =>
+            onYes = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 jint.Invoke(captured, null, new object[] { entityProxy });
             };
         }
 
-        Action<Entity>? onNo = null;
+        Action<Entity, IFlowScratch>? onNo = null;
         var onNoVal = obj.Get("on_no");
         if (onNoVal.Type != Types.Undefined && onNoVal.Type != Types.Null)
         {
             var captured = onNoVal;
-            onNo = entity =>
+            onNo = (entity, scratch) =>
             {
-                var entityProxy = BuildEntityProxy(jint, entity);
+                var entityProxy = BuildEntityProxy(jint, entity, scratch);
                 jint.Invoke(captured, null, new object[] { entityProxy });
             };
         }
@@ -387,21 +388,21 @@ public class FlowsModule : IJintApiModule
             var label = item.Get("label").ToString();
             var value = item.Get("value").ToObject();
 
-            Func<Entity, string>? description = null;
+            Func<Entity, IFlowScratch, string>? description = null;
             var descVal = item.Get("description");
             if (descVal.Type != Types.Undefined && descVal.Type != Types.Null)
             {
                 if (descVal.Type == Types.String)
                 {
                     var literal = descVal.ToString();
-                    description = _ => literal;
+                    description = (_, _) => literal;
                 }
                 else
                 {
                     var captured = descVal;
-                    description = entity =>
+                    description = (entity, scratch) =>
                     {
-                        var entityProxy = BuildEntityProxy(jint, entity);
+                        var entityProxy = BuildEntityProxy(jint, entity, scratch);
                         return jint.Invoke(captured, null, new object[] { entityProxy }).ToString();
                     };
                 }
@@ -418,7 +419,7 @@ public class FlowsModule : IJintApiModule
         return list;
     }
 
-    private object BuildEntityProxy(JintEngine jint, Entity entity)
+    private object BuildEntityProxy(JintEngine jint, Entity entity, IFlowScratch scratch)
     {
         return new
         {
@@ -431,6 +432,13 @@ public class FlowsModule : IJintApiModule
             {
                 if (value != null) { entity.SetProperty(key, value); }
             }),
+            scratch = new
+            {
+                get = new Func<string, object?>(key =>
+                    scratch.Has(key) ? JsValue.FromObject(jint, scratch.Get(key)) : JsValue.Undefined),
+                set = new Action<string, object?>((key, value) => scratch.Set(key, value)),
+                has = new Func<string, bool>(key => scratch.Has(key))
+            },
             send = new Action<string>(text =>
             {
                 var session = _sessions.GetByEntityId(entity.Id);

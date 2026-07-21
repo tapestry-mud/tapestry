@@ -76,9 +76,9 @@ public class FlowEngineTests
                 new ChoiceStep
                 {
                     Id = "pick",
-                    Prompt = _ => "Pick:",
-                    Options = _ => new[] { new ChoiceOption("A", "a") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Pick:",
+                    Options = (_, _) => new[] { new ChoiceOption("A", "a") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = onComplete ?? (_ => new FlowCompletionResult(true))

@@ -45,9 +45,9 @@ public class FlowEngineAbortTests
                 new ChoiceStep
                 {
                     Id = "race",
-                    Prompt = _ => "Choose your race:",
-                    Options = _ => new[] { new ChoiceOption("Human", "human") },
-                    OnSelect = (_, _) => { }
+                    Prompt = (_, _) => "Choose your race:",
+                    Options = (_, _) => new[] { new ChoiceOption("Human", "human") },
+                    OnSelect = (_, _, _) => { }
                 }
             },
             OnComplete = _ => new FlowCompletionResult(true)
