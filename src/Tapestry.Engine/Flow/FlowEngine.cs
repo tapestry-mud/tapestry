@@ -253,7 +253,7 @@ public class FlowEngine
     /// or when the required projector for the requested kind is unavailable.
     /// Internal so tests can exercise the selection logic directly.
     /// </summary>
-    internal static Func<Entity, IRecommendContext>? BuildRecommendContext(
+    internal static Func<Entity, IFlowScratch, IRecommendContext>? BuildRecommendContext(
         string? contextKind,
         RecommendBroker? broker,
         World world,
@@ -269,9 +269,9 @@ public class FlowEngine
         var kind = (contextKind ?? "room").Trim().ToLowerInvariant();
         if (kind == "area" && areaRegistry != null && areaProjector != null)
         {
-            return e =>
+            return (e, scratch) =>
             {
-                var areaId = e.GetProperty<string>("__edit_area")
+                var areaId = scratch.Get("edit_area") as string
                     ?? (!string.IsNullOrEmpty(e.LocationRoomId) ? world.GetRoom(e.LocationRoomId!)?.Area : null);
                 var def = !string.IsNullOrEmpty(areaId) ? areaRegistry.Get(areaId!) : null;
                 return def != null ? areaProjector.Project(def) : new AreaData();
@@ -280,7 +280,7 @@ public class FlowEngine
 
         if (roomProjector != null)
         {
-            return e =>
+            return (e, scratch) =>
             {
                 var room = !string.IsNullOrEmpty(e.LocationRoomId) ? world.GetRoom(e.LocationRoomId!) : null;
                 return room != null ? roomProjector.Project(room) : new RoomData();

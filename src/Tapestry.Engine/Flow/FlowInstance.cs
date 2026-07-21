@@ -12,7 +12,7 @@ public class FlowInstance
     private readonly Entity _entity;
     private readonly PanelRenderer _panelRenderer;
     private readonly RecommendBroker? _recommend;
-    private readonly Func<Entity, IRecommendContext>? _recommendContext;
+    private readonly Func<Entity, IFlowScratch, IRecommendContext>? _recommendContext;
     private readonly FlowScratch _scratch;
     private PlayerSession? _session;
     private int _currentStepIndex;
@@ -35,7 +35,7 @@ public class FlowInstance
         Entity entity,
         PanelRenderer? panelRenderer = null,
         RecommendBroker? recommend = null,
-        Func<Entity, IRecommendContext>? recommendContext = null,
+        Func<Entity, IFlowScratch, IRecommendContext>? recommendContext = null,
         IReadOnlyDictionary<string, object?>? scratchSeed = null)
     {
         _definition = definition;
@@ -209,7 +209,7 @@ public class FlowInstance
             }
             var rest = trimmed[1..].Trim();
             var hint = string.IsNullOrWhiteSpace(rest) ? null : rest;
-            var request = new RecommendRequest(field, _recommendContext(_entity), hint);
+            var request = new RecommendRequest(field, _recommendContext(_entity, _scratch), hint);
             _session?.SendLine("Thinking...");
             SuspendOnAsync(
                 _recommend.RecommendAsync(request).ContinueWith(t =>

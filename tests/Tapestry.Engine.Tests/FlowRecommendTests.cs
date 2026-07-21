@@ -43,7 +43,7 @@ public class FlowRecommendTests
             OnComplete = (_, _) => new FlowCompletionResult(true)
         };
 
-        var instance = new FlowInstance(def, entity, recommend: broker, recommendContext: _ => new RoomData());
+        var instance = new FlowInstance(def, entity, recommend: broker, recommendContext: (_, _) => new RoomData());
         return (instance, session, conn);
     }
 
@@ -255,7 +255,7 @@ public class FlowRecommendTests
     }
 
     [Fact]
-    public void BuildRecommendContext_area_kind_with_edit_area_property_returns_AreaData()
+    public void BuildRecommendContext_area_kind_with_edit_area_in_scratch_returns_AreaData()
     {
         var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
 
@@ -279,12 +279,55 @@ public class FlowRecommendTests
         factory.Should().NotBeNull("area kind with all deps present must produce a context func");
 
         var entity = new Entity("player", "Rand");
-        entity.SetProperty("__edit_area", "road-to-tar-valon");
+        var scratch = new FlowScratch(new Dictionary<string, object?> { ["edit_area"] = "road-to-tar-valon" });
 
-        var ctx = factory!(entity);
+        var ctx = factory!(entity, scratch);
 
         ctx.Should().BeOfType<AreaData>();
         ((AreaData)ctx).Id.Should().Be("road-to-tar-valon");
+    }
+
+    [Fact]
+    public void BuildRecommendContext_area_kind_resolves_area_from_scratch_not_entity()
+    {
+        // The area id must come from scratch, not from a stale __edit_area property on the
+        // entity (the leaky property-bag write this task retires). Setting the property but
+        // NOT scratch, and no current room, must fall through to the empty-def branch.
+        var (world, rp, areaRegistry, areaProjector) = BuildProjectorFixture();
+
+        var areaDef = new AreaDefinition
+        {
+            Id = "test-area",
+            Name = "Test Area",
+            Short = "test",
+            Description = "A test area.",
+            Theme = "test",
+            Lore = "",
+            LevelRange = [1, 10]
+        };
+        areaRegistry.Register(areaDef);
+
+        var broker = new RecommendBroker();
+        broker.Register(new StaticStubRecommendProvider(delayMs: 0));
+
+        var factory = FlowEngine.BuildRecommendContext(
+            "area", broker, world, rp, areaRegistry, areaProjector);
+        factory.Should().NotBeNull();
+
+        var entity = new Entity("player", "Rand");
+        entity.SetProperty("__edit_area", "test-area"); // stale write; must be ignored
+        var scratch = new FlowScratch(new Dictionary<string, object?> { ["edit_area"] = "test-area" });
+
+        var ctx = factory!(entity, scratch);
+
+        ctx.Should().BeOfType<AreaData>();
+        ((AreaData)ctx).Id.Should().Be("test-area", "the id must come from scratch");
+
+        // Same entity property, empty scratch: must NOT resolve via the entity property.
+        var emptyScratch = new FlowScratch();
+        var fallbackCtx = factory!(entity, emptyScratch);
+        ((AreaData)fallbackCtx).Id.Should().Be(
+            "", "the entity's __edit_area property must no longer be consulted");
     }
 
     [Fact]
@@ -313,9 +356,9 @@ public class FlowRecommendTests
         factory.Should().NotBeNull("capitalized kind must still route to area context");
 
         var entity = new Entity("player", "Rand");
-        entity.SetProperty("__edit_area", "road-to-tar-valon");
+        var scratch = new FlowScratch(new Dictionary<string, object?> { ["edit_area"] = "road-to-tar-valon" });
 
-        var ctx = factory!(entity);
+        var ctx = factory!(entity, scratch);
 
         ctx.Should().BeOfType<AreaData>();
         ((AreaData)ctx).Id.Should().Be("road-to-tar-valon");
@@ -339,7 +382,7 @@ public class FlowRecommendTests
         var entity = new Entity("player", "Rand");
         entity.LocationRoomId = "test:hall";
 
-        var ctx = factory!(entity);
+        var ctx = factory!(entity, new FlowScratch());
 
         ctx.Should().BeOfType<RoomData>();
         ((RoomData)ctx).Id.Should().Be("test:hall");
@@ -363,7 +406,7 @@ public class FlowRecommendTests
         var entity = new Entity("player", "Rand");
         entity.LocationRoomId = "test:hall";
 
-        var ctx = factory!(entity);
+        var ctx = factory!(entity, new FlowScratch());
 
         ctx.Should().BeOfType<RoomData>();
     }
@@ -391,9 +434,9 @@ public class FlowRecommendTests
         factory.Should().NotBeNull();
 
         var entity = new Entity("player", "Rand");
-        entity.SetProperty("__edit_area", "unknown-area");
+        var scratch = new FlowScratch(new Dictionary<string, object?> { ["edit_area"] = "unknown-area" });
 
-        var ctx = factory!(entity);
+        var ctx = factory!(entity, scratch);
 
         ctx.Should().BeOfType<AreaData>("falls back to empty AreaData when def not found");
         ((AreaData)ctx).Id.Should().Be("", "empty fallback has blank Id");
