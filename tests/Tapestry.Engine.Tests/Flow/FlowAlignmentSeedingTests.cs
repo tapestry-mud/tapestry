@@ -49,14 +49,14 @@ public class FlowAlignmentSeedingTests
     }
 
     private static void SetCurrentFlow(PlayerSession session, Entity entity,
-        Func<Entity, FlowCompletionResult>? onComplete = null)
+        Func<Entity, IFlowScratch, FlowCompletionResult>? onComplete = null)
     {
         var def = new FlowDefinition
         {
             Id = "test_flow",
             Trigger = "new_player_connect",
             Steps = Array.Empty<FlowStepDefinition>(),
-            OnComplete = onComplete ?? (_ => new FlowCompletionResult(true))
+            OnComplete = onComplete ?? ((_, _) => new FlowCompletionResult(true))
         };
         session.CurrentFlow = new FlowInstance(def, entity);
     }
@@ -126,7 +126,7 @@ public class FlowAlignmentSeedingTests
 
         int? alignmentDuringCallback = null;
         var session = MakeCreatingSession(world, sessions, entity, playerCreator);
-        SetCurrentFlow(session, entity, e =>
+        SetCurrentFlow(session, entity, (e, _) =>
         {
             alignmentDuringCallback = e.GetProperty<int?>("alignment");
             return new FlowCompletionResult(true);

@@ -107,7 +107,7 @@ public class FlowsModuleTests
 
         var def = registry.Get("reject_flow")!;
         var entity = new Entity("player", "Test");
-        var result = def.OnComplete(entity);
+        var result = def.OnComplete(entity, new FlowScratch());
 
         result.Success.Should().BeFalse();
         result.Message.Should().Be("Not allowed.");

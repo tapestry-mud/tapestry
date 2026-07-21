@@ -11,7 +11,7 @@ public class FlowRegistryTests
         Id = id,
         Trigger = trigger,
         Steps = Array.Empty<FlowStepDefinition>(),
-        OnComplete = _ => new FlowCompletionResult(true)
+        OnComplete = (_, _) => new FlowCompletionResult(true)
     };
 
     [Fact]

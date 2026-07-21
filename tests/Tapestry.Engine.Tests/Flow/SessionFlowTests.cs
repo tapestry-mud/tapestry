@@ -43,7 +43,7 @@ public class SessionFlowTests
                     OnSelect = (_, _, opt) => { received.Add(opt.Value?.ToString() ?? ""); }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
 
         var instance = new FlowInstance(def, entity);

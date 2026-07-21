@@ -65,7 +65,7 @@ public class FlowEngineTests
 
     private static FlowDefinition MakeFlow(string id = "test_flow",
         string trigger = "new_player_connect",
-        Func<Entity, FlowCompletionResult>? onComplete = null)
+        Func<Entity, IFlowScratch, FlowCompletionResult>? onComplete = null)
     {
         return new FlowDefinition
         {
@@ -81,7 +81,7 @@ public class FlowEngineTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = onComplete ?? (_ => new FlowCompletionResult(true))
+            OnComplete = onComplete ?? ((_, _) => new FlowCompletionResult(true))
         };
     }
 
@@ -179,7 +179,7 @@ public class FlowEngineTests
         var (engine, registry, sessions, world, _) = CreateEngine();
         engine.NewPlayerEntityFactory = n => new Entity("player", n);
 
-        var flow = MakeFlow(onComplete: _ => new FlowCompletionResult(false, "Bad combo."));
+        var flow = MakeFlow(onComplete: (_, _) => new FlowCompletionResult(false, "Bad combo."));
         registry.Register(flow);
         var session = MakeCreatingSession(world, sessions);
 
@@ -199,7 +199,7 @@ public class FlowEngineTests
         var (engine, registry, sessions, world, _) = CreateEngine();
         engine.NewPlayerEntityFactory = n => new Entity("player", n);
 
-        var flow = MakeFlow(onComplete: _ => new FlowCompletionResult(false, "Human do not walk the Shadow."));
+        var flow = MakeFlow(onComplete: (_, _) => new FlowCompletionResult(false, "Human do not walk the Shadow."));
         registry.Register(flow);
         var session = MakeCreatingSession(world, sessions);
         var conn = (FakeConnection)session.Connection;
@@ -290,6 +290,39 @@ public class FlowEngineTests
         Assert.NotNull(captured);
         Assert.NotNull(entityDuringEvent);
         Assert.Equal(session.PlayerEntity.Id, captured!.SourceEntityId);
+    }
+
+    [Fact]
+    public void OnComplete_receives_scratch_written_during_the_flow()
+    {
+        var (engine, registry, sessions, world, _) = CreateEngine();
+        string? seenConfirmed = null;
+        var flow = new FlowDefinition
+        {
+            Id = "confirm_scratch_flow",
+            Trigger = "new_player_connect",
+            Steps = new FlowStepDefinition[]
+            {
+                new ConfirmStep
+                {
+                    Id = "q",
+                    Prompt = (_, _) => "Go?",
+                    OnYes = (_, scratch) => scratch.Set("confirmed", "yes")
+                }
+            },
+            OnComplete = (_, scratch) =>
+            {
+                seenConfirmed = scratch.Get("confirmed") as string;
+                return new FlowCompletionResult(true);
+            }
+        };
+        registry.Register(flow);
+        var session = MakeCreatingSession(world, sessions);
+
+        engine.Trigger(session, "new_player_connect");
+        session.CurrentFlow!.HandleInput("y");
+
+        seenConfirmed.Should().Be("yes");
     }
 
     [Fact]

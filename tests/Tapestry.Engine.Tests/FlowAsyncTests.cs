@@ -24,7 +24,7 @@ public class FlowAsyncTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
         return new FlowInstance(def, entity);
     }

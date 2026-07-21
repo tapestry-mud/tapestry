@@ -75,14 +75,13 @@ public class FlowsModule : IJintApiModule
                 }
 
                 var onCompleteJs = obj.Get("on_complete");
-                Func<Entity, FlowCompletionResult> onComplete = entity =>
+                Func<Entity, IFlowScratch, FlowCompletionResult> onComplete = (entity, scratch) =>
                 {
                     if (onCompleteJs.Type == Types.Undefined || onCompleteJs.Type == Types.Null)
                     {
                         return new FlowCompletionResult(true);
                     }
-                    // TODO(Task 3): pass the flow instance scratch, not a throwaway.
-                    var entityProxy = BuildEntityProxy(jint, entity, new FlowScratch());
+                    var entityProxy = BuildEntityProxy(jint, entity, scratch);
                     var result = jint.Invoke(onCompleteJs, null, new object[] { entityProxy });
 
                     if (result is ObjectInstance resultObj)

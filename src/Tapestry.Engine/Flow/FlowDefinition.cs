@@ -6,7 +6,7 @@ public class FlowDefinition
     public string? DisplayName { get; init; }
     public required string Trigger { get; init; }
     public required IReadOnlyList<FlowStepDefinition> Steps { get; init; }
-    public required Func<Entity, FlowCompletionResult> OnComplete { get; init; }
+    public required Func<Entity, IFlowScratch, FlowCompletionResult> OnComplete { get; init; }
     public string PackName { get; init; } = "";
     public IReadOnlyList<WizardStep>? WizardSteps { get; init; }
     public bool Cancellable { get; init; } = false;

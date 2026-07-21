@@ -50,7 +50,7 @@ public class FlowEngineAbortTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
     }
 

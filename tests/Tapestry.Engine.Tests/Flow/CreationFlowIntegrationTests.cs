@@ -88,7 +88,7 @@ public class CreationFlowIntegrationTests
                     OnSelect = (entity, _, opt) => entity.SetProperty("alignment", opt.Value)
                 }
             },
-            OnComplete = entity =>
+            OnComplete = (entity, _) =>
             {
                 var cls = entity.GetProperty<string>("class");
                 var race = entity.GetProperty<string>("race");

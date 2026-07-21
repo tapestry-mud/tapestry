@@ -35,7 +35,7 @@ public class FlowEmptyChoiceTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
     }
 
@@ -106,7 +106,7 @@ public class FlowEmptyChoiceTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
         Start(session, def);
         conn.SentText.Should().Contain(s => s.Contains("1.") && s.Contains("Alpha"));

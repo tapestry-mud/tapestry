@@ -13,7 +13,7 @@ public class FlowInstanceTests
         Id = "test_flow",
         Trigger = "test",
         Steps = steps,
-        OnComplete = _ => new FlowCompletionResult(true)
+        OnComplete = (_, _) => new FlowCompletionResult(true)
     };
 
     private static (FlowInstance instance, PlayerSession session, FakeConnection conn) Setup(
@@ -493,7 +493,7 @@ public class FlowInstanceTests
             Id = "wizard_flow",
             Trigger = "test",
             Steps = steps,
-            OnComplete = _ => new FlowCompletionResult(true),
+            OnComplete = (_, _) => new FlowCompletionResult(true),
             WizardSteps = wizardSteps
         };
         var instance = new FlowInstance(def, entity);
@@ -603,7 +603,7 @@ public class FlowInstanceTests
                     OnSelect = (_, _, _) => { }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true),
+            OnComplete = (_, _) => new FlowCompletionResult(true),
             WizardSteps = new[] { new WizardStep("c", "Race") }
         };
         var instance = new FlowInstance(def, entity);
@@ -661,7 +661,7 @@ public class FlowInstanceTests
             Id = "long_wizard",
             Trigger = "t",
             Steps = steps,
-            OnComplete = _ => new FlowCompletionResult(true),
+            OnComplete = (_, _) => new FlowCompletionResult(true),
             WizardSteps = wizardSteps
         };
         var instance = new FlowInstance(def, entity);

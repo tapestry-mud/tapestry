@@ -117,7 +117,7 @@ public class FlowEngine
             SeedCharacterAlignment(instance.Entity);
         }
 
-        var result = instance.Definition.OnComplete(instance.Entity);
+        var result = instance.Definition.OnComplete(instance.Entity, instance.Scratch);
 
         if (!result.Success)
         {

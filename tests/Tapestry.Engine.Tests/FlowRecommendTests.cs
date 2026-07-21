@@ -40,7 +40,7 @@ public class FlowRecommendTests
                     OnInput = (_, _, val) => { capturedList.Add(val); }
                 }
             },
-            OnComplete = _ => new FlowCompletionResult(true)
+            OnComplete = (_, _) => new FlowCompletionResult(true)
         };
 
         var instance = new FlowInstance(def, entity, recommend: broker, recommendContext: _ => new RoomData());
