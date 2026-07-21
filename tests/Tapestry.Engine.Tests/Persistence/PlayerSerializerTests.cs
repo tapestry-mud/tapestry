@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Tapestry.Engine.Combat;
+using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Stats;
 
@@ -368,5 +369,30 @@ public class PlayerSerializerTests
         result.Entity.HasRole("admin").Should().BeFalse();
         result.Entity.HasTag("admin").Should().BeTrue();
         result.Entity.HasTag("veteran").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Distributed_from_survives_a_serialize_round_trip_as_a_bare_registered_key()
+    {
+        var registry = new PropertyRegistry();
+        ItemProperties.Register(registry);
+        var serializer = new PlayerSerializer(registry);
+
+        var item = new Entity("item", "a rusty dagger");
+        item.SetProperty(ItemProperties.DistributedFrom, "core:rusty-dagger");
+
+        var saved = serializer.ToSaveData(MakePlayerHolding(item), Guid.NewGuid(), new List<Entity> { item });
+        var itemProps = saved.Items.Single().Properties;
+
+        itemProps.Should().ContainKey("distributed_from");
+        itemProps["distributed_from"].Should().Be("core:rusty-dagger"); // bare, not a {type,value} envelope
+    }
+
+    private static Entity MakePlayerHolding(Entity item)
+    {
+        var player = new Entity("player", "Krakus");
+        player.LocationRoomId = "limbo:recall";
+        player.AddToContents(item);
+        return player;
     }
 }

@@ -16,9 +16,6 @@ public class DistributionService
     private readonly ILogger<DistributionService>? _logger;
     private List<ItemTemplate> _distributionTemplates = new();
 
-    /// <summary>Property key stamped on distributed item instances; used for replenish top-up counting.</summary>
-    private const string DistributedFromKey = "distributed_from";
-
     public DistributionService(
         EventBus eventBus,
         World world,
@@ -70,7 +67,7 @@ public class DistributionService
                     if (_random.NextDouble() > entry.Chance) { continue; }
                     var item = _itemRegistry.CreateItem(template.Id);
                     if (item == null) { continue; }
-                    item.SetProperty(DistributedFromKey, template.Id);
+                    item.SetProperty(ItemProperties.DistributedFrom, template.Id);
                     entity.AddToContents(item);
                     _world.TrackEntity(item);
                 }
@@ -106,7 +103,7 @@ public class DistributionService
                 if (matchingRooms.Count == 0) { continue; }
 
                 var existingTotal = matchingRooms.Sum(r => r.Entities.Count(e => string.Equals(
-                    e.GetProperty<string>(DistributedFromKey), template.Id, StringComparison.OrdinalIgnoreCase)));
+                    e.GetProperty<string>(ItemProperties.DistributedFrom), template.Id, StringComparison.OrdinalIgnoreCase)));
 
                 var needed = entry.Count - existingTotal;
                 for (var i = 0; i < needed; i++)
@@ -115,7 +112,7 @@ public class DistributionService
                     var room = matchingRooms[_random.Next(matchingRooms.Count)];
                     var item = _itemRegistry.CreateItem(template.Id);
                     if (item == null) { continue; }
-                    item.SetProperty(DistributedFromKey, template.Id);
+                    item.SetProperty(ItemProperties.DistributedFrom, template.Id);
                     room.AddEntity(item);
                     _world.TrackEntity(item);
                 }
@@ -134,7 +131,7 @@ public class DistributionService
                 if (!EntitySelector.MatchesRoom(room, entry.Selector)) { continue; }
 
                 var existing = room.Entities.Count(e => string.Equals(
-                    e.GetProperty<string>(DistributedFromKey), template.Id, StringComparison.OrdinalIgnoreCase));
+                    e.GetProperty<string>(ItemProperties.DistributedFrom), template.Id, StringComparison.OrdinalIgnoreCase));
 
                 var needed = entry.Count - existing;
                 for (var i = 0; i < needed; i++)
@@ -142,7 +139,7 @@ public class DistributionService
                     if (_random.NextDouble() > entry.Chance) { continue; }
                     var item = _itemRegistry.CreateItem(template.Id);
                     if (item == null) { continue; }
-                    item.SetProperty(DistributedFromKey, template.Id);
+                    item.SetProperty(ItemProperties.DistributedFrom, template.Id);
                     room.AddEntity(item);
                     _world.TrackEntity(item);
                 }
