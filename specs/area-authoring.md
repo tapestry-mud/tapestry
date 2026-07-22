@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-07-04
+last-updated: 2026-07-22
 ---
 
 # Area Authoring
@@ -468,6 +468,7 @@ tests/Tapestry.Scripting.Tests/WorldAuthoringDeleteAreaTests.cs)
 
 ## Change Log
 
+- 2026-07-22 [solo-area-lifecycle-naming](changes/2026-07-22-solo-area-lifecycle-naming.md) - `authoring.deleteArea(areaId)` atomically inverts the area create path (evacuate, untrack, remove rooms, clear consequences, unregister from the three scoped registries, delete the on-disk directory); aborts whole when a player is inside and the recall room is missing; the pack scaffold and runtime-namespace marker deliberately survive
 - 2026-07-04 [oracle-v3-engine-gaps](changes/2026-07-04-oracle-v3-engine-gaps.md) - runtime destination packs validate lenient on reboot (createPack scaffold gap closed engine-side); schema-while-`llm.structured_output`-off recommend calls WARN once per 60s burst + increment `tapestry.recommend.schema_dropped`
 - 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - recommend can return validated JSON via `response_format json_schema` (opt-in `llm.structured_output`, default off, degrades to baked fallback); `ILlmClient` returns `LlmResult` with token counts surfaced on the log line + new `tapestry.recommend.tokens` histogram; schema-aware `StaticStubRecommendProvider` via `StubJson.FromSchema`, stub delay lowered to 400ms
 - 2026-06-27 [oracle-six-axis-overlay](changes/2026-06-27-oracle-six-axis-overlay.md) - `createPack` docker-safe: `RuntimeNamespaceStore` persists runtime namespaces to a writable `data/` marker + re-registers at boot; packs-dir scaffold write is now best-effort (try/catch)

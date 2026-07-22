@@ -1,6 +1,6 @@
 ---
 capability: world-entity-store
-last-updated: 2026-07-03
+last-updated: 2026-07-22
 ---
 
 # World Entity Store
@@ -206,4 +206,5 @@ module is a documented fallback that mirrors `FlowEngine.DefaultSpawnRoomId`.
 - None on record.
 
 ## Change Log
+- 2026-07-22 [solo-area-lifecycle-naming](changes/2026-07-22-solo-area-lifecycle-naming.md) - `WorldAuthoringModule.EvacuateArea` moves players to a recall room before their rooms are removed, returning `-1` (abort signal) when a player is present and the recall room is missing; each move publishes `player.moved`
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - engine-read tags gain a single declaration site so a mistyped tag fails resolution instead of silently never matching

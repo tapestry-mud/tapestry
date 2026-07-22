@@ -8,11 +8,11 @@ known constraints, and change history.
 | Capability | File | Last Updated |
 |------------|------|--------------|
 | Command Dispatch | [command-dispatch.md](command-dispatch.md) | 2026-06-21 |
-| Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-06-19 |
+| Registries and Seal | [registries-and-seal.md](registries-and-seal.md) | 2026-07-22 |
 | Pack Security | [pack-security.md](pack-security.md) | 2026-07-04 |
 | Pack Loading | [pack-loading.md](pack-loading.md) | 2026-07-04 |
 | Scripting Runtime | [scripting-runtime.md](scripting-runtime.md) | 2026-07-04 |
-| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-07-04 |
+| Area Authoring | [area-authoring.md](area-authoring.md) | 2026-07-22 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-07-04 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-03 |
@@ -27,7 +27,7 @@ known constraints, and change history.
 | Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
 | Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-07-22 |
 | Events | [events.md](events.md) | 2026-07-04 |
-| World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-07-03 |
+| World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-07-22 |
 | World Geography | [world-geography.md](world-geography.md) | 2026-06-27 |
 | Items and Containers | [items-and-containers.md](items-and-containers.md) | 2026-07-03 |
 | Equipment and Modifiers | [equipment-and-modifiers.md](equipment-and-modifiers.md) | 2026-06-12 |

@@ -1,6 +1,6 @@
 ---
 capability: registries-and-seal
-last-updated: 2026-06-19
+last-updated: 2026-07-22
 ---
 
 # Registries and Seal
@@ -90,4 +90,5 @@ discard, so its namespace legitimately still exists.
 
 ## Change Log
 
+- 2026-07-22 [solo-area-lifecycle-naming](changes/2026-07-22-solo-area-lifecycle-naming.md) - scoped removal on three append-only registries (`AreaRegistry.Unregister`, `OracleTableRegistry.RemoveByArea`, `ItemRegistry.RemoveByArea`), colon-terminated prefix so a string-prefix sibling survives; `RuntimeNamespaceStore` deliberately keeps no removal path
 - 2026-06-19 [registry-introspection](changes/2026-06-19-registry-introspection.md) - post-seal introspection readers (`GetRegistrySummary`/`GetRegistrations` + the two flat view records)
