@@ -165,6 +165,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
             setRoomAttribute = new Func<string, string, JsValue, string>(SetRoomAttribute),
             clearRoomAttribute = new Func<string, string, string>(ClearRoomAttribute),
             deleteRoom = new Func<string, bool>(DeleteRoom),
+            deleteArea = new Func<string, bool>(id => DeleteArea(id)),
             recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true),
             recommend = new Action<JsValue, JsValue>((options, callback) =>
             {
@@ -687,6 +688,74 @@ public sealed class WorldAuthoringModule : IJintApiModule
         }
 
         return players.Count;
+    }
+
+    /// <summary>Atomic inverse of the solo-area create path. Evacuates players to recall,
+    /// untracks every remaining entity, removes the rooms, clears their consequence entries,
+    /// unregisters the area from the three scoped registries, and deletes the one on-disk
+    /// area directory. Returns false when the area is unknown everywhere (nothing to do) or
+    /// when a player could not be evacuated - in the latter case nothing is touched.
+    ///
+    /// Idempotent-safe: a missing directory or an already-unregistered entry is not an error.
+    ///
+    /// DELIBERATELY NOT TOUCHED (the pack outlives its areas): RuntimeNamespaceStore, the
+    /// runtime-namespaces marker file, the destination pack scaffold, and server.yaml. Because
+    /// the pack stays, its namespace legitimately still exists and no boot haunting follows.
+    /// </summary>
+    public bool DeleteArea(string areaId, string? recallRoomId = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaId))
+        {
+            return false;
+        }
+
+        var rooms = AreaRooms(areaId);
+        var areaDir = Path.Combine(_root, SafeSegment(areaId));
+        var known = _areaRegistry.Contains(areaId) || rooms.Count > 0 || Directory.Exists(areaDir);
+        if (!known)
+        {
+            return false;
+        }
+
+        // 1. Evacuate. -1 means a player is inside and the recall room is gone: abort whole.
+        var evacuated = EvacuateArea(areaId, recallRoomId);
+        if (evacuated < 0)
+        {
+            return false;
+        }
+
+        // 2. Untrack every remaining entity (mobs, floor items, corpses) with what it carries.
+        foreach (var room in rooms)
+        {
+            foreach (var entity in room.Entities.ToList())
+            {
+                _world.UntrackEntityDeep(entity);
+            }
+        }
+
+        // 3 + 4. Drop the rooms and their memory-only consequence deltas.
+        foreach (var room in rooms)
+        {
+            _world.RemoveRoom(room.Id);
+            _consequences?.ClearRoom(room.Id);
+        }
+
+        // 5, 6, 7. Scoped registry removal.
+        _areaRegistry.Unregister(areaId);
+        var tables = _oracleRegistry.RemoveByArea(areaId);
+        var templates = _itemRegistry?.RemoveByArea(areaId) ?? 0;
+
+        // 8. One recursive delete inverts the entire on-disk footprint: area.yaml, rooms/,
+        //    the frozen oracle tables, items/.
+        if (Directory.Exists(areaDir))
+        {
+            Directory.Delete(areaDir, recursive: true);
+        }
+
+        _logger.LogInformation(
+            "DeleteArea {Area}: evacuated={Players} rooms={Rooms} tables={Tables} templates={Templates}",
+            areaId, evacuated, rooms.Count, tables, templates);
+        return true;
     }
 
     /// <summary>Snapshot of the rooms belonging to an area. Snapshotted (ToList) because

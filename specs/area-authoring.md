@@ -174,6 +174,44 @@ files (written under the game data root at runtime).
   state (e.g. generated room names) off disk without the in-memory creation context.
   (src/Tapestry.Scripting/Modules/AreaModule.cs)
 
+### deleteArea
+
+`authoring.deleteArea(areaId)` is the atomic inverse of the solo-area create path. It runs in
+one engine call (C#, not scripted), so no partial-state window is observable from JS.
+
+Order, and it matters:
+
+1. Evacuate every player standing in the area to the recall room. If a player is present and
+   the recall room does not exist, the whole call aborts and returns `false` without touching
+   anything.
+2. `UntrackEntityDeep` every remaining entity in the area's rooms, so carried items do not
+   orphan in the tag index.
+3. `World.RemoveRoom` per room. Solo-area exits are internal, so bare removal is referentially
+   safe: no cross-pack inbound link into a solo area exists.
+4. `ConsequenceOverlay.ClearRoom` per room.
+5. `AreaRegistry.Unregister(areaId)`.
+6. `OracleTableRegistry.RemoveByArea(areaId)`.
+7. `ItemRegistry.RemoveByArea(areaId)`.
+8. One recursive delete of `<roomsRoot>/<SafeSegment(areaId)>/`, which inverts the whole
+   on-disk footprint: `area.yaml`, `rooms/`, the frozen oracle tables, `items/`.
+
+Returns `false` when the area is unknown to the registry, the World, and the disk. Otherwise
+`true`. Idempotent-safe: a missing directory or an already-unregistered entry is not an error.
+
+**Never touched.** `RuntimeNamespaceStore` and its `runtime-namespaces.txt` marker, the
+destination pack scaffold (`<packsRoot>/<packName>/pack.yaml`), and `server.yaml`. Deleting an
+area does not delete the pack that holds it, so the pack's namespace legitimately still exists
+and the boot-lenient marker correctly remains. Empty pack directories are benign and are
+collected, if ever, by a pack-level lifecycle that does not exist yet.
+
+**Scoping.** Registry removal keys on the colon-terminated prefix `<areaId>:`. Because the solo
+area slug carries a unique seed hex, sibling areas sharing a pack namespace are never touched.
+
+Item TEMPLATES under the area go with the directory. Items already INSTANCED in a player's
+inventory are entities on the player file and are not touched.
+(src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:DeleteArea;
+tests/Tapestry.Scripting.Tests/WorldAuthoringDeleteAreaTests.cs)
+
 ### dig command (builder pack)
 
 - `dig <dir>` carves a new room in the given direction from the builder's current room,
