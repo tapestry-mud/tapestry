@@ -199,6 +199,29 @@ Quest state is written to `<save_path>/players/<name>/quests.yaml` by
 entries (quests not in the registry) are stripped before restore.
 (src/Tapestry.Engine/Quests/QuestPersistenceService.cs:52-113)
 
+### Flow-scoped working memory (not persisted)
+
+- Flow working memory (wizard answers, intermediate step state gathered while a
+  `FlowInstance` is running) lives in `IFlowScratch`, held on the `FlowInstance` for
+  the lifetime of the flow. It is in-process memory only and is NEVER serialized --
+  there is no code path from `IFlowScratch` to `PlayerSerializer` or to any disk
+  write. A disconnect mid-flow loses whatever the player had answered so far; this
+  is by design, not an oversight.
+  (src/Tapestry.Engine/Flow/IFlowScratch.cs:1-17, src/Tapestry.Engine/Flow/FlowInstance.cs:15-16,30)
+
+- No flow shipped today needs to survive a disconnect (this is a deliberate YAGNI --
+  the mechanism below is documented, not built). If a future flow ever does, the
+  pattern is a dedicated sidecar file (e.g. `flows.yaml`) in the player folder,
+  alongside `player.yaml` and `quests.yaml` -- see "File-backed store layout" above.
+  The lifecycle would be explicit: written while the flow is suspended, deleted on
+  completion or abandonment.
+
+- Rows written back into `player.yaml` are NOT an acceptable substitute for the
+  sidecar above. `player.yaml` is the PropertyRegistry-gated character save, not a
+  scratch pad -- unregistered keys written there are silently dropped by the
+  serializer (see "PropertyRegistry pattern" above), and even a registered key would
+  wrongly promote transient wizard state into permanent character data.
+
 ### Save triggers
 
 - **Manual save**: the `save` command (priority 100, pack "core") calls
