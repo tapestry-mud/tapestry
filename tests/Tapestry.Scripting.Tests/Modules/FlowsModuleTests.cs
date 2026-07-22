@@ -41,6 +41,26 @@ public class FlowsModuleTests
         return (runtime, registry, policy);
     }
 
+    // Trigger() (unlike register()) needs a live session to act on, so this variant also
+    // hands back the SessionManager the module was wired against.
+    private static (JintRuntime runtime, FlowRegistry registry, RegistrationPolicy policy, SessionManager sessions) CreateRuntimeWithSessions()
+    {
+        var registry = new FlowRegistry();
+        var sessions = new SessionManager();
+        var playerCreator = new PlayerCreator();
+        var world = new World(playerCreator);
+        var persistence = new FakePersistence();
+        var eventBus = new EventBus();
+        var engine = new FlowEngine(registry, sessions, world, persistence, new PanelRenderer(),
+            new ClassRegistry(), new RaceRegistry(), new AlignmentManager(world, eventBus, new AlignmentConfig()),
+            playerCreator, eventBus);
+        var policy = TestRegistrationPolicy.Create();
+        var loader = new TapestryModuleLoader(new TestRegistrationPolicy.NoEdgeOracle());
+        var module = new FlowsModule(registry, engine, sessions, policy);
+        var runtime = new JintRuntime(new IJintApiModule[] { module }, NullLogger<JintRuntime>.Instance, loader: loader);
+        return (runtime, registry, policy, sessions);
+    }
+
     [Fact]
     public void Register_info_flow_from_JS_adds_to_registry()
     {
@@ -345,5 +365,76 @@ public class FlowsModuleTests
         def.WizardSteps![0].StepId.Should().Be("race");
         def.WizardSteps![0].Label.Should().Be("Race");
         def.WizardSteps![1].StepId.Should().Be("class");
+    }
+
+    // trigger() is invoked directly from a JS call site, so these tests must go through the
+    // real Jint runtime (not construct the delegate from C# and call it with JsValue.Undefined
+    // by hand). When Jint marshals a JS call that omits an argument onto a delegate whose
+    // matching C# parameter is JsValue-typed, the missing argument arrives as CLR null, not
+    // JsValue.Undefined. A guard that dereferences .Type before checking for null throws NRE.
+    [Fact]
+    public void Trigger_from_JS_with_two_arguments_starts_the_flow_without_throwing()
+    {
+        var (runtime, _, policy, sessions) = CreateRuntimeWithSessions();
+
+        // A confirm step pauses awaiting y/n input rather than auto-advancing (an info-only
+        // flow completes and clears CurrentFlow before Start() even returns), so CurrentFlow
+        // stays observably set after trigger() runs.
+        EsmTest.Load(runtime, "test", """
+            tapestry.flows.register({
+                id: "two_arg_flow",
+                trigger: "two_arg_test",
+                steps: [
+                    { id: "confirm", type: "confirm", prompt: "Sure?", on_yes: (entity) => {}, on_no: (entity) => {} }
+                ],
+                on_complete: (entity) => ({ success: true })
+            });
+            """);
+        policy.Resolve();
+
+        var entity = new Entity("player", "Test");
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, entity);
+        sessions.Add(session);
+
+        var act = () => EsmTest.Load(runtime, "caller", $$"""
+            tapestry.flows.trigger("{{entity.Id}}", "two_arg_test");
+            """);
+
+        act.Should().NotThrow();
+        session.CurrentFlow.Should().NotBeNull();
+        session.CurrentFlow!.Definition.Id.Should().Be("two_arg_flow");
+    }
+
+    [Fact]
+    public void Trigger_from_JS_with_seed_argument_still_seeds_the_flow_scratch()
+    {
+        var (runtime, registry, policy, sessions) = CreateRuntimeWithSessions();
+
+        EsmTest.Load(runtime, "test", """
+            tapestry.flows.register({
+                id: "seeded_flow",
+                trigger: "seeded_test",
+                steps: [
+                    { id: "confirm", type: "confirm", prompt: "Sure?", on_yes: (entity) => {}, on_no: (entity) => {} }
+                ],
+                on_complete: (entity) => ({ success: true })
+            });
+            """);
+        policy.Resolve();
+        registry.Get("seeded_flow").Should().NotBeNull("the flow must register before we can trigger it");
+
+        var entity = new Entity("player", "Test");
+        var connection = new FakeConnection();
+        var session = new PlayerSession(connection, entity);
+        sessions.Add(session);
+
+        var act = () => EsmTest.Load(runtime, "caller", $$"""
+            tapestry.flows.trigger("{{entity.Id}}", "seeded_test", { edit_area: "wot:tar-valon" });
+            """);
+
+        act.Should().NotThrow();
+        session.CurrentFlow.Should().NotBeNull();
+        session.CurrentFlow!.Scratch.Get("edit_area").Should().Be("wot:tar-valon");
     }
 }

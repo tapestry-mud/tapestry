@@ -130,8 +130,12 @@ public class FlowsModule : IJintApiModule
                 var session = _sessions.GetByEntityId(entityId);
                 if (session == null) { return; }
 
+                // Jint marshals an omitted JS argument onto a JsValue-typed C# parameter as
+                // CLR null, not JsValue.Undefined (that padding only happens for JsValue-typed
+                // fields read from an object, not for delegate call arguments). The null check
+                // must run first so the two-argument call form (seed omitted) does not NRE.
                 IReadOnlyDictionary<string, object?>? seed = null;
-                if (seedVal.Type != Types.Undefined && seedVal.Type != Types.Null && seedVal is ObjectInstance seedObj)
+                if (seedVal != null && seedVal.Type != Types.Undefined && seedVal.Type != Types.Null && seedVal is ObjectInstance seedObj)
                 {
                     var dict = new Dictionary<string, object?>();
                     foreach (var prop in seedObj.GetOwnProperties())
