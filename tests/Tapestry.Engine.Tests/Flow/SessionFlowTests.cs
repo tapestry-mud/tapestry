@@ -112,4 +112,57 @@ public class SessionFlowTests
 
         session.PromptDisplayed.Should().BeTrue();
     }
+
+    [Fact]
+    public void FlushPrompts_skips_held_session_regardless_of_pending_content_sends()
+    {
+        var sessions = new SessionManager();
+        var conn = new FakeConnection();
+        var entity = new Entity("player", "Perrin");
+        entity.SetProperty("prompt_template", ">");
+
+        var session = new PlayerSession(conn, entity)
+        {
+            Phase = LoginPhase.Playing
+        };
+        sessions.Add(session);
+        session.OpenPromptHold("swell");
+
+        sessions.SendToPlayer(entity.Id, "one\r\n");
+        sessions.SendToPlayer(entity.Id, "two\r\n");
+        sessions.SendToPlayer(entity.Id, "three\r\n");
+
+        var renderer = new PromptRenderer();
+        sessions.FlushPrompts(renderer);
+
+        session.PromptDisplayed.Should().BeFalse();
+        session.NeedsPromptRefresh.Should().BeTrue("held sessions must not consume the arm");
+    }
+
+    [Fact]
+    public void FlushPrompts_releasingHold_withNoTrailingContent_stillRendersExactlyOnePrompt()
+    {
+        var sessions = new SessionManager();
+        var conn = new FakeConnection();
+        var entity = new Entity("player", "Perrin");
+        entity.SetProperty("prompt_template", ">");
+
+        var session = new PlayerSession(conn, entity)
+        {
+            Phase = LoginPhase.Playing
+        };
+        sessions.Add(session);
+        session.OpenPromptHold("swell");
+
+        var renderer = new PromptRenderer();
+        sessions.FlushPrompts(renderer);
+        session.PromptDisplayed.Should().BeFalse();
+        conn.SentLines.Should().BeEmpty();
+
+        session.ReleasePromptHold("swell");
+        sessions.FlushPrompts(renderer);
+
+        session.PromptDisplayed.Should().BeTrue();
+        conn.SentLines.Should().HaveCount(1);
+    }
 }

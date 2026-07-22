@@ -475,6 +475,7 @@ public class SessionManager
             if (session.Phase == LoginPhase.LinkDead) { continue; }
             if (session.InputMode == InputMode.Prompt) { continue; }
             if (session.CurrentFlow != null) { continue; }
+            if (session.IsPromptHeld) { continue; }
             if (session.NeedsPromptRefresh)
             {
                 var template = session.PlayerEntity.GetProperty<string>(PromptProperties.PromptTemplate)
