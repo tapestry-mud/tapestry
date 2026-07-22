@@ -283,6 +283,12 @@ _Avoid_: snoop (legacy name)
 All player-facing output is strict 7-bit ASCII. LLM-generated text passes through
 `AsciiFold` before it reaches a player.
 
+**Prompt hold**:
+A per-session owner-keyed suppression of the once-per-tick prompt redraw, consulted in
+`SessionManager.FlushPrompts`. A swell or a cutscene opens a hold and releases it when its
+paced output ends; the prompt returns with exactly one clean redraw. Owner-keyed so two
+holds can never stomp each other's release. Not related to Wizlock or link-dead.
+
 ## Oracle and authoring
 
 **Oracle**:

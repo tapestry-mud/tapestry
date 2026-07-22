@@ -50,6 +50,37 @@ public class PlayerSession
     public Action<string>? PromptHandler { get; set; }
     public Action? CancelPreLoginTimeout { get; set; }
 
+    private readonly HashSet<string> _promptHoldOwners = new();
+
+    /// <summary>True while any owner (a swell, a cutscene) holds the prompt back. Consulted
+    /// by SessionManager.FlushPrompts; the redraw decision is not per-owner, it is "any owner
+    /// present or not."</summary>
+    public bool IsPromptHeld => _promptHoldOwners.Count > 0;
+
+    public void OpenPromptHold(string owner)
+    {
+        _promptHoldOwners.Add(owner);
+    }
+
+    /// <summary>Releasing the last owner arms exactly one redraw defensively, in case the
+    /// hold ended with no trailing content to arm it naturally.</summary>
+    public void ReleasePromptHold(string owner)
+    {
+        if (_promptHoldOwners.Remove(owner) && _promptHoldOwners.Count == 0)
+        {
+            NeedsPromptRefresh = true;
+        }
+    }
+
+    /// <summary>Lifecycle-exit safety net: disconnect and link-death call this so a hold can
+    /// never outlive the session that opened it, regardless of which owner opened it.</summary>
+    public void ForceReleaseAllPromptHolds()
+    {
+        if (_promptHoldOwners.Count == 0) { return; }
+        _promptHoldOwners.Clear();
+        NeedsPromptRefresh = true;
+    }
+
     private readonly Action<string> _inputHandler;
     private readonly FloodContext? _floodCtx;
     private float _tokens;
