@@ -1,6 +1,6 @@
 ---
 capability: persistence
-last-updated: 2026-07-04
+last-updated: 2026-07-22
 ---
 
 # Persistence
@@ -64,10 +64,15 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
   (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:137-166,258-283)
 
 - Properties: the full dynamic property bag, filtered through `PropertyRegistry`.
-  Transient properties are silently dropped at save time. Known properties use direct
-  value serialization; unknown (unregistered) properties use a tagged-dict format
-  `{type: "bool", value: true}` so the scalar type survives the YAML round-trip.
-  (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:168-223)
+  Only registered non-transient keys are written, using direct type-preserving value
+  serialization. Transient properties are silently dropped. An unregistered (unknown)
+  key is dropped and logs one structured warning naming the key and the owning entity
+  (type + id + name) - so `player.yaml` holds only registered values as a structural
+  guarantee, not a convention, and a script setting an unregistered property surfaces
+  in logs instead of persisting forever. The old tagged-dict envelope
+  `{type: "bool", value: true}` is no longer written; the load side still reads any
+  legacy envelope left on an old save and self-heals it to bare on the next save.
+  (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:171-207)
 
 - Equipment: saved as a `Dictionary<string, string>` mapping slot name to item GUID.
   (src/Tapestry.Engine/Persistence/PlayerSerializer.cs:225-233)
@@ -104,8 +109,10 @@ tests/Tapestry.Engine.Tests/Persistence/PlayerPersistencePhaseFilterTests.cs)
   src/Tapestry.Engine/Persistence/PlayerSerializer.cs:178)
 
 - The serializer resolves pack-qualified keys without a pack context via
-  `TryResolveByName`. Ambiguous bare names (same name in two packs) fall back to the
-  legacy tagged format. (src/Tapestry.Engine/Persistence/PropertyRegistry.cs:128-177)
+  `TryResolveByName`. A bare name that resolves to exactly one registered property
+  persists bare; a name that resolves to none - unregistered, or ambiguous across two
+  packs - is treated as unknown and dropped with a warning (no envelope is written).
+  (src/Tapestry.Engine/Persistence/PropertyRegistry.cs:128-177)
 
 - Supported `PropertyValueType` values: String, Int, Double, Bool, Long, MapInt
   (`Dictionary<string,int>`), MapString (`Dictionary<string,string>`), ListString
@@ -302,6 +309,7 @@ persistence mechanism and has no connection to the save/load system described ab
 
 ## Change Log
 
+- 2026-07-22 [player-save-hygiene](changes/2026-07-22-player-save-hygiene.md) - serializer drops unregistered keys with a per-key warning instead of enveloping them; distributed_from registered as a keeper so it survives; flow scratch is a separate never-persisted store; sidecar-file principle recorded for resumable flows
 - 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - PropertyRegistry gains an independent observable-topic map (RegisterObservable/TryGetObservableTopic) with changeTopic validation; sustenance and alignment marked observable on the status topic
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - player serializer read-old-write-new key map upgrades wimpy_threshold and the ROM negation trio on load
 - 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

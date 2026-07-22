@@ -21,11 +21,11 @@ known constraints, and change history.
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-07-03 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-04 |
-| Persistence | [persistence.md](persistence.md) | 2026-07-04 |
+| Persistence | [persistence.md](persistence.md) | 2026-07-22 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |
 | Sessions and Connections | [sessions-and-connections.md](sessions-and-connections.md) | 2026-06-13 |
 | Login and Accounts | [login-and-accounts.md](login-and-accounts.md) | 2026-06-13 |
-| Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-06-19 |
+| Flows and Wizards | [flows-and-wizards.md](flows-and-wizards.md) | 2026-07-22 |
 | Events | [events.md](events.md) | 2026-07-04 |
 | World Entity Store | [world-entity-store.md](world-entity-store.md) | 2026-07-03 |
 | World Geography | [world-geography.md](world-geography.md) | 2026-06-27 |

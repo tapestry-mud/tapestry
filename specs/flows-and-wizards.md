@@ -1,6 +1,6 @@
 ---
 capability: flows-and-wizards
-last-updated: 2026-06-19
+last-updated: 2026-07-22
 ---
 
 # Flows and Wizards
@@ -37,7 +37,7 @@ Registers a flow definition at pack load time. Fields:
 | `cancellable`      | no       | If `true`, the flow can be cancelled mid-run. |
 | `steps`            | yes      | Array of step definition objects (see below). |
 | `wizard_steps`     | no       | Array of `{id, label}` records for the ANSI progress panel. |
-| `on_complete`      | no       | Callback `(entity) => {success, message}`. Non-object return is treated as success. |
+| `on_complete`      | no       | Callback `(entity, scratch) => {success, message}`. Non-object return is treated as success. |
 | `override`         | no       | `true` to replace an existing registration without a boot error. |
 | `recommend_context`| no       | `"room"` (default) or `"area"` -- selects the recommend context kind. |
 
@@ -51,17 +51,39 @@ Registers a flow definition at pack load time. Fields:
   and `ScriptOwner.CurrentSourceFile()` at registration time; these read the
   lexically active ES module via `JintActiveModule.ActiveLocation`.
   (src/Tapestry.Scripting/Modules/FlowsModule.cs:44-45; src/Tapestry.Scripting/ScriptOwner.cs:12-17)
-- `on_complete` receives an entity proxy (`id`, `entityId`, `name`, `roomId`,
-  `getProperty`, `setProperty`, `send`). If the callback returns
-  `{success: false}`, the flow engine calls `Restart` during the Creating
-  phase or clears the flow and enqueues `look` in other phases.
-  (src/Tapestry.Scripting/Modules/FlowsModule.cs:82-103;
+- `on_complete` receives `(entity, scratch)`: an entity proxy (`id`, `entityId`,
+  `name`, `roomId`, `getProperty`, `setProperty`, `scratch`, `send`) plus the flow's
+  scratch store. If the callback returns `{success: false}`, the flow engine calls
+  `Restart` during the Creating phase or clears the flow and enqueues `look` in
+  other phases. (src/Tapestry.Scripting/Modules/FlowsModule.cs:82-103;
   src/Tapestry.Engine/Flow/FlowEngine.cs:110-145)
 
-#### tapestry.flows.trigger(entityId, triggerName)
+#### entity.scratch (flow working memory)
+
+Every step callback and `on_complete` receive the same entity proxy, which carries
+a `scratch` handle backed by a per-`FlowInstance` store that lives exactly as long
+as the wizard and is NEVER serialized (there is no code path from scratch to
+`PlayerSerializer`). Use it for wizard working memory - answers carried between
+steps - instead of `entity.setProperty`, which writes the persisted property bag.
+
+- `entity.scratch.get(key)` returns the stored value with its real type preserved
+  (a stored bool comes back a bool), or `undefined` if absent.
+- `entity.scratch.set(key, value)` stores a value under the flow instance.
+- `entity.scratch.has(key)` returns a bool.
+
+There is no `clear`/`remove`: the instance's death is the clear. Real character
+fields that belong in the save (`class`, `race`, a registered property) still go
+through `entity.setProperty`; the two surfaces sit side by side on the proxy.
+(src/Tapestry.Engine/Flow/IFlowScratch.cs;
+src/Tapestry.Scripting/Modules/FlowsModule.cs:82-103)
+
+#### tapestry.flows.trigger(entityId, triggerName[, seed])
 
 Starts a new flow for an online entity mid-session by looking up the session
-and calling `FlowEngine.Trigger`. No-op if the entity is not online.
+and calling `FlowEngine.Trigger`. No-op if the entity is not online. The optional
+`seed` is a plain object copied into the new instance's scratch at creation, so a
+command can hand working memory to a flow it triggers before the flow exists (e.g.
+`edit area` seeds `{ edit_area: areaId }`). Omitting it starts with empty scratch.
 (src/Tapestry.Scripting/Modules/FlowsModule.cs:130-137)
 
 ### Step types
@@ -69,10 +91,10 @@ and calling `FlowEngine.Trigger`. No-op if the entity is not online.
 All step definitions share a base `FlowStepDefinition` with two optional
 fields:
 
-- `skip_if`: callback `(entity) => bool` -- if it returns `true` the step is
+- `skip_if`: callback `(entity, scratch) => bool` -- if it returns `true` the step is
   skipped during `Advance`. (src/Tapestry.Engine/Flow/FlowStepDefinition.cs:6;
   src/Tapestry.Engine/Flow/FlowInstance.cs:291)
-- `recommend_field`: string or callback `(entity) => string` -- names the
+- `recommend_field`: string or callback `(entity, scratch) => string` -- names the
   entity property for which the `~` side-action requests an AI suggestion.
   Returning null/empty disables recommend for that field at runtime.
   (src/Tapestry.Engine/Flow/FlowStepDefinition.cs:12;
@@ -81,7 +103,7 @@ fields:
 #### info
 
 Displays text and immediately advances. `text` may be a literal string or a
-callback `(entity) => string`.
+callback `(entity, scratch) => string`.
 (src/Tapestry.Engine/Flow/FlowStepDefinition.cs:15-18;
 src/Tapestry.Engine/Flow/FlowInstance.cs:311-314)
 
@@ -90,9 +112,9 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:311-314)
 Presents a numbered list. Fields:
 
 - `prompt`: string or callback.
-- `options`: static array or callback `(entity) => [{label, value, description?,
+- `options`: static array or callback `(entity, scratch) => [{label, value, description?,
   tag_line?}]`. `description` may be a string or a callback.
-- `on_select`: callback `(entity, {label, value})`.
+- `on_select`: callback `(entity, scratch, {label, value})`.
 - `help_hint`: optional string appended to the help prompt line.
 
 Selection accepts a number or an unambiguous prefix of a label (case-insensitive).
@@ -109,7 +131,7 @@ Accepts free-form input. Fields:
 - `prompt`: string or callback.
 - `validate`: optional callback `(input) => bool`. On failure, `invalid_message`
   is shown (default: "Invalid input. Please try again.").
-- `on_input`: callback `(entity, value)`.
+- `on_input`: callback `(entity, scratch, value)`.
 - `secret`: if `true`, echo is suppressed during input.
 - `recommend_field`: see base fields above.
 
@@ -125,8 +147,8 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:167-257)
 Presents a `(y/n)` prompt. Fields:
 
 - `prompt`: string or callback.
-- `on_yes`: optional callback `(entity)`.
-- `on_no`: optional callback `(entity)`.
+- `on_yes`: optional callback `(entity, scratch)`.
+- `on_no`: optional callback `(entity, scratch)`.
 
 Only `"y"` / `"yes"` or `"n"` / `"no"` (case-insensitive) are accepted; any
 other input shows "Please enter y or n." and reprompts.
@@ -231,4 +253,5 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:259-278)
 
 ## Change Log
 
+- 2026-07-22 [player-save-hygiene](changes/2026-07-22-player-save-hygiene.md) - FlowInstance gains an IFlowScratch store exposed as entity.scratch.get/set/has; step callbacks and on_complete widen to receive scratch; flows.trigger takes an optional scratch seed and the area recommend-context reads edit_area from scratch
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Flow registration attribution uses ScriptOwner.CurrentPackOwner/CurrentSourceFile (lexical active module) instead of __currentPack/__currentSource globals
