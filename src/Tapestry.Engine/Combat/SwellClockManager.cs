@@ -52,12 +52,26 @@ public class SwellClockManager
             Advance(boss, state, tick);
         }
 
-        // Drop fights whose boss left combat or died.
+        // Drop fights whose boss left combat or died. Publish "combat.swell.abandoned" so a
+        // server-side listener can release the prompt hold even when the fight never reaches
+        // Resolve (the boss killed by something outside the swell, or the player disengaging).
         var stale = _fights.Keys
             .Where(id => _world.GetEntity(id) is not { } e || !_combat.IsInCombat(id) || e.Stats.Hp <= 0)
             .ToList();
         foreach (var id in stale)
         {
+            if (_fights.TryGetValue(id, out var staleFight))
+            {
+                _eventBus.Publish(new GameEvent
+                {
+                    Type = "combat.swell.abandoned",
+                    SourceEntityId = id,
+                    Data = new Dictionary<string, object?>
+                    {
+                        ["targetId"] = staleFight.PlayerId.ToString()
+                    }
+                });
+            }
             _fights.Remove(id);
         }
     }

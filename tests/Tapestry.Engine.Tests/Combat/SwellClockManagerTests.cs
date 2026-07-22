@@ -27,6 +27,7 @@ public class SwellClockManagerTests
         _eventBus.Subscribe("combat.swell.telegraph", e => _events.Add(e));
         _eventBus.Subscribe("combat.swell.window", e => _events.Add(e));
         _eventBus.Subscribe("combat.swell.resolve", e => _events.Add(e));
+        _eventBus.Subscribe("combat.swell.abandoned", e => _events.Add(e));
         return new SwellClockManager(_world, _eventBus, _combat, _validators, vitalsService: _vitalsService);
     }
 
@@ -135,6 +136,60 @@ public class SwellClockManagerTests
         clock.AdvanceAll(4); // -> Window
 
         Assert.Contains(_events, e => e.Type == "combat.swell.window");
+    }
+
+    [Fact]
+    public void AdvanceAll_PublishesAbandoned_WhenBossDiesMidTelegraph()
+    {
+        var clock = Setup();
+        var player = CreatePlayer();
+        var boss = CreateBoss(hp: 200);
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph
+
+        boss.Stats.SetVital(VitalKind.Hp, 0); // killed by something outside the swell (e.g. a DOT)
+        clock.AdvanceAll(3); // stale-fight cleanup drops the fight before Resolve ever runs
+
+        var abandoned = _events.Single(e => e.Type == "combat.swell.abandoned");
+        Assert.Equal(player.Id.ToString(), abandoned.Data["targetId"]);
+    }
+
+    [Fact]
+    public void AdvanceAll_PublishesAbandoned_WhenCombatEndsMidTelegraph()
+    {
+        var clock = Setup();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2); // -> Telegraph
+
+        _combat.RemoveFromCombat(player.Id, boss.Id); // player disengages
+        clock.AdvanceAll(3); // stale-fight cleanup: boss no longer in combat
+
+        var abandoned = _events.Single(e => e.Type == "combat.swell.abandoned");
+        Assert.Equal(player.Id.ToString(), abandoned.Data["targetId"]);
+    }
+
+    [Fact]
+    public void AdvanceAll_DoesNotPublishAbandoned_OnNormalResolve()
+    {
+        var clock = Setup();
+        RegisterDefaultValidator();
+        var player = CreatePlayer();
+        var boss = CreateBoss();
+        _combat.Engage(player, boss);
+
+        clock.AdvanceAll(0);
+        clock.AdvanceAll(2);
+        clock.AdvanceAll(4);
+        clock.TryCommit(player.Id, RequiredCounterFromTelegraph());
+        clock.AdvanceAll(5); // Resolve -> Baseline; fight stays in _fights, not dropped
+
+        Assert.DoesNotContain(_events, e => e.Type == "combat.swell.abandoned");
     }
 
     // --- Task 5 helpers ---
