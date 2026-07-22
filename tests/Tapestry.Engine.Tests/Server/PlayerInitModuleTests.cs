@@ -29,7 +29,7 @@ public class PlayerInitModuleTests
     {
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
         var sessions = new SessionManager();
         var world = new World();
         var persistence = new PlayerPersistenceService(

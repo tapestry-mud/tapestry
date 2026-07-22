@@ -17,7 +17,7 @@ public class PlayerPersistencePhaseFilterTests
         _store = new FakePlayerStore();
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
         _sessions = new SessionManager();
         var world = new World();
         _svc = new PlayerPersistenceService(

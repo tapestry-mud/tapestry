@@ -59,7 +59,7 @@ public class LoginFlowWizlockTests
     {
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
 
         var entity = new Entity("player", name);
         if (admin)

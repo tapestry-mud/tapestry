@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Stats;
 
@@ -13,10 +14,12 @@ public class PlayerLoadResult
 public class PlayerSerializer
 {
     private readonly PropertyRegistry _registry;
+    private readonly ILogger<PlayerSerializer> _logger;
 
-    public PlayerSerializer(PropertyRegistry registry)
+    public PlayerSerializer(PropertyRegistry registry, ILogger<PlayerSerializer> logger)
     {
         _registry = registry;
+        _logger = logger;
     }
 
     public PlayerSaveData ToSaveData(
@@ -35,7 +38,7 @@ public class PlayerSerializer
             Tags = player.Tags.ToList(),
             Roles = player.Roles.ToList(),
             Stats = SerializeStats(player.Stats),
-            Properties = SerializeProperties(player.GetAllProperties()),
+            Properties = SerializeProperties(player, player.GetAllProperties()),
             Equipment = SerializeEquipment(player.Equipment),
             Inventory = player.Contents.Select(e => e.Id.ToString()).ToList(),
             Items = allItems.Select(i => SerializeItem(i, player)).ToList()
@@ -165,14 +168,13 @@ public class PlayerSerializer
         };
     }
 
-    private Dictionary<string, object?> SerializeProperties(IReadOnlyDictionary<string, object?> properties)
+    private Dictionary<string, object?> SerializeProperties(Entity owner, IReadOnlyDictionary<string, object?> properties)
     {
         var result = new Dictionary<string, object?>();
 
         foreach (var kvp in properties)
         {
-            // Use bare-name resolution so pack properties (stored as "pack:name") are found
-            // even when there is no pack context — they take the typed path, not the tagged path.
+            // Bare-name resolution so pack properties (stored "pack:name") are found without pack context.
             if (_registry.TryResolveByName(kvp.Key, out var entry))
             {
                 if (entry.Transient) { continue; }
@@ -193,33 +195,15 @@ public class PlayerSerializer
             }
             else
             {
-                // Fall back to the legacy transient check for truly-unknown keys, then tag.
-                if (_registry.IsTransient(kvp.Key)) { continue; }
-                result[kvp.Key] = SerializeTaggedValue(kvp.Value);
+                // Unknown key: DROP it (do not envelope). One structured warning per key so a
+                // script setting an unregistered property surfaces in logs instead of persisting forever.
+                _logger.LogWarning(
+                    "Dropping unregistered property {Key} on {EntityType} {EntityId} ({EntityName}) - register it or move it to flow scratch",
+                    kvp.Key, owner.Type, owner.Id, owner.Name);
             }
         }
 
         return result;
-    }
-
-    private Dictionary<string, object?> SerializeTaggedValue(object? value)
-    {
-        var typeName = value switch
-        {
-            int => "int",
-            long => "long",
-            float => "float",
-            double => "double",
-            bool => "bool",
-            string => "string",
-            _ => value?.GetType().Name ?? "null"
-        };
-
-        return new Dictionary<string, object?>
-        {
-            ["type"] = typeName,
-            ["value"] = value
-        };
     }
 
     private Dictionary<string, string> SerializeEquipment(IReadOnlyDictionary<string, Entity> equipment)
@@ -248,7 +232,7 @@ public class PlayerSerializer
             Container = containerId,
             Tags = item.Tags.ToList(),
             Keywords = item.Keywords.ToList(),
-            Properties = SerializeProperties(item.GetAllProperties())
+            Properties = SerializeProperties(item, item.GetAllProperties())
         };
     }
 

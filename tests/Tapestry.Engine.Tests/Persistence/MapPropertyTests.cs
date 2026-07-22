@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Persistence;
 
@@ -97,7 +98,7 @@ public class MapPropertyTests
         entity.SetMapValue("proficiency", "dodge", 45);
         entity.SetMapValue("labels", "color", "red");
 
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
         var saveData = serializer.ToSaveData(entity, Guid.Empty, new List<Entity>());
         var loadResult = serializer.FromSaveData(saveData);
         var result = loadResult.Entity;

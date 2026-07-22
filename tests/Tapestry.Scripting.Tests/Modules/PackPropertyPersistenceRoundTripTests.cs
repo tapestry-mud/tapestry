@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine;
 using Tapestry.Engine.Persistence;
 using Tapestry.Scripting;
@@ -47,7 +48,7 @@ public class PackPropertyPersistenceRoundTripTests
         var rt = provider.GetRequiredService<JintRuntime>();
         rt.Initialize();
 
-        var serializer = new PlayerSerializer(props);
+        var serializer = new PlayerSerializer(props, NullLogger<PlayerSerializer>.Instance);
 
         return (rt, provider.GetRequiredService<World>(), props, serializer);
     }

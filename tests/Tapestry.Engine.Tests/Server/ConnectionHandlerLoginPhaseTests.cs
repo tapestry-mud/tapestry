@@ -152,7 +152,7 @@ public class ConnectionHandlerLoginPhaseTests
         var world = new World(playerCreator);
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
         var persistence = new PlayerPersistenceService(
             store, serializer, sessions, world,
             NullLogger<PlayerPersistenceService>.Instance);
@@ -241,7 +241,7 @@ public class ConnectionHandlerLoginPhaseTests
 
         var registry = new PropertyRegistry();
         CommonProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
 
         var entity = new Entity("player", name);
         entity.LocationRoomId = "core:town-square";

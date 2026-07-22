@@ -3,6 +3,7 @@ using Tapestry.Engine.Classes;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Heartbeat;
+using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Races;
 
 namespace Tapestry.Engine.Tests;
@@ -81,5 +82,22 @@ public class ServiceCollectionExtensionsTests
 
         var observer = provider.GetService<IPropertyObserver>();
         Assert.IsType<EntityStatusBroadcaster>(observer);
+    }
+
+    [Fact]
+    public void AddTapestryEngine_ResolvesPlayerSerializer_WithItsLoggerDependency()
+    {
+        // PlayerSerializer's ctor now takes ILogger<PlayerSerializer> (the drop-and-warn
+        // flip). It is registered with a plain services.AddSingleton<PlayerSerializer>() --
+        // no factory lambda -- so the container must resolve the logger itself. AddLogging()
+        // mirrors what a real host (WebApplication.CreateBuilder) already wires by default.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTapestryEngine();
+        var provider = services.BuildServiceProvider();
+
+        var serializer = provider.GetRequiredService<PlayerSerializer>();
+
+        Assert.NotNull(serializer);
     }
 }

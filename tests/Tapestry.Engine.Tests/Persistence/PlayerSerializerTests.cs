@@ -1,8 +1,10 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapestry.Engine.Combat;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Stats;
+using Tapestry.Engine.Tests.TestHelpers;
 
 namespace Tapestry.Engine.Tests.Persistence;
 
@@ -16,7 +18,7 @@ public class PlayerSerializerTests
         _registry = new PropertyRegistry();
         CommonProperties.Register(_registry);
         CombatProperties.Register(_registry);
-        _serializer = new PlayerSerializer(_registry);
+        _serializer = new PlayerSerializer(_registry, NullLogger<PlayerSerializer>.Instance);
     }
 
     private Entity CreateTestPlayer()
@@ -181,18 +183,40 @@ public class PlayerSerializerTests
     }
 
     [Fact]
-    public void RoundTrip_UnknownProperty_UsesTaggedFormat()
+    public void RoundTrip_UnknownProperty_IsDroppedNotTagged()
     {
+        // Prior to the drop-and-warn flip, unknown properties survived a save
+        // enveloped as a {type, value} dict. That enveloping is gone: an
+        // unregistered key is now dropped at save time instead.
         var player = CreateTestPlayer();
         player.SetProperty("custom_flag", true);
 
         var dto = _serializer.ToSaveData(player, Guid.Empty, new List<Entity>());
 
-        // Unknown property should be serialized as tagged dict
-        dto.Properties["custom_flag"].Should().BeOfType<Dictionary<string, object?>>();
-        var tagged = (Dictionary<string, object?>)dto.Properties["custom_flag"]!;
-        tagged["type"].Should().Be("bool");
-        tagged["value"].Should().Be(true);
+        dto.Properties.Should().NotContainKey("custom_flag");
+    }
+
+    [Fact]
+    public void FromSaveData_StillReadsLegacyTaggedEnvelope()
+    {
+        // Load-side is unchanged: an old save written before this flip still
+        // carries the {type, value} envelope for a then-unknown key, and it
+        // must still deserialize correctly even though save no longer writes it.
+        var dto = new PlayerSaveData
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "TestPlayer",
+            Type = "player",
+            Location = "limbo:recall",
+            Properties = new Dictionary<string, object?>
+            {
+                ["custom_flag"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "bool",
+                    ["value"] = true
+                }
+            }
+        };
 
         var result = _serializer.FromSaveData(dto);
         result.Entity.GetProperty<bool>("custom_flag").Should().BeTrue();
@@ -326,6 +350,18 @@ public class PlayerSerializerTests
     {
         // Once a legacy-keyed save has been loaded (and thus migrated in memory),
         // re-saving must write only the new keys -- the old keys never round-trip back in.
+        //
+        // no_tell/no_channels/no_emote are registered by the @tapestry/core content pack
+        // (a separate repo), not by this engine repo -- so this test registers them locally
+        // as pack properties to mirror that, since the drop-and-warn flip (Task 7) means an
+        // UNREGISTERED negation key would now be silently dropped instead of migrated.
+        var registry = new PropertyRegistry();
+        CommonProperties.Register(registry);
+        registry.RegisterPackProperty("core", "no_tell", "Suppress incoming tells", PropertyValueType.Bool, appliesTo: new[] { "player" });
+        registry.RegisterPackProperty("core", "no_channels", "Suppress channel output", PropertyValueType.Bool, appliesTo: new[] { "player" });
+        registry.RegisterPackProperty("core", "no_emote", "Suppress emotes", PropertyValueType.Bool, appliesTo: new[] { "player" });
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
+
         var dto = new PlayerSaveData
         {
             Id = Guid.NewGuid().ToString(),
@@ -340,8 +376,8 @@ public class PlayerSerializerTests
             }
         };
 
-        var loaded = _serializer.FromSaveData(dto);
-        var resaved = _serializer.ToSaveData(loaded.Entity, Guid.Empty, new List<Entity>());
+        var loaded = serializer.FromSaveData(dto);
+        var resaved = serializer.ToSaveData(loaded.Entity, Guid.Empty, new List<Entity>());
 
         resaved.Properties.Should().ContainKey("no_tell");
         resaved.Properties.Should().ContainKey("no_channels");
@@ -376,7 +412,7 @@ public class PlayerSerializerTests
     {
         var registry = new PropertyRegistry();
         ItemProperties.Register(registry);
-        var serializer = new PlayerSerializer(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
 
         var item = new Entity("item", "a rusty dagger");
         item.SetProperty(ItemProperties.DistributedFrom, "core:rusty-dagger");
@@ -394,5 +430,54 @@ public class PlayerSerializerTests
         player.LocationRoomId = "limbo:recall";
         player.AddToContents(item);
         return player;
+    }
+
+    [Fact]
+    public void Unknown_key_is_dropped_and_not_written()
+    {
+        var registry = new PropertyRegistry();
+        CommonProperties.Register(registry);
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
+
+        var player = new Entity("player", "Rand");
+        player.SetProperty("link_room", "wot:tar-valon"); // wizard scratch that leaked pre-fix
+        player.SetProperty("class", "warrior");           // registered - must survive
+
+        var saved = serializer.ToSaveData(player, Guid.NewGuid(), new List<Entity>());
+
+        saved.Properties.Should().NotContainKey("link_room"); // dropped
+        saved.Properties.Should().ContainKey("class");        // kept
+    }
+
+    [Fact]
+    public void Registered_transient_key_is_still_skipped()
+    {
+        var registry = new PropertyRegistry();
+        CommonProperties.Register(registry); // registers "following" as transient
+        var serializer = new PlayerSerializer(registry, NullLogger<PlayerSerializer>.Instance);
+
+        var player = new Entity("player", "Rand");
+        player.SetProperty("following", "some-guid");
+
+        var saved = serializer.ToSaveData(player, Guid.NewGuid(), new List<Entity>());
+
+        saved.Properties.Should().NotContainKey("following");
+    }
+
+    [Fact]
+    public void Dropping_an_unknown_key_logs_one_warning_naming_key_and_entity()
+    {
+        var registry = new PropertyRegistry();
+        CommonProperties.Register(registry);
+        var logger = new ListLogger<PlayerSerializer>(); // simple capture logger (test helper)
+        var serializer = new PlayerSerializer(registry, logger);
+
+        var player = new Entity("player", "Rand");
+        player.SetProperty("link_room", "x");
+
+        serializer.ToSaveData(player, Guid.NewGuid(), new List<Entity>());
+
+        logger.Warnings.Should().ContainSingle(w =>
+            w.Contains("link_room") && w.Contains("Rand"));
     }
 }
