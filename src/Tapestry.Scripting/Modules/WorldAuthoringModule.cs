@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Tapestry.Engine;
 using Tapestry.Engine.Authoring;
+using Tapestry.Engine.Consequence;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Recommend;
@@ -46,6 +47,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
     private readonly ILogger<WorldAuthoringModule> _logger;
     private readonly TapestryMetrics? _metrics;
     private readonly RuntimeNamespaceStore? _runtimeNamespaces;
+    private readonly ConsequenceOverlay? _consequences;
+    private readonly EventBus? _eventBus;
     private const int RecommendMaxInFlight = 2;
     private static int _recommendInFlight;
 
@@ -78,7 +81,9 @@ public sealed class WorldAuthoringModule : IJintApiModule
         TapestryMetrics? metrics = null,
         string? packsRoot = null,
         ItemRegistry? itemRegistry = null,
-        RuntimeNamespaceStore? runtimeNamespaces = null)
+        RuntimeNamespaceStore? runtimeNamespaces = null,
+        ConsequenceOverlay? consequences = null,
+        EventBus? eventBus = null)
     {
         _world = world;
         _projector = projector;
@@ -96,11 +101,18 @@ public sealed class WorldAuthoringModule : IJintApiModule
         _metrics = metrics;
         _runtimeNamespaces = runtimeNamespaces;
         _packsRoot = packsRoot;
+        _consequences = consequences;
+        _eventBus = eventBus;
     }
 
     public string Namespace => "authoring";
 
     public const string WipFlag = "wip";
+
+    /// <summary>Fallback evacuation target. Mirrors FlowEngine.DefaultSpawnRoomId and
+    /// PlayerSpawner's saved-room fallback: the one room every deployment is expected to
+    /// have. Callers pass an explicit id when their deployment differs.</summary>
+    public const string DefaultRecallRoomId = "tapestry-core:recall";
 
     public object Build(JintEngine jint)
     {
@@ -153,6 +165,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
             setRoomAttribute = new Func<string, string, JsValue, string>(SetRoomAttribute),
             clearRoomAttribute = new Func<string, string, string>(ClearRoomAttribute),
             deleteRoom = new Func<string, bool>(DeleteRoom),
+            deleteArea = new Func<string, bool>(id => DeleteArea(id)),
             recommendEnabled = new Func<bool>(() => _recommend?.IsEnabled == true),
             recommend = new Action<JsValue, JsValue>((options, callback) =>
             {
@@ -610,6 +623,148 @@ public sealed class WorldAuthoringModule : IJintApiModule
             File.Delete(path);
         }
         return true;
+    }
+
+    /// <summary>Moves every connected player standing in <paramref name="areaId"/> to the
+    /// recall room, so the area's rooms can be removed without stranding anyone. Mobs and
+    /// floor items are left where they are (DeleteArea untracks them next). Returns the
+    /// number of players moved, or -1 when at least one player must move but the recall room
+    /// does not exist in the World - the caller must then abort rather than strand them.
+    /// An offline player saved inside the area is already safe: PlayerSpawner falls back to
+    /// recall when a saved room is gone.</summary>
+    public int EvacuateArea(string areaId, string? recallRoomId = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaId))
+        {
+            return 0;
+        }
+
+        var players = new List<Entity>();
+        foreach (var room in AreaRooms(areaId))
+        {
+            foreach (var entity in room.Entities)
+            {
+                if (string.Equals(entity.Type, EntityTypes.Player, StringComparison.OrdinalIgnoreCase))
+                {
+                    players.Add(entity);
+                }
+            }
+        }
+
+        if (players.Count == 0)
+        {
+            return 0;
+        }
+
+        var target = string.IsNullOrWhiteSpace(recallRoomId) ? DefaultRecallRoomId : recallRoomId!;
+        var recallRoom = _world.GetRoom(target);
+        if (recallRoom == null)
+        {
+            _logger.LogWarning(
+                "EvacuateArea: area {Area} holds {Count} player(s) but recall room {Recall} does not exist; refusing to evacuate.",
+                areaId, players.Count, target);
+            return -1;
+        }
+
+        foreach (var player in players)
+        {
+            var oldRoomId = player.LocationRoomId;
+            if (oldRoomId != null)
+            {
+                _world.GetRoom(oldRoomId)?.RemoveEntity(player);
+            }
+            recallRoom.AddEntity(player);
+            _eventBus?.Publish(new GameEvent
+            {
+                Type = "player.moved",
+                SourceEntityId = player.Id,
+                RoomId = target,
+                Data = new Dictionary<string, object?>
+                {
+                    ["old_room_id"] = oldRoomId,
+                    ["new_room_id"] = target
+                }
+            });
+        }
+
+        return players.Count;
+    }
+
+    /// <summary>Atomic inverse of the solo-area create path. Evacuates players to recall,
+    /// untracks every remaining entity, removes the rooms, clears their consequence entries,
+    /// unregisters the area from the three scoped registries, and deletes the one on-disk
+    /// area directory. Returns false when the area is unknown everywhere (nothing to do) or
+    /// when a player could not be evacuated - in the latter case nothing is touched.
+    ///
+    /// Idempotent-safe: a missing directory or an already-unregistered entry is not an error.
+    ///
+    /// DELIBERATELY NOT TOUCHED (the pack outlives its areas): RuntimeNamespaceStore, the
+    /// runtime-namespaces marker file, the destination pack scaffold, and server.yaml. Because
+    /// the pack stays, its namespace legitimately still exists and no boot haunting follows.
+    /// </summary>
+    public bool DeleteArea(string areaId, string? recallRoomId = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaId))
+        {
+            return false;
+        }
+
+        var rooms = AreaRooms(areaId);
+        var areaDir = Path.Combine(_root, SafeSegment(areaId));
+        var known = _areaRegistry.Contains(areaId) || rooms.Count > 0 || Directory.Exists(areaDir);
+        if (!known)
+        {
+            return false;
+        }
+
+        // 1. Evacuate. -1 means a player is inside and the recall room is gone: abort whole.
+        var evacuated = EvacuateArea(areaId, recallRoomId);
+        if (evacuated < 0)
+        {
+            return false;
+        }
+
+        // 2. Untrack every remaining entity (mobs, floor items, corpses) with what it carries.
+        foreach (var room in rooms)
+        {
+            foreach (var entity in room.Entities.ToList())
+            {
+                _world.UntrackEntityDeep(entity);
+            }
+        }
+
+        // 3 + 4. Drop the rooms and their memory-only consequence deltas.
+        foreach (var room in rooms)
+        {
+            _world.RemoveRoom(room.Id);
+            _consequences?.ClearRoom(room.Id);
+        }
+
+        // 5, 6, 7. Scoped registry removal.
+        _areaRegistry.Unregister(areaId);
+        var tables = _oracleRegistry.RemoveByArea(areaId);
+        var templates = _itemRegistry?.RemoveByArea(areaId) ?? 0;
+
+        // 8. One recursive delete inverts the entire on-disk footprint: area.yaml, rooms/,
+        //    the frozen oracle tables, items/.
+        if (Directory.Exists(areaDir))
+        {
+            Directory.Delete(areaDir, recursive: true);
+        }
+
+        _logger.LogInformation(
+            "DeleteArea {Area}: evacuated={Players} rooms={Rooms} tables={Tables} templates={Templates}",
+            areaId, evacuated, rooms.Count, tables, templates);
+        return true;
+    }
+
+    /// <summary>Snapshot of the rooms belonging to an area. Snapshotted (ToList) because
+    /// callers mutate the room dictionary while iterating.</summary>
+    private List<Room> AreaRooms(string areaId)
+    {
+        return _world.AllRooms
+            .Where(r => string.Equals(r.Area, areaId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     private void WriteSideCar(Room room, string? previousId = null)

@@ -44,6 +44,26 @@ a diagnostic snapshot sampled on demand.
   not a snapshot; callers that need a stable copy must materialise one.
   (src/Tapestry.Engine/World.cs:247-249)
 
+### Area evacuation
+
+`WorldAuthoringModule.EvacuateArea(areaId, recallRoomId)` moves every player standing in an
+area's rooms to a recall room before the area's rooms are removed. It is the guard on the
+teardown path: rooms must never be removed out from under a connected player.
+
+- Returns the number of players moved. `0` means the area was empty of players.
+- Returns `-1` when players are present but the recall room does not exist in the World. The
+  caller must abort. Nobody is moved.
+- Only entities of type `player` move. Mobs and floor items are left in place for the caller
+  to untrack via `World.UntrackEntityDeep`.
+- Each move publishes a `player.moved` event carrying `old_room_id` and `new_room_id`, so GMCP
+  room updates, quest watchers, and disposition evaluation all see the relocation.
+- A player who is OFFLINE and saved inside the area needs no handling: `PlayerSpawner` already
+  falls back to the recall room when a saved room no longer exists.
+
+The recall-room id is a caller parameter, not engine knowledge. `DefaultRecallRoomId` on the
+module is a documented fallback that mirrors `FlowEngine.DefaultSpawnRoomId`.
+(src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:EvacuateArea)
+
 ### Tag index -- copy-on-write double buffer
 
 - World maintains two tag-set dictionaries: `_readIndex` (stable, read by

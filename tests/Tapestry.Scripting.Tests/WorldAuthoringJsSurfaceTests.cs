@@ -145,4 +145,12 @@ public class WorldAuthoringJsSurfaceTests : IDisposable
         provenance?.ToString().Should().Be("[authored]",
             "camelCase 'provenance' key must resolve with the correct tag — authored room has a side-car and no source_pack");
     }
+
+    [Fact]
+    public void DeleteArea_IsBound_AndReturnsFalseForUnknownArea()
+    {
+        var result = EsmTest.Eval(_runtime, "tapestry.authoring.deleteArea('no-such-area')");
+
+        Convert.ToBoolean(result).Should().BeFalse();
+    }
 }

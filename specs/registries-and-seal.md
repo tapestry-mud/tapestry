@@ -68,6 +68,22 @@ declared override.
   src/Tapestry.Shared/OracleTable.cs;
   tests/Tapestry.Engine.Tests/OracleTableLoadTests.cs)
 
+### Scoped removal
+
+Three registries expose a removal path, added for solo-area teardown:
+
+- `AreaRegistry.Unregister(id)` removes one area definition and returns whether it existed.
+- `OracleTableRegistry.RemoveByArea(areaId)` removes every table whose id starts with `<areaId>:`.
+- `ItemRegistry.RemoveByArea(areaId)` removes every template whose id starts with `<areaId>:`.
+
+The trailing colon is load-bearing: it is the id separator, so a prefix match cannot reach a
+sibling area whose slug string-prefixes the target. `ItemRegistry`'s backing dictionary is
+case-sensitive and its match is Ordinal; the other two are OrdinalIgnoreCase, matching their
+comparers. All three are idempotent and return a count (or bool) rather than throwing on a miss.
+
+`RuntimeNamespaceStore` deliberately has no removal path. A discarded area's pack survives the
+discard, so its namespace legitimately still exists.
+
 ## Rejected and Reverted
 
 - None on record.

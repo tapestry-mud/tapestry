@@ -239,7 +239,9 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<TapestryMetrics>(),
                 config.ResolvedPacksDirectory,
                 sp.GetRequiredService<ItemRegistry>(),
-                sp.GetRequiredService<RuntimeNamespaceStore>());
+                sp.GetRequiredService<RuntimeNamespaceStore>(),
+                sp.GetRequiredService<Tapestry.Engine.Consequence.ConsequenceOverlay>(),
+                sp.GetRequiredService<EventBus>());
         });
         services.AddSingleton<IJintApiModule>(sp => sp.GetRequiredService<WorldAuthoringModule>());
 
