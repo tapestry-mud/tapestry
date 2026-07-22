@@ -1,6 +1,6 @@
 ---
 capability: output-pipeline
-last-updated: 2026-06-18
+last-updated: 2026-07-22
 ---
 
 # Output Pipeline
@@ -145,6 +145,19 @@ banners) that are drained once per game tick.
   (src/Tapestry.Engine/PlayerSession.cs:383-393,439-457,
   src/Tapestry.Engine/Prompt/PromptRenderer.cs:17-39).
 
+- **Prompt hold:** A per-session owner-keyed suppression of that once-per-tick redraw, for
+  paced output (a boss swell) that would otherwise draw a prompt between every beat.
+  `PlayerSession` tracks a set of hold owners; `IsPromptHeld` is the set being non-empty.
+  `FlushPrompts` skips a held session before the `NeedsPromptRefresh` check, so it renders
+  nothing and does not touch `PromptDisplayed` - beats flow with normal line breaks and the
+  cursor-bump fires only on the first beat. `OpenPromptHold(owner)` is idempotent;
+  `ReleasePromptHold(owner)` removes one owner and, when it was the last, arms exactly one
+  redraw defensively so a hold ending with no trailing content still restores the prompt;
+  an unknown owner is a no-op. `ForceReleaseAllPromptHolds()` clears every owner and arms
+  one redraw, called on session teardown so a hold can never outlive its session
+  (src/Tapestry.Engine/PlayerSession.cs:53-83,478;
+  src/Tapestry.Server/GameLoopService.cs:133,159).
+
 ### Messaging bridge (pack JS to output)
 
 - **Send to player:** `ApiMessaging.Send(entityId, text)` calls
@@ -207,4 +220,5 @@ banners) that are drained once per game tick.
 
 ## Change Log
 
+- 2026-07-22 [prompt-hold-gate](changes/2026-07-22-prompt-hold-gate.md) - owner-keyed prompt hold suppresses the once-per-tick redraw for paced output; `FlushPrompts` skips held sessions, force-released on session teardown
 - 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)

@@ -17,9 +17,9 @@ known constraints, and change history.
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
 | Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-03 |
 | Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-07-03 |
-| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-04 |
+| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-22 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-07-03 |
-| Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-06-18 |
+| Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-07-22 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-04 |
 | Persistence | [persistence.md](persistence.md) | 2026-07-22 |
 | Telnet Protocol | [telnet-protocol.md](telnet-protocol.md) | 2026-06-14 |

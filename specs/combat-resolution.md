@@ -1,6 +1,6 @@
 ---
 capability: combat-resolution
-last-updated: 2026-07-04
+last-updated: 2026-07-22
 ---
 
 # Combat Resolution
@@ -389,6 +389,22 @@ all timing, content, and magnitude levers are read off the mob's properties.
   `combat.swell.telegraph` / `combat.swell.window` / `combat.swell.resolve`
   event trio. (src/Tapestry.Server/Modules/SwellEventModule.cs:22)
 
+- The swell arc holds the command prompt so it reads as one continuous beat. The event
+  module opens a prompt hold (see output-pipeline's Prompt hold) on
+  `combat.swell.telegraph` - idempotent across the decel beats - and releases it on
+  `combat.swell.resolve` after the outcome narration renders, so the tick-end flush does one
+  clean redraw and the player is back at a baseline prompt. Baseline is not held; the hold is
+  surgical to Telegraph -> Resolve.
+  (src/Tapestry.Server/Modules/SwellEventModule.cs:37-47)
+
+- A fight dropped before ever reaching Resolve - the boss killed by something outside the
+  swell, or the player disengaging - publishes `combat.swell.abandoned` from the stale-fight
+  cleanup so the held prompt is released even with no Resolve. The event reads the player id
+  off the fight state directly, since the cleanup allows the boss entity to be already gone;
+  the module releases the hold on it without rendering.
+  (src/Tapestry.Engine/Combat/SwellClockManager.cs:55-73;
+  src/Tapestry.Server/Modules/SwellEventModule.cs:27,52-58)
+
 ---
 
 ## Rejected and Reverted
@@ -409,6 +425,7 @@ all timing, content, and magnitude levers are read off the mob's properties.
 
 ## Change Log
 
+- 2026-07-22 [prompt-hold-gate](changes/2026-07-22-prompt-hold-gate.md) - the swell arc holds the command prompt (Telegraph -> Resolve) so it reads as one beat; new `combat.swell.abandoned` event releases the hold for fights dropped before Resolve
 - 2026-07-04 [damage-verb-ladder-retune](changes/2026-07-04-damage-verb-ladder-retune.md) - DamageVerbs MinDamage boundaries retuned for the low-level damage economy (geared level-1 hits read grazes/hits, good rolls injures); verbs key on absolute damage as the progression channel; boundaries pinned by DamageVerbLadderTests
 - 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - auto-attack, swell resolve, and pack applyDamage HP writes route through VitalsService (publishing entity.vital.changed); combat.hit still fires separately for combat text
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - flee unified onto one wimpy_pct property read by a single CombatManager.ShouldFlee predicate; flee_threshold/wimpy_threshold retired
