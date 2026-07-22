@@ -130,6 +130,7 @@ public class GameLoopService : IHostedService
             {
                 session.Phase = LoginPhase.LinkDead;
                 session.LinkDeadSinceTick = _gameLoop.TickCount;
+                session.ForceReleaseAllPromptHolds();
                 session.PlayerEntity.AddTag("linkdead");
                 _sessions.RemoveConnectionOnly(session);
                 _metrics.LinkDeadActive.Add(1);
@@ -155,6 +156,7 @@ public class GameLoopService : IHostedService
                 t => _logger.LogError(t.Exception?.GetBaseException(), "Failed to save player {Name} on disconnect", playerName),
                 TaskContinuationOptions.OnlyOnFaulted);
 
+            session.ForceReleaseAllPromptHolds();
             _sessions.Remove(session);
             _accountService.UntrackOnlineEntity(session.PlayerEntity.Id);
             _metrics.ActiveConnections.Add(-1);
