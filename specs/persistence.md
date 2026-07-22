@@ -218,8 +218,8 @@ entries (quests not in the registry) are stripped before restore.
 
 - Rows written back into `player.yaml` are NOT an acceptable substitute for the
   sidecar above. `player.yaml` is the PropertyRegistry-gated character save, not a
-  scratch pad -- unregistered keys written there are silently dropped by the
-  serializer (see "PropertyRegistry pattern" above), and even a registered key would
+  scratch pad -- unregistered keys written there are dropped (with a logged warning)
+  by the serializer (see "PropertyRegistry pattern" above), and even a registered key would
   wrongly promote transient wizard state into permanent character data.
 
 ### Save triggers
