@@ -115,6 +115,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SwellClockManager>();
         services.AddSingleton<SwellClockPulse>();
 
+        // Cutscene (output-cadence-cutscenes spec, section 3, Layer 2)
+        services.AddSingleton<Tapestry.Engine.Cutscene.CutsceneManager>();
+        services.AddSingleton<CutscenePulse>();
+
         // Progression
         services.AddSingleton<ProgressionManager>();
 

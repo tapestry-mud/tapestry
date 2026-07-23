@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Tapestry.Engine.Cutscene;
 using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Prompt;
@@ -21,6 +22,10 @@ public class PlayerSession
     public Guid AccountId { get; }
     public FlowInstance? CurrentFlow { get; set; }
     public string? PendingPasswordHash { get; set; }
+
+    /// <summary>Set by CutsceneManager.Play while a Layer-2 cutscene owns this session's prompt
+    /// hold; cleared back to null on completion (natural or skipped). See PlayerSession.HandleInput.</summary>
+    public CutsceneInstance? ActiveCutscene { get; set; }
 
     internal void ReplaceEntity(Entity entity)
     {
@@ -195,6 +200,13 @@ public class PlayerSession
                 return;
             }
             CurrentFlow.HandleInput(input);
+            return;
+        }
+        if (ActiveCutscene != null)
+        {
+            // Input during a cutscene is always swallowed here; ActiveCutscene decides only
+            // whether "skip" additionally flushes (output-cadence-cutscenes spec, section 3).
+            ActiveCutscene.HandleInput(input);
             return;
         }
         if (!TryConsumeToken())

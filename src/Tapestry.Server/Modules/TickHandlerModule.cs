@@ -21,6 +21,7 @@ public class TickHandlerModule : IGameModule
     private readonly CombatManager _combatManager;
     private readonly VitalsService _vitalsService;
     private readonly SwellClockPulse _swellClockPulse;
+    private readonly CutscenePulse _cutscenePulse;
     private readonly MobAIManager _mobAI;
     private readonly MobCommandQueue _mobCommandQueue;
     private readonly DirtyVitalsBatcher _dirtyVitalsBatcher;
@@ -43,6 +44,7 @@ public class TickHandlerModule : IGameModule
         CombatManager combatManager,
         VitalsService vitalsService,
         SwellClockPulse swellClockPulse,
+        CutscenePulse cutscenePulse,
         MobAIManager mobAI,
         MobCommandQueue mobCommandQueue,
         DirtyVitalsBatcher dirtyVitalsBatcher,
@@ -62,6 +64,7 @@ public class TickHandlerModule : IGameModule
         _combatManager = combatManager;
         _vitalsService = vitalsService;
         _swellClockPulse = swellClockPulse;
+        _cutscenePulse = cutscenePulse;
         _mobAI = mobAI;
         _mobCommandQueue = mobCommandQueue;
         _dirtyVitalsBatcher = dirtyVitalsBatcher;
@@ -91,6 +94,7 @@ public class TickHandlerModule : IGameModule
         _gameLoop.RegisterTickHandler("mob-command-queue", 1, () => _mobCommandQueue.ProcessTick());
 
         _heartbeat.Register(_swellClockPulse);
+        _heartbeat.Register(_cutscenePulse);
         _heartbeat.Register(_combatPulse);
         _gameLoop.RegisterTickHandler("heartbeat", 1, () => _heartbeat.Tick());
 

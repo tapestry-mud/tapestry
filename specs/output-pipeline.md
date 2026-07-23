@@ -1,6 +1,6 @@
 ---
 capability: output-pipeline
-last-updated: 2026-07-22
+last-updated: 2026-07-23
 ---
 
 # Output Pipeline
@@ -158,6 +158,46 @@ banners) that are drained once per game tick.
   (src/Tapestry.Engine/PlayerSession.cs:53-83,478;
   src/Tapestry.Server/GameLoopService.cs:133,159).
 
+### Cutscene player (Layer 2, built on the prompt hold)
+
+- **Beat sequence, engine-paced:** `CutsceneManager.Play(playerId, beats, skippable, currentTick,
+  onComplete)` opens a prompt hold owned by `"cutscene"`, sends an optional skip hint, and emits
+  the first beat immediately. Each further beat carries its own `PauseAfterTicks`; a beat missing
+  one gets `CutsceneManager.DefaultPauseAfterTicks` (20 ticks, ~2s) at the scripting seam, not in
+  the engine record itself (src/Tapestry.Engine/Cutscene/CutsceneManager.cs:23-27,48-88;
+  src/Tapestry.Scripting/Modules/CutsceneModule.cs:75-89).
+
+- **Tick-driven pacing:** `CutscenePulse` (same cadence/priority tier as `SwellClockPulse`) calls
+  `CutsceneManager.AdvanceAll(tick)` every heartbeat tick; a beat emits once the current tick
+  reaches its scheduled `NextEmitTick`. No hand-rolled `schedule` callback drives per-beat pacing
+  (src/Tapestry.Engine/Heartbeat/CutscenePulse.cs; src/Tapestry.Engine/Cutscene/CutsceneManager.cs:90-119).
+
+- **Input swallow and skip:** `PlayerSession.ActiveCutscene` is set for the duration; `HandleInput`
+  routes every line to it before the normal command queue, so all input during a cutscene is
+  swallowed except the literal line `skip`, and only when the cutscene's `skippable` flag is true
+  (src/Tapestry.Engine/PlayerSession.cs:186-198; src/Tapestry.Engine/Cutscene/CutsceneManager.cs:137-160).
+
+- **Skip flushes, never discards:** `skip` prints every remaining beat's text immediately with
+  zero inter-beat delay, then takes the identical completion path as natural playback - terminal
+  state is the same either way, only faster (src/Tapestry.Engine/Cutscene/CutsceneManager.cs:162-171).
+
+- **Completion is exactly-once:** both the natural path (the last beat's emission) and the skip
+  path route through the same `Complete`, which marks the instance completed, clears
+  `PlayerSession.ActiveCutscene`, releases the prompt hold, and invokes `onComplete` once, nulling
+  the stored callback first so a second call can never re-fire it
+  (src/Tapestry.Engine/Cutscene/CutsceneManager.cs:173-183).
+
+- **Reuses the Layer-1 hold, never reimplements it:** every hold open/release goes through the
+  existing `PlayerSession.OpenPromptHold`/`ReleasePromptHold`, so `ForceReleaseAllPromptHolds` on
+  disconnect/link-death (already wired for every hold owner) covers a cutscene exactly like it
+  covers a swell. `AdvanceAll` additionally checks that the live session's `ActiveCutscene` still
+  points at the ticking instance before acting, so a hard disconnect followed by a fresh reconnect
+  (a new `PlayerSession` object for the same entity id) silently drops the stale instance instead
+  of misfiring its `onComplete` against the new session
+  (src/Tapestry.Engine/Cutscene/CutsceneManager.cs:99-108).
+  Tests: `CutsceneManagerTests` (Play/AdvanceAll/skip/skippable-false/hold lifecycle),
+  `CutscenePulseTests`, `CutsceneModuleTests` (JS beat/options/onComplete parsing).
+
 ### Messaging bridge (pack JS to output)
 
 - **Send to player:** `ApiMessaging.Send(entityId, text)` calls
@@ -220,5 +260,6 @@ banners) that are drained once per game tick.
 
 ## Change Log
 
+- 2026-07-23 [cutscene-player](changes/2026-07-23-cutscene-player.md) - Layer-2 scripting-facing cutscene player on the prompt-hold gate: paced beats, skip-flushes-not-discards, exactly-once onComplete
 - 2026-07-22 [prompt-hold-gate](changes/2026-07-22-prompt-hold-gate.md) - owner-keyed prompt hold suppresses the once-per-tick redraw for paced output; `FlushPrompts` skips held sessions, force-released on session teardown
 - 2026-06-18 [command-catalog-display](changes/2026-06-18-command-catalog-display.md)

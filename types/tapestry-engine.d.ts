@@ -176,6 +176,29 @@ declare module "@tapestry/engine" {
   };
 
   // ---------------------------------------------------------------------------
+  // cutscene
+  // ---------------------------------------------------------------------------
+  export interface CutsceneBeat {
+    text: string;
+    /** Ticks (100ms each) before the NEXT beat shows; omit for the engine default (~2s). */
+    pauseAfter?: number;
+  }
+  export interface CutsceneOptions {
+    /** When true, shows a "type skip to skip" hint and honors the literal line "skip" (it
+     * flushes remaining beats instantly and still prints every line -- never discards content).
+     * When false or omitted, "skip" is swallowed like any other input during the cutscene. */
+    skippable?: boolean;
+  }
+  export const cutscene: {
+    /** Plays a paced beat sequence for one player, holding their prompt for the duration.
+     * onComplete fires exactly once, identically whether the sequence played out naturally or
+     * was skipped -- hand control back to the player from inside it (teleport, enable input). */
+    play(playerEntityId: EntityId, beats: CutsceneBeat[], options?: CutsceneOptions, onComplete?: () => void): void;
+    isActive(playerEntityId: EntityId): boolean;
+    [key: string]: any;
+  };
+
+  // ---------------------------------------------------------------------------
   // data
   // ---------------------------------------------------------------------------
   export const data: {
