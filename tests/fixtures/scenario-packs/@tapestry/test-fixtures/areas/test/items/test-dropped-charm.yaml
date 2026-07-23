@@ -1,0 +1,17 @@
+id: "tapestry-test-fixtures:test-dropped-charm"
+name: "a tarnished charm"
+type: "item"
+tags: []
+keywords: [charm, tarnished]
+properties:
+  slot: neck
+  weight: 1
+  rarity: rare
+  description: >
+    Test fixture for gear-legibility (Task 11b finding fix): a different
+    item template than tapestry-test-fixtures:test-worn-charm, sharing the
+    same display name on purpose, to prove examine on a dropped item never
+    shows a same-named worn item's stats.
+modifiers:
+  - stat: strength
+    value: 9

@@ -17,3 +17,4 @@ content:
   area_definitions: "areas/**/area.yaml"
   rooms: "areas/**/rooms/*.yaml"
   mobs: "areas/**/mobs/*.yaml"
+  items: "areas/**/items/*.yaml"

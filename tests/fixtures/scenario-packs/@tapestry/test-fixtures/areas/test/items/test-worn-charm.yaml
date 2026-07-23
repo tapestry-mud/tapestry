@@ -1,0 +1,17 @@
+id: "tapestry-test-fixtures:test-worn-charm"
+name: "a tarnished charm"
+type: "item"
+tags: []
+keywords: [charm, tarnished]
+properties:
+  slot: neck
+  weight: 1
+  rarity: common
+  description: >
+    Test fixture for gear-legibility (Task 11b finding fix): worn item
+    sharing its display name with tapestry-test-fixtures:test-dropped-charm
+    below. Never-publish pack (see pack.yaml) -- do not add scenario-only
+    items to any pack under tapestry-packs/packages.
+modifiers:
+  - stat: maxHp
+    value: 5
