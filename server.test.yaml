@@ -12,6 +12,7 @@ packs:
   - tapestry-biomes
   - tapestry-cooking
   - tapestry-builder
+  - tapestry-oracle
   - example-pack
   # Seed accounts + test arena live in tests/fixtures/scenario-packs (engine
   # repo, never published); the runner stages it into the managed corpus.
