@@ -230,4 +230,37 @@ public class WorldModuleTests
         Assert.Equal(1d, (double)EsmTest.Eval(rt, $"{itemsExpr}.length")!);
         Assert.Equal("goblin ear", EsmTest.Eval(rt, $"{itemsExpr}[0].name"));
     }
+
+    [Fact]
+    public void ResetArea_InvokesSpawnManagerRunAreaReset()
+    {
+        var (rt, world, provider) = BuildRuntimeWithProvider();
+        world.AddRoom(new Room("test:lair", "Goblin Lair", "A dank lair."));
+
+        var spawnManager = provider.GetRequiredService<SpawnManager>();
+        spawnManager.RegisterTemplate(new MobTemplate { Id = "test:goblin_scout", Name = "Goblin Scout" });
+        spawnManager.RegisterAreaSpawns(new AreaSpawnConfig
+        {
+            Area = "test-area",
+            ResetInterval = 300,
+            Spawns = new List<SpawnRule>
+            {
+                new() { Room = "test:lair", Mob = "test:goblin_scout", Count = 2 }
+            }
+        });
+
+        EsmTest.Eval(rt, "tapestry.world.resetArea('test-area')");
+
+        var mobs = world.GetRoom("test:lair")!.Entities.Where(e => e.Type == "npc").ToList();
+        Assert.Equal(2, mobs.Count);
+    }
+
+    [Fact]
+    public void ResetArea_EmptyOrWhitespaceAreaId_DoesNotThrow()
+    {
+        var (rt, world) = BuildRuntime();
+
+        EsmTest.Eval(rt, "tapestry.world.resetArea('')");
+        EsmTest.Eval(rt, "tapestry.world.resetArea('   ')");
+    }
 }

@@ -30,8 +30,9 @@ public class WorldModule : IJintApiModule
     private readonly PropertyRegistry _propertyRegistry;
     private readonly AreaMapProjector _areaMapProjector;
     private readonly AsciiMapRenderer _mapRenderer;
+    private readonly SpawnManager _spawnManager;
 
-    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry, PropertyRegistry propertyRegistry, AreaMapProjector areaMapProjector, AsciiMapRenderer mapRenderer)
+    public WorldModule(ApiMessaging messaging, ApiWorld worldOps, World world, GameLoop gameLoop, ClassRegistry classRegistry, RaceRegistry raceRegistry, MobAIManager mobAIManager, IGmcpModuleAdapter gmcp, TagRegistry tagRegistry, PropertyRegistry propertyRegistry, AreaMapProjector areaMapProjector, AsciiMapRenderer mapRenderer, SpawnManager spawnManager)
     {
         _messaging = messaging;
         _worldOps = worldOps;
@@ -45,6 +46,7 @@ public class WorldModule : IJintApiModule
         _propertyRegistry = propertyRegistry;
         _areaMapProjector = areaMapProjector;
         _mapRenderer = mapRenderer;
+        _spawnManager = spawnManager;
     }
 
     public static BuildInfo GetBuildInfo()
@@ -198,6 +200,14 @@ public class WorldModule : IJintApiModule
             getCurrentTick = new Func<long>(() => _gameLoop.TickCount),
             sendToRoom = new Action<string, string>(_messaging.SendToRoom),
             purgeEntities = new Func<string, string, int>(_worldOps.PurgeEntities),
+            resetArea = new Action<string>(areaId =>
+            {
+                if (string.IsNullOrWhiteSpace(areaId))
+                {
+                    return;
+                }
+                _spawnManager.RunAreaReset(areaId);
+            }),
             setClass = new Action<string, string>((entityIdStr, classId) =>
             {
                 if (!Guid.TryParse(entityIdStr, out var entityId)) { return; }

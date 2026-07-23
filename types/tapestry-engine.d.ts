@@ -605,6 +605,8 @@ declare module "@tapestry/engine" {
     removeRole(...args: any[]): any;
     removeTag(...args: any[]): any;
     renderAreaMap(...args: any[]): any;
+    /** Immediately repop an area's spawns (mobs return; unlooted drops clear). */
+    resetArea(areaId: string): void;
     sameArea(...args: any[]): any;
     searchTemplates(...args: any[]): any;
     sendMotd(...args: any[]): any;
