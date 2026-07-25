@@ -1,6 +1,6 @@
 ---
 capability: mob-lifecycle
-last-updated: 2026-07-03
+last-updated: 2026-07-24
 ---
 
 # Mob Lifecycle
@@ -82,6 +82,11 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 - `SpawnManager` subscribes to `area.tick` on construction; each event triggers
   `RunAreaReset(areaId)` and `RestorePlacements(areaId)`.
   (src/Tapestry.Engine/Mobs/SpawnManager.cs:41-52)
+- `tapestry.world.resetArea(areaId)` triggers the same `RunAreaReset(areaId)` on demand,
+  off the `area.tick` cadence -- an immediate repop of an area's authored spawn-rule content.
+  Null/whitespace ids are a no-op; an id with no registered spawn rules is a no-op (the
+  reset targets `_areaConfigs`, populated only by `RegisterAreaSpawns`/`RegisterRoomSpawns`).
+  (src/Tapestry.Scripting/Modules/WorldModule.cs:203; src/Tapestry.Engine/Mobs/SpawnManager.cs:41-52)
 - `AreaTickService.Tick()` fires `area.tick` per area once `reset_interval` engine ticks
   have elapsed. When players are present in an area the effective interval is multiplied
   by `occupied_modifier` (default 3.0), slowing resets in populated areas.
@@ -203,5 +208,6 @@ Behavior dispatch and disposition evaluation are out of scope here (see mob-ai.m
 
 ## Change Log
 
+- 2026-07-24 [world-reset-area-binding](changes/2026-07-24-world-reset-area-binding.md) - tapestry.world.resetArea(areaId) exposes RunAreaReset on demand, off the area.tick cadence, for immediate repop
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - mob_level desugars to a level.combat map at MobTemplate.CreateEntity; the scalar no longer rides the live entity
 - 2026-06-22 [solo-oracle-e1-frozen-spawn-override](changes/2026-06-22-solo-oracle-e1-frozen-spawn-override.md)
