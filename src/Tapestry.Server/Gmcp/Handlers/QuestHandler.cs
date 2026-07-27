@@ -2,6 +2,7 @@ using Tapestry.Contracts;
 using Tapestry.Engine;
 using Tapestry.Engine.Quests;
 using Tapestry.Shared;
+using Tapestry.Engine.Ui;
 
 namespace Tapestry.Server.Gmcp.Handlers;
 
@@ -15,19 +16,22 @@ public class QuestHandler : IGmcpPackageHandler
     private readonly QuestRegistry _questRegistry;
     private readonly EventBus _eventBus;
     private readonly NotificationQueue _notificationQueue;
+    private readonly PanelRenderer _panelRenderer;
 
     public QuestHandler(
         IGmcpConnectionManager connectionManager,
         QuestService questService,
         QuestRegistry questRegistry,
         EventBus eventBus,
-        NotificationQueue notificationQueue)
+        NotificationQueue notificationQueue,
+        PanelRenderer panelRenderer)
     {
         _connectionManager = connectionManager;
         _questService = questService;
         _questRegistry = questRegistry;
         _eventBus = eventBus;
         _notificationQueue = notificationQueue;
+        _panelRenderer = panelRenderer;
     }
 
     public void Configure()
@@ -81,9 +85,19 @@ public class QuestHandler : IGmcpPackageHandler
             var stage = def?.Stages.ElementAtOrDefault(stageIndex);
             if (stage?.Description == null) { return; }
 
+            var msg = RenderAnnouncement(
+                def!.Name,
+                "Stage Advanced",
+                [
+                    new TextRow
+                    {
+                        Content = $" {stage.Description}",
+                        Wrap = true,
+                    },
+                ]);
+
             _notificationQueue.Enqueue(evt.SourceEntityId.Value,
-                new Notification("quest_stage", 50,
-                    $"\r\n<npc>[Quest: {def!.Name}]</npc> {stage.Description}\r\n"));
+                new Notification("quest_stage", 50, msg));
         });
 
         _eventBus.Subscribe("quest.completed", evt =>
@@ -98,29 +112,54 @@ public class QuestHandler : IGmcpPackageHandler
             var gold = evt.Data.TryGetValue("rewardGold", out var goldVal) ? Convert.ToInt32(goldVal) : 0;
             var cls = evt.Data.TryGetValue("classUnlock", out var clsVal) ? clsVal?.ToString() : null;
 
-            var msg = $"\r\n<highlight>[Quest Complete]</highlight> {questName}";
-            if (xp > 0) { msg += $"  {xp} XP"; }
-            if (gold > 0) { msg += $"  {gold} gold"; }
+            var rewardParts = new List<string>();
+
+            if (xp > 0)
+            {
+                rewardParts.Add($"{xp} XP");
+            }
+
+            if (gold > 0)
+            {
+                rewardParts.Add($"{gold} gold");
+            }
+
             if (!string.IsNullOrEmpty(cls))
             {
-                var shortClass = cls!.Contains(':') ? cls[(cls.LastIndexOf(':') + 1)..] : cls;
-                msg += $"  Class: {shortClass}";
+                var shortClass = cls.Contains(':')
+                    ? cls[(cls.LastIndexOf(':') + 1)..]
+                    : cls;
+
+                rewardParts.Add($"Class: {shortClass}");
             }
-            msg += "\r\n";
+
+            var rewardText = rewardParts.Count > 0
+                ? string.Join("  ", rewardParts)
+                : "Quest completed.";
+
+            var msg = RenderAnnouncement(
+                questName,
+                "Quest Complete",
+                [
+                    new TextRow
+                    {
+                        Content = $" {rewardText}",
+                        Wrap = true,
+                    },
+                ]);
 
             _notificationQueue.Enqueue(evt.SourceEntityId.Value,
-                new Notification("quest_complete", 50, msg,
+                new Notification(
+                    "quest_complete",
+                    50,
+                    msg,
                     "Notification.Show",
                     new
                     {
                         type = "quest_complete",
                         title = questName,
-                        body = string.Join("  ", new[] {
-                            xp > 0 ? $"{xp} XP" : null,
-                            gold > 0 ? $"{gold} gold" : null,
-                            !string.IsNullOrEmpty(cls) ? $"Class: {(cls!.Contains(':') ? cls[(cls.LastIndexOf(':') + 1)..] : cls)}" : null
-                        }.Where(s => s != null)),
-                        priority = 50
+                        body = string.Join("  ", rewardParts),
+                        priority = 50,
                     }));
 
             var payload = new
@@ -145,6 +184,39 @@ public class QuestHandler : IGmcpPackageHandler
 
             _connectionManager.Send(evt.SourceEntityId.Value, "Quest.Abandon", payload);
         });
+    }
+
+    private string RenderAnnouncement(
+        string title,
+        string status,
+        IReadOnlyList<Row> bodyRows)
+    {
+        var panel = new Panel
+        {
+            Width = 46,
+            Sections =
+            [
+                new Section
+                {
+                    SeparatorAbove = RuleStyle.None,
+                    Rows =
+                    [
+                        new TitleRow
+                        {
+                            Left = title,
+                            Right = status,
+                        },
+                    ],
+                },
+                new Section
+                {
+                    SeparatorAbove = RuleStyle.Minor,
+                    Rows = bodyRows,
+                },
+            ],
+        };
+
+        return "\r\n" + _panelRenderer.Render(panel) + "\r\n";
     }
 
     public void SendBurst(string connectionId, object entity)
