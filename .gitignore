@@ -34,3 +34,5 @@ fly.toml
 /packs/
 /packs
 .strict-boot/
+
+.worktrees/
