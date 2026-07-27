@@ -1,6 +1,6 @@
 ---
 release: unreleased
-specs: [area-authoring]
+specs: [area-authoring.md]
 ---
 
 # Item Modifier Authoring
