@@ -15,9 +15,9 @@ known constraints, and change history.
 | Area Authoring | [area-authoring.md](area-authoring.md) | 2026-07-27 |
 | GMCP | [gmcp.md](gmcp.md) | 2026-07-04 |
 | Heartbeat | [heartbeat.md](heartbeat.md) | 2026-06-22 |
-| Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-03 |
+| Mob AI | [mob-ai.md](mob-ai.md) | 2026-07-27 |
 | Mob Lifecycle | [mob-lifecycle.md](mob-lifecycle.md) | 2026-07-24 |
-| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-22 |
+| Combat Resolution | [combat-resolution.md](combat-resolution.md) | 2026-07-27 |
 | Death and Corpses | [death-and-corpses.md](death-and-corpses.md) | 2026-07-03 |
 | Output Pipeline | [output-pipeline.md](output-pipeline.md) | 2026-07-23 |
 | Rest and Recovery | [rest-and-recovery.md](rest-and-recovery.md) | 2026-07-04 |

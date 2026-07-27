@@ -270,6 +270,13 @@ public class ApiWorld
         return room.Tags.ToArray();
     }
 
+    public void AddRoomTag(string roomId, string tag)
+    {
+        var room = _world.GetRoom(roomId);
+        if (room == null) { return; }
+        room.AddTag(tag);
+    }
+
     public Dictionary<string, object?> GetRoomProperties(string roomId)
     {
         var room = _world.GetRoom(roomId);

@@ -1,6 +1,6 @@
 ---
 capability: combat-resolution
-last-updated: 2026-07-22
+last-updated: 2026-07-27
 ---
 
 # Combat Resolution
@@ -249,6 +249,16 @@ disposition logic (see mob-ai.md), death pipeline (see death-and-corpses.md).
 - Flee fails if the current room has no available exits; publishes
   `combat.flee.failed`. (CombatManager.cs:226;
   CombatManagerTests.cs:AttemptFlee_NoExits_Fails)
+
+- Exit selection prefers destinations that are not tagged `no_wander`
+  (EngineTags.NoWander): the exit list is filtered to exclude exits whose
+  target room carries the tag, and the random pick is made from that filtered
+  set. If every exit leads to a `no_wander` room (or the room has no exits at
+  all), the filter falls back to the unfiltered exit list rather than
+  stranding a cornered mob -- "prefer not to enter," not "never flee if
+  every path leads to one." (CombatManager.cs:227-252;
+  CombatManagerTests.cs:AttemptFlee_AvoidsNoWanderDestination,
+  CombatManagerTests.cs:AttemptFlee_FallsBackToNoWanderRoomWhenNoOtherExit)
 
 - On success: entity is removed from all combat, moved to a randomly chosen
   exit room, flee cooldown is set to `currentTick + FleeCooldownTicks`

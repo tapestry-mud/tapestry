@@ -234,6 +234,61 @@ public class CombatManagerTests
     }
 
     [Fact]
+    public void AttemptFlee_AvoidsNoWanderDestination()
+    {
+        Setup();
+        var badRoom = new Room("core:boss-room", "Boss Room", "Something vast waits here.");
+        badRoom.AddTag("no_wander");
+        _world.AddRoom(badRoom);
+        var goodRoom = new Room("core:hallway", "Hallway", "A hallway.");
+        _world.AddRoom(goodRoom);
+        _room.SetExit(Direction.North, new Exit("core:boss-room"));
+        _room.SetExit(Direction.South, new Exit("core:hallway"));
+        var player = CreatePlayer();
+        var mob = CreateMob();
+        _combat.Engage(player, mob);
+        var context = new PulseContext
+        {
+            CurrentTick = 100,
+            CurrentPulse = 100,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combat,
+            EffectManager = new EffectManager(_world, _eventBus),
+            Random = new Random(1)
+        };
+        var result = _combat.AttemptFlee(player, context);
+        Assert.True(result);
+        Assert.Equal("core:hallway", player.LocationRoomId);
+    }
+
+    [Fact]
+    public void AttemptFlee_FallsBackToNoWanderRoomWhenNoOtherExit()
+    {
+        Setup();
+        var badRoom = new Room("core:boss-room", "Boss Room", "Something vast waits here.");
+        badRoom.AddTag("no_wander");
+        _world.AddRoom(badRoom);
+        _room.SetExit(Direction.North, new Exit("core:boss-room"));
+        var player = CreatePlayer();
+        var mob = CreateMob();
+        _combat.Engage(player, mob);
+        var context = new PulseContext
+        {
+            CurrentTick = 100,
+            CurrentPulse = 100,
+            World = _world,
+            EventBus = _eventBus,
+            CombatManager = _combat,
+            EffectManager = new EffectManager(_world, _eventBus),
+            Random = new Random(1)
+        };
+        var result = _combat.AttemptFlee(player, context);
+        Assert.True(result);
+        Assert.Equal("core:boss-room", player.LocationRoomId);
+    }
+
+    [Fact]
     public void AttemptFlee_NoFleeTag_Prevented()
     {
         Setup();

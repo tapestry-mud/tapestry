@@ -225,7 +225,15 @@ public class CombatManager
         }
 
         var exits = room.AvailableExits().ToList();
-        if (exits.Count == 0)
+        var safeExits = exits.Where(d =>
+        {
+            var exit = room.GetExit(d);
+            if (exit == null) { return true; }
+            var target = _world.GetRoom(exit.TargetRoomId);
+            return target == null || !target.HasTag(Tapestry.Engine.Tags.EngineTags.NoWander);
+        }).ToList();
+        var candidates = safeExits.Count > 0 ? safeExits : exits;
+        if (candidates.Count == 0)
         {
             context.EventBus.Publish(new GameEvent
             {
@@ -241,7 +249,7 @@ public class CombatManager
             return false;
         }
 
-        var direction = exits[context.Random.Next(exits.Count)];
+        var direction = candidates[context.Random.Next(candidates.Count)];
         var fromRoom = entity.LocationRoomId;
 
         RemoveEntityFromAllCombat(entity.Id);

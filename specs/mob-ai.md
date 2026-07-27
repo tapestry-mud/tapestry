@@ -1,6 +1,6 @@
 ---
 capability: mob-ai
-last-updated: 2026-07-03
+last-updated: 2026-07-27
 ---
 
 # Mob AI
@@ -93,6 +93,10 @@ combat-resolution.md).
   chosen exit and skips if that room is tagged `no_wander`. Also skips exits leaving the
   current area when `wander_boundary` == "area" (default). Does not run while in combat.
   (packs/@tapestry/core/scripts/mobs/behaviors.js:7-54)
+- `no_wander` is an engine-registered room tag, not a pack-declared one -- any pack can
+  apply it without a `tags.yml` entry. Combat's `AttemptFlee` also honors it as a
+  preferred-avoid signal for flee destinations (see combat-resolution.md).
+  (src/Tapestry.Engine/Tags/EngineTags.cs)
 - **patrol** -- follows an ordered `patrol_route` room-ID list, bouncing direction at
   each end. Waits `patrol_interval` (default 30) and rolls `patrol_chance` (default 0.5).
   State persisted as `_patrol_index` / `_patrol_direction` entity properties.

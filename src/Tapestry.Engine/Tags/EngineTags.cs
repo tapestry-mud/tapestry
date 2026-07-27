@@ -22,6 +22,7 @@ public static class EngineTags
     public const string Linkdead = "linkdead";
     public const string FillSource = "fill_source";
     public const string Persistent = "persistent";
+    public const string NoWander = "no_wander";
 
     public static void Register(TagRegistry registry)
     {
@@ -38,5 +39,6 @@ public static class EngineTags
         registry.RegisterEngineTag(Linkdead, "Player session has lost its connection and is pending timeout", new[] { EntityTypes.Player });
         registry.RegisterEngineTag(FillSource, "Provides liquid for filling fillable containers", new[] { EntityTypes.Item });
         registry.RegisterEngineTag(Persistent, "Respawns immediately on death or removal", new[] { EntityTypes.Npc });
+        registry.RegisterEngineTag(NoWander, "Mobs will not wander or flee into this room", new[] { EntityTypes.Room });
     }
 }
