@@ -1,6 +1,6 @@
 ---
 capability: area-authoring
-last-updated: 2026-07-22
+last-updated: 2026-07-27
 ---
 
 # Area Authoring
@@ -414,7 +414,7 @@ tests/Tapestry.Scripting.Tests/WorldAuthoringDeleteAreaTests.cs)
   (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:SetStubExit,IsOracleArea)
 
 - <!-- {B:authoring.writeItemTemplate} -->
-  `tapestry.authoring.writeItemTemplate({ areaId, id, base, name, desc, type?, properties })`
+  `tapestry.authoring.writeItemTemplate({ areaId, id, base, name, desc, type?, properties, modifiers? })`
   is an item-template sidecar writer parallel to `writeOracleTable`. It (1) looks up the
   base template by id in the live `ItemRegistry` (returns null if unknown), (2) merges the
   base template's keywords/tags/properties with the rolled `properties` overlay plus
@@ -426,8 +426,12 @@ tests/Tapestry.Scripting.Tests/WorldAuthoringDeleteAreaTests.cs)
   `data/areas`, no `"areas"` literal added, `SafeSegment` applied to `areaId`. Nested
   all-numeric maps in `properties` (e.g. the `ac` damage-type map) are coerced to
   `Dictionary<string,int>` so `GetProperty<Dictionary<string,int>>("ac")` resolves on an
-  exact-type match. Returns the registered `id` string, or null if the base is unknown.
-  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:WriteItemTemplateSideCar,ItemTemplateSideCarPath)
+  exact-type match. Optional `modifiers` array (format: `[{ stat: "maxHp", value: 8 }, ...]`)
+  is forwarded through to the registered `ItemTemplate.Modifiers` list and persisted in YAML,
+  so procedurally-minted gear carries stat modifiers exactly like hand-authored items.
+  Returns the registered `id` string, or null if the base is unknown.
+  (src/Tapestry.Scripting/Modules/WorldAuthoringModule.cs:WriteItemTemplateSideCar,ItemTemplateSideCarPath;
+  src/Tapestry.Scripting/YamlContentLoader.cs:SerializeItemDefinition)
 
 - <!-- {B:authoring.writeOracleTable} -->
   `tapestry.authoring.writeOracleTable({ areaId, kind, entries })` is a table-sidecar
@@ -468,6 +472,7 @@ tests/Tapestry.Scripting.Tests/WorldAuthoringDeleteAreaTests.cs)
 
 ## Change Log
 
+- 2026-07-27 [item-modifier-authoring](changes/2026-07-27-item-modifier-authoring.md) - `authoring.writeItemTemplate` accepts optional `modifiers` array so procedurally-minted gear carries stat modifiers (e.g. maxHp); modifiers round-trip through item sidecars to survive reboot
 - 2026-07-22 [solo-area-lifecycle-naming](changes/2026-07-22-solo-area-lifecycle-naming.md) - `authoring.deleteArea(areaId)` atomically inverts the area create path (evacuate, untrack, remove rooms, clear consequences, unregister from the three scoped registries, delete the on-disk directory); aborts whole when a player is inside and the recall room is missing; the pack scaffold and runtime-namespace marker deliberately survive
 - 2026-07-04 [oracle-v3-engine-gaps](changes/2026-07-04-oracle-v3-engine-gaps.md) - runtime destination packs validate lenient on reboot (createPack scaffold gap closed engine-side); schema-while-`llm.structured_output`-off recommend calls WARN once per 60s burst + increment `tapestry.recommend.schema_dropped`
 - 2026-06-28 [structured-llm-output](changes/2026-06-28-structured-llm-output.md) - recommend can return validated JSON via `response_format json_schema` (opt-in `llm.structured_output`, default off, degrades to baked fallback); `ILlmClient` returns `LlmResult` with token counts surfaced on the log line + new `tapestry.recommend.tokens` histogram; schema-aware `StaticStubRecommendProvider` via `StubJson.FromSchema`, stub delay lowered to 400ms

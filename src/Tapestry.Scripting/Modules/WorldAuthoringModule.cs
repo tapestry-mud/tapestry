@@ -337,7 +337,8 @@ public sealed class WorldAuthoringModule : IJintApiModule
                 var typeVal = obj.Get("type");
                 var type = typeVal.Type == Types.String ? typeVal.ToString() : null;
                 var props = ToClrProperties(obj.Get("properties"));
-                return WriteItemTemplateSideCar(areaId, id, baseId, name, desc, type, props);
+                var modifiers = ToClrModifiers(obj.Get("modifiers"));
+                return WriteItemTemplateSideCar(areaId, id, baseId, name, desc, type, props, modifiers);
             })
         };
     }
@@ -893,7 +894,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
     // Returns the registered id, or null if the base template is unknown or ItemRegistry not wired.
     public string? WriteItemTemplateSideCar(
         string areaId, string id, string baseId, string name, string desc,
-        string? type, Dictionary<string, object?> properties)
+        string? type, Dictionary<string, object?> properties, List<ItemTemplate.ModifierEntry> modifiers)
     {
         if (_itemRegistry == null) { return null; }
         var baseTemplate = _itemRegistry.GetTemplate(baseId);
@@ -914,6 +915,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
             Tags = new List<string>(baseTemplate.Tags),
             Keywords = new List<string>(baseTemplate.Keywords),
             Properties = merged,
+            Modifiers = modifiers,
         };
         _itemRegistry.Register(template);
 
@@ -921,7 +923,7 @@ public sealed class WorldAuthoringModule : IJintApiModule
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) { Directory.CreateDirectory(dir); }
         File.WriteAllText(path, YamlContentLoader.SerializeItemDefinition(
-            id, name, template.Type, template.Keywords, template.Tags, merged));
+            id, name, template.Type, template.Keywords, template.Tags, merged, modifiers));
         return id;
     }
 
@@ -951,6 +953,23 @@ public sealed class WorldAuthoringModule : IJintApiModule
             else if (v.Type == Types.Number) { result[k] = (double)v.ToObject()!; }
             else if (v.Type == Types.Boolean) { result[k] = (bool)v.ToObject()!; }
             else { result[k] = v.ToString(); }
+        }
+        return result;
+    }
+
+    // Converts a JS array of modifier objects to a CLR list of ModifierEntry.
+    // Each object must have a string "stat" and numeric "value" property.
+    private static List<ItemTemplate.ModifierEntry> ToClrModifiers(JsValue value)
+    {
+        var result = new List<ItemTemplate.ModifierEntry>();
+        if (value is not JsArray arr) { return result; }
+        foreach (var entry in arr)
+        {
+            if (entry is not ObjectInstance obj) { continue; }
+            var stat = obj.Get("stat").ToString();
+            var valueProp = obj.Get("value");
+            if (string.IsNullOrEmpty(stat) || valueProp.Type != Types.Number) { continue; }
+            result.Add(new ItemTemplate.ModifierEntry { Stat = stat, Value = (int)(double)valueProp.ToObject()! });
         }
         return result;
     }

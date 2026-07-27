@@ -58,9 +58,9 @@ internal sealed class TempAuthoringRoot : IDisposable
     }
 
     public string? WriteItemTemplate(string areaId, string id, string baseId, string name,
-        string desc, Dictionary<string, object?> properties)
+        string desc, Dictionary<string, object?> properties, List<ItemTemplate.ModifierEntry>? modifiers = null)
     {
-        return _module.WriteItemTemplateSideCar(areaId, id, baseId, name, desc, null, properties);
+        return _module.WriteItemTemplateSideCar(areaId, id, baseId, name, desc, null, properties, modifiers ?? new List<ItemTemplate.ModifierEntry>());
     }
 
     public string ItemSideCarPath(string areaId, string id)
@@ -153,5 +153,45 @@ public class OracleTableSideCarTests
         var got = root.Registry.Get("castle-kitchen:mobs");
         Assert.NotNull(got);
         Assert.Equal("angry-cook", got!.Entries[0].Id);
+    }
+}
+
+public class WriteItemTemplateModifierTests
+{
+    [Fact]
+    public void WriteItemTemplateSideCar_round_trips_modifiers_through_the_loader()
+    {
+        using var root = new TempAuthoringRoot();
+        root.RegisterBaseItem("tapestry-oracle:armor-body", "a piece of armor", "item");
+
+        var path = root.WriteItemTemplate(
+            "castle-kitchen", "castle-kitchen:loot-armor-body-0-0-trash-0",
+            "tapestry-oracle:armor-body", "a banded cuirass", "Sturdy plate.",
+            new Dictionary<string, object?> { ["rarity"] = "common" },
+            new List<ItemTemplate.ModifierEntry> { new() { Stat = "maxHp", Value = 8 } });
+
+        Assert.NotNull(path);
+        var reloaded = YamlContentLoader.LoadItem(File.ReadAllText(root.ItemSideCarPath("castle-kitchen", path!)), new PropertyRegistry());
+        Assert.Single(reloaded.Modifiers);
+        Assert.Equal("maxHp", reloaded.Modifiers[0].Stat);
+        Assert.Equal(8, reloaded.Modifiers[0].Value);
+    }
+
+    [Fact]
+    public void WriteItemTemplateSideCar_registers_modifiers_into_live_registry_same_session()
+    {
+        using var root = new TempAuthoringRoot();
+        root.RegisterBaseItem("tapestry-oracle:weapon-melee", "a weapon", "item");
+
+        root.WriteItemTemplate(
+            "castle-kitchen", "castle-kitchen:loot-weapon-melee-0-0-trash-0",
+            "tapestry-oracle:weapon-melee", "a chef's cleaver", "Heavy and sharp.",
+            new Dictionary<string, object?> { ["rarity"] = "common" },
+            new List<ItemTemplate.ModifierEntry> { new() { Stat = "maxHp", Value = 5 } });
+
+        var registered = root.Items.GetTemplate("castle-kitchen:loot-weapon-melee-0-0-trash-0");
+        Assert.NotNull(registered);
+        Assert.Single(registered!.Modifiers);
+        Assert.Equal(5, registered.Modifiers[0].Value);
     }
 }

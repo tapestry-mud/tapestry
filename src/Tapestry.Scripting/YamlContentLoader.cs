@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Tapestry.Engine;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Tags;
@@ -671,7 +674,8 @@ public static class YamlContentLoader
     }
 
     public static string SerializeItemDefinition(string id, string name, string type,
-        List<string> keywords, List<string> tags, Dictionary<string, object?> properties)
+        List<string> keywords, List<string> tags, Dictionary<string, object?> properties,
+        List<ItemTemplate.ModifierEntry> modifiers)
     {
         var doc = new Dictionary<string, object?>
         {
@@ -682,6 +686,14 @@ public static class YamlContentLoader
             ["tags"] = tags,
             ["properties"] = properties,
         };
+        if (modifiers.Count > 0)
+        {
+            doc["modifiers"] = modifiers.Select(m => new Dictionary<string, object?>
+            {
+                ["stat"] = m.Stat,
+                ["value"] = m.Value,
+            }).ToList();
+        }
         return AreaSerializer.Serialize(doc);
     }
 
