@@ -217,4 +217,5 @@ combat-resolution.md).
   53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log
+- 2026-07-27 [flee-avoids-no-wander](changes/2026-07-27-flee-avoids-no-wander.md) - `CombatManager.AttemptFlee` now prefers exits whose destination room isn't tagged `no_wander` (falls back to the unfiltered exit list if every exit leads to one)
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - the mob-AI flee path routes through CombatManager.ShouldFlee reading wimpy_pct

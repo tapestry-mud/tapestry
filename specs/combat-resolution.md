@@ -435,6 +435,7 @@ all timing, content, and magnitude levers are read off the mob's properties.
 
 ## Change Log
 
+- 2026-07-27 [flee-avoids-no-wander](changes/2026-07-27-flee-avoids-no-wander.md) - `CombatManager.AttemptFlee` now prefers exits whose destination room isn't tagged `no_wander` (falls back to the unfiltered exit list if every exit leads to one); `no_wander` promoted to an engine tag (`EngineTags.NoWander`) with a new `tapestry.world.addRoomTag` write binding so packs can apply it at runtime
 - 2026-07-22 [prompt-hold-gate](changes/2026-07-22-prompt-hold-gate.md) - the swell arc holds the command prompt (Telegraph -> Resolve) so it reads as one beat; new `combat.swell.abandoned` event releases the hold for fights dropped before Resolve
 - 2026-07-04 [damage-verb-ladder-retune](changes/2026-07-04-damage-verb-ladder-retune.md) - DamageVerbs MinDamage boundaries retuned for the low-level damage economy (geared level-1 hits read grazes/hits, good rolls injures); verbs key on absolute damage as the progression channel; boundaries pinned by DamageVerbLadderTests
 - 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - auto-attack, swell resolve, and pack applyDamage HP writes route through VitalsService (publishing entity.vital.changed); combat.hit still fires separately for combat text
