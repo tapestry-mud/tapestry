@@ -11,12 +11,15 @@ const os = require('os');
 // green, bounded when red. There are no unconditional sleeps in the step path.
 
 const LOGIN_WAIT_MS = 15000;     // per login "Wait for:" step (CI cold start)
+const LOGOUT_WAIT_MS = 5000;     // clean `quit` teardown per client
 const SYNC_WAIT_MS = 10000;      // sentinel echo barrier after each command
 const ASSERT_WAIT_MS = 2000;     // positive "Assert sees" grace window
 const GMCP_WAIT_MS = 5000;       // GMCP packet arrival window
 const WAIT_FOR_SEES_MS = 30000;  // explicit "Wait for ... sees" steps
 const BOOT_TIMEOUT_MS = 60000;   // managed server boot (build excluded)
 const BANNER_PROBE_MS = 10000;   // login banner probe before any scenario
+const SEED_BASELINE_MS = 15000;  // wait for seeded player saves to appear at boot
+const SAVE_QUIESCE_MS = 5000;    // wait for post-logout save writes to land
 const DEFAULT_SCENARIO_TIMEOUT_S = 120;
 const DEFAULT_SUITE_TIMEOUT_S = 600;
 
@@ -561,6 +564,51 @@ class TelnetClient {
       this.connected = false;
     }
   }
+
+  // Tear the session down the way a real player would: `quit`.
+  //
+  // This is NOT cosmetic. Destroying the socket is an abrupt close, which the
+  // engine does not treat as an intentional quit — GameLoopService parks the
+  // session in LinkDead (link_dead.enabled defaults to true, timeout 120s) and
+  // leaves the character entity live in the world. The next scenario file that
+  // logs in under the same name takes the GameEntryResolver LinkDead branch and
+  // RECONNECTS to that same in-memory entity: the save file is never read, so
+  // every mutation the previous file made (worn gear, max HP set to 1, tags,
+  // properties) carries straight over. `quit` routes through
+  // Disconnect("Quit"), which is the intentional path: save, session removed,
+  // UntrackEntityDeep. Bounded — if quit is refused (e.g. blocked in combat)
+  // we fall back to destroying the socket rather than stalling the suite.
+  async logout(timeoutMs = LOGOUT_WAIT_MS) {
+    if (!this.socket) {
+      return;
+    }
+    if (!this.connected) {
+      this.disconnect();
+      return;
+    }
+    const closed = new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve();
+      };
+      this.socket.once('close', finish);
+      const timer = setTimeout(finish, timeoutMs);
+      if (timer.unref) {
+        timer.unref();
+      }
+    });
+    try {
+      this.send('quit');
+    } catch (_) {
+      // Already gone; the close promise resolves on its own.
+    }
+    await closed;
+    this.disconnect();
+  }
 }
 
 // ─── Runner Core ───────────────────────────────────────────────────
@@ -679,7 +727,7 @@ async function runScenario(scenario, defaultLoginSteps, opts) {
         adminClient.send(`teleport ${playerName} ${scenario.room}`);
       }
       await adminClient.sync(deadline.clamp(SYNC_WAIT_MS));
-      adminClient.disconnect();
+      await adminClient.logout();
       for (const playerName of scenario.players) {
         const c = clients[playerName];
         await c.sync(deadline.clamp(SYNC_WAIT_MS));
@@ -895,8 +943,8 @@ async function runScenario(scenario, defaultLoginSteps, opts) {
           continue;
         }
         for (const [playerName, client] of Object.entries(clients)) {
-          client.disconnect();
-          result.transcript.push(`[${playerName} disconnected for restart]`);
+          await client.logout();
+          result.transcript.push(`[${playerName} logged out for restart]`);
         }
         await opts.restartServer();
         for (const playerName of scenario.players) {
@@ -933,9 +981,16 @@ async function runScenario(scenario, defaultLoginSteps, opts) {
       result.transcript.push(`[${playerName} buffer tail]\n${tail}`);
     }
   } finally {
+    // Clean logout, not socket destroy — see TelnetClient.logout. An abrupt
+    // close would leave the character link-dead and live in the world for the
+    // next scenario file to inherit.
     for (const [playerName, client] of Object.entries(clients)) {
-      client.disconnect();
-      result.transcript.push(`[${playerName} disconnected]`);
+      try {
+        await client.logout();
+      } catch (_) {
+        client.disconnect();
+      }
+      result.transcript.push(`[${playerName} logged out]`);
     }
   }
 
@@ -1055,6 +1110,24 @@ function countConfigPacks(yaml) {
   return count;
 }
 
+// The engine resolves a relative save_path against the config file's own
+// directory, so for a managed run the save store lives inside tmpDir. Read the
+// configured value rather than assuming the default — an override in
+// server.test.yaml must not silently point the seed-baseline logic at a
+// directory nothing is writing to.
+function parseSavePath(yaml) {
+  const match = yaml.match(/^\s*save_path:\s*["']?([^"'\r\n#]+)/m);
+  return match ? match[1].trim() : './data/saves';
+}
+
+// Authored world state (generated areas, oracle side-car tables, minted item
+// templates) goes under rooms_path, a SIBLING of save_path — restoring player
+// saves does not touch it.
+function parseRoomsPath(yaml) {
+  const match = yaml.match(/^\s*rooms_path:\s*["']?([^"'\r\n#]+)/m);
+  return match ? match[1].trim() : './data/areas';
+}
+
 function createManagedConfig(projectRoot, telnetPort, websocketPort) {
   const baseConfig = path.join(projectRoot, 'server.test.yaml');
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-test-'));
@@ -1062,7 +1135,43 @@ function createManagedConfig(projectRoot, telnetPort, websocketPort) {
   const rewritten = rewriteConfigPorts(yaml, telnetPort, websocketPort);
   const configPath = path.join(tmpDir, 'server.test.yaml');
   fs.writeFileSync(configPath, rewritten);
-  return { tmpDir, configPath, expectedPacks: countConfigPacks(yaml) };
+  return {
+    tmpDir,
+    configPath,
+    expectedPacks: countConfigPacks(yaml),
+    savesDir: path.resolve(tmpDir, parseSavePath(yaml)),
+    areasDir: path.resolve(tmpDir, parseRoomsPath(yaml))
+  };
+}
+
+// Cheap fingerprint of a directory tree: relative path + size + mtime for every
+// file, sorted. Used only to decide whether writes have stopped, never to
+// compare content, so mtime granularity is irrelevant.
+function dirDigest(dir) {
+  if (!fs.existsSync(dir)) {
+    return '';
+  }
+  const parts = [];
+  const walk = (current, prefix) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(current, entry.name);
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(full, rel);
+        continue;
+      }
+      try {
+        const st = fs.statSync(full);
+        parts.push(`${rel}:${st.size}:${st.mtimeMs}`);
+      } catch (_) {
+        // Raced with the atomic .tmp/.bak dance in FilePlayerStore; the next
+        // poll sees the settled state.
+        parts.push(`${rel}:?`);
+      }
+    }
+  };
+  walk(dir, '');
+  return parts.join('|');
 }
 
 // Link (junction on Windows — works without elevation; symlink elsewhere) with
@@ -1130,6 +1239,153 @@ class ManagedServer {
     this.logPath = null;
     this.config = null;
     this.port = null;
+    this.seedBaselineDir = null;
+    this.seedNames = [];
+    this.cleanWorldDigest = null;
+  }
+
+  get playersDir() {
+    return this.config ? path.join(this.config.savesDir, 'players') : null;
+  }
+
+  get areasDir() {
+    return this.config ? this.config.areasDir : null;
+  }
+
+  // ── World state ──
+  //
+  // Restoring player saves does not undo what a scenario did to the WORLD.
+  // Oracle bakes a template into the `oracle-templates` area and instantiates
+  // run areas; both are written as side-cars under rooms_path, and both are
+  // mirrored by process-lifetime state the Jint runtime holds (the template and
+  // area registries on the C# side, and module-level caches like population.ts's
+  // visited-room map and area-context.ts's minted-mob-type map on the JS side).
+  // Scenario files deliberately reuse one seed (305419896 -> the same
+  // `oracle-week-...` id and the same run-area slug), so a later file walks into
+  // the earlier file's already-generated, already-visited area and meets the mob
+  // it minted instead of the one its own seed should produce. That is exactly
+  // the "expected tandoor beast, got angry cook" class of failure.
+  //
+  // Only a fresh process clears the in-memory half, so when a file has dirtied
+  // the authored world we wipe rooms_path and restart. Files that never touch it
+  // (the engine smoke scenarios, gmcp, anything non-oracle) cost nothing — the
+  // digest is unchanged and no restart happens.
+  captureCleanWorld() {
+    this.cleanWorldDigest = dirDigest(this.areasDir);
+  }
+
+  isWorldDirty() {
+    if (this.cleanWorldDigest === null) {
+      return false;
+    }
+    return dirDigest(this.areasDir) !== this.cleanWorldDigest;
+  }
+
+  async resetWorldIfDirty() {
+    if (!this.isWorldDirty()) {
+      return false;
+    }
+    console.log('  World state dirty — restarting managed server for a clean world.');
+    await this.stop();
+    fs.rmSync(this.areasDir, { recursive: true, force: true });
+    await this.restart();
+    this.captureCleanWorld();
+    return true;
+  }
+
+  // ── Cross-scenario state isolation ──
+  //
+  // An --all-packs --managed suite boots ONE server and runs every scenario
+  // file against it, sharing the seeded accounts (Wanderer, Alice, Gamemaster)
+  // across all of them. Seed players are materialized from a pack's
+  // players.yaml exactly once, at boot, by PlayerInitModule.LoadSeedPlayers —
+  // and that is guarded on PlayerSaveExists, so nothing ever restores the
+  // baseline mid-run. Whatever a scenario does to a character (wears oracle
+  // gear, `set player hp Gamemaster 1`, adds tags, unlocks properties) is
+  // written to <save_path>/players/<name>/ on logout and loaded straight back
+  // by the next file that logs in under that name.
+  //
+  // So: snapshot those pristine per-player directories right after boot, and
+  // restore them before each scenario file. The snapshot is the real seeded
+  // baseline, not a reconstruction, and it covers player.yaml plus every
+  // side-car the engine keeps beside it (quests.yaml, and anything added
+  // later) without the runner needing to know what they are.
+  async captureSeedBaseline() {
+    const playersDir = this.playersDir;
+    const deadline = Date.now() + SEED_BASELINE_MS;
+    let names = [];
+
+    while (Date.now() < deadline) {
+      names = fs.existsSync(playersDir)
+        ? fs.readdirSync(playersDir, { withFileTypes: true })
+            .filter(e => e.isDirectory() && fs.existsSync(path.join(playersDir, e.name, 'player.yaml')))
+            .map(e => e.name)
+        : [];
+      if (names.length > 0) {
+        break;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    if (names.length === 0) {
+      console.warn(
+        `Seed baseline: no seeded player saves under ${playersDir} — ` +
+        'per-file account reset is DISABLED for this run.'
+      );
+      return;
+    }
+
+    const baselineDir = path.join(this.config.tmpDir, 'seed-baseline');
+    fs.rmSync(baselineDir, { recursive: true, force: true });
+    fs.mkdirSync(baselineDir, { recursive: true });
+    for (const name of names) {
+      fs.cpSync(path.join(playersDir, name), path.join(baselineDir, name), { recursive: true });
+    }
+
+    this.seedBaselineDir = baselineDir;
+    this.seedNames = names;
+    console.log(`Seed baseline captured for ${names.length} account(s): ${names.join(', ')}`);
+  }
+
+  // Wait until the save store stops changing. The disconnect-time save is
+  // fire-and-forget (GameLoopService kicks it off and moves on), so a write can
+  // still be in flight after the socket has closed; restoring on top of it
+  // would be clobbered a moment later.
+  async _waitForSaveQuiescence() {
+    const playersDir = this.playersDir;
+    const deadline = Date.now() + SAVE_QUIESCE_MS;
+    let previous = null;
+    let stable = 0;
+
+    while (Date.now() < deadline) {
+      const digest = dirDigest(playersDir);
+      if (digest === previous) {
+        stable++;
+        if (stable >= 2) {
+          return true;
+        }
+      } else {
+        stable = 0;
+        previous = digest;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return false;
+  }
+
+  async restoreSeedBaseline() {
+    if (!this.seedBaselineDir) {
+      return false;
+    }
+    await this._waitForSaveQuiescence();
+
+    for (const name of this.seedNames) {
+      const live = path.join(this.playersDir, name);
+      const pristine = path.join(this.seedBaselineDir, name);
+      fs.rmSync(live, { recursive: true, force: true });
+      fs.cpSync(pristine, live, { recursive: true });
+    }
+    return true;
   }
 
   async start() {
@@ -1549,6 +1805,12 @@ function printHelp() {
   console.log('  --delay N              EXTRA settle ms after each command (default 0; sync is');
   console.log('                          deterministic via a sentinel barrier, no sleeps needed).');
   console.log('  --all-packs            Discover scenarios from tests/scenarios/ plus packs/*/tests/.');
+  console.log('  --no-reset             Do NOT isolate scenario files from each other. By default a');
+  console.log('                          managed run restores every seeded player save to its pristine');
+  console.log('                          post-boot state before each file, and — only when the previous');
+  console.log('                          file authored something into the world — wipes rooms_path and');
+  console.log('                          restarts the server so in-process registries and caches go with');
+  console.log('                          it. Pass this only to reproduce a cross-file interaction on purpose.');
   console.log('  --clean                Delete old result files from the results/ dir before running.');
   console.log('  --json                 Print results as JSON to stdout instead of human-readable summary.');
   console.log('');
@@ -1600,6 +1862,7 @@ async function main() {
   const jsonOnly = flags.includes('--json');
   const managed = flags.includes('--managed');
   const clean = flags.includes('--clean');
+  const noReset = flags.includes('--no-reset');
   const configuration = getStringArg('--configuration', 'Debug');
   const adminPlayer = getStringArg('--admin-player', 'Gamemaster');
   const scenarioTimeoutS = getArg('--scenario-timeout', DEFAULT_SCENARIO_TIMEOUT_S);
@@ -1697,6 +1960,10 @@ async function main() {
       process.exit(1);
     }
     port = server.port;
+    // Snapshot the freshly seeded accounts and the untouched world before any
+    // scenario has had a chance to mutate either.
+    await server.captureSeedBaseline();
+    server.captureCleanWorld();
   } else {
     // Non-managed: prove the target server is alive before running anything.
     const probe = new TelnetClient('BootProbe', port);
@@ -1719,6 +1986,12 @@ async function main() {
   for (const file of files) {
     if (!jsonOnly) {
       console.log(`▶ ${path.relative(process.cwd(), file)}`);
+    }
+    // Every scenario file starts from the same pristine accounts and, if the
+    // file before it authored anything into the world, a clean world too.
+    if (server && !noReset) {
+      await server.resetWorldIfDirty();
+      await server.restoreSeedBaseline();
     }
     const fileResult = await runScenarioFile(file, defaultsDir || '', opts);
     allResults.push(fileResult);
@@ -1890,6 +2163,39 @@ function selfTest() {
   assert('counts zero packs when absent', countConfigPacks('server:\n  name: x\n') === 0);
   assert('counts packs across comment lines',
     countConfigPacks('packs:\n  - a\n  # comment\n  - b\n') === 2);
+
+  console.log('Seed-isolation self-tests:');
+
+  assert('parses quoted save_path',
+    parseSavePath('persistence:\n  save_path: "./data/saves"\n  autosave_interval: 3000\n') === './data/saves');
+  assert('parses unquoted save_path',
+    parseSavePath('persistence:\n  save_path: ./custom/store\n') === './custom/store');
+  assert('parses save_path with trailing comment',
+    parseSavePath('persistence:\n  save_path: ./s   # where saves go\n') === './s');
+  assert('falls back to the engine default when save_path is absent',
+    parseSavePath('persistence:\n  autosave_interval: 3000\n') === './data/saves');
+  assert('parses rooms_path',
+    parseRoomsPath('persistence:\n  rooms_path: "./data/areas"\n') === './data/areas');
+  assert('falls back to the engine default when rooms_path is absent',
+    parseRoomsPath('persistence:\n  save_path: ./data/saves\n') === './data/areas');
+  assert('save_path and rooms_path are distinct roots',
+    parseSavePath('persistence:\n  save_path: ./data/saves\n  rooms_path: ./data/areas\n')
+      !== parseRoomsPath('persistence:\n  save_path: ./data/saves\n  rooms_path: ./data/areas\n'));
+
+  const digestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tapestry-digest-'));
+  try {
+    assert('digest of an empty dir is empty', dirDigest(digestDir) === '');
+    assert('digest of a missing dir is empty', dirDigest(path.join(digestDir, 'nope')) === '');
+    fs.mkdirSync(path.join(digestDir, 'wanderer'));
+    fs.writeFileSync(path.join(digestDir, 'wanderer', 'player.yaml'), 'name: Wanderer\n');
+    const before = dirDigest(digestDir);
+    assert('digest sees a nested file', before.includes('wanderer/player.yaml'));
+    assert('digest is stable across repeat reads', dirDigest(digestDir) === before);
+    fs.writeFileSync(path.join(digestDir, 'wanderer', 'player.yaml'), 'name: Wanderer\nlevel: 50\n');
+    assert('digest changes when a file changes', dirDigest(digestDir) !== before);
+  } finally {
+    fs.rmSync(digestDir, { recursive: true, force: true });
+  }
 
   console.log(`\n${passed} passed, ${failed} failed`);
   return failed === 0;

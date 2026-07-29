@@ -36,6 +36,20 @@ telemetry:
     slow_tick_threshold_ms: 50
     tag: admin
 
+# Link-dead reconnect is a production affordance and a test-isolation hazard.
+# The scenario runner ends a scenario by closing its sockets; an abrupt close is
+# not an intentional quit, so with link-dead ON the engine parks the session and
+# keeps the character entity live in the world for link_dead.timeout_seconds.
+# The next scenario file logging in under the same name then RECONNECTS to that
+# entity instead of loading the save, inheriting everything the previous file
+# did to it. The runner quits cleanly where it can, but a scenario that ends
+# inside an interactive flow has its `quit` swallowed by the flow, so the
+# guarantee has to come from the server side: with this off, every disconnect —
+# clean or abrupt — is a full teardown that saves and unloads the character.
+# No scenario exercises link-dead reconnect; production config is unaffected.
+link_dead:
+  enabled: false
+
 persistence:
   save_path: "./data/saves"
   autosave_interval: 3000
