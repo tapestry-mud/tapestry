@@ -540,9 +540,11 @@ public class GameLoopTests
 
         loop.Tick();
 
-        // restMultiplier = RestingMultiplier (2.0) + room rest_bonus (1) = 3.0
-        // regen_hp 5 * 3.0 = 15 -> Hp = 50 + 15 = 65
-        entity.Stats.Hp.Should().Be(65);
+        // restMultiplier = RestingMultiplier (4.0) + room rest_bonus (1) = 5.0
+        // regen_hp 5 * 5.0 = 25 -> Hp = 50 + 25 = 75
+        // The point of this test is that a room bonus is ADDED to the multiplier,
+        // not multiplied by it; the constant moving is incidental to that.
+        entity.Stats.Hp.Should().Be(75);
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

@@ -1,6 +1,6 @@
 ---
 capability: rest-and-recovery
-last-updated: 2026-07-04
+last-updated: 2026-08-01
 ---
 
 # Rest and Recovery
@@ -44,8 +44,14 @@ and is wired by `TickHandlerModule`. Rest multipliers, furniture bonuses, and ro
 ### RestConfig and multipliers
 
 - **[RestConfig.Multipliers]** The base regen multiplier per state is:
-  `awake` -> 1.0 (fixed), `resting` -> 2.0 (default), `sleeping` -> 3.0 (default).
+  `awake` -> 1.0 (fixed), `resting` -> 4.0 (default), `sleeping` -> 6.0 (default).
   The resting and sleeping values are configurable via `RestConfig.Configure`.
+  Raised from 2.0/3.0 on 2026-08-01: recovery downtime is dead time, and at the
+  old rates a level-1 player needed roughly twice as long asleep as the boss
+  engagement that emptied them had lasted. The gap between the two also used to
+  be load-bearing in a way a multiplier should not be - against a regenerating
+  boss, `rest` versus `sleep` was the difference between a winnable fight and a
+  stalled one, hiding a win/lose threshold behind which verb the player typed.
   (src/Tapestry.Engine/Rest/RestConfig.cs)
 
 - **[RestConfig.RoomBonus]** If an entity has a location, the room's `rest_bonus`
