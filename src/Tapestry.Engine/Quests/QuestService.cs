@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using Tapestry.Engine.Ui;
 using Tapestry.Engine.Progression;
 using Tapestry.Shared;
 
@@ -25,6 +25,7 @@ public class QuestService
     private readonly IQuestScriptLoader? _scriptLoader;
     private readonly IQuestRewardDispatcher _rewards;
     private readonly IQuestPersistence _persistence;
+    private readonly PanelRenderer _panelRenderer;
 
     // Tracks player entities by ID so AdvanceObjective/AbandonQuest can resolve them.
     private readonly Dictionary<Guid, Entity> _playerCache = new();
@@ -36,7 +37,8 @@ public class QuestService
         QuestConfig config,
         IQuestScriptLoader? scriptLoader,
         IQuestRewardDispatcher rewards,
-        IQuestPersistence persistence)
+        IQuestPersistence persistence,
+        PanelRenderer? panelRenderer = null)
     {
         _registry = registry;
         _stateRepo = stateRepo;
@@ -45,6 +47,7 @@ public class QuestService
         _scriptLoader = scriptLoader;
         _rewards = rewards;
         _persistence = persistence;
+        _panelRenderer = panelRenderer ?? new PanelRenderer();
     }
 
     public AcceptQuestResult AcceptQuest(Entity player, string questId, bool silent = false)
@@ -360,69 +363,84 @@ public class QuestService
     private string GetPlayerName(Guid playerId) =>
         _playerCache.TryGetValue(playerId, out var entity) ? entity.Name : playerId.ToString();
 
-    private static string BuildBanner(QuestDefinition quest, ActiveQuest active)
+    private string BuildBanner(QuestDefinition quest, ActiveQuest active)
     {
-        const int Width = 46;
-        var inner = Width - 4;
+        const int width = 46;
+        var stage = quest.Stages.ElementAtOrDefault(active.StageIndex);
+        var bodyRows = new List<Row>();
 
-        var lines = new List<string>();
-        lines.Add("+" + new string('-', Width - 2) + "+");
-
-        var titleLeft = "New Quest: " + quest.Name;
-        var typeStr = quest.Type ?? "side";
-        var titleWidth = inner - 8;
-        var typeFormatted = typeStr.PadLeft(6);
-        var titleLine = "| " + titleLeft.PadRight(titleWidth) + " (" + typeFormatted + ") |";
-        lines.Add(titleLine);
-        lines.Add("|" + new string(' ', Width - 2) + "|");
-
-        var stage = quest.Stages?.ElementAtOrDefault(active.StageIndex);
-        if (!string.IsNullOrEmpty(stage?.Description))
+        if (!string.IsNullOrWhiteSpace(stage?.Description))
         {
-            foreach (var line in WordWrap(stage.Description, inner))
+            bodyRows.Add(new TextRow
             {
-                lines.Add("| " + line.PadRight(inner) + " |");
-            }
-            lines.Add("|" + new string(' ', Width - 2) + "|");
+                Content = $" {stage.Description}",
+                Wrap = true,
+            });
         }
 
-        foreach (var obj in active.Objectives)
+        foreach (var objective in active.Objectives)
         {
-            var objDef = stage?.Objectives.FirstOrDefault(o => o.Id == obj.ObjectiveId);
-            var desc = objDef?.Description ?? obj.ObjectiveId;
-            var progress = $"[{obj.Current}/{obj.Required}]";
-            var descWidth = inner - progress.Length - 1;
-            lines.Add("| " + desc.PadRight(descWidth) + " " + progress + " |");
-        }
+            var objectiveDefinition = stage?.Objectives
+                .FirstOrDefault(o => o.Id == objective.ObjectiveId);
 
-        lines.Add("|" + new string(' ', Width - 2) + "|");
-        var footerText = "Type 'quests' to track progress.";
-        lines.Add("| " + footerText.PadRight(inner) + " |");
-        lines.Add("+" + new string('-', Width - 2) + "+");
+            var description = objectiveDefinition?.Description ?? objective.ObjectiveId;
+            var progress = $"[{objective.Current}/{objective.Required}]";
 
-        return "\r\n" + string.Join("\r\n", lines) + "\r\n";
-    }
-
-    private static IEnumerable<string> WordWrap(string text, int width)
-    {
-        var words = text.Split(' ');
-        var current = new StringBuilder();
-        foreach (var word in words)
-        {
-            if (current.Length + word.Length + 1 > width && current.Length > 0)
+            bodyRows.Add(new CellRow
             {
-                yield return current.ToString();
-                current.Clear();
-            }
-            if (current.Length > 0)
-            {
-                current.Append(' ');
-            }
-            current.Append(word);
+                Cells =
+                [
+                    new Cell
+                    {
+                        Content = $" {description}",
+                        Width = CellWidth.Fill,
+                    },
+                    new Cell
+                    {
+                        Content = $"{progress} ",
+                        Width = CellWidth.Fixed(progress.Length + 1),
+                        Align = Align.Right,
+                    },
+                ],
+            });
         }
-        if (current.Length > 0)
+
+        var panel = new Panel
         {
-            yield return current.ToString();
-        }
+            Width = width,
+            Sections =
+            [
+                new Section
+                {
+                    SeparatorAbove = RuleStyle.None,
+                    Rows =
+                    [
+                        new TitleRow
+                        {
+                            Left = $"New Quest: {quest.Name}",
+                            Right = quest.Type,
+                        },
+                    ],
+                },
+                new Section
+                {
+                    SeparatorAbove = RuleStyle.Minor,
+                    Rows = bodyRows,
+                },
+                new Section
+                {
+                    SeparatorAbove = RuleStyle.Major,
+                    Rows =
+                    [
+                        new FooterRow
+                        {
+                            Content = "Type 'quests' to track progress.",
+                        },
+                    ],
+                },
+            ],
+        };
+
+        return "\r\n" + _panelRenderer.Render(panel) + "\r\n";
     }
 }

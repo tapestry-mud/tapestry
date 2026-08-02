@@ -91,7 +91,7 @@ character save layout (see persistence.md).
   includes a `bannerText` field unless the quest is `secret`, the call was
   `silent: true`, or the script's `onGranted` hook returned true.
   (QuestService.cs:106;
-  QuestServiceTests.cs:AcceptQuest_IncludesBannerText_InQuestStartedEvent_WhenNotSecret,
+  QuestServiceTests.cs:AcceptQuest_BannerText_UsesPanelRenderer_WhenNotSecret,
   AcceptQuest_NoBannerText_InEvent_WhenSilent,
   AcceptQuest_NoBannerText_InEvent_WhenQuestIsSecret,
   AcceptQuest_NoBannerText_InEvent_WhenScriptOnGrantedReturnsTrue)
@@ -99,9 +99,11 @@ character save layout (see persistence.md).
 - State is persisted immediately after every successful accept.
   (QuestService.cs:134; QuestServiceTests.cs:AcceptQuest_SavesQuestState)
 
-- The banner is a fixed-width 46-character box showing quest name, type,
-  the current stage description (word-wrapped), and per-objective progress
-  counters. (QuestService.cs:363)
+- The banner is a fixed-width 46-character panel rendered by `PanelRenderer`.
+  It shows the quest name, type, current stage description, per-objective
+  progress counters, and tracking footer.
+  (QuestService.cs:363;
+  QuestServiceTests.cs:AcceptQuest_BannerText_UsesPanelRenderer_WhenNotSecret)
 
 ### Objective Advancement
 
@@ -120,6 +122,13 @@ character save layout (see persistence.md).
   dispatched, the `onCompleted` hook fires, `quest.completed` is published,
   and state is persisted.
   (QuestService.cs:292; QuestServiceTests.cs:AdvanceObjective_CompletesQuest_WhenAllObjectivesMet)
+
+- `QuestHandler` renders stage-advanced and quest-completed announcements
+  through `PanelRenderer`. Stage panels include the stage description;
+  completion panels include XP, gold, and class-unlock rewards when present.
+  (QuestHandler.cs;
+  QuestHandlerTests.cs:StageAdvanced_NotificationUsesPanelRenderer,
+  QuestHandlerTests.cs:Completed_NotificationUsesPanelRenderer)
 
 - `AdvanceMatchingObjectives(playerId, objectiveType, predicate)` fans out
   across all active quests in the current stage, advancing any objective

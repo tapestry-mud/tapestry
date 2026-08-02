@@ -244,7 +244,7 @@ public class QuestServiceTests
     // --- New tests for Task 5 ---
 
     [Fact]
-    public void AcceptQuest_IncludesBannerText_InQuestStartedEvent_WhenNotSecret()
+    public void AcceptQuest_BannerText_UsesPanelRenderer_WhenNotSecret()
     {
         var quest = MakeKillQuest();
         var (service, _, bus, player, _, _, _) = SetupFull(quest);
@@ -255,8 +255,14 @@ public class QuestServiceTests
         service.AcceptQuest(player, quest.Id);
 
         startedEvent.Should().NotBeNull();
-        startedEvent!.Data.ContainsKey("bannerText").Should().BeTrue();
-        startedEvent.Data["bannerText"]?.ToString().Should().Contain(quest.Name);
+        startedEvent!.Data.Should().ContainKey("bannerText");
+
+        var banner = startedEvent.Data["bannerText"]?.ToString();
+        banner.Should().NotBeNull();
+        banner.Should().Contain(quest.Name);
+        banner.Should().Contain("<frame>|");
+        banner.Should().Contain("<title>");
+        banner.Should().NotContain("\r\n+");
     }
 
     [Fact]
