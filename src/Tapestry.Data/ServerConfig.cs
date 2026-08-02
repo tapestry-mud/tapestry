@@ -238,6 +238,17 @@ public class WatchSection
 // after that many cap violations, until reboot.
 public class MobAiSection
 {
+    /// <summary>
+    /// Whether mobs run movement behaviors (wander, patrol). True in a real game. Set false
+    /// by the telnet scenario harness (server.test.yaml): wander picks a random exit on a
+    /// random roll and patrol advances on a timer, so a mob can leave the room between the
+    /// command that finds it and the command that acts on it, and an arrive/leave line can
+    /// land in the middle of output a scenario is reading. The `no_wander` tag cannot
+    /// substitute: it gates the DESTINATION, so it stops mobs entering a room and never stops
+    /// the occupant leaving.
+    /// </summary>
+    public bool MovementEnabled { get; set; } = true;
+
     public int TickBudgetMs { get; set; } = 25;
     public int InvocationCapMs { get; set; } = 50;
     public int QuarantineStrikes { get; set; } = 3;

@@ -49,6 +49,13 @@ public class MobsModule : IJintApiModule
     {
         return new
         {
+            // False in the scenario harness. A behavior that moves a mob on an unseeded roll
+            // (wander) or on a timer (patrol) is unreproducible by construction, and an
+            // end-to-end scenario asserting on a specific mob races it on every command.
+            // Behaviors consult this rather than the engine skipping them, so a pack stays the
+            // owner of what its movement behaviors mean.
+            movementEnabled = new Func<bool>(() => _config.MobAi.MovementEnabled),
+
             registerBehavior = new Action<string, JsValue, JsValue>((name, handler, optionsJs) =>
             {
                 var packName = engine.CurrentPackOwner();

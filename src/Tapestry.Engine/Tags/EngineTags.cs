@@ -39,6 +39,10 @@ public static class EngineTags
         registry.RegisterEngineTag(Linkdead, "Player session has lost its connection and is pending timeout", new[] { EntityTypes.Player });
         registry.RegisterEngineTag(FillSource, "Provides liquid for filling fillable containers", new[] { EntityTypes.Item });
         registry.RegisterEngineTag(Persistent, "Respawns immediately on death or removal", new[] { EntityTypes.Npc });
+        // Room-scoped by design: it gates the DESTINATION, so mobs will not wander or flee
+        // into a tagged room. It is deliberately not an NPC tag -- a mob that should hold
+        // ground already has `behavior: stationary`, and a second mechanism for the same
+        // thing would just be two places to look.
         registry.RegisterEngineTag(NoWander, "Mobs will not wander or flee into this room", new[] { EntityTypes.Room });
     }
 }

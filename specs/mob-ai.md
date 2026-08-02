@@ -1,6 +1,6 @@
 ---
 capability: mob-ai
-last-updated: 2026-07-27
+last-updated: 2026-08-02
 ---
 
 # Mob AI
@@ -97,6 +97,18 @@ combat-resolution.md).
   apply it without a `tags.yml` entry. Combat's `AttemptFlee` also honors it as a
   preferred-avoid signal for flee destinations (see combat-resolution.md).
   (src/Tapestry.Engine/Tags/EngineTags.cs)
+- `no_wander` is ROOM-scoped and gates the DESTINATION: it stops mobs wandering or fleeing
+  INTO a tagged room, and never stops the mob already standing in one from leaving. Holding
+  a specific mob in place is `behavior: stationary`, not a tag; there is deliberately no
+  NPC-scoped `no_wander`. (src/Tapestry.Engine/Tags/EngineTags.cs:43-48)
+- Whether mobs may relocate at all is `mob_ai.movement_enabled` (default true), surfaced to
+  packs as `tapestry.mobs.movementEnabled()`. Movement behaviors consult it and return
+  early when false; the engine does not skip behaviors itself, so a pack keeps ownership of
+  what its own movement means. `server.test.yaml` sets it false: wander's two unseeded rolls
+  and patrol's arbitrary phase both relocate mobs underneath a running end-to-end scenario,
+  which is unreproducible by construction.
+  (src/Tapestry.Data/ServerConfig.cs:426-437;
+  src/Tapestry.Scripting/Modules/MobsModule.cs:52-57; server.test.yaml)
 - **patrol** -- follows an ordered `patrol_route` room-ID list, bouncing direction at
   each end. Waits `patrol_interval` (default 30) and rolls `patrol_chance` (default 0.5).
   State persisted as `_patrol_index` / `_patrol_direction` entity properties.
@@ -217,5 +229,6 @@ combat-resolution.md).
   53b4b28 further hardened disposition by adding the admin exemption.
 
 ## Change Log
+- 2026-08-02 [deterministic-scenario-mob-movement](changes/2026-08-02-deterministic-scenario-mob-movement.md) - `mob_ai.movement_enabled` (default true, false in server.test.yaml) gates whether mobs relocate; exposed to packs as `tapestry.mobs.movementEnabled()` so wander/patrol hold still for the end-to-end suite
 - 2026-07-27 [flee-avoids-no-wander](changes/2026-07-27-flee-avoids-no-wander.md) - `CombatManager.AttemptFlee` now prefers exits whose destination room isn't tagged `no_wander` (falls back to the unfiltered exit list if every exit leads to one)
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - the mob-AI flee path routes through CombatManager.ShouldFlee reading wimpy_pct

@@ -67,3 +67,17 @@ training:
 economy:
   shop_buy_markup: 1.2
   shop_sell_discount: 0.5
+
+# Scenarios are end-to-end coverage for what unit and functional tests cannot reach, so
+# they must be 100% reproducible. Wander is not: it moves a mob on an unseeded roll to a
+# randomly chosen exit, so a mob can leave between the command that finds it and the
+# command that acts on it. That made a different scenario fail almost every run --
+# `kill tandoor` after `tandoor beast leaves north`, an hp assert on a mob already gone.
+# The `no_wander` room tag cannot substitute: it gates the destination, so it stops mobs
+# entering a room and never stops the occupant leaving.
+#
+# A mob that should never move in the first place has `behavior: stationary` already; this
+# switch is for the mobs a scenario does not author -- oracle-minted trash it walks up to
+# and has to act on across several commands.
+mob_ai:
+  movement_enabled: false

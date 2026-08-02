@@ -351,6 +351,11 @@ declare module "@tapestry/engine" {
     invokeHook(...args: any[]): any;
     recordAction(...args: any[]): any;
     spawnMob(...args: any[]): any;
+    /** Whether the host has mob movement enabled (`mob_ai.movement_enabled`). False in the
+     *  telnet scenario harness, where an unseeded or timer-driven move would make assertions
+     *  about which mob is in which room unreproducible. Any behavior that relocates a mob
+     *  should consult this. */
+    movementEnabled(): boolean;
     [key: string]: any;
   };
 
