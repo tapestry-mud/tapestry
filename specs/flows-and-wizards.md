@@ -1,6 +1,6 @@
 ---
 capability: flows-and-wizards
-last-updated: 2026-07-22
+last-updated: 2026-08-02
 ---
 
 # Flows and Wizards
@@ -185,10 +185,28 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:259-278)
   saving. If the name was taken between reservation and commit, the player
   is disconnected with an explanatory message.
   (src/Tapestry.Engine/Flow/FlowEngine.cs:197-244)
+- `FinalizeCreating` places the new character in `entity.LocationRoomId` when
+  set, otherwise `DefaultSpawnRoomId`, falling back to the first room in the
+  world if neither resolves.
+  (src/Tapestry.Engine/Flow/FlowEngine.cs:220-224)
+- `DefaultSpawnRoomId` is set from `game.spawn_room` at boot, so a world pack
+  owns where its brand-new characters wake up. Left unconfigured it is
+  `tapestry-core:recall`, the engine's own starting room, whose description
+  addresses pack authors rather than players.
+  (src/Tapestry.Server/Modules/ConfigurationModule.cs:60;
+  src/Tapestry.Data/ServerConfig.cs:112-118)
+- A test confirms a configured spawn room wins over the core fallback even when
+  both rooms exist.
+  (tests/Tapestry.Engine.Tests/Flow/FlowEngineTests.cs:161-182)
 - On successful creation the engine publishes a `character.created` event,
   cancels the pre-login timeout, transitions the session to `Playing`, and
   enqueues `motd` and `look`.
   (src/Tapestry.Engine/Flow/FlowEngine.cs:226-243)
+- That publish fans out to pack script, so the callers that reach
+  `FinalizeCreating` from a login thread post their `Trigger` through
+  `GameLoop.Schedule` rather than calling it inline.
+  (src/Tapestry.Server/Login/LoginFlow.cs:437-450;
+  src/Tapestry.Server/PlayerSpawner.cs:198-213)
 - `FlowEngine.Restart(session, reason)` replaces the session's entity with a
   fresh one (via `NewPlayerEntityFactory` if set, otherwise `new Entity`),
   updates the session manager's entity-ID index, removes the old entity from
@@ -253,5 +271,7 @@ src/Tapestry.Engine/Flow/FlowInstance.cs:259-278)
 
 ## Change Log
 
+- 2026-08-02 [configurable-spawn-room](changes/2026-08-02-configurable-spawn-room.md) - FlowEngine.DefaultSpawnRoomId is now set from game.spawn_room instead of being a property nothing assigned, so a world pack owns where its brand-new characters wake up
+- 2026-08-02 [login-game-entry-on-loop](changes/2026-08-02-login-game-entry-on-loop.md) - the login-thread callers that reach FinalizeCreating post their trigger through GameLoop.Schedule, so the character.created publish and the script it dispatches run inside a tick
 - 2026-07-22 [player-save-hygiene](changes/2026-07-22-player-save-hygiene.md) - FlowInstance gains an IFlowScratch store exposed as entity.scratch.get/set/has; step callbacks and on_complete widen to receive scratch; flows.trigger takes an optional scratch seed and the area recommend-context reads edit_area from scratch
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - Flow registration attribution uses ScriptOwner.CurrentPackOwner/CurrentSourceFile (lexical active module) instead of __currentPack/__currentSource globals

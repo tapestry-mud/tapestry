@@ -223,6 +223,7 @@ public class ConnectionHandlerLoginPhaseTests
             connectionManager,
             loginHandler,
             spawner,
+            gameLoop,
             new Tapestry.Engine.Watch.WatchRegistry(),
             vitalsService);
 
@@ -249,11 +250,18 @@ public class ConnectionHandlerLoginPhaseTests
         return (serializer.ToSaveData(entity, account.Id, new List<Entity>()), account.Id);
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10000)
+    /// <summary>
+    /// Polls <paramref name="condition"/> while driving the game loop, because game entry is
+    /// posted to the loop rather than run on the login thread (GameLoopEntrySpawner). Without
+    /// a tick the scheduled commit never drains and nothing downstream of login ever happens
+    /// -- the same standstill a server whose loop had stopped would show.
+    /// </summary>
+    private static async Task WaitUntilAsync(GameLoop loop, Func<bool> condition, int timeoutMs = 10000)
     {
         var sw = Stopwatch.StartNew();
         while (!condition() && sw.ElapsedMilliseconds < timeoutMs)
         {
+            loop.Tick();
             await Task.Delay(10);
         }
     }
@@ -272,7 +280,7 @@ public class ConnectionHandlerLoginPhaseTests
         h.Store.Seed(saveData);
 
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
 
         h.GmcpHandler.Sent.Should().Contain(x => x.Package == "Char.Login.Phase");
         var namePhase = h.GmcpHandler.Sent.First(x => x.Package == "Char.Login.Phase");
@@ -287,11 +295,11 @@ public class ConnectionHandlerLoginPhaseTests
         h.Store.Seed(saveData);
 
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Alice");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "password"));
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().ContainSingle().Which.Payload.Should().BeEquivalentTo(new { phase = "password" });
@@ -305,20 +313,26 @@ public class ConnectionHandlerLoginPhaseTests
         h.Store.Seed(saveData);
 
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Alice");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Password:")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Password:")));
         await Task.Delay(100);
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("hunter2");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "playing"), 5000);
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "playing"), 5000);
 
+        // Every login phase frame after the password is "playing". Note there are two of
+        // them: CompleteLogin sends one, and TriggerPostLoginBurst leads the burst with
+        // another. That is pre-existing and idempotent for a client; this assertion used to
+        // read ContainSingle only because the harness never ticked the loop, so the burst
+        // (which the loop schedules) never ran. It runs now.
         var playingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")
             .ToList();
-        playingPhases.Should().ContainSingle()
-            .Which.Payload.Should().BeEquivalentTo(new { phase = "playing" });
+        playingPhases.Should().NotBeEmpty();
+        playingPhases.Should().OnlyContain(
+            x => x.Payload.GetType().GetProperty("phase")!.GetValue(x.Payload)!.ToString() == "playing");
 
         // playing phase must arrive before world data
         var playingIdx = h.GmcpHandler.Sent.IndexOf(
@@ -338,14 +352,14 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build(); // empty store = new player
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.GmcpHandler.Sent.Clear();
 
         h.Connection.SimulateInput("Newguy");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "email"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "email"));
 
         h.Connection.SimulateInput("newguy@test.com");
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "password"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "password"));
 
         var phases = h.GmcpHandler.Sent.Where(x => x.Package == "Char.Login.Phase").ToList();
         phases.Should().Contain(x => x.Payload.GetType().GetProperty("phase")!
@@ -357,17 +371,17 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Email")));
         h.Connection.SimulateInput("newguy@test.com");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("password")));
         h.Connection.SimulateInput("goodpassword");  // first password
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Confirm")));
 
         h.Connection.SentText.Clear();
         h.Connection.SimulateInput("differentpassword");  // confirm - mismatch
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("don't match")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("don't match")));
 
         h.Connection.SentText.Should().Contain(t => t.Contains("don't match"));
         h.Connection.IsConnected.Should().BeTrue();  // not yet disconnected
@@ -378,23 +392,23 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Email")));
         h.Connection.SimulateInput("newguy@test.com");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("password")));
 
         // fail 1: too short -- wait for re-prompt so flow is back at ReadLineAsync
         h.Connection.SimulateInput("ab");
-        await WaitUntilAsync(() => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 2);
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 2);
         // fail 2: enter valid length, then mismatch on confirm
         h.Connection.SimulateInput("goodpassword");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Confirm")));
         h.Connection.SimulateInput("wrongconfirm");
-        await WaitUntilAsync(() => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 3);
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Count(t => t.Contains("Choose a password")) >= 3);
         // fail 3: too short again
         h.Connection.SimulateInput("ab");
-        await WaitUntilAsync(() => !h.Connection.IsConnected);
+        await WaitUntilAsync(h.GameLoop, () => !h.Connection.IsConnected);
 
         h.Connection.IsConnected.Should().BeFalse();
         h.Connection.SentText.Should().Contain(t => t.Contains("Too many"));
@@ -405,17 +419,17 @@ public class ConnectionHandlerLoginPhaseTests
     {
         var h = Build();
         h.Handler.HandleNewConnection(h.Connection, h.GmcpHandler);
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "name"));
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "name"));
         h.Connection.SimulateInput("Newguy");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Email")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Email")));
         h.Connection.SimulateInput("newguy@test.com");
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("password")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("password")));
 
         h.GmcpHandler.Sent.Clear();
         h.Connection.SimulateInput("goodpassword");   // first password
-        await WaitUntilAsync(() => h.Connection.SentText.Any(t => t.Contains("Confirm")));
+        await WaitUntilAsync(h.GameLoop, () => h.Connection.SentText.Any(t => t.Contains("Confirm")));
         h.Connection.SimulateInput("goodpassword");   // confirm
-        await WaitUntilAsync(() => HasPhase(h.GmcpHandler, "creating"), 3000);
+        await WaitUntilAsync(h.GameLoop, () => HasPhase(h.GmcpHandler, "creating"), 3000);
 
         var creatingPhases = h.GmcpHandler.Sent
             .Where(x => x.Package == "Char.Login.Phase")

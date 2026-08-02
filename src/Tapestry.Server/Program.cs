@@ -652,7 +652,12 @@ app.MapFallback(async context =>
                         var adapter = new AsyncConnectionAdapter(colorConn);
                         var confirmer = new InteractiveTakeoverConfirmer(
                             adapter, loginContext, loginHandlerGmcp, takeoverTimeout);
-                        var resolver = new GameEntryResolver(sessionMgr, spawner, config);
+                        // Same loop barrier the telnet path uses: this resolve runs on a
+                        // thread-pool thread (Task.Run below), so the commit it elects must
+                        // be posted to the game loop rather than executed here.
+                        var entrySpawner = new GameLoopEntrySpawner(
+                            spawner, context.RequestServices.GetRequiredService<GameLoop>());
+                        var resolver = new GameEntryResolver(sessionMgr, entrySpawner, config);
 
                         _ = Task.Run(async () =>
                         {

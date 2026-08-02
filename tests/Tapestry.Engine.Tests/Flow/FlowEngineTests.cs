@@ -158,6 +158,29 @@ public class FlowEngineTests
     }
 
     [Fact]
+    public void Creating_phase_honours_the_configured_spawn_room()
+    {
+        // A world pack owns where its players wake up. Left unconfigured this falls back to
+        // tapestry-core:recall -- the engine-builder Nexus, whose description addresses pack
+        // authors rather than players -- so a game with its own opening room must be able to
+        // name it and never render that fallback at all.
+        var (engine, registry, sessions, world, _) = CreateEngine();
+        registry.Register(MakeFlow());
+        var session = MakeCreatingSession(world, sessions);
+
+        world.AddRoom(new Room("tapestry-core:recall", "The Nexus", "A blank slate."));
+        var hub = new Room("game:hub-entry", "Waystone Hall", "The hub.");
+        world.AddRoom(hub);
+        engine.DefaultSpawnRoomId = "game:hub-entry";
+
+        engine.Trigger(session, "new_player_connect");
+        session.CurrentFlow!.HandleInput("1");
+
+        hub.Entities.Should().Contain(session.PlayerEntity);
+        world.GetRoom("tapestry-core:recall")!.Entities.Should().NotContain(session.PlayerEntity);
+    }
+
+    [Fact]
     public void Complete_creating_phase_enqueues_motd_and_look()
     {
         var (engine, registry, sessions, world, _) = CreateEngine();

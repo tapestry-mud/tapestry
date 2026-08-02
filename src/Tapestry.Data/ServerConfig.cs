@@ -275,6 +275,14 @@ public class IdleSection
 
 public class GameSection
 {
+    /// <summary>
+    /// Room a character wakes up in when they have no saved location (a brand-new character),
+    /// and the fallback when a saved location no longer exists. A world pack sets this to its
+    /// own opening room; left unset it is the core recall room, whose copy addresses engine
+    /// builders rather than players.
+    /// </summary>
+    public string SpawnRoom { get; set; } = "tapestry-core:recall";
+
     public int TicksPerGameHour { get; set; } = 600;
     public int[] PeriodBoundaries { get; set; } = [5, 8, 18, 20]; // dawn, day, dusk, night
     public float DefaultOccupiedModifier { get; set; } = 3.0f;

@@ -1,6 +1,6 @@
 ---
 capability: world-entity-store
-last-updated: 2026-07-22
+last-updated: 2026-08-02
 ---
 
 # World Entity Store
@@ -58,7 +58,9 @@ teardown path: rooms must never be removed out from under a connected player.
 - Each move publishes a `player.moved` event carrying `old_room_id` and `new_room_id`, so GMCP
   room updates, quest watchers, and disposition evaluation all see the relocation.
 - A player who is OFFLINE and saved inside the area needs no handling: `PlayerSpawner` already
-  falls back to the recall room when a saved room no longer exists.
+  falls back to the recall room when a saved room no longer exists. That fallback reads
+  `game.spawn_room` rather than a hardcoded id, so it lands in the world's own opening room
+  and agrees with the chargen path. (src/Tapestry.Server/PlayerSpawner.cs:16-21, 83-85)
 
 The recall-room id is a caller parameter, not engine knowledge. `DefaultRecallRoomId` on the
 module is a documented fallback that mirrors `FlowEngine.DefaultSpawnRoomId`.
@@ -206,5 +208,6 @@ module is a documented fallback that mirrors `FlowEngine.DefaultSpawnRoomId`.
 - None on record.
 
 ## Change Log
+- 2026-08-02 [configurable-spawn-room](changes/2026-08-02-configurable-spawn-room.md) - PlayerSpawner's saved-room-gone fallback reads game.spawn_room instead of a private constant, so it agrees with FlowEngine.DefaultSpawnRoomId on one answer
 - 2026-07-22 [solo-area-lifecycle-naming](changes/2026-07-22-solo-area-lifecycle-naming.md) - `WorldAuthoringModule.EvacuateArea` moves players to a recall room before their rooms are removed, returning `-1` (abort signal) when a player is present and the recall room is missing; each move publishes `player.moved`
 - 2026-07-03 [vocabulary-consolidation](changes/2026-07-03-vocabulary-consolidation.md) - engine-read tags gain a single declaration site so a mistyped tag fails resolution instead of silently never matching

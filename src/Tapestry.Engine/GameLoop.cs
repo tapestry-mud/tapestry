@@ -135,6 +135,22 @@ public class GameLoop
 
     public void Tick()
     {
+        // Mark the tick span so anything that dispatches pack script can tell whether it is
+        // running on the loop. Tick is synchronous, so this is exact even though RunAsync
+        // resumes on a different pool thread each time. See LoopAffinity.
+        LoopAffinity.BeginTick();
+        try
+        {
+            TickCore();
+        }
+        finally
+        {
+            LoopAffinity.EndTick();
+        }
+    }
+
+    private void TickCore()
+    {
         _tickCount++;
         using var tickActivity = TapestryTracing.Source.StartActivity("GameLoop.Tick");
         tickActivity?.SetTag("tick.number", _tickCount);

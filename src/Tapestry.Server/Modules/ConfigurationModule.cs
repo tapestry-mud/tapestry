@@ -7,6 +7,7 @@ using Tapestry.Engine.Combat;
 using Tapestry.Engine.Consumables;
 using Tapestry.Engine.Containers;
 using Tapestry.Engine.Economy;
+using Tapestry.Engine.Flow;
 using Tapestry.Engine.Inventory;
 using Tapestry.Engine.Items;
 using Tapestry.Engine.Mobs;
@@ -25,6 +26,7 @@ public class ConfigurationModule : IGameModule
     private readonly EconomyConfig _economyConfig;
     private readonly PropertyRegistry _propertyRegistry;
     private readonly TagRegistry _tagRegistry;
+    private readonly FlowEngine _flowEngine;
 
     public string Name => "Configuration";
 
@@ -33,13 +35,15 @@ public class ConfigurationModule : IGameModule
         TrainingConfig trainingConfig,
         EconomyConfig economyConfig,
         PropertyRegistry propertyRegistry,
-        TagRegistry tagRegistry)
+        TagRegistry tagRegistry,
+        FlowEngine flowEngine)
     {
         _config = config;
         _trainingConfig = trainingConfig;
         _economyConfig = economyConfig;
         _propertyRegistry = propertyRegistry;
         _tagRegistry = tagRegistry;
+        _flowEngine = flowEngine;
     }
 
     public void Configure()
@@ -48,6 +52,12 @@ public class ConfigurationModule : IGameModule
             _config.Training.RequireSafeRoomForStats,
             _config.Training.TrainableStats,
             _config.Training.CatchUpBoost);
+
+        // Where a brand-new character wakes up. Unset, this is the core recall room, whose
+        // description is written to engine builders ("use the `link` command..."), so a world
+        // that ships its own opening room must claim this or every fresh player reads that
+        // copy before anything else.
+        _flowEngine.DefaultSpawnRoomId = _config.Game.SpawnRoom;
 
         _economyConfig.Configure(
             _config.Economy.ShopBuyMarkup,

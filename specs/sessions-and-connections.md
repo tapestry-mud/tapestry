@@ -1,6 +1,6 @@
 ---
 capability: sessions-and-connections
-last-updated: 2026-06-13
+last-updated: 2026-08-02
 ---
 
 # Sessions and Connections
@@ -163,6 +163,35 @@ bad-input tracking.
   `finally` (src/Tapestry.Networking/TelnetServer.cs;
   src/Tapestry.Server/Program.cs). Per-IP caps are out of scope.
 
+### Game entry runs on the game loop
+
+- The login sequence runs off the loop: telnet dispatches `LoginFlow.RunAsync`
+  with `Task.Run`, and the web pre-auth path does the same around
+  `GameEntryResolver.ResolveAsync` (src/Tapestry.Server/ConnectionHandler.cs:111;
+  src/Tapestry.Server/Program.cs:660).
+- Committing a character into the world mutates the World and publishes events
+  that fan out to pack script, so it must not run there. `GameLoopEntrySpawner`
+  wraps the real spawner and posts `RestoreWorldObjects`, `CompleteLogin`,
+  `TakeOverSession` and `ReconnectLinkDead` through `GameLoop.Schedule`.
+  (src/Tapestry.Server/GameEntry/GameLoopEntrySpawner.cs:23-52)
+- `Schedule` is FIFO, so a caller issuing several commits in order keeps that
+  order on the loop - the resolver restores a player's world objects immediately
+  before completing the login that owns them.
+  (src/Tapestry.Engine/GameLoop.cs:62-65;
+  src/Tapestry.Server/GameEntry/GameEntryResolver.cs:65-66)
+- Both resolver construction sites pass the wrapped spawner, so telnet and web
+  share one barrier (src/Tapestry.Server/ConnectionHandler.cs:79;
+  src/Tapestry.Server/Program.cs:655-659).
+- The two chargen paths post the same way: `LoginFlow`'s new-character branch
+  schedules its `new_player_connect` trigger, and
+  `PlayerSpawner.CompleteNewCharacter` schedules its whole body -- which defers
+  everything downstream, including the `character.created` publish.
+  (src/Tapestry.Server/Login/LoginFlow.cs:437-450;
+  src/Tapestry.Server/PlayerSpawner.cs:198-213)
+- Tests confirm each entry point is not executed by the caller and only runs
+  once the loop ticks, and that restore precedes the login it accompanies.
+  (tests/Tapestry.Server.Tests/GameEntry/GameLoopEntrySpawnerTests.cs:41-110)
+
 ### New-character teardown
 
 - A character created through the chargen flow is promoted to `Playing` in place
@@ -230,5 +259,6 @@ bad-input tracking.
 
 ## Change Log
 
+- 2026-08-02 [login-game-entry-on-loop](changes/2026-08-02-login-game-entry-on-loop.md) - GameLoopEntrySpawner posts every game-entry commit through GameLoop.Schedule, so login stops mutating the world and dispatching pack script from its own thread-pool thread
 - 2026-06-13 [new-character-teardown](changes/2026-06-13-new-character-teardown.md)
 - 2026-06-13 [auth-surface-hardening](changes/2026-06-13-auth-surface-hardening.md)

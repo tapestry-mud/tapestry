@@ -1,6 +1,6 @@
 ---
 capability: events
-last-updated: 2026-07-04
+last-updated: 2026-08-02
 ---
 
 # Events
@@ -86,6 +86,26 @@ once per game-loop tick, not on the publishing thread.
 - A test confirms: first handler sets `Cancelled = true` and then throws;
   second handler does NOT fire (cancellation is checked before each handler,
   not after exceptions). (tests/Tapestry.Engine.Tests/EventBusTests.cs:157-175)
+- Because `Publish` invokes handlers on the calling thread, and a pack handler
+  runs script in the process-wide `Jint.Engine` that has no synchronization of
+  its own, a publish is only safe on the game loop. `LoopAffinity` marks the
+  span of `GameLoop.Tick` with a thread-static flag; `Tick` is synchronous, so
+  the flag is exact even though `RunAsync` resumes on a different pool thread
+  each iteration. (src/Tapestry.Engine/LoopAffinity.cs:20-44,
+  src/Tapestry.Engine/GameLoop.cs:136-151)
+- The script event dispatcher checks that flag and logs an Error naming the
+  event type when it is invoked off the loop while the loop is running. It does
+  not redirect the call -- it only reports it, because the underlying failure
+  raises from inside Jint's own call machinery rather than from the pack.
+  An engine that has never ticked (unit tests, boot) does not trip it.
+  (src/Tapestry.Scripting/Modules/EventsModule.cs:75-88)
+- Publishers that run off the loop must post through `GameLoop.Schedule`, which
+  drains at the top of the next tick. Game entry does this for
+  `character.created`, `player.login` and `player.reconnect`.
+  (src/Tapestry.Server/GameEntry/GameLoopEntrySpawner.cs:23-52)
+- Tests confirm scheduled work reports itself as on-loop, the flag does not
+  leak past its tick, and a thread running concurrently with a tick does not
+  inherit it. (tests/Tapestry.Engine.Tests/LoopAffinityTests.cs:26-79)
 - Nested `Publish` calls (a handler publishes a new event) are safe because
   each `Publish` call captures its own snapshot array before iteration.
   (src/Tapestry.Engine/EventBus.cs:90; tests/Tapestry.Engine.Tests/EventBusTests.cs:179-195)
@@ -196,6 +216,7 @@ once per game-loop tick, not on the publishing thread.
 
 ## Change Log
 
+- 2026-08-02 [login-game-entry-on-loop](changes/2026-08-02-login-game-entry-on-loop.md) - script event dispatch is only safe inside a tick (one shared unsynchronized Jint engine); game entry now posts to GameLoop.Schedule instead of publishing on the login thread, and LoopAffinity makes an off-loop dispatch a named log line instead of a torn Jint call
 - 2026-07-04 [entity-state-mutation-broadcast](changes/2026-07-04-entity-state-mutation-broadcast.md) - two new engine topics: entity.vital.changed (VitalsService is the sole publisher) and entity.status.changed (EntityStatusBroadcaster on observable property writes)
 - 2026-06-19 [pack-script-esm](changes/2026-06-19-pack-script-esm.md) - events.on callback attribution is now lexical via GetActivePack (no __currentPack capture at registration)
 

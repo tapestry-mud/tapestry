@@ -26,6 +26,7 @@ public class LoginFlow
     private readonly WizlockState _wizlock;
     private readonly FlowEngine? _flowEngine;
     private readonly VitalsService _vitalsService;
+    private readonly GameLoop? _gameLoop;
     private readonly object _nameReservationLock = new();
 
     private const string NamePrompt = "Speak your name into the loom.";
@@ -45,7 +46,8 @@ public class LoginFlow
         TapestryMetrics metrics,
         WizlockState wizlock,
         VitalsService vitalsService,
-        FlowEngine? flowEngine = null)
+        FlowEngine? flowEngine = null,
+        GameLoop? gameLoop = null)
     {
         _adapter = adapter;
         _context = context;
@@ -60,9 +62,10 @@ public class LoginFlow
         _wizlock = wizlock;
         _vitalsService = vitalsService;
         _flowEngine = flowEngine;
+        _gameLoop = gameLoop;
     }
 
-    public async Task RunAsync(PlayerSpawner spawner)
+    public async Task RunAsync(IGameEntrySpawner spawner)
     {
         try
         {
@@ -86,7 +89,7 @@ public class LoginFlow
         }
     }
 
-    private async Task RunLoginSequenceAsync(PlayerSpawner spawner)
+    private async Task RunLoginSequenceAsync(IGameEntrySpawner spawner)
     {
         SetPhase(LoginPhase.Name);
 
@@ -136,7 +139,7 @@ public class LoginFlow
         }
     }
 
-    private async Task<bool> HandleExistingPlayerAsync(string name, PlayerSpawner spawner)
+    private async Task<bool> HandleExistingPlayerAsync(string name, IGameEntrySpawner spawner)
     {
         // Load before prompting: the save carries the character's roles, which
         // the wizlock check below needs before any password exchange.
@@ -223,7 +226,7 @@ public class LoginFlow
         }
     }
 
-    private async Task<bool> HandleNewPlayerAsync(string name, PlayerSpawner spawner)
+    private async Task<bool> HandleNewPlayerAsync(string name, IGameEntrySpawner spawner)
     {
         if (_loginGates != null)
         {
@@ -428,7 +431,21 @@ public class LoginFlow
         session.CancelPreLoginTimeout = () => _context.PhaseCts.Cancel();
 
         SetPhase(LoginPhase.Creating);
-        _flowEngine?.Trigger(session, "new_player_connect");
+
+        // Post to the game loop, never run here. This login sequence is on a thread-pool
+        // thread (ConnectionHandler dispatches RunAsync with Task.Run), and the flow this
+        // triggers ends in FinalizeCreating publishing character.created -- which fans out
+        // to pack scripts through the one shared Jint engine the loop is also using. See
+        // GameLoopEntrySpawner for the same barrier on the existing-character paths.
+        var startCreation = () => _flowEngine?.Trigger(session, "new_player_connect");
+        if (_gameLoop != null)
+        {
+            _gameLoop.Schedule(startCreation);
+        }
+        else
+        {
+            startCreation();
+        }
         return true;
     }
 

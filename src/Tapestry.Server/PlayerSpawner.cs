@@ -13,7 +13,12 @@ namespace Tapestry.Server;
 
 public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
 {
-    private static readonly string DefaultRecallRoom = "tapestry-core:recall";
+    /// <summary>
+    /// Where a returning character lands when their saved room no longer exists (a deleted
+    /// area, a renamed pack). Reads game.spawn_room so a world's own opening room is the
+    /// fallback rather than the core recall room's engine-builder copy.
+    /// </summary>
+    private string DefaultRecallRoom => _serverConfig.Game.SpawnRoom;
 
     private readonly SessionManager _sessions;
     private readonly World _world;
@@ -195,7 +200,23 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         _logger.LogInformation("Player {Name} reconnected after link-dead (entity {Id})", entity.Name, entity.Id);
     }
 
-    public PlayerSession CompleteNewCharacter(
+    /// <summary>
+    /// Web pre-auth equivalent of LoginFlow's new-character path. Posted to the game loop
+    /// for the same reason GameLoopEntrySpawner posts the other entry points: this reserves
+    /// a session and starts a chargen flow whose completion publishes character.created into
+    /// pack scripts, and script dispatch is only safe inside Tick.
+    /// </summary>
+    public void CompleteNewCharacter(
+        string name,
+        Guid accountId,
+        IConnection connection,
+        LoginContext preLogin,
+        FlowEngine? flowEngine)
+    {
+        _gameLoop.Schedule(() => CommitNewCharacter(name, accountId, connection, preLogin, flowEngine));
+    }
+
+    private void CommitNewCharacter(
         string name,
         Guid accountId,
         IConnection connection,
@@ -230,6 +251,5 @@ public class PlayerSpawner : Tapestry.Server.GameEntry.IGameEntrySpawner
         _logger.LogInformation("New player {Name} entering creation flow via pre-auth (entity {Id})", name, entity.Id);
 
         flowEngine?.Trigger(session, "new_player_connect");
-        return session;
     }
 }

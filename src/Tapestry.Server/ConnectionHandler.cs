@@ -7,6 +7,7 @@ using Tapestry.Engine.Flow;
 using Tapestry.Engine.Login;
 using Tapestry.Engine.Persistence;
 using Tapestry.Engine.Text;
+using Tapestry.Server.GameEntry;
 using Tapestry.Server.Gmcp.Handlers;
 using Tapestry.Engine.Watch;
 using Tapestry.Server.Login;
@@ -31,7 +32,8 @@ public class ConnectionHandler
     private readonly WizlockState _wizlock;
     private readonly IGmcpConnectionManager _connectionManager;
     private readonly LoginHandler _loginHandler;
-    private readonly PlayerSpawner _spawner;
+    private readonly IGameEntrySpawner _spawner;
+    private readonly GameLoop _gameLoop;
     private readonly WatchRegistry _watchRegistry;
     private readonly VitalsService _vitalsService;
 
@@ -52,6 +54,7 @@ public class ConnectionHandler
         IGmcpConnectionManager connectionManager,
         LoginHandler loginHandler,
         PlayerSpawner spawner,
+        GameLoop gameLoop,
         WatchRegistry watchRegistry,
         VitalsService vitalsService)
     {
@@ -70,7 +73,10 @@ public class ConnectionHandler
         _wizlock = wizlock;
         _connectionManager = connectionManager;
         _loginHandler = loginHandler;
-        _spawner = spawner;
+        // Every game-entry commit crosses the loop barrier; the login sequence below runs
+        // on a thread-pool thread and must not touch the world or dispatch scripts itself.
+        _gameLoop = gameLoop;
+        _spawner = new GameLoopEntrySpawner(spawner, gameLoop);
         _watchRegistry = watchRegistry;
         _vitalsService = vitalsService;
         _flowEngine.NewPlayerEntityFactory = name => LoginFlow.CreateNewPlayerEntity(name, _vitalsService);
@@ -100,7 +106,7 @@ public class ConnectionHandler
 
         var flow = new LoginFlow(
             adapter, loginContext, _persistence, _accountService, _sessions, _loginGates, _loginHandler, _config,
-            _loginFlowLogger, _metrics, _wizlock, _vitalsService, _flowEngine);
+            _loginFlowLogger, _metrics, _wizlock, _vitalsService, _flowEngine, _gameLoop);
 
         _ = Task.Run(async () =>
         {
