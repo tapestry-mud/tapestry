@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 RUN dotnet publish src/Tapestry.Server -c Release -o /out
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.9@sha256:ddcf70ad1ab963a4fcd41fbd722a6b660e404e87567cfbd46fd2809c21b02088 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.11@sha256:207cc51496778557731c81ff670333d8ade4a4fec22768fd1be8e78474a84ecf AS runtime
 ARG GIT_SHA=dev
 ARG ENGINE_VERSION=dev
 ENV ENGINE_BUILD_SHA=$GIT_SHA
